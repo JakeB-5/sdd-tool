@@ -7,6 +7,7 @@ import { registerInitCommand } from './commands/init.js';
 import { registerValidateCommand } from './commands/validate.js';
 import { registerPromptCommand } from './commands/prompt.js';
 import { registerChangeCommand } from './commands/change.js';
+import { registerImpactCommand } from './commands/impact.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
@@ -23,6 +24,7 @@ registerInitCommand(program);
 registerValidateCommand(program);
 registerPromptCommand(program);
 registerChangeCommand(program);
+registerImpactCommand(program);
 
 /**
  * CLI 실행
