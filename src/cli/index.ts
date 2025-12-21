@@ -3,6 +3,7 @@
  */
 import { Command } from 'commander';
 import { createRequire } from 'node:module';
+import { registerInitCommand } from './commands/init.js';
 import { registerValidateCommand } from './commands/validate.js';
 
 const require = createRequire(import.meta.url);
@@ -16,6 +17,7 @@ program
   .version(pkg.version);
 
 // Commands
+registerInitCommand(program);
 registerValidateCommand(program);
 
 /**
