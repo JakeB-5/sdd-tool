@@ -9,6 +9,9 @@ import {
   ARCHIVE_PROMPT,
   IMPACT_PROMPT,
   VALIDATE_PROMPT,
+  NEW_PROMPT,
+  PLAN_PROMPT,
+  TASKS_PROMPT,
   getPrompt,
   getAvailableCommands,
 } from '../../../src/prompts/index.js';
@@ -113,6 +116,56 @@ describe('VALIDATE_PROMPT', () => {
   });
 });
 
+describe('NEW_PROMPT', () => {
+  it('명세 생성 관련 내용을 포함한다', () => {
+    expect(NEW_PROMPT).toContain('신규 기능 명세');
+    expect(NEW_PROMPT).toContain('spec.md');
+  });
+
+  it('형식 가이드를 포함한다', () => {
+    expect(NEW_PROMPT).toContain('RFC 2119');
+    expect(NEW_PROMPT).toContain('GIVEN-WHEN-THEN');
+  });
+
+  it('CLI 사용법을 포함한다', () => {
+    expect(NEW_PROMPT).toContain('sdd new');
+    expect(NEW_PROMPT).toContain('--all');
+  });
+});
+
+describe('PLAN_PROMPT', () => {
+  it('구현 계획 관련 내용을 포함한다', () => {
+    expect(PLAN_PROMPT).toContain('구현 계획');
+    expect(PLAN_PROMPT).toContain('plan.md');
+  });
+
+  it('기술 결정 섹션을 포함한다', () => {
+    expect(PLAN_PROMPT).toContain('기술 결정');
+    expect(PLAN_PROMPT).toContain('근거');
+  });
+
+  it('CLI 사용법을 포함한다', () => {
+    expect(PLAN_PROMPT).toContain('sdd new plan');
+  });
+});
+
+describe('TASKS_PROMPT', () => {
+  it('작업 분해 관련 내용을 포함한다', () => {
+    expect(TASKS_PROMPT).toContain('작업 분해');
+    expect(TASKS_PROMPT).toContain('tasks.md');
+  });
+
+  it('작업 상태를 포함한다', () => {
+    expect(TASKS_PROMPT).toContain('대기');
+    expect(TASKS_PROMPT).toContain('진행 중');
+    expect(TASKS_PROMPT).toContain('완료');
+  });
+
+  it('CLI 사용법을 포함한다', () => {
+    expect(TASKS_PROMPT).toContain('sdd new tasks');
+  });
+});
+
 describe('getPrompt', () => {
   it('존재하는 명령어 프롬프트를 반환한다', () => {
     expect(getPrompt('change')).toBe(CHANGE_PROMPT);
@@ -120,6 +173,9 @@ describe('getPrompt', () => {
     expect(getPrompt('archive')).toBe(ARCHIVE_PROMPT);
     expect(getPrompt('impact')).toBe(IMPACT_PROMPT);
     expect(getPrompt('validate')).toBe(VALIDATE_PROMPT);
+    expect(getPrompt('new')).toBe(NEW_PROMPT);
+    expect(getPrompt('plan')).toBe(PLAN_PROMPT);
+    expect(getPrompt('tasks')).toBe(TASKS_PROMPT);
   });
 
   it('존재하지 않는 명령어는 undefined를 반환한다', () => {
@@ -136,6 +192,9 @@ describe('getAvailableCommands', () => {
     expect(commands).toContain('archive');
     expect(commands).toContain('impact');
     expect(commands).toContain('validate');
-    expect(commands).toHaveLength(5);
+    expect(commands).toContain('new');
+    expect(commands).toContain('plan');
+    expect(commands).toContain('tasks');
+    expect(commands).toHaveLength(8);
   });
 });

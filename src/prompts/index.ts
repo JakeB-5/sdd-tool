@@ -241,6 +241,300 @@ sdd impact <feature-name> --json
 `;
 
 /**
+ * /sdd:new 프롬프트
+ */
+export const NEW_PROMPT = `# /sdd:new - 신규 기능 명세
+
+> 새로운 기능의 명세를 작성합니다.
+
+${FORMAT_GUIDE}
+
+---
+
+## 생성 전 체크리스트
+
+- [ ] 기능 요구사항이 명확히 정의됨
+- [ ] 사용자 스토리가 작성됨
+- [ ] 관련 이해관계자와 논의 완료
+- [ ] 기존 기능과의 충돌 여부 확인
+
+---
+
+## 생성할 파일
+
+### 1. spec.md
+
+\`\`\`markdown
+---
+id: {FEATURE_ID}
+title: "{TITLE}"
+status: draft
+created: {TODAY}
+depends: null
+---
+
+# {TITLE}
+
+> {DESCRIPTION}
+
+---
+
+## 개요
+
+{DESCRIPTION}
+
+---
+
+## 요구사항
+
+### REQ-01: [요구사항 제목]
+
+[요구사항 상세 설명]
+- 시스템은 [기능]을 지원해야 한다(SHALL)
+
+---
+
+## 시나리오
+
+### Scenario 1: [시나리오명]
+
+- **GIVEN** [전제 조건]
+- **WHEN** [행동/트리거]
+- **THEN** [예상 결과]
+
+---
+
+## 비기능 요구사항
+
+### 성능
+- 응답 시간: [N]ms 이내 (SHOULD)
+
+### 보안
+- [보안 요구사항] (SHALL)
+\`\`\`
+
+---
+
+## CLI 사용법
+
+\`\`\`bash
+# 기본 사용
+sdd new <feature-name>
+
+# 옵션 지정
+sdd new <feature-name> --title "제목" --description "설명"
+
+# 계획 및 작업도 함께 생성
+sdd new <feature-name> --all
+
+# 브랜치 생성 안 함
+sdd new <feature-name> --no-branch
+\`\`\`
+
+---
+
+## 생성 후 확인
+
+- [ ] \`sdd validate .sdd/specs/{FEATURE_ID}/spec.md\` 실행
+- [ ] RFC 2119 키워드 사용 확인
+- [ ] GIVEN-WHEN-THEN 시나리오 포함 확인
+- [ ] 다음 단계: \`/sdd:plan\` 실행
+`;
+
+/**
+ * /sdd:plan 프롬프트
+ */
+export const PLAN_PROMPT = `# /sdd:plan - 구현 계획
+
+> 기능 명세에 대한 구현 계획을 작성합니다.
+
+---
+
+## 생성 전 체크리스트
+
+- [ ] 명세(spec.md)가 검토 완료됨
+- [ ] 기술 스택 결정됨
+- [ ] 아키텍처 검토 완료
+- [ ] 의존성 확인
+
+---
+
+## 생성할 파일
+
+### 1. plan.md
+
+\`\`\`markdown
+---
+feature: {FEATURE_ID}
+created: {TODAY}
+status: draft
+---
+
+# 구현 계획: {TITLE}
+
+> {OVERVIEW}
+
+---
+
+## 기술 결정
+
+### 결정 1: [기술 결정 사항]
+
+**근거:** [결정 근거]
+
+**대안 검토:**
+- [대안 1]
+- [대안 2]
+
+---
+
+## 구현 단계
+
+### Phase 1: 기반 구조
+
+[기반 구조 설명]
+
+**산출물:**
+- [ ] [산출물 1]
+- [ ] [산출물 2]
+
+### Phase 2: 핵심 기능
+
+[핵심 기능 설명]
+
+**산출물:**
+- [ ] [산출물 1]
+
+---
+
+## 리스크 분석
+
+| 리스크 | 영향도 | 완화 전략 |
+|--------|--------|----------|
+| [리스크] | 🟡 MEDIUM | [전략] |
+
+---
+
+## 테스트 전략
+
+- 단위 테스트: 커버리지 80% 이상
+- 통합 테스트: API 엔드포인트
+- E2E 테스트: 주요 시나리오
+\`\`\`
+
+---
+
+## CLI 사용법
+
+\`\`\`bash
+# 계획 생성
+sdd new plan <feature-id>
+
+# 제목 지정
+sdd new plan <feature-id> --title "구현 계획"
+\`\`\`
+
+---
+
+## 생성 후 확인
+
+- [ ] 기술 결정 근거 확인
+- [ ] 구현 단계 정의
+- [ ] 리스크 분석 완료
+- [ ] 다음 단계: \`/sdd:tasks\` 실행
+`;
+
+/**
+ * /sdd:tasks 프롬프트
+ */
+export const TASKS_PROMPT = `# /sdd:tasks - 작업 분해
+
+> 구현 계획을 실행 가능한 작업으로 분해합니다.
+
+---
+
+## 생성 전 체크리스트
+
+- [ ] 계획(plan.md)이 승인됨
+- [ ] 작업 규모가 파악됨
+- [ ] 의존성 관계 정의됨
+
+---
+
+## 생성할 파일
+
+### 1. tasks.md
+
+\`\`\`markdown
+---
+feature: {FEATURE_ID}
+created: {TODAY}
+total: {N}
+completed: 0
+---
+
+# 작업 목록: {TITLE}
+
+> 총 {N}개 작업
+
+---
+
+## 진행 상황
+
+- 대기: {N}
+- 진행 중: 0
+- 완료: 0
+- 차단됨: 0
+
+---
+
+## 작업 목록
+
+### {FEATURE_ID}-task-001: [작업 제목]
+
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **설명:** [작업 설명]
+- **관련 파일:**
+  - \`src/path/to/file.ts\`
+- **의존성:** 없음
+
+### {FEATURE_ID}-task-002: [작업 제목]
+
+- **상태:** 대기
+- **우선순위:** 🟡 MEDIUM
+- **의존성:** {FEATURE_ID}-task-001
+\`\`\`
+
+---
+
+## CLI 사용법
+
+\`\`\`bash
+# 작업 분해 생성
+sdd new tasks <feature-id>
+\`\`\`
+
+---
+
+## 작업 완료 조건
+
+각 작업 완료 시:
+1. [ ] 코드 작성 완료
+2. [ ] 테스트 작성 및 통과
+3. [ ] 코드 리뷰 완료
+4. [ ] 문서 업데이트
+
+---
+
+## 다음 단계
+
+1. 첫 번째 작업부터 순차적으로 진행
+2. 각 작업 완료 후 상태 업데이트
+3. 모든 작업 완료 시 \`/sdd:archive\` 실행
+`;
+
+/**
  * /sdd:validate 프롬프트
  */
 export const VALIDATE_PROMPT = `# /sdd:validate - 스펙 검증
@@ -307,6 +601,9 @@ export const PROMPTS: Record<string, string> = {
   archive: ARCHIVE_PROMPT,
   impact: IMPACT_PROMPT,
   validate: VALIDATE_PROMPT,
+  new: NEW_PROMPT,
+  plan: PLAN_PROMPT,
+  tasks: TASKS_PROMPT,
 };
 
 /**
