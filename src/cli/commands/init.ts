@@ -7,6 +7,7 @@ import { ensureDir, writeFile, directoryExists } from '../../utils/fs.js';
 import { ExitCode } from '../../errors/index.js';
 import * as logger from '../../utils/logger.js';
 import { generateAgentsMd } from '../../generators/agents-md.js';
+import { generateClaudeCommands } from '../../generators/claude-commands.js';
 
 /**
  * init 명령어 등록
@@ -51,6 +52,8 @@ async function runInit(options: { force?: boolean }): Promise<void> {
     '.sdd/changes',
     '.sdd/archive',
     '.sdd/templates',
+    '.claude',
+    '.claude/commands',
   ];
 
   for (const dir of directories) {
@@ -67,6 +70,9 @@ async function runInit(options: { force?: boolean }): Promise<void> {
   // 템플릿 복사
   await copyTemplates(cwd);
 
+  // Claude 슬래시 커맨드 생성
+  await createClaudeCommands(cwd);
+
   logger.success('SDD 프로젝트가 초기화되었습니다.');
   logger.newline();
   logger.info('생성된 구조:');
@@ -77,10 +83,21 @@ async function runInit(options: { force?: boolean }): Promise<void> {
   logger.listItem('changes/', 1);
   logger.listItem('archive/', 1);
   logger.listItem('templates/', 1);
+  logger.listItem('.claude/');
+  logger.listItem('commands/', 1);
+  logger.newline();
+  logger.info('Claude 슬래시 커맨드:');
+  logger.listItem('/sdd-new - 새 기능 명세 작성');
+  logger.listItem('/sdd-plan - 구현 계획 작성');
+  logger.listItem('/sdd-tasks - 작업 분해');
+  logger.listItem('/sdd-implement - 구현 진행');
+  logger.listItem('/sdd-validate - 스펙 검증');
+  logger.listItem('/sdd-status - 상태 확인');
+  logger.listItem('/sdd-change - 변경 제안');
   logger.newline();
   logger.info('다음 단계:');
   logger.listItem('constitution.md를 수정하여 프로젝트 원칙을 정의하세요');
-  logger.listItem('`sdd validate`로 스펙을 검증할 수 있습니다');
+  logger.listItem('/sdd-new 로 첫 번째 기능 명세를 작성하세요');
 }
 
 /**
@@ -325,4 +342,18 @@ graph LR
   await writeFile(path.join(cwd, '.sdd', 'templates', 'proposal.md'), proposalTemplate);
   await writeFile(path.join(cwd, '.sdd', 'templates', 'delta.md'), deltaTemplate);
   await writeFile(path.join(cwd, '.sdd', 'templates', 'tasks.md'), tasksTemplate);
+}
+
+/**
+ * Claude 슬래시 커맨드 생성
+ */
+async function createClaudeCommands(cwd: string): Promise<void> {
+  const commands = generateClaudeCommands();
+
+  for (const cmd of commands) {
+    await writeFile(
+      path.join(cwd, '.claude', 'commands', `${cmd.name}.md`),
+      cmd.content
+    );
+  }
 }
