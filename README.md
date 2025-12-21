@@ -70,6 +70,15 @@ sdd init --force      # 기존 파일 덮어쓰기
 ├── changes/          # 변경 제안
 ├── archive/          # 완료된 변경
 └── templates/        # 템플릿 파일
+.claude/
+└── commands/         # Claude 슬래시 커맨드
+    ├── sdd-new.md
+    ├── sdd-plan.md
+    ├── sdd-tasks.md
+    ├── sdd-implement.md
+    ├── sdd-validate.md
+    ├── sdd-status.md
+    └── sdd-change.md
 ```
 
 ### `sdd new`
@@ -190,6 +199,79 @@ sdd prompt validate             # /sdd:validate 프롬프트
 4. 검토 및 승인
 5. sdd change apply             # 변경 적용
 6. sdd change archive           # 아카이브
+```
+
+## Claude 슬래시 커맨드
+
+`sdd init` 실행 시 `.claude/commands/` 디렉토리에 Claude Code용 슬래시 커맨드가 자동 생성됩니다.
+
+### 생성되는 커맨드
+
+| 커맨드 | 설명 |
+|--------|------|
+| `/sdd-new` | 새 기능 명세 작성 |
+| `/sdd-plan` | 구현 계획 작성 |
+| `/sdd-tasks` | 작업 분해 |
+| `/sdd-implement` | 순차적 구현 진행 |
+| `/sdd-validate` | 스펙 형식 검증 |
+| `/sdd-status` | 프로젝트 상태 확인 |
+| `/sdd-change` | 변경 제안 작성 |
+
+### 사용법
+
+Claude Code에서 슬래시 커맨드를 입력하면 해당 워크플로우가 자동으로 실행됩니다:
+
+```
+/sdd-new        # 새 기능 명세 작성 시작
+/sdd-plan       # 현재 기능의 구현 계획 작성
+/sdd-tasks      # 계획을 작업으로 분해
+/sdd-implement  # 작업 순차 구현
+```
+
+### 워크플로우 예시
+
+1. **새 기능 개발 시작**
+   ```
+   /sdd-new
+   → 기능명과 설명 입력
+   → spec.md 자동 생성 및 작성 안내
+   ```
+
+2. **구현 계획 수립**
+   ```
+   /sdd-plan
+   → spec.md 분석
+   → plan.md 작성 (기술 결정, 구현 단계, 리스크)
+   ```
+
+3. **작업 분해**
+   ```
+   /sdd-tasks
+   → plan.md 기반 작업 목록 생성
+   → 우선순위 및 의존성 설정
+   ```
+
+4. **구현 진행**
+   ```
+   /sdd-implement
+   → 다음 작업 확인
+   → 구현 및 테스트
+   → 작업 완료 처리
+   ```
+
+### 커맨드 커스터마이징
+
+`.claude/commands/sdd-*.md` 파일을 직접 수정하여 프로젝트에 맞게 커스터마이징할 수 있습니다.
+
+```markdown
+<!-- .claude/commands/sdd-new.md -->
+새로운 기능 명세를 작성합니다.
+
+## 지시사항
+1. 사용자에게 기능명을 요청
+2. sdd new <feature-id> --all 실행
+3. spec.md 작성 안내
+...
 ```
 
 ## 스펙 파일 형식
