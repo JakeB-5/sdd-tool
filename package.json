@@ -1,5 +1,5 @@
 {
-  "name": "@anthropic/sdd-tool",
+  "name": "sdd-tool",
   "version": "0.1.0",
   "description": "Unified Spec-Driven Development CLI - AI-first specification workflow",
   "type": "module",
@@ -26,16 +26,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/anthropic/sdd-tool.git"
+    "url": "git+https://github.com/JakeB-5/sdd-tool.git"
   },
-  "homepage": "https://github.com/anthropic/sdd-tool#readme",
+  "homepage": "https://github.com/JakeB-5/sdd-tool#readme",
   "bugs": {
-    "url": "https://github.com/anthropic/sdd-tool/issues"
+    "url": "https://github.com/JakeB-5/sdd-tool/issues"
   },
-  "author": {
-    "name": "Anthropic",
-    "url": "https://anthropic.com"
-  },
+  "author": "JakeB-5",
   "dependencies": {
     "commander": "^12.1.0",
     "zod": "^3.23.8",
