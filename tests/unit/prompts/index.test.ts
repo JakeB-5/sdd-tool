@@ -7,6 +7,7 @@ import {
   CHANGE_PROMPT,
   APPLY_PROMPT,
   ARCHIVE_PROMPT,
+  IMPACT_PROMPT,
   VALIDATE_PROMPT,
   getPrompt,
   getAvailableCommands,
@@ -78,6 +79,26 @@ describe('ARCHIVE_PROMPT', () => {
   });
 });
 
+describe('IMPACT_PROMPT', () => {
+  it('영향도 분석 내용을 포함한다', () => {
+    expect(IMPACT_PROMPT).toContain('영향도 분석');
+    expect(IMPACT_PROMPT).toContain('의존성 그래프');
+    expect(IMPACT_PROMPT).toContain('리스크 점수');
+  });
+
+  it('CLI 사용법을 포함한다', () => {
+    expect(IMPACT_PROMPT).toContain('sdd impact');
+    expect(IMPACT_PROMPT).toContain('--graph');
+    expect(IMPACT_PROMPT).toContain('--json');
+  });
+
+  it('영향 수준 기준을 포함한다', () => {
+    expect(IMPACT_PROMPT).toContain('높음');
+    expect(IMPACT_PROMPT).toContain('중간');
+    expect(IMPACT_PROMPT).toContain('낮음');
+  });
+});
+
 describe('VALIDATE_PROMPT', () => {
   it('검증 항목을 포함한다', () => {
     expect(VALIDATE_PROMPT).toContain('검증 항목');
@@ -97,6 +118,7 @@ describe('getPrompt', () => {
     expect(getPrompt('change')).toBe(CHANGE_PROMPT);
     expect(getPrompt('apply')).toBe(APPLY_PROMPT);
     expect(getPrompt('archive')).toBe(ARCHIVE_PROMPT);
+    expect(getPrompt('impact')).toBe(IMPACT_PROMPT);
     expect(getPrompt('validate')).toBe(VALIDATE_PROMPT);
   });
 
@@ -112,7 +134,8 @@ describe('getAvailableCommands', () => {
     expect(commands).toContain('change');
     expect(commands).toContain('apply');
     expect(commands).toContain('archive');
+    expect(commands).toContain('impact');
     expect(commands).toContain('validate');
-    expect(commands).toHaveLength(4);
+    expect(commands).toHaveLength(5);
   });
 });

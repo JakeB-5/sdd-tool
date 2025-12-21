@@ -176,6 +176,71 @@ export const ARCHIVE_PROMPT = `# /sdd:archive - 변경 아카이브
 `;
 
 /**
+ * /sdd:impact 프롬프트
+ */
+export const IMPACT_PROMPT = `# /sdd:impact - 영향도 분석
+
+> 스펙 변경 시 관련 스펙 및 코드에 미치는 영향을 분석합니다.
+
+---
+
+## 분석 전 체크리스트
+
+- [ ] 변경할 스펙 식별됨
+- [ ] 변경 범위 파악됨
+
+---
+
+## 분석 프로세스
+
+1. 대상 스펙의 의존성 그래프 구축
+2. 이 스펙에 의존하는 다른 스펙 식별
+3. 영향도 수준 평가 (높음/중간/낮음)
+4. 리스크 점수 산출 (1-10)
+
+---
+
+## CLI 사용법
+
+\`\`\`bash
+# 특정 기능 영향도 분석
+sdd impact <feature-name>
+
+# 의존성 그래프 출력 (Mermaid)
+sdd impact --graph
+
+# JSON 형식 출력
+sdd impact <feature-name> --json
+\`\`\`
+
+---
+
+## 영향 수준 기준
+
+| 수준 | 기준 | 표시 |
+|------|------|------|
+| 높음 | 직접 의존, API 변경 | 🔴 HIGH |
+| 중간 | 간접 의존, 데이터 공유 | 🟡 MEDIUM |
+| 낮음 | UI 컴포넌트 공유 | 🟢 LOW |
+
+---
+
+## 리스크 점수 해석
+
+- 1-3: 낮은 리스크 - 바로 진행 가능
+- 4-6: 중간 리스크 - 검토 권장
+- 7-10: 높은 리스크 - 신중한 검토 필요
+
+---
+
+## 분석 후 조치
+
+- 높은 리스크: 관련 팀과 공유, 단계적 마이그레이션 검토
+- 중간 리스크: 영향 스펙 테스트 확인
+- 낮은 리스크: 표준 프로세스 진행
+`;
+
+/**
  * /sdd:validate 프롬프트
  */
 export const VALIDATE_PROMPT = `# /sdd:validate - 스펙 검증
@@ -240,6 +305,7 @@ export const PROMPTS: Record<string, string> = {
   change: CHANGE_PROMPT,
   apply: APPLY_PROMPT,
   archive: ARCHIVE_PROMPT,
+  impact: IMPACT_PROMPT,
   validate: VALIDATE_PROMPT,
 };
 
