@@ -71,9 +71,48 @@ export interface ImpactAnalysisResult {
   targetSpec: string;
   dependsOn: AffectedSpec[];
   affectedBy: AffectedSpec[];
+  transitiveAffected: AffectedSpec[]; // 간접 영향 받는 스펙
   riskScore: number; // 1-10
   riskLevel: ImpactLevel;
   summary: string;
+  recommendations: string[];
+}
+
+/**
+ * 영향도 리포트
+ */
+export interface ImpactReport {
+  generatedAt: string;
+  projectPath: string;
+  totalSpecs: number;
+  totalEdges: number;
+  mostConnectedSpecs: Array<{
+    id: string;
+    title?: string;
+    inbound: number;
+    outbound: number;
+    total: number;
+  }>;
+  orphanSpecs: string[]; // 의존성 없는 스펙
+  circularDependencies: Array<{
+    cycle: string[];
+    description: string;
+  }>;
+  healthScore: number; // 1-100
+  summary: string;
+}
+
+/**
+ * 변경 제안 영향 분석
+ */
+export interface ChangeImpactAnalysis {
+  changeId: string;
+  title?: string;
+  status: string;
+  affectedSpecs: AffectedSpec[];
+  transitiveAffected: AffectedSpec[];
+  totalImpact: number;
+  riskLevel: ImpactLevel;
   recommendations: string[];
 }
 

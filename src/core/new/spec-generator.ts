@@ -19,6 +19,7 @@ export interface GenerateSpecOptions {
   }>;
   depends?: string[];
   status?: FeatureStatus;
+  constitutionVersion?: string;
 }
 
 /**
@@ -28,13 +29,16 @@ export function generateSpec(options: GenerateSpecOptions): string {
   const today = new Date().toISOString().split('T')[0];
   const status = options.status || 'draft';
   const depends = options.depends?.length ? `\n  - ${options.depends.join('\n  - ')}` : 'null';
+  const constitutionLine = options.constitutionVersion
+    ? `\nconstitution_version: ${options.constitutionVersion}`
+    : '';
 
   let content = `---
 id: ${options.id}
 title: "${options.title}"
 status: ${status}
 created: ${today}
-depends: ${depends}
+depends: ${depends}${constitutionLine}
 ---
 
 # ${options.title}

@@ -10,6 +10,9 @@ import {
   formatImpactResult,
   buildDependencyGraph,
   generateMermaidGraph,
+  generateImpactReport,
+  formatImpactReport,
+  analyzeChangeImpact,
 } from '../../core/impact/index.js';
 import { findSddRoot } from '../../utils/fs.js';
 import * as logger from '../../utils/logger.js';
@@ -19,7 +22,7 @@ import { ExitCode } from '../../errors/index.js';
  * impact 명령어 등록
  */
 export function registerImpactCommand(program: Command): void {
-  program
+  const impact = program
     .command('impact [feature]')
     .description('스펙 변경의 영향도를 분석합니다')
     .option('-g, --graph', '의존성 그래프 출력 (Mermaid)')
@@ -32,6 +35,34 @@ export function registerImpactCommand(program: Command): void {
     }) => {
       try {
         await runImpact(feature, options);
+      } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+    });
+
+  // report 서브커맨드
+  impact
+    .command('report')
+    .description('전체 프로젝트 의존성 리포트 생성')
+    .option('--json', 'JSON 형식 출력')
+    .action(async (options: { json?: boolean }) => {
+      try {
+        await runImpactReport(options);
+      } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+    });
+
+  // change 서브커맨드
+  impact
+    .command('change <id>')
+    .description('변경 제안의 영향도를 분석합니다')
+    .option('--json', 'JSON 형식 출력')
+    .action(async (id: string, options: { json?: boolean }) => {
+      try {
+        await runChangeImpact(id, options);
       } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
         process.exit(ExitCode.GENERAL_ERROR);
@@ -99,5 +130,88 @@ async function runImpact(
     console.log(JSON.stringify(result.data, null, 2));
   } else {
     console.log(formatImpactResult(result.data));
+  }
+}
+
+/**
+ * 영향도 리포트 생성
+ */
+async function runImpactReport(options: { json?: boolean }): Promise<void> {
+  const projectRoot = await findSddRoot();
+  if (!projectRoot) {
+    logger.error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.');
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const sddPath = path.join(projectRoot, '.sdd');
+  const result = await generateImpactReport(sddPath);
+
+  if (!result.success) {
+    logger.error(result.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  if (options.json) {
+    console.log(JSON.stringify(result.data, null, 2));
+  } else {
+    console.log(formatImpactReport(result.data));
+  }
+}
+
+/**
+ * 변경 제안 영향 분석
+ */
+async function runChangeImpact(changeId: string, options: { json?: boolean }): Promise<void> {
+  const projectRoot = await findSddRoot();
+  if (!projectRoot) {
+    logger.error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.');
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const sddPath = path.join(projectRoot, '.sdd');
+  const result = await analyzeChangeImpact(sddPath, changeId);
+
+  if (!result.success) {
+    logger.error(result.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  if (options.json) {
+    console.log(JSON.stringify(result.data, null, 2));
+  } else {
+    const data = result.data;
+    logger.info(`📊 변경 영향 분석: ${data.changeId}`);
+    if (data.title) {
+      logger.info(`제목: ${data.title}`);
+    }
+    logger.info(`상태: ${data.status}`);
+    logger.newline();
+
+    if (data.affectedSpecs.length > 0) {
+      logger.info('⚠️  직접 영향 받는 스펙:');
+      for (const spec of data.affectedSpecs) {
+        logger.listItem(`${spec.id} - ${spec.reason}`, 1);
+      }
+      logger.newline();
+    }
+
+    if (data.transitiveAffected.length > 0) {
+      logger.info('🔄 간접 영향 받는 스펙:');
+      for (const spec of data.transitiveAffected) {
+        logger.listItem(`${spec.id} (${spec.reason})`, 1);
+      }
+      logger.newline();
+    }
+
+    const riskIcon = data.riskLevel === 'high' ? '🔴' : data.riskLevel === 'medium' ? '🟡' : '🟢';
+    logger.info(`총 영향 범위: ${data.totalImpact}개 스펙 ${riskIcon}`);
+    logger.newline();
+
+    if (data.recommendations.length > 0) {
+      logger.info('💡 권장사항:');
+      for (const rec of data.recommendations) {
+        logger.listItem(rec, 1);
+      }
+    }
   }
 }

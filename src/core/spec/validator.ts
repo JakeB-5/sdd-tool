@@ -3,7 +3,7 @@
  */
 import path from 'node:path';
 import { parseSpec, validateSpecFormat } from './parser.js';
-import { readFile, listFiles, directoryExists } from '../../utils/fs.js';
+import { readFile, listFiles, directoryExists, fileExists } from '../../utils/fs.js';
 import { ValidationError, ErrorCode } from '../../errors/index.js';
 import { Result, success, failure, type ValidationResult, type SpecValidationError, type SpecValidationWarning } from '../../types/index.js';
 
@@ -13,6 +13,24 @@ import { Result, success, failure, type ValidationResult, type SpecValidationErr
 export interface ValidateOptions {
   /** 경고도 에러로 처리 */
   strict?: boolean;
+  /** 참조 링크 검증 */
+  checkLinks?: boolean;
+  /** 스펙 루트 경로 (링크 검증 시 사용) */
+  specsRoot?: string;
+}
+
+/**
+ * 깨진 링크 정보
+ */
+export interface BrokenLink {
+  /** 링크 텍스트 */
+  text: string;
+  /** 링크 대상 */
+  target: string;
+  /** 발견된 줄 번호 */
+  line?: number;
+  /** 링크 유형 */
+  type: 'internal' | 'spec-reference' | 'dependency';
 }
 
 /**
@@ -23,6 +41,8 @@ export interface FileValidationResult {
   valid: boolean;
   errors: SpecValidationError[];
   warnings: SpecValidationWarning[];
+  /** 깨진 링크 목록 */
+  brokenLinks?: BrokenLink[];
 }
 
 /**
@@ -106,6 +126,21 @@ export async function validateSpecFile(
     });
   }
 
+  // 참조 링크 검증
+  if (options.checkLinks && options.specsRoot) {
+    const brokenLinks = await validateLinks(content, filePath, options.specsRoot);
+    if (brokenLinks.length > 0) {
+      result.brokenLinks = brokenLinks;
+      for (const link of brokenLinks) {
+        result.warnings.push({
+          code: 'W002',
+          message: `깨진 ${link.type} 링크: ${link.target}`,
+          location: { file: filePath, line: link.line },
+        });
+      }
+    }
+  }
+
   // strict 모드: 경고도 에러로 처리
   if (options.strict && result.warnings.length > 0) {
     result.valid = false;
@@ -117,6 +152,120 @@ export async function validateSpecFile(
   }
 
   return result;
+}
+
+/**
+ * 스펙 파일 내 링크 검증
+ */
+async function validateLinks(
+  content: string,
+  filePath: string,
+  specsRoot: string
+): Promise<BrokenLink[]> {
+  const brokenLinks: BrokenLink[] = [];
+  const lines = content.split('\n');
+  const fileDir = path.dirname(filePath);
+
+  // 마크다운 링크 패턴: [text](url)
+  const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+
+  // 스펙 참조 패턴: `spec-id` 또는 [[spec-id]]
+  const specRefPattern = /(?:`([a-z0-9-]+)`|\[\[([a-z0-9-]+)\]\])/g;
+
+  for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+    const line = lines[lineNum];
+
+    // 마크다운 링크 검증
+    let match;
+    while ((match = linkPattern.exec(line)) !== null) {
+      const [, text, target] = match;
+
+      // 외부 링크 (http/https) 또는 앵커 링크 (#) 무시
+      if (target.startsWith('http://') || target.startsWith('https://') || target.startsWith('#')) {
+        continue;
+      }
+
+      // 내부 파일 링크 검증
+      const targetPath = path.resolve(fileDir, target);
+      if (!(await fileExists(targetPath))) {
+        brokenLinks.push({
+          text,
+          target,
+          line: lineNum + 1,
+          type: 'internal',
+        });
+      }
+    }
+
+    // 스펙 참조 검증 (backtick 또는 wiki-style 링크)
+    while ((match = specRefPattern.exec(line)) !== null) {
+      const specId = match[1] || match[2];
+
+      // 일반적인 코드 키워드 제외
+      const codeKeywords = ['true', 'false', 'null', 'undefined', 'string', 'number', 'boolean', 'object', 'array'];
+      if (codeKeywords.includes(specId)) {
+        continue;
+      }
+
+      // 스펙 ID 형식인지 확인 (하이픈 포함, 영소문자+숫자)
+      if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)+$/.test(specId)) {
+        continue;
+      }
+
+      // 스펙 디렉토리 확인
+      const specPath = path.join(specsRoot, specId);
+      const specFilePath = path.join(specPath, 'spec.md');
+      if (!(await directoryExists(specPath)) && !(await fileExists(specFilePath))) {
+        brokenLinks.push({
+          text: specId,
+          target: specId,
+          line: lineNum + 1,
+          type: 'spec-reference',
+        });
+      }
+    }
+  }
+
+  return brokenLinks;
+}
+
+/**
+ * 스펙의 의존성 검증
+ */
+export async function validateDependencies(
+  filePath: string,
+  specsRoot: string
+): Promise<BrokenLink[]> {
+  const brokenLinks: BrokenLink[] = [];
+
+  const readResult = await readFile(filePath);
+  if (!readResult.success) {
+    return brokenLinks;
+  }
+
+  const parseResult = parseSpec(readResult.data);
+  if (!parseResult.success) {
+    return brokenLinks;
+  }
+
+  const spec = parseResult.data;
+
+  // dependencies 필드 검증
+  if (spec.metadata.dependencies && Array.isArray(spec.metadata.dependencies)) {
+    for (const dep of spec.metadata.dependencies) {
+      const depPath = path.join(specsRoot, dep);
+      const depFilePath = path.join(depPath, 'spec.md');
+      if (!(await directoryExists(depPath)) && !(await fileExists(depFilePath))) {
+        brokenLinks.push({
+          text: dep,
+          target: dep,
+          type: 'dependency',
+        });
+      }
+    }
+  }
+
+  return brokenLinks;
 }
 
 /**

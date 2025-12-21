@@ -87,6 +87,8 @@ async function runInit(options: { force?: boolean }): Promise<void> {
   logger.listItem('commands/', 1);
   logger.newline();
   logger.info('Claude 슬래시 커맨드:');
+  logger.listItem('/sdd.start - 워크플로우 시작 (통합 진입점)');
+  logger.listItem('/sdd.constitution - 프로젝트 원칙 관리');
   logger.listItem('/sdd.new - 새 기능 명세 작성');
   logger.listItem('/sdd.plan - 구현 계획 작성');
   logger.listItem('/sdd.tasks - 작업 분해');

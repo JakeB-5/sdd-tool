@@ -10,12 +10,14 @@ import {
   generateProposal,
   generateDelta,
   parseProposal,
+  parseDelta,
+  validateDelta,
   updateProposalStatus,
   listPendingChanges,
   archiveChange,
   generateChangeId,
 } from '../../core/change/index.js';
-import { findSddRoot, directoryExists, ensureDir, writeFile } from '../../utils/fs.js';
+import { findSddRoot, directoryExists, ensureDir, writeFile, readFile, fileExists } from '../../utils/fs.js';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
 
@@ -62,6 +64,32 @@ export function registerChangeCommand(program: Command): void {
     .action(async (id: string) => {
       try {
         await runArchive(id);
+      } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+    });
+
+  // diff 서브커맨드
+  change
+    .command('diff <id>')
+    .description('변경 제안의 diff를 표시합니다')
+    .action(async (id: string) => {
+      try {
+        await runDiff(id);
+      } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+    });
+
+  // validate 서브커맨드
+  change
+    .command('validate <id>')
+    .description('변경 제안의 유효성을 검증합니다')
+    .action(async (id: string) => {
+      try {
+        await runValidateChange(id);
       } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
         process.exit(ExitCode.GENERAL_ERROR);
@@ -238,4 +266,159 @@ async function runArchive(id: string): Promise<void> {
 
   logger.success(`변경이 아카이브되었습니다: ${id}`);
   logger.info(`위치: ${result.data.archiveDir}`);
+}
+
+/**
+ * 변경 diff 표시
+ */
+async function runDiff(id: string): Promise<void> {
+  const projectRoot = await findSddRoot();
+  if (!projectRoot) {
+    logger.error('SDD 프로젝트를 찾을 수 없습니다.');
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const sddPath = path.join(projectRoot, '.sdd');
+  const changePath = path.join(sddPath, 'changes', id);
+
+  if (!(await directoryExists(changePath))) {
+    logger.error(`변경을 찾을 수 없습니다: ${id}`);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const deltaPath = path.join(changePath, 'delta.md');
+  if (!(await fileExists(deltaPath))) {
+    logger.error('delta.md를 찾을 수 없습니다.');
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const deltaResult = await readFile(deltaPath);
+  if (!deltaResult.success) {
+    logger.error('delta.md를 읽을 수 없습니다.');
+    process.exit(ExitCode.FILE_SYSTEM_ERROR);
+  }
+
+  const parseResult = parseDelta(deltaResult.data);
+  if (!parseResult.success) {
+    logger.error(`Delta 파싱 실패: ${parseResult.error.message}`);
+    process.exit(ExitCode.VALIDATION_ERROR);
+  }
+
+  const delta = parseResult.data;
+
+  logger.info(`변경 Diff: ${id}`);
+  logger.newline();
+
+  // ADDED
+  if (delta.added.length > 0 && delta.added[0].content !== '(추가되는 스펙 내용)') {
+    logger.info('📗 ADDED:');
+    for (const item of delta.added) {
+      console.log(`  + ${item.content.split('\n')[0]}...`);
+    }
+    logger.newline();
+  }
+
+  // MODIFIED
+  if (delta.modified.length > 0) {
+    logger.info('📘 MODIFIED:');
+    for (const item of delta.modified) {
+      if (item.before && item.after) {
+        logger.info('  Before:');
+        for (const line of item.before.split('\n').slice(0, 3)) {
+          console.log(`    - ${line}`);
+        }
+        logger.info('  After:');
+        for (const line of item.after.split('\n').slice(0, 3)) {
+          console.log(`    + ${line}`);
+        }
+      } else {
+        console.log(`  ~ ${item.content.split('\n')[0]}...`);
+      }
+    }
+    logger.newline();
+  }
+
+  // REMOVED
+  if (delta.removed.length > 0 && delta.removed[0].content !== '(삭제되는 스펙 참조)') {
+    logger.info('📕 REMOVED:');
+    for (const item of delta.removed) {
+      console.log(`  - ${item.content.split('\n')[0]}...`);
+    }
+    logger.newline();
+  }
+}
+
+/**
+ * 변경 제안 유효성 검증
+ */
+async function runValidateChange(id: string): Promise<void> {
+  const projectRoot = await findSddRoot();
+  if (!projectRoot) {
+    logger.error('SDD 프로젝트를 찾을 수 없습니다.');
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const sddPath = path.join(projectRoot, '.sdd');
+  const changePath = path.join(sddPath, 'changes', id);
+
+  if (!(await directoryExists(changePath))) {
+    logger.error(`변경을 찾을 수 없습니다: ${id}`);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  let hasErrors = false;
+
+  // Proposal 검증
+  const proposalPath = path.join(changePath, 'proposal.md');
+  if (await fileExists(proposalPath)) {
+    const proposalResult = await readFile(proposalPath);
+    if (proposalResult.success) {
+      const parsed = parseProposal(proposalResult.data);
+      if (parsed.success) {
+        logger.success(`✓ proposal.md 유효 (${parsed.data.title})`);
+      } else {
+        logger.error(`✗ proposal.md 오류: ${parsed.error.message}`);
+        hasErrors = true;
+      }
+    }
+  } else {
+    logger.error('✗ proposal.md가 없습니다.');
+    hasErrors = true;
+  }
+
+  // Delta 검증
+  const deltaPath = path.join(changePath, 'delta.md');
+  if (await fileExists(deltaPath)) {
+    const deltaResult = await readFile(deltaPath);
+    if (deltaResult.success) {
+      const validation = validateDelta(deltaResult.data);
+      if (validation.valid) {
+        const types = [];
+        if (validation.hasAdded) types.push('ADDED');
+        if (validation.hasModified) types.push('MODIFIED');
+        if (validation.hasRemoved) types.push('REMOVED');
+        logger.success(`✓ delta.md 유효 (${types.join(', ')})`);
+
+        for (const warning of validation.warnings) {
+          logger.warn(`  ⚠ ${warning}`);
+        }
+      } else {
+        logger.error(`✗ delta.md 오류:`);
+        for (const error of validation.errors) {
+          logger.error(`  - ${error}`);
+        }
+        hasErrors = true;
+      }
+    }
+  } else {
+    logger.warn('⚠ delta.md가 없습니다.');
+  }
+
+  logger.newline();
+  if (hasErrors) {
+    logger.error(`검증 실패: ${id}`);
+    process.exit(ExitCode.VALIDATION_ERROR);
+  } else {
+    logger.success(`검증 통과: ${id}`);
+  }
 }

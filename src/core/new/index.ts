@@ -79,3 +79,19 @@ export {
   type ChecklistItem,
   type ChecklistCategory,
 } from './checklist.js';
+
+// 기능 번호 카운터
+export {
+  readCounter,
+  saveCounter,
+  getNextFeatureNumber,
+  peekNextFeatureNumber,
+  getFeatureHistory,
+  resetCounter,
+  setNextFeatureNumber,
+  extractFeatureNumberFromBranch,
+  isValidFeatureId,
+  CounterError,
+  type CounterData,
+  type FeatureHistoryEntry,
+} from './counter.js';

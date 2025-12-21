@@ -19,7 +19,8 @@ export function registerValidateCommand(program: Command): void {
     .argument('[path]', '검증할 파일 또는 디렉토리', '')
     .option('-s, --strict', '경고도 에러로 처리')
     .option('-q, --quiet', '요약만 출력')
-    .action(async (targetPath: string, options: { strict?: boolean; quiet?: boolean }) => {
+    .option('-l, --check-links', '참조 링크 유효성 검사')
+    .action(async (targetPath: string, options: { strict?: boolean; quiet?: boolean; checkLinks?: boolean }) => {
       try {
         await runValidate(targetPath, options);
       } catch (error) {
@@ -34,16 +35,18 @@ export function registerValidateCommand(program: Command): void {
  */
 async function runValidate(
   targetPath: string,
-  options: { strict?: boolean; quiet?: boolean }
+  options: { strict?: boolean; quiet?: boolean; checkLinks?: boolean }
 ): Promise<void> {
   // 대상 경로 결정
   let resolvedPath: string;
+  let specsRoot: string | undefined;
+
+  const sddRoot = await findSddRoot();
 
   if (targetPath) {
     resolvedPath = path.resolve(targetPath);
   } else {
     // 기본값: .sdd/specs/
-    const sddRoot = await findSddRoot();
     if (!sddRoot) {
       logger.error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.');
       process.exit(ExitCode.GENERAL_ERROR);
@@ -51,13 +54,25 @@ async function runValidate(
     resolvedPath = path.join(sddRoot, '.sdd', 'specs');
   }
 
+  // 링크 검증을 위한 스펙 루트 경로 설정
+  if (options.checkLinks && sddRoot) {
+    specsRoot = path.join(sddRoot, '.sdd', 'specs');
+  }
+
   if (!options.quiet) {
     logger.info(`검증 중: ${resolvedPath}`);
+    if (options.checkLinks) {
+      logger.info('(참조 링크 검증 포함)');
+    }
     logger.newline();
   }
 
   // 검증 실행
-  const result = await validateSpecs(resolvedPath, { strict: options.strict });
+  const result = await validateSpecs(resolvedPath, {
+    strict: options.strict,
+    checkLinks: options.checkLinks,
+    specsRoot,
+  });
 
   if (!result.success) {
     logger.error(result.error.message);

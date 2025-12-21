@@ -12,9 +12,13 @@ import {
   createBranch,
   isGitRepository,
   generateFullChecklistMarkdown,
+  getNextFeatureNumber,
+  peekNextFeatureNumber,
+  getFeatureHistory,
 } from '../../core/new/index.js';
 import { logger } from '../../utils/index.js';
-import { ensureDir, fileExists } from '../../utils/fs.js';
+import { ensureDir, fileExists, readFile } from '../../utils/fs.js';
+import { parseConstitution } from '../../core/constitution/index.js';
 
 /**
  * new 명령어 등록
@@ -27,6 +31,7 @@ export function registerNewCommand(program: Command): void {
     .option('--title <title>', '기능 제목')
     .option('--description <desc>', '기능 설명')
     .option('--no-branch', '브랜치 생성 안 함')
+    .option('--numbered', '자동 번호 부여 (feature/001-name 형식)')
     .option('--plan', '계획 파일도 함께 생성')
     .option('--tasks', '작업 분해 파일도 함께 생성')
     .option('--all', '모든 파일 생성 (spec, plan, tasks)')
@@ -61,6 +66,17 @@ export function registerNewCommand(program: Command): void {
     .action(async () => {
       await handleChecklist();
     });
+
+  // counter 서브커맨드
+  newCmd
+    .command('counter')
+    .description('기능 번호 카운터 관리')
+    .option('--peek', '다음 번호 확인 (증가하지 않음)')
+    .option('--history', '생성 이력 조회')
+    .option('--set <number>', '다음 번호 설정')
+    .action(async (opts) => {
+      await handleCounter(opts);
+    });
 }
 
 /**
@@ -72,6 +88,7 @@ async function handleNew(
     title?: string;
     description?: string;
     branch?: boolean;
+    numbered?: boolean;
     plan?: boolean;
     tasks?: boolean;
     all?: boolean;
@@ -83,12 +100,28 @@ async function handleNew(
     process.exit(1);
   }
 
-  const featureId = generateFeatureId(name);
-  const title = options.title || name;
-  const description = options.description || `${title} 기능 명세`;
-
   const cwd = process.cwd();
   const sddPath = path.join(cwd, '.sdd');
+
+  // 기능 ID 생성 (번호 부여 옵션에 따라)
+  let featureId: string;
+  let branchName: string | undefined;
+
+  if (options.numbered) {
+    const numberResult = await getNextFeatureNumber(sddPath, name);
+    if (!numberResult.success) {
+      logger.error(`번호 생성 실패: ${numberResult.error.message}`);
+      process.exit(1);
+    }
+    featureId = numberResult.data.fullId;
+    branchName = numberResult.data.branchName;
+    logger.info(`자동 번호 부여: #${numberResult.data.number.toString().padStart(3, '0')}`);
+  } else {
+    featureId = generateFeatureId(name);
+  }
+
+  const title = options.title || name;
+  const description = options.description || `${title} 기능 명세`;
   const featurePath = path.join(sddPath, 'specs', featureId);
 
   try {
@@ -101,11 +134,25 @@ async function handleNew(
     // 기능 디렉토리 생성
     await ensureDir(featurePath);
 
+    // Constitution 버전 읽기
+    let constitutionVersion: string | undefined;
+    const constitutionPath = path.join(sddPath, 'constitution.md');
+    if (await fileExists(constitutionPath)) {
+      const constResult = await readFile(constitutionPath);
+      if (constResult.success) {
+        const parseResult = parseConstitution(constResult.data);
+        if (parseResult.success) {
+          constitutionVersion = parseResult.data.metadata.version;
+        }
+      }
+    }
+
     // spec.md 생성
     const specContent = generateSpec({
       id: featureId,
       title,
       description,
+      constitutionVersion,
     });
     await fs.writeFile(path.join(featurePath, 'spec.md'), specContent, 'utf-8');
     logger.info(`✅ 명세 생성: ${featurePath}/spec.md`);
@@ -113,7 +160,9 @@ async function handleNew(
     // 브랜치 생성
     if (options.branch !== false) {
       if (await isGitRepository(cwd)) {
-        const result = await createBranch(featureId, { checkout: true, cwd });
+        // 번호 부여 모드에서는 전체 브랜치 이름 사용, 아니면 기존 방식
+        const branchToCreate = branchName || featureId;
+        const result = await createBranch(branchToCreate, { checkout: true, cwd });
         if (result.success) {
           logger.info(`✅ 브랜치 생성: ${result.data}`);
         } else {
@@ -291,6 +340,99 @@ async function handleChecklist(): Promise<void> {
     logger.info(`✅ 체크리스트 생성: ${outputPath}`);
   } catch (error) {
     logger.error(`체크리스트 생성 실패: ${error}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * counter 서브커맨드 핸들러
+ */
+async function handleCounter(options: {
+  peek?: boolean;
+  history?: boolean;
+  set?: string;
+}): Promise<void> {
+  const cwd = process.cwd();
+  const sddPath = path.join(cwd, '.sdd');
+
+  if (!(await fileExists(sddPath))) {
+    logger.error('.sdd 디렉토리가 없습니다. 먼저 sdd init을 실행해주세요.');
+    process.exit(1);
+  }
+
+  // 다음 번호 확인
+  if (options.peek) {
+    const result = await peekNextFeatureNumber(sddPath);
+    if (result.success) {
+      const paddedNumber = String(result.data).padStart(3, '0');
+      logger.info(`다음 기능 번호: #${paddedNumber}`);
+      logger.info(`브랜치 형식: feature/${paddedNumber}-<name>`);
+    } else {
+      logger.error(`카운터 조회 실패: ${result.error.message}`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  // 이력 조회
+  if (options.history) {
+    const result = await getFeatureHistory(sddPath);
+    if (result.success) {
+      if (result.data.length === 0) {
+        logger.info('생성된 기능 이력이 없습니다.');
+      } else {
+        logger.info('=== 기능 생성 이력 ===');
+        logger.info('');
+        for (const entry of result.data) {
+          const date = new Date(entry.createdAt).toLocaleDateString('ko-KR');
+          logger.info(`#${String(entry.number).padStart(3, '0')} ${entry.name}`);
+          logger.info(`  ID: ${entry.fullId}`);
+          logger.info(`  생성일: ${date}`);
+          logger.info('');
+        }
+      }
+    } else {
+      logger.error(`이력 조회 실패: ${result.error.message}`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  // 번호 설정
+  if (options.set) {
+    const nextNumber = parseInt(options.set, 10);
+    if (isNaN(nextNumber) || nextNumber < 1) {
+      logger.error('유효한 번호를 입력해주세요 (1 이상의 정수)');
+      process.exit(1);
+    }
+
+    const { setNextFeatureNumber } = await import('../../core/new/index.js');
+    const result = await setNextFeatureNumber(sddPath, nextNumber);
+    if (result.success) {
+      logger.info(`다음 기능 번호가 #${String(nextNumber).padStart(3, '0')}로 설정되었습니다.`);
+    } else {
+      logger.error(`번호 설정 실패: ${result.error.message}`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  // 기본: 현재 상태 표시
+  const peekResult = await peekNextFeatureNumber(sddPath);
+  const historyResult = await getFeatureHistory(sddPath);
+
+  if (peekResult.success && historyResult.success) {
+    logger.info('=== 기능 번호 카운터 상태 ===');
+    logger.info('');
+    logger.info(`다음 번호: #${String(peekResult.data).padStart(3, '0')}`);
+    logger.info(`생성된 기능 수: ${historyResult.data.length}개`);
+    logger.info('');
+    logger.info('옵션:');
+    logger.info('  --peek     다음 번호 확인');
+    logger.info('  --history  생성 이력 조회');
+    logger.info('  --set <n>  다음 번호 설정');
+  } else {
+    logger.error('카운터 상태 조회 실패');
     process.exit(1);
   }
 }
