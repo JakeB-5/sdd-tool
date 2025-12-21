@@ -13,7 +13,7 @@ export interface ClaudeCommand {
 export function generateClaudeCommands(): ClaudeCommand[] {
   return [
     {
-      name: 'sdd-new',
+      name: 'sdd.new',
       content: `새로운 기능 명세를 작성합니다.
 
 ## 지시사항
@@ -46,7 +46,7 @@ export function generateClaudeCommands(): ClaudeCommand[] {
 `,
     },
     {
-      name: 'sdd-plan',
+      name: 'sdd.plan',
       content: `기능 명세에 대한 구현 계획을 작성합니다.
 
 ## 지시사항
@@ -81,11 +81,11 @@ export function generateClaudeCommands(): ClaudeCommand[] {
 | 리스크 | 영향도 | 완화 전략 |
 \`\`\`
 
-완료 후 \`/sdd-tasks\`로 작업을 분해하세요.
+완료 후 \`/sdd.tasks\`로 작업을 분해하세요.
 `,
     },
     {
-      name: 'sdd-tasks',
+      name: 'sdd.tasks',
       content: `구현 계획을 실행 가능한 작업으로 분해합니다.
 
 ## 지시사항
@@ -118,11 +118,11 @@ export function generateClaudeCommands(): ClaudeCommand[] {
 - [ ] 조건 2
 \`\`\`
 
-완료 후 \`/sdd-implement\`로 구현을 시작하세요.
+완료 후 \`/sdd.implement\`로 구현을 시작하세요.
 `,
     },
     {
-      name: 'sdd-implement',
+      name: 'sdd.implement',
       content: `작업 목록을 기반으로 순차적으로 구현합니다.
 
 ## 지시사항
@@ -151,11 +151,11 @@ export function generateClaudeCommands(): ClaudeCommand[] {
 모든 작업이 완료되면:
 1. \`sdd validate\`로 최종 검증
 2. PR 생성 또는 머지
-3. 필요시 \`/sdd-archive\`로 아카이브
+3. 필요시 \`/sdd.archive\`로 아카이브
 `,
     },
     {
-      name: 'sdd-validate',
+      name: 'sdd.validate',
       content: `스펙 파일의 형식과 규칙을 검증합니다.
 
 ## 지시사항
@@ -189,7 +189,7 @@ sdd validate --strict
 `,
     },
     {
-      name: 'sdd-status',
+      name: 'sdd.status',
       content: `현재 SDD 프로젝트 상태를 확인합니다.
 
 ## 지시사항
@@ -221,7 +221,7 @@ sdd status --json
 `,
     },
     {
-      name: 'sdd-change',
+      name: 'sdd.change',
       content: `기존 스펙에 대한 변경을 제안합니다.
 
 ## 지시사항

@@ -87,17 +87,17 @@ async function runInit(options: { force?: boolean }): Promise<void> {
   logger.listItem('commands/', 1);
   logger.newline();
   logger.info('Claude 슬래시 커맨드:');
-  logger.listItem('/sdd-new - 새 기능 명세 작성');
-  logger.listItem('/sdd-plan - 구현 계획 작성');
-  logger.listItem('/sdd-tasks - 작업 분해');
-  logger.listItem('/sdd-implement - 구현 진행');
-  logger.listItem('/sdd-validate - 스펙 검증');
-  logger.listItem('/sdd-status - 상태 확인');
-  logger.listItem('/sdd-change - 변경 제안');
+  logger.listItem('/sdd.new - 새 기능 명세 작성');
+  logger.listItem('/sdd.plan - 구현 계획 작성');
+  logger.listItem('/sdd.tasks - 작업 분해');
+  logger.listItem('/sdd.implement - 구현 진행');
+  logger.listItem('/sdd.validate - 스펙 검증');
+  logger.listItem('/sdd.status - 상태 확인');
+  logger.listItem('/sdd.change - 변경 제안');
   logger.newline();
   logger.info('다음 단계:');
   logger.listItem('constitution.md를 수정하여 프로젝트 원칙을 정의하세요');
-  logger.listItem('/sdd-new 로 첫 번째 기능 명세를 작성하세요');
+  logger.listItem('/sdd.new 로 첫 번째 기능 명세를 작성하세요');
 }
 
 /**
