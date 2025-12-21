@@ -1,0 +1,37 @@
+# Source files
+src/
+tests/
+
+# Config files
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+eslint.config.js
+.eslintrc*
+
+# Development
+.git/
+.github/
+.vscode/
+.idea/
+
+# Build artifacts
+*.log
+*.tsbuildinfo
+coverage/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Package managers
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+node_modules/
+
+# Misc
+*.md
+!README.md
+.env*
+.editorconfig

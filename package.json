@@ -1,10 +1,10 @@
 {
-  "name": "sdd-tool",
+  "name": "@anthropic/sdd-tool",
   "version": "0.1.0",
-  "description": "Unified Spec-Driven Development CLI",
+  "description": "Unified Spec-Driven Development CLI - AI-first specification workflow",
   "type": "module",
   "bin": {
-    "sdd": "./bin/sdd.js"
+    "sdd": "bin/sdd.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,7 +22,19 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "prepare": "npm run build"
+    "prepublishOnly": "npm run build && npm run test:run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anthropic/sdd-tool.git"
+  },
+  "homepage": "https://github.com/anthropic/sdd-tool#readme",
+  "bugs": {
+    "url": "https://github.com/anthropic/sdd-tool/issues"
+  },
+  "author": {
+    "name": "Anthropic",
+    "url": "https://anthropic.com"
   },
   "dependencies": {
     "commander": "^12.1.0",
@@ -47,13 +59,20 @@
   "files": [
     "dist",
     "bin",
-    "templates"
+    "templates",
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "sdd",
     "spec-driven-development",
+    "specification",
     "cli",
-    "specification"
+    "ai",
+    "workflow",
+    "rfc2119",
+    "given-when-then",
+    "bdd"
   ],
   "license": "MIT"
 }
