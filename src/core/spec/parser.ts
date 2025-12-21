@@ -66,33 +66,40 @@ export function parseSpec(content: string): Result<ParsedSpec, ValidationError> 
 function parseRequirements(content: string): Requirement[] {
   const requirements: Requirement[] = [];
 
-  // ## Requirement: 섹션 찾기
-  const reqSectionRegex = /##\s+Requirement:\s*(.+?)(?=\n##|\n---|\n$)/gs;
-  let match: RegExpExecArray | null;
+  // 요구사항 섹션 찾기 (## 요구사항 또는 ## Requirements)
+  const reqSectionMatch = content.match(/##\s+(?:요구사항|Requirements?)\s*\n([\s\S]*?)(?=\n##\s+[^#]|\n---|\n$)/i);
+  if (!reqSectionMatch) {
+    // 전체 문서에서 RFC 2119 키워드 찾기
+    return parseRequirementsFromContent(content);
+  }
+
+  return parseRequirementsFromContent(reqSectionMatch[1]);
+}
+
+/**
+ * 컨텐츠에서 요구사항 추출
+ */
+function parseRequirementsFromContent(content: string): Requirement[] {
+  const requirements: Requirement[] = [];
+  const lines = content.split('\n');
   let reqId = 1;
 
-  while ((match = reqSectionRegex.exec(content)) !== null) {
-    const sectionContent = match[0];
-    const lines = sectionContent.split('\n');
+  for (const line of lines) {
+    const keywords = extractRfc2119Keywords(line);
+    if (keywords.length > 0) {
+      // 가장 강한 키워드 사용 (SHALL/MUST > SHOULD > MAY)
+      const level = keywords.includes('SHALL') || keywords.includes('MUST')
+        ? (keywords.includes('SHALL') ? 'SHALL' : 'MUST')
+        : keywords.includes('SHOULD')
+        ? 'SHOULD'
+        : 'MAY';
 
-    // 섹션 내에서 RFC 2119 키워드가 포함된 문장 찾기
-    for (const line of lines) {
-      const keywords = extractRfc2119Keywords(line);
-      if (keywords.length > 0) {
-        // 가장 강한 키워드 사용 (SHALL/MUST > SHOULD > MAY)
-        const level = keywords.includes('SHALL') || keywords.includes('MUST')
-          ? (keywords.includes('SHALL') ? 'SHALL' : 'MUST')
-          : keywords.includes('SHOULD')
-          ? 'SHOULD'
-          : 'MAY';
-
-        requirements.push({
-          id: `REQ-${String(reqId++).padStart(3, '0')}`,
-          level,
-          description: line.trim(),
-          raw: line,
-        });
-      }
+      requirements.push({
+        id: `REQ-${String(reqId++).padStart(3, '0')}`,
+        level,
+        description: line.trim(),
+        raw: line,
+      });
     }
   }
 
@@ -105,13 +112,13 @@ function parseRequirements(content: string): Requirement[] {
 function parseScenarios(content: string): Scenario[] {
   const scenarios: Scenario[] = [];
 
-  // ### Scenario: 섹션 찾기
-  const scenarioRegex = /###\s+Scenario:\s*(.+?)(?=\n###|\n##|\n---|\n$)/gs;
+  // ### Scenario 섹션 찾기 (Scenario:, Scenario 1:, Scenario 1. 등 다양한 형식 지원)
+  const scenarioRegex = /###\s+Scenario[:\s]+(.+?)(?=\n###|\n##|\n---|\n$)/gis;
   let match: RegExpExecArray | null;
 
   while ((match = scenarioRegex.exec(content)) !== null) {
     const sectionContent = match[0];
-    const nameMatch = sectionContent.match(/###\s+Scenario:\s*(.+)/);
+    const nameMatch = sectionContent.match(/###\s+Scenario[:\s]+(.+)/i);
     const name = nameMatch?.[1]?.trim() ?? 'Unnamed';
 
     const given: string[] = [];
