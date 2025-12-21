@@ -189,8 +189,15 @@ async function findSpecFiles(dirPath: string): Promise<Result<string[], Validati
         if (entry.isDirectory()) {
           await scanDir(fullPath);
         } else if (entry.isFile() && entry.name.endsWith('.md')) {
-          // index.md나 README.md는 제외
-          if (!['index.md', 'readme.md'].includes(entry.name.toLowerCase())) {
+          // 보조 파일 및 시스템 파일 제외 (spec.md만 검증)
+          const excludeFiles = [
+            'index.md',
+            'readme.md',
+            'plan.md',
+            'tasks.md',
+            'checklist.md',
+          ];
+          if (!excludeFiles.includes(entry.name.toLowerCase())) {
             files.push(fullPath);
           }
         }
