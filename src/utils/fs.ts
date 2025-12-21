@@ -99,6 +99,18 @@ export async function listFiles(
 }
 
 /**
+ * 디렉토리 내 항목 목록
+ */
+export async function readDir(dirPath: string): Promise<Result<string[], FileSystemError>> {
+  try {
+    const entries = await fs.readdir(dirPath);
+    return success(entries);
+  } catch {
+    return failure(new FileSystemError(ErrorCode.DIRECTORY_NOT_FOUND, dirPath));
+  }
+}
+
+/**
  * SDD 프로젝트 루트 찾기
  */
 export async function findSddRoot(startPath: string = process.cwd()): Promise<string | null> {
