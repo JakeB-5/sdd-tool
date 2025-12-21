@@ -83,3 +83,13 @@ export class UserCancelledError extends SddError {
     this.name = 'UserCancelledError';
   }
 }
+
+/**
+ * 변경 워크플로우 에러
+ */
+export class ChangeError extends SddError {
+  constructor(message: string) {
+    super(ErrorCode.UNKNOWN, message, ExitCode.GENERAL_ERROR);
+    this.name = 'ChangeError';
+  }
+}

@@ -115,3 +115,47 @@ export async function findSddRoot(startPath: string = process.cwd()): Promise<st
 
   return null;
 }
+
+/**
+ * 디렉토리 복사 (재귀)
+ */
+export async function copyDir(
+  srcPath: string,
+  destPath: string
+): Promise<Result<void, FileSystemError>> {
+  try {
+    await fs.mkdir(destPath, { recursive: true });
+
+    const entries = await fs.readdir(srcPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcEntry = path.join(srcPath, entry.name);
+      const destEntry = path.join(destPath, entry.name);
+
+      if (entry.isDirectory()) {
+        const result = await copyDir(srcEntry, destEntry);
+        if (!result.success) {
+          return result;
+        }
+      } else {
+        await fs.copyFile(srcEntry, destEntry);
+      }
+    }
+
+    return success(undefined);
+  } catch {
+    return failure(new FileSystemError(ErrorCode.FILE_WRITE_ERROR, destPath));
+  }
+}
+
+/**
+ * 디렉토리 삭제 (재귀)
+ */
+export async function removeDir(dirPath: string): Promise<Result<void, FileSystemError>> {
+  try {
+    await fs.rm(dirPath, { recursive: true, force: true });
+    return success(undefined);
+  } catch {
+    return failure(new FileSystemError(ErrorCode.FILE_WRITE_ERROR, dirPath));
+  }
+}

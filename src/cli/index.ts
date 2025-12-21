@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { registerInitCommand } from './commands/init.js';
 import { registerValidateCommand } from './commands/validate.js';
 import { registerPromptCommand } from './commands/prompt.js';
+import { registerChangeCommand } from './commands/change.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
@@ -21,6 +22,7 @@ program
 registerInitCommand(program);
 registerValidateCommand(program);
 registerPromptCommand(program);
+registerChangeCommand(program);
 
 /**
  * CLI 실행
