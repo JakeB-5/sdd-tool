@@ -75,8 +75,11 @@ describe('sdd init', () => {
     const agentsPath = path.join(tempDir, '.sdd', 'AGENTS.md');
     const content = await fs.readFile(agentsPath, 'utf-8');
 
-    expect(content).toContain('# AGENTS.md');
+    // 50줄 규칙: 상단에 RFC 2119와 GIVEN-WHEN-THEN 포함
+    expect(content).toContain('# SDD Workflow Guide');
     expect(content).toContain('워크플로우');
+    expect(content).toContain('SHALL');
+    expect(content).toContain('GIVEN');
   });
 
   it('템플릿 파일을 생성한다', async () => {
