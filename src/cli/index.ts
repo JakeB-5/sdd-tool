@@ -3,6 +3,7 @@
  */
 import { Command } from 'commander';
 import { createRequire } from 'node:module';
+import { registerValidateCommand } from './commands/validate.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
@@ -14,9 +15,8 @@ program
   .description(pkg.description)
   .version(pkg.version);
 
-// Commands will be registered here
-// import { registerInitCommand } from './commands/init.js';
-// registerInitCommand(program);
+// Commands
+registerValidateCommand(program);
 
 /**
  * CLI 실행
