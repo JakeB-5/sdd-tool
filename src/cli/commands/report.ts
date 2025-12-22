@@ -12,6 +12,86 @@ import {
 import { findSddRoot } from '../../utils/fs.js';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
+import { Result, success, failure } from '../../types/index.js';
+
+/**
+ * report 실행 옵션
+ */
+export interface ReportOptions {
+  format?: string;
+  output?: string;
+  title?: string;
+  quality?: boolean;
+  validation?: boolean;
+}
+
+/**
+ * report 명령어 결과
+ */
+export interface ReportCommandResult {
+  format: ReportFormat;
+  outputPath: string;
+  content: string;
+}
+
+/**
+ * 형식 유효성 검사
+ */
+export function isValidReportFormat(format: string): format is ReportFormat {
+  return ['html', 'markdown', 'json'].includes(format);
+}
+
+/**
+ * 출력 경로 결정
+ */
+export function resolveOutputPath(
+  format: ReportFormat,
+  output: string | undefined,
+  projectRoot: string
+): string {
+  if (!output) {
+    const ext = format === 'markdown' ? 'md' : format;
+    const timestamp = new Date().toISOString().slice(0, 10);
+    return path.join(projectRoot, `sdd-report-${timestamp}.${ext}`);
+  }
+  return path.isAbsolute(output) ? output : path.join(projectRoot, output);
+}
+
+/**
+ * report 핵심 로직 (테스트 가능)
+ */
+export async function executeReport(
+  options: ReportOptions,
+  projectRoot: string
+): Promise<Result<ReportCommandResult, Error>> {
+  const sddPath = path.join(projectRoot, '.sdd');
+  const format = (options.format || 'html') as ReportFormat;
+
+  // 형식 검증
+  if (!isValidReportFormat(format)) {
+    return failure(new Error(`지원하지 않는 형식입니다: ${format}. 지원 형식: html, markdown, json`));
+  }
+
+  const outputPath = resolveOutputPath(format, options.output, projectRoot);
+
+  const result = await generateReport(sddPath, {
+    format,
+    outputPath,
+    title: options.title,
+    includeQuality: options.quality !== false,
+    includeValidation: options.validation !== false,
+  });
+
+  if (!result.success) {
+    return failure(result.error);
+  }
+
+  return success({
+    format,
+    outputPath: result.data.outputPath || outputPath,
+    content: result.data.content,
+  });
+}
 
 /**
  * report 명령어 등록
@@ -25,13 +105,7 @@ export function registerReportCommand(program: Command): void {
     .option('--title <title>', '리포트 제목')
     .option('--no-quality', '품질 분석 제외')
     .option('--no-validation', '검증 결과 제외')
-    .action(async (options: {
-      format?: string;
-      output?: string;
-      title?: string;
-      quality?: boolean;
-      validation?: boolean;
-    }) => {
+    .action(async (options: ReportOptions) => {
       try {
         await runReport(options);
       } catch (error) {
@@ -42,40 +116,16 @@ export function registerReportCommand(program: Command): void {
 }
 
 /**
- * report 실행
+ * report CLI 실행 (출력 및 종료 처리)
  */
-async function runReport(options: {
-  format?: string;
-  output?: string;
-  title?: string;
-  quality?: boolean;
-  validation?: boolean;
-}): Promise<void> {
+async function runReport(options: ReportOptions): Promise<void> {
   const projectRoot = await findSddRoot();
   if (!projectRoot) {
     logger.error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.');
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  const sddPath = path.join(projectRoot, '.sdd');
   const format = (options.format || 'html') as ReportFormat;
-
-  // 형식 검증
-  if (!['html', 'markdown', 'json'].includes(format)) {
-    logger.error(`지원하지 않는 형식입니다: ${format}`);
-    logger.info('지원 형식: html, markdown, json');
-    process.exit(ExitCode.VALIDATION_ERROR);
-  }
-
-  // 기본 출력 경로 설정
-  let outputPath = options.output;
-  if (!outputPath) {
-    const ext = format === 'markdown' ? 'md' : format;
-    const timestamp = new Date().toISOString().slice(0, 10);
-    outputPath = path.join(projectRoot, `sdd-report-${timestamp}.${ext}`);
-  } else if (!path.isAbsolute(outputPath)) {
-    outputPath = path.join(projectRoot, outputPath);
-  }
 
   logger.info('📊 리포트 생성 중...');
   logger.info(`   형식: ${format}`);
@@ -83,13 +133,7 @@ async function runReport(options: {
   logger.info(`   검증 결과: ${options.validation !== false ? '포함' : '제외'}`);
   logger.newline();
 
-  const result = await generateReport(sddPath, {
-    format,
-    outputPath,
-    title: options.title,
-    includeQuality: options.quality !== false,
-    includeValidation: options.validation !== false,
-  });
+  const result = await executeReport(options, projectRoot);
 
   if (!result.success) {
     logger.error(result.error.message);

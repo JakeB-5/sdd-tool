@@ -4,11 +4,120 @@
 import { Command } from 'commander';
 import path from 'node:path';
 import chalk from 'chalk';
-import { validateSpecs, type FileValidationResult } from '../../core/spec/validator.js';
+import { validateSpecs, type FileValidationResult, type ValidateResult } from '../../core/spec/validator.js';
 import { ExitCode } from '../../errors/index.js';
 import { findSddRoot, fileExists } from '../../utils/fs.js';
 import * as logger from '../../utils/logger.js';
-import { formatViolationReport } from '../../core/constitution/index.js';
+import { Result, success, failure } from '../../types/index.js';
+
+/**
+ * CLI 옵션
+ */
+export interface ValidateOptions {
+  strict?: boolean;
+  quiet?: boolean;
+  checkLinks?: boolean;
+  constitution?: boolean;
+}
+
+/**
+ * 검증 컨텍스트
+ */
+export interface ValidateContext {
+  resolvedPath: string;
+  specsRoot?: string;
+  checkConstitution: boolean;
+  hasConstitution: boolean;
+  sddRoot?: string;
+}
+
+/**
+ * 검증 명령어 결과
+ */
+export interface ValidateCommandResult {
+  context: ValidateContext;
+  data: ValidateResult;
+}
+
+/**
+ * 검증 컨텍스트 생성
+ */
+export async function createValidateContext(
+  targetPath: string,
+  options: ValidateOptions,
+  sddRoot: string | null
+): Promise<Result<ValidateContext, Error>> {
+  let resolvedPath: string;
+  let specsRoot: string | undefined;
+
+  if (targetPath) {
+    resolvedPath = path.resolve(targetPath);
+  } else {
+    if (!sddRoot) {
+      return failure(new Error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.'));
+    }
+    resolvedPath = path.join(sddRoot, '.sdd', 'specs');
+  }
+
+  if (options.checkLinks && sddRoot) {
+    specsRoot = path.join(sddRoot, '.sdd', 'specs');
+  }
+
+  const checkConstitution = options.constitution !== false;
+  let hasConstitution = false;
+
+  if (checkConstitution && sddRoot) {
+    const constitutionPath = path.join(sddRoot, '.sdd', 'constitution.md');
+    hasConstitution = await fileExists(constitutionPath);
+  }
+
+  return success({
+    resolvedPath,
+    specsRoot,
+    checkConstitution,
+    hasConstitution,
+    sddRoot: sddRoot || undefined,
+  });
+}
+
+/**
+ * 검증 핵심 로직 (테스트 가능)
+ */
+export async function executeValidate(
+  options: ValidateOptions,
+  context: ValidateContext
+): Promise<Result<ValidateResult, Error>> {
+  const result = await validateSpecs(context.resolvedPath, {
+    strict: options.strict,
+    checkLinks: options.checkLinks,
+    specsRoot: context.specsRoot,
+    checkConstitution: context.checkConstitution && context.hasConstitution,
+    sddRoot: context.sddRoot,
+  });
+
+  if (!result.success) {
+    return failure(result.error);
+  }
+
+  return success(result.data);
+}
+
+/**
+ * 결과 요약 문자열 생성
+ */
+export function formatValidateSummary(result: ValidateResult, useColors = true): string {
+  const { passed, failed, warnings } = result;
+
+  const passedText = useColors ? chalk.green(`${passed} passed`) : `${passed} passed`;
+  const failedText = failed > 0
+    ? (useColors ? chalk.red(`${failed} failed`) : `${failed} failed`)
+    : `${failed} failed`;
+  const warningsText = warnings > 0
+    ? (useColors ? chalk.yellow(`${warnings} warnings`) : `${warnings} warnings`)
+    : '';
+
+  return [passedText, failedText, warningsText].filter(Boolean).join(', ');
+}
 
 /**
  * validate 명령어 등록
@@ -34,95 +143,52 @@ export function registerValidateCommand(program: Command): void {
 }
 
 /**
- * CLI 옵션
- */
-interface ValidateOptions {
-  strict?: boolean;
-  quiet?: boolean;
-  checkLinks?: boolean;
-  constitution?: boolean;
-}
-
-/**
- * 검증 실행
+ * 검증 CLI 실행 (출력 및 종료 처리)
  */
 async function runValidate(
   targetPath: string,
   options: ValidateOptions
 ): Promise<void> {
-  // 대상 경로 결정
-  let resolvedPath: string;
-  let specsRoot: string | undefined;
-
   const sddRoot = await findSddRoot();
 
-  if (targetPath) {
-    resolvedPath = path.resolve(targetPath);
-  } else {
-    // 기본값: .sdd/specs/
-    if (!sddRoot) {
-      logger.error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.');
-      process.exit(ExitCode.GENERAL_ERROR);
-    }
-    resolvedPath = path.join(sddRoot, '.sdd', 'specs');
+  const contextResult = await createValidateContext(targetPath, options, sddRoot);
+  if (!contextResult.success) {
+    logger.error(contextResult.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  // 링크 검증을 위한 스펙 루트 경로 설정
-  if (options.checkLinks && sddRoot) {
-    specsRoot = path.join(sddRoot, '.sdd', 'specs');
-  }
-
-  // Constitution 검증 여부 결정 (기본값: true, --no-constitution 시 false)
-  const checkConstitution = options.constitution !== false;
-  let hasConstitution = false;
-
-  if (checkConstitution && sddRoot) {
-    const constitutionPath = path.join(sddRoot, '.sdd', 'constitution.md');
-    hasConstitution = await fileExists(constitutionPath);
-  }
+  const context = contextResult.data;
 
   if (!options.quiet) {
-    logger.info(`검증 중: ${resolvedPath}`);
+    logger.info(`검증 중: ${context.resolvedPath}`);
     if (options.checkLinks) {
       logger.info('(참조 링크 검증 포함)');
     }
-    if (checkConstitution && hasConstitution) {
+    if (context.checkConstitution && context.hasConstitution) {
       logger.info('(Constitution 위반 검사 포함)');
     }
     logger.newline();
   }
 
-  // 검증 실행
-  const result = await validateSpecs(resolvedPath, {
-    strict: options.strict,
-    checkLinks: options.checkLinks,
-    specsRoot,
-    checkConstitution: checkConstitution && hasConstitution,
-    sddRoot: sddRoot || undefined,
-  });
+  const result = await executeValidate(options, context);
 
   if (!result.success) {
     logger.error(result.error.message);
     process.exit(ExitCode.FILE_SYSTEM_ERROR);
   }
 
-  const { passed, failed, warnings, files } = result.data;
+  const { failed, files } = result.data;
 
   // 결과 출력
   if (!options.quiet) {
     for (const file of files) {
-      printFileResult(file, resolvedPath);
+      printFileResult(file, context.resolvedPath);
     }
     logger.newline();
   }
 
   // 요약
-  const passedText = chalk.green(`${passed} passed`);
-  const failedText = failed > 0 ? chalk.red(`${failed} failed`) : `${failed} failed`;
-  const warningsText = warnings > 0 ? chalk.yellow(`${warnings} warnings`) : '';
-
-  const summary = [passedText, failedText, warningsText].filter(Boolean).join(', ');
-  console.log(`Result: ${summary}`);
+  console.log(`Result: ${formatValidateSummary(result.data)}`);
 
   // 종료 코드
   if (failed > 0) {
