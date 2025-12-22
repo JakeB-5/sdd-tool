@@ -10,11 +10,224 @@ import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
 import { findSddRoot, fileExists, readFile, ensureDir, writeFile, directoryExists } from '../../utils/fs.js';
 import { generateChangeId } from '../../core/change/index.js';
+import { Result, success, failure } from '../../types/index.js';
 
 /**
  * 전환 방향
  */
-type TransitionDirection = 'new-to-change' | 'change-to-new';
+export type TransitionDirection = 'new-to-change' | 'change-to-new';
+
+/**
+ * new → change 전환 옵션
+ */
+export interface NewToChangeOptions {
+  title?: string;
+  reason?: string;
+}
+
+/**
+ * change → new 전환 옵션
+ */
+export interface ChangeToNewOptions {
+  name?: string;
+  reason?: string;
+}
+
+/**
+ * new → change 전환 결과
+ */
+export interface NewToChangeResult {
+  changeId: string;
+  changePath: string;
+  filesCreated: string[];
+}
+
+/**
+ * change → new 전환 결과
+ */
+export interface ChangeToNewResult {
+  featureName: string;
+  featurePath: string;
+  filesCreated: string[];
+  originalChangeId: string;
+}
+
+/**
+ * 기존 변경 ID 목록 가져오기 (테스트 가능)
+ */
+export async function getExistingChangeIds(sddPath: string): Promise<string[]> {
+  const changesPath = path.join(sddPath, 'changes');
+  try {
+    const dirs = await fs.readdir(changesPath);
+    return dirs.filter((d) => d.startsWith('CHG-'));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * proposal.md에서 제목 추출 (테스트 가능)
+ */
+export async function extractProposalTitle(proposalPath: string): Promise<string> {
+  if (!(await fileExists(proposalPath))) {
+    return '';
+  }
+  const content = await readFile(proposalPath);
+  if (!content.success) {
+    return '';
+  }
+  const titleMatch = content.data.match(/^#\s+(.+)$/m);
+  return titleMatch ? titleMatch[1] : '';
+}
+
+/**
+ * new → change 전환 실행 (테스트 가능)
+ */
+export async function transitionNewToChange(
+  sddPath: string,
+  specId: string,
+  options: NewToChangeOptions
+): Promise<Result<NewToChangeResult, Error>> {
+  const specsPath = path.join(sddPath, 'specs');
+  const specPath = path.join(specsPath, specId, 'spec.md');
+
+  if (!(await fileExists(specPath))) {
+    return failure(new Error(`스펙을 찾을 수 없습니다: ${specId}`));
+  }
+
+  // 기존 변경 ID 목록 가져오기
+  const existingIds = await getExistingChangeIds(sddPath);
+
+  // 변경 ID 생성
+  const changeId = generateChangeId(existingIds);
+  const changesPath = path.join(sddPath, 'changes');
+  const changePath = path.join(changesPath, changeId);
+  await ensureDir(changePath);
+
+  // proposal.md 생성
+  const title = options.title || `${specId} 기능 확장`;
+  const reason = options.reason || 'new 워크플로우에서 전환됨';
+  const proposalContent = generateTransitionProposal(specId, title, reason, 'new-to-change');
+  await writeFile(path.join(changePath, 'proposal.md'), proposalContent);
+
+  // delta.md 생성
+  const deltaContent = generateDeltaTemplate(specId);
+  await writeFile(path.join(changePath, 'delta.md'), deltaContent);
+
+  // tasks.md 생성
+  const tasksContent = generateTasksTemplate();
+  await writeFile(path.join(changePath, 'tasks.md'), tasksContent);
+
+  return success({
+    changeId,
+    changePath,
+    filesCreated: ['proposal.md', 'delta.md', 'tasks.md'],
+  });
+}
+
+/**
+ * change → new 전환 실행 (테스트 가능)
+ */
+export async function transitionChangeToNew(
+  sddPath: string,
+  changeId: string,
+  options: ChangeToNewOptions
+): Promise<Result<ChangeToNewResult, Error>> {
+  const changePath = path.join(sddPath, 'changes', changeId);
+
+  if (!(await directoryExists(changePath))) {
+    return failure(new Error(`변경 제안을 찾을 수 없습니다: ${changeId}`));
+  }
+
+  // proposal.md에서 제목 추출
+  const proposalPath = path.join(changePath, 'proposal.md');
+  const extractedTitle = await extractProposalTitle(proposalPath);
+
+  // 새 기능 이름 결정
+  const featureName = options.name ||
+    extractedTitle.toLowerCase().replace(/\s+/g, '-') ||
+    `feature-from-${changeId}`;
+  const specsPath = path.join(sddPath, 'specs');
+  const newSpecPath = path.join(specsPath, featureName);
+
+  if (await directoryExists(newSpecPath)) {
+    return failure(new Error(`스펙이 이미 존재합니다: ${featureName}`));
+  }
+
+  await ensureDir(newSpecPath);
+
+  // spec.md 생성
+  const reason = options.reason || 'change 워크플로우에서 전환됨';
+  const specContent = generateTransitionSpec(featureName, extractedTitle || featureName, reason, changeId);
+  await writeFile(path.join(newSpecPath, 'spec.md'), specContent);
+
+  // plan.md 생성
+  const planContent = generatePlanTemplate(featureName);
+  await writeFile(path.join(newSpecPath, 'plan.md'), planContent);
+
+  // tasks.md 생성
+  const tasksContent = generateTasksTemplate();
+  await writeFile(path.join(newSpecPath, 'tasks.md'), tasksContent);
+
+  // 원본 변경 제안 상태 업데이트
+  const statusPath = path.join(changePath, '.status');
+  await writeFile(statusPath, JSON.stringify({
+    status: 'transitioned',
+    transitionedTo: featureName,
+    transitionedAt: new Date().toISOString(),
+    reason,
+  }, null, 2));
+
+  return success({
+    featureName,
+    featurePath: newSpecPath,
+    filesCreated: ['spec.md', 'plan.md', 'tasks.md'],
+    originalChangeId: changeId,
+  });
+}
+
+/**
+ * 전환 가이드 텍스트 (테스트 가능)
+ */
+export function getTransitionGuide(): string {
+  return `=== 워크플로우 전환 가이드 ===
+
+## new → change 전환
+
+사용 시점:
+- 새 기능 작성 중 기존 스펙과 중복 발견
+- 기존 기능 확장이 더 적절한 경우
+- 의존성 분석 결과 기존 스펙 수정 필요
+
+명령어:
+sdd transition new-to-change <spec-id>
+  -t, --title <title>  : 변경 제안 제목
+  -r, --reason <reason>: 전환 사유
+
+## change → new 전환
+
+사용 시점:
+- 변경 범위가 너무 커서 별도 기능으로 분리 필요
+- 기존 스펙과 독립적인 새 기능으로 발전
+- 영향도 분석 결과 분리가 안전
+
+명령어:
+sdd transition change-to-new <change-id>
+  -n, --name <name>    : 새 기능 이름
+  -r, --reason <reason>: 전환 사유
+
+## 전환 판단 기준
+
+new → change:
+- 영향받는 스펙 수 ≤ 3개
+- 변경이 기존 기능의 자연스러운 확장
+- 새 시나리오 추가보다 기존 시나리오 수정 중심
+
+change → new:
+- 영향받는 스펙 수 > 3개
+- 새로운 개념/도메인 도입
+- 기존 스펙과 독립적으로 테스트 가능`;
+}
 
 /**
  * transition 명령어 등록
@@ -64,10 +277,7 @@ export function registerTransitionCommand(program: Command): void {
 }
 
 /**
- * new → change 전환 실행
- *
- * 새 기능 작성 중 기존 스펙과 중복/관련됨을 발견했을 때
- * 변경 제안 워크플로우로 전환합니다.
+ * new → change 전환 실행 (CLI 핸들러)
  */
 async function runNewToChange(
   specId: string,
@@ -80,55 +290,19 @@ async function runNewToChange(
   }
 
   const sddPath = path.join(projectRoot, '.sdd');
-  const specsPath = path.join(sddPath, 'specs');
-
-  // 대상 스펙 확인
-  const specPath = path.join(specsPath, specId, 'spec.md');
-  if (!(await fileExists(specPath))) {
-    logger.error(`스펙을 찾을 수 없습니다: ${specId}`);
-    logger.info('사용 가능한 스펙 목록은 `sdd list`로 확인하세요.');
-    process.exit(ExitCode.GENERAL_ERROR);
-  }
 
   logger.info('=== 워크플로우 전환: new → change ===');
   logger.newline();
   logger.info(`대상 스펙: ${specId}`);
 
-  // 기존 변경 ID 목록 가져오기
-  const changesPath = path.join(sddPath, 'changes');
-  const existingIds: string[] = [];
-  try {
-    const dirs = await fs.readdir(changesPath);
-    existingIds.push(...dirs.filter((d) => d.startsWith('CHG-')));
-  } catch {
-    // 디렉토리가 없을 수 있음
-  }
-
-  // 변경 ID 생성
-  const changeId = generateChangeId(existingIds);
-  const changePath = path.join(changesPath, changeId);
-  await ensureDir(changePath);
-
-  // 기존 스펙 내용 읽기
-  const specContent = await readFile(specPath);
-  if (!specContent.success) {
-    logger.error('스펙 파일을 읽을 수 없습니다.');
+  const result = await transitionNewToChange(sddPath, specId, options);
+  if (!result.success) {
+    logger.error(result.error.message);
+    logger.info('사용 가능한 스펙 목록은 `sdd list`로 확인하세요.');
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  // proposal.md 생성
-  const title = options.title || `${specId} 기능 확장`;
-  const reason = options.reason || 'new 워크플로우에서 전환됨';
-  const proposalContent = generateTransitionProposal(specId, title, reason, 'new-to-change');
-  await writeFile(path.join(changePath, 'proposal.md'), proposalContent);
-
-  // delta.md 생성 (템플릿)
-  const deltaContent = generateDeltaTemplate(specId);
-  await writeFile(path.join(changePath, 'delta.md'), deltaContent);
-
-  // tasks.md 생성 (템플릿)
-  const tasksContent = generateTasksTemplate();
-  await writeFile(path.join(changePath, 'tasks.md'), tasksContent);
+  const { changeId } = result.data;
 
   logger.newline();
   logger.success(`전환 완료! 변경 제안이 생성되었습니다.`);
@@ -147,10 +321,7 @@ async function runNewToChange(
 }
 
 /**
- * change → new 전환 실행
- *
- * 변경 작업 중 범위가 너무 커서 새 기능으로 분리해야 할 때
- * 새 기능 워크플로우로 전환합니다.
+ * change → new 전환 실행 (CLI 핸들러)
  */
 async function runChangeToNew(
   changeId: string,
@@ -163,74 +334,30 @@ async function runChangeToNew(
   }
 
   const sddPath = path.join(projectRoot, '.sdd');
-  const changePath = path.join(sddPath, 'changes', changeId);
-
-  // 변경 제안 확인
-  if (!(await directoryExists(changePath))) {
-    logger.error(`변경 제안을 찾을 수 없습니다: ${changeId}`);
-    logger.info('진행 중인 변경 목록은 `sdd change -l`로 확인하세요.');
-    process.exit(ExitCode.GENERAL_ERROR);
-  }
 
   logger.info('=== 워크플로우 전환: change → new ===');
   logger.newline();
   logger.info(`원본 변경: ${changeId}`);
 
-  // proposal.md에서 제목 추출
-  const proposalPath = path.join(changePath, 'proposal.md');
-  let extractedTitle = '';
-  if (await fileExists(proposalPath)) {
-    const proposalContent = await readFile(proposalPath);
-    if (proposalContent.success) {
-      const titleMatch = proposalContent.data.match(/^#\s+(.+)$/m);
-      if (titleMatch) {
-        extractedTitle = titleMatch[1];
-      }
+  const result = await transitionChangeToNew(sddPath, changeId, options);
+  if (!result.success) {
+    logger.error(result.error.message);
+    if (result.error.message.includes('찾을 수 없습니다')) {
+      logger.info('진행 중인 변경 목록은 `sdd change -l`로 확인하세요.');
+    } else if (result.error.message.includes('이미 존재')) {
+      logger.info('다른 이름을 지정하세요: --name <name>');
     }
-  }
-
-  // 새 기능 이름 결정
-  const featureName = options.name || extractedTitle.toLowerCase().replace(/\s+/g, '-') || `feature-from-${changeId}`;
-  const specsPath = path.join(sddPath, 'specs');
-  const newSpecPath = path.join(specsPath, featureName);
-
-  // 이미 존재하는지 확인
-  if (await directoryExists(newSpecPath)) {
-    logger.error(`스펙이 이미 존재합니다: ${featureName}`);
-    logger.info('다른 이름을 지정하세요: --name <name>');
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  await ensureDir(newSpecPath);
-
-  // spec.md 생성
-  const reason = options.reason || 'change 워크플로우에서 전환됨';
-  const specContent = generateTransitionSpec(featureName, extractedTitle || featureName, reason, changeId);
-  await writeFile(path.join(newSpecPath, 'spec.md'), specContent);
-
-  // plan.md 템플릿 생성
-  const planContent = generatePlanTemplate(featureName);
-  await writeFile(path.join(newSpecPath, 'plan.md'), planContent);
-
-  // tasks.md 템플릿 생성
-  const tasksContent = generateTasksTemplate();
-  await writeFile(path.join(newSpecPath, 'tasks.md'), tasksContent);
-
-  // 원본 변경 제안 상태 업데이트
-  const statusPath = path.join(changePath, '.status');
-  await writeFile(statusPath, JSON.stringify({
-    status: 'transitioned',
-    transitionedTo: featureName,
-    transitionedAt: new Date().toISOString(),
-    reason,
-  }, null, 2));
+  const { featureName, originalChangeId } = result.data;
 
   logger.newline();
   logger.success(`전환 완료! 새 기능 스펙이 생성되었습니다.`);
   logger.newline();
   logger.info(`기능 이름: ${featureName}`);
   logger.info(`위치: .sdd/specs/${featureName}/`);
-  logger.info(`원본 변경 ${changeId}은 'transitioned' 상태로 변경되었습니다.`);
+  logger.info(`원본 변경 ${originalChangeId}은 'transitioned' 상태로 변경되었습니다.`);
   logger.newline();
   logger.info('다음 단계:');
   logger.listItem(`1. .sdd/specs/${featureName}/spec.md 편집`);
@@ -243,49 +370,10 @@ async function runChangeToNew(
 }
 
 /**
- * 전환 가이드 표시
+ * 전환 가이드 표시 (CLI 핸들러)
  */
 function displayTransitionGuide(): void {
-  logger.info('=== 워크플로우 전환 가이드 ===');
-  logger.newline();
-
-  logger.info('## new → change 전환');
-  logger.newline();
-  logger.info('사용 시점:');
-  logger.listItem('새 기능 작성 중 기존 스펙과 중복 발견');
-  logger.listItem('기존 기능 확장이 더 적절한 경우');
-  logger.listItem('의존성 분석 결과 기존 스펙 수정 필요');
-  logger.newline();
-  logger.info('명령어:');
-  logger.listItem('sdd transition new-to-change <spec-id>');
-  logger.listItem('  -t, --title <title>  : 변경 제안 제목');
-  logger.listItem('  -r, --reason <reason>: 전환 사유');
-  logger.newline();
-
-  logger.info('## change → new 전환');
-  logger.newline();
-  logger.info('사용 시점:');
-  logger.listItem('변경 범위가 너무 커서 별도 기능으로 분리 필요');
-  logger.listItem('기존 스펙과 독립적인 새 기능으로 발전');
-  logger.listItem('영향도 분석 결과 분리가 안전');
-  logger.newline();
-  logger.info('명령어:');
-  logger.listItem('sdd transition change-to-new <change-id>');
-  logger.listItem('  -n, --name <name>    : 새 기능 이름');
-  logger.listItem('  -r, --reason <reason>: 전환 사유');
-  logger.newline();
-
-  logger.info('## 전환 판단 기준');
-  logger.newline();
-  logger.info('new → change:');
-  logger.listItem('영향받는 스펙 수 ≤ 3개');
-  logger.listItem('변경이 기존 기능의 자연스러운 확장');
-  logger.listItem('새 시나리오 추가보다 기존 시나리오 수정 중심');
-  logger.newline();
-  logger.info('change → new:');
-  logger.listItem('영향받는 스펙 수 > 3개');
-  logger.listItem('새로운 개념/도메인 도입');
-  logger.listItem('기존 스펙과 독립적으로 테스트 가능');
+  console.log(getTransitionGuide());
 }
 
 /**

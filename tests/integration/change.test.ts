@@ -111,6 +111,21 @@ describe('sdd change', () => {
       const changes = await fs.readdir(changesPath);
       const changeId = changes[0];
 
+      // delta.md에 내용 추가 (검증을 통과하기 위해)
+      const deltaPath = path.join(changesPath, changeId, 'delta.md');
+      const deltaContent = `---
+proposal: ${changeId}
+created: ${new Date().toISOString().split('T')[0]}
+---
+
+# Delta: 검증 테스트
+
+## ADDED
+
+- 새로운 기능 추가
+`;
+      await fs.writeFile(deltaPath, deltaContent);
+
       const { stdout } = await execAsync(
         `node "${cliPath}" change validate ${changeId}`,
         { cwd: tempDir }

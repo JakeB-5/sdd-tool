@@ -162,12 +162,19 @@ describe('sdd list', () => {
     });
 
     it('s 별칭으로 실행할 수 있다', async () => {
+      // 먼저 스펙을 생성
+      await execAsync(
+        `node "${cliPath}" new s-alias-test --no-branch`,
+        { cwd: tempDir }
+      );
+
       const { stdout } = await execAsync(
         `node "${cliPath}" list s`,
         { cwd: tempDir }
       );
 
       expect(stdout).toContain('스펙 파일 목록');
+      expect(stdout).toContain('s-alias-test');
     });
 
     it('중첩된 디렉토리 구조를 표시한다', async () => {

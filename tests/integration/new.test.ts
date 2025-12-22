@@ -32,7 +32,7 @@ describe('sdd new', () => {
       { cwd: tempDir }
     );
 
-    expect(stdout).toContain('명세 생성');
+    expect(stdout).toContain('spec.md 생성');
 
     // spec.md 확인
     const specPath = path.join(tempDir, '.sdd', 'specs', 'auth-login', 'spec.md');
