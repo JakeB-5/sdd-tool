@@ -12,6 +12,10 @@ import {
   writeFile,
   ensureDir,
   listFiles,
+  readDir,
+  findSddRoot,
+  copyDir,
+  removeDir,
 } from '../../../src/utils/fs.js';
 
 describe('파일 시스템 유틸리티', () => {
@@ -152,6 +156,154 @@ describe('파일 시스템 유틸리티', () => {
         expect(result.data).toHaveLength(1);
         expect(result.data[0]).toMatch(/test\.md$/);
       }
+    });
+
+    it('존재하지 않는 디렉토리에 에러를 반환한다', async () => {
+      const result = await listFiles('/nonexistent/path');
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('readDir', () => {
+    it('디렉토리 내 항목 목록을 반환한다', async () => {
+      await fs.writeFile(path.join(tempDir, 'file1.txt'), '');
+      await fs.mkdir(path.join(tempDir, 'subdir'));
+
+      const result = await readDir(tempDir);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toContain('file1.txt');
+        expect(result.data).toContain('subdir');
+      }
+    });
+
+    it('존재하지 않는 디렉토리에 에러를 반환한다', async () => {
+      const result = await readDir('/nonexistent/path');
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('findSddRoot', () => {
+    it('.sdd 디렉토리가 있는 경로를 찾는다', async () => {
+      const sddDir = path.join(tempDir, '.sdd');
+      await fs.mkdir(sddDir);
+      const subDir = path.join(tempDir, 'sub', 'nested');
+      await fs.mkdir(subDir, { recursive: true });
+
+      const result = await findSddRoot(subDir);
+
+      expect(result).toBe(tempDir);
+    });
+
+    it('.sdd 디렉토리가 없으면 null을 반환한다', async () => {
+      const result = await findSddRoot(tempDir);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('copyDir', () => {
+    it('디렉토리를 재귀적으로 복사한다', async () => {
+      const srcDir = path.join(tempDir, 'src');
+      const destDir = path.join(tempDir, 'dest');
+
+      await fs.mkdir(srcDir);
+      await fs.writeFile(path.join(srcDir, 'file.txt'), 'content');
+      await fs.mkdir(path.join(srcDir, 'subdir'));
+      await fs.writeFile(path.join(srcDir, 'subdir', 'nested.txt'), 'nested');
+
+      const result = await copyDir(srcDir, destDir);
+
+      expect(result.success).toBe(true);
+      expect(await fileExists(path.join(destDir, 'file.txt'))).toBe(true);
+      expect(await fileExists(path.join(destDir, 'subdir', 'nested.txt'))).toBe(true);
+
+      const content = await fs.readFile(path.join(destDir, 'file.txt'), 'utf-8');
+      expect(content).toBe('content');
+    });
+
+    it('빈 디렉토리를 복사한다', async () => {
+      const srcDir = path.join(tempDir, 'empty-src');
+      const destDir = path.join(tempDir, 'empty-dest');
+
+      await fs.mkdir(srcDir);
+
+      const result = await copyDir(srcDir, destDir);
+
+      expect(result.success).toBe(true);
+      expect(await directoryExists(destDir)).toBe(true);
+    });
+  });
+
+  describe('removeDir', () => {
+    it('디렉토리를 재귀적으로 삭제한다', async () => {
+      const dirToRemove = path.join(tempDir, 'to-remove');
+      await fs.mkdir(dirToRemove);
+      await fs.writeFile(path.join(dirToRemove, 'file.txt'), 'content');
+      await fs.mkdir(path.join(dirToRemove, 'subdir'));
+
+      const result = await removeDir(dirToRemove);
+
+      expect(result.success).toBe(true);
+      expect(await directoryExists(dirToRemove)).toBe(false);
+    });
+
+    it('존재하지 않는 디렉토리도 성공을 반환한다', async () => {
+      const result = await removeDir(path.join(tempDir, 'nonexistent'));
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('readFile 추가 케이스', () => {
+    it('빈 파일을 읽는다', async () => {
+      const filePath = path.join(tempDir, 'empty.txt');
+      await fs.writeFile(filePath, '');
+
+      const result = await readFile(filePath);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toBe('');
+      }
+    });
+
+    it('유니코드 내용을 읽는다', async () => {
+      const filePath = path.join(tempDir, 'unicode.txt');
+      await fs.writeFile(filePath, '한글 테스트 🎉 émoji');
+
+      const result = await readFile(filePath);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toBe('한글 테스트 🎉 émoji');
+      }
+    });
+  });
+
+  describe('writeFile 추가 케이스', () => {
+    it('빈 내용을 쓴다', async () => {
+      const filePath = path.join(tempDir, 'empty-write.txt');
+
+      const result = await writeFile(filePath, '');
+
+      expect(result.success).toBe(true);
+      const content = await fs.readFile(filePath, 'utf-8');
+      expect(content).toBe('');
+    });
+
+    it('기존 파일을 덮어쓴다', async () => {
+      const filePath = path.join(tempDir, 'overwrite.txt');
+      await fs.writeFile(filePath, 'original');
+
+      const result = await writeFile(filePath, 'new content');
+
+      expect(result.success).toBe(true);
+      const content = await fs.readFile(filePath, 'utf-8');
+      expect(content).toBe('new content');
     });
   });
 });
