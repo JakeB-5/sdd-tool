@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2025-12-22
+
+### Added
+
+#### Watch 모드
+- `sdd watch`: 스펙 파일 변경 실시간 감시
+- `--no-validate`: 자동 검증 비활성화
+- `--impact`: 영향도 분석 포함
+- `-q, --quiet`: 성공 시 출력 생략
+- `--debounce <ms>`: 디바운스 시간 설정 (기본 500ms)
+- 변경 이벤트 요약 (추가/수정/삭제 카운트)
+- 세션 종료 시 통계 요약
+
+#### 스펙 품질 분석
+- `sdd quality [feature]`: 개별 스펙 품질 점수 분석
+- `sdd quality --all`: 전체 프로젝트 품질 분석
+- `--json`: JSON 형식 출력
+- `--min-score <score>`: 최소 점수 기준 (미달 시 에러)
+- 8가지 품질 기준 평가:
+  - RFC 2119 키워드 사용 (MUST/SHALL/SHOULD/MAY)
+  - GIVEN-WHEN-THEN 시나리오 존재
+  - 요구사항 섹션 존재
+  - 의존성 명시
+  - 구조 완성도 (제목/설명/목표/범위 등)
+  - Constitution 버전 참조
+  - 내부 링크 무결성
+  - 메타데이터 완성도
+- A/B/C/D/F 등급 산출
+- 개선 제안 및 가이드 제공
+
+#### 리포트 내보내기
+- `sdd report`: 스펙 리포트 생성
+- `-f, --format <format>`: 출력 형식 (html, markdown, json)
+- `-o, --output <path>`: 출력 파일 경로
+- `--title <title>`: 리포트 제목
+- `--no-quality`: 품질 분석 제외
+- `--no-validation`: 검증 결과 제외
+- HTML 리포트: 반응형 스타일, 카드 레이아웃, 색상 코딩
+- Markdown 리포트: 표 형식, 섹션별 정리
+- Phase별/상태별 분포 통계
+
+#### 외부 도구 마이그레이션 강화
+- `sdd migrate detect`: 외부 SDD 도구 자동 감지
+- `sdd migrate openspec [source]`: OpenSpec 프로젝트에서 마이그레이션
+- `sdd migrate speckit [source]`: Spec Kit 프로젝트에서 마이그레이션
+- OpenSpec 감지: `openspec/` 디렉토리, AGENTS.md, specs/changes 구조
+- Spec Kit 감지: `.specify/` 디렉토리, memory/constitution.md
+- 자동 형식 변환 (frontmatter 필드 추가)
+- `--dry-run`: 미리보기 모드
+- `--overwrite`: 기존 스펙 덮어쓰기
+
+### Technical
+- 새 모듈: `src/core/watch/watcher.ts`
+- 새 모듈: `src/core/quality/analyzer.ts`
+- 새 모듈: `src/core/report/reporter.ts`
+- 새 모듈: `src/core/migrate/detector.ts`
+- 새 의존성: `chokidar@5.0.0` (파일 감시)
+- 테스트 유지 (311개)
+
+---
+
 ## [0.4.0] - 2025-12-22
 
 ### Added
@@ -163,6 +224,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[0.5.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.1.0...v0.2.0

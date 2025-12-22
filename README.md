@@ -204,15 +204,79 @@ sdd transition change-to-new <change-id>  # change → new 전환
 sdd transition guide                       # 전환 가이드
 ```
 
-### `sdd migrate`
+### `sdd watch`
 
-기존 문서를 SDD 형식으로 마이그레이션합니다.
+스펙 파일 변경을 실시간으로 감시합니다.
 
 ```bash
+sdd watch                       # 기본 실행 (자동 검증 포함)
+sdd watch --no-validate         # 자동 검증 비활성화
+sdd watch --impact              # 영향도 분석 포함
+sdd watch --quiet               # 성공 시 출력 생략
+sdd watch --debounce 1000       # 디바운스 시간 설정 (ms)
+```
+
+Ctrl+C로 종료 시 세션 통계가 표시됩니다.
+
+### `sdd quality`
+
+스펙 품질을 분석하고 점수를 산출합니다.
+
+```bash
+sdd quality                     # 전체 프로젝트 분석
+sdd quality <feature>           # 개별 스펙 분석
+sdd quality --all               # 전체 분석 (명시적)
+sdd quality --json              # JSON 형식 출력
+sdd quality --min-score 70      # 최소 점수 기준 (미달 시 에러)
+```
+
+품질 평가 기준:
+- RFC 2119 키워드 사용 (SHALL, MUST, SHOULD, MAY)
+- GIVEN-WHEN-THEN 시나리오 존재
+- 요구사항 섹션 존재
+- 의존성 명시
+- 구조 완성도 (제목/설명/목표/범위 등)
+- Constitution 버전 참조
+- 내부 링크 무결성
+- 메타데이터 완성도
+
+등급: A (90%+), B (80%+), C (70%+), D (60%+), F (<60%)
+
+### `sdd report`
+
+스펙 리포트를 생성합니다.
+
+```bash
+sdd report                      # HTML 리포트 (기본)
+sdd report --format markdown    # Markdown 형식
+sdd report --format json        # JSON 형식
+sdd report -o report.html       # 출력 경로 지정
+sdd report --title "My Report"  # 리포트 제목 설정
+sdd report --no-quality         # 품질 분석 제외
+sdd report --no-validation      # 검증 결과 제외
+```
+
+### `sdd migrate`
+
+기존 문서나 외부 SDD 도구에서 마이그레이션합니다.
+
+```bash
+# 문서 마이그레이션
 sdd migrate docs <source>       # 문서 마이그레이션
 sdd migrate analyze <file>      # 문서 분석
 sdd migrate scan [dir]          # 디렉토리 스캔
+
+# 외부 도구 감지 및 마이그레이션
+sdd migrate detect              # 외부 SDD 도구 감지
+sdd migrate openspec [source]   # OpenSpec에서 마이그레이션
+sdd migrate speckit [source]    # Spec Kit에서 마이그레이션
+sdd migrate openspec --dry-run  # 미리보기 모드
+sdd migrate speckit --overwrite # 기존 스펙 덮어쓰기
 ```
+
+지원 외부 도구:
+- **OpenSpec**: `openspec/` 디렉토리, AGENTS.md, specs/changes 구조
+- **Spec Kit**: `.specify/` 디렉토리, memory/constitution.md
 
 ### `sdd cicd`
 
@@ -545,7 +609,11 @@ sdd-tool/
 │   │   ├── constitution/       # 헌법 시스템
 │   │   ├── change/             # 변경 워크플로우
 │   │   ├── impact/             # 영향도 분석
-│   │   └── new/                # 신규 기능 워크플로우
+│   │   ├── new/                # 신규 기능 워크플로우
+│   │   ├── watch/              # 파일 감시
+│   │   ├── quality/            # 품질 분석
+│   │   ├── report/             # 리포트 생성
+│   │   └── migrate/            # 마이그레이션
 │   ├── generators/             # 파일 생성기
 │   ├── prompts/                # 슬래시 커맨드
 │   ├── errors/                 # 에러 처리

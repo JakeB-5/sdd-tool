@@ -11,6 +11,12 @@ import { ExitCode } from '../../errors/index.js';
 import { findSddRoot, fileExists, ensureDir, writeFile, directoryExists } from '../../utils/fs.js';
 import { generateSpec } from '../../core/new/index.js';
 import { generateFeatureId } from '../../core/new/schemas.js';
+import {
+  detectExternalTools,
+  migrateFromOpenSpec,
+  migrateFromSpecKit,
+  DetectionResult,
+} from '../../core/migrate/index.js';
 
 /**
  * 마이그레이션 결과
@@ -93,6 +99,50 @@ export function registerMigrateCommand(program: Command): void {
     .action(async (dir: string | undefined, options: { ext?: string }) => {
       try {
         await runScan(dir || '.', options);
+      } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+    });
+
+  // detect 서브커맨드 - 외부 도구 감지
+  migrate
+    .command('detect')
+    .description('프로젝트에서 외부 SDD 도구를 감지합니다')
+    .option('-p, --path <path>', '검색 경로')
+    .action(async (options: { path?: string }) => {
+      try {
+        await runDetect(options);
+      } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+    });
+
+  // openspec 서브커맨드 - OpenSpec에서 마이그레이션
+  migrate
+    .command('openspec [source]')
+    .description('OpenSpec 프로젝트에서 마이그레이션합니다')
+    .option('--dry-run', '실제 파일 생성 없이 미리보기')
+    .option('--overwrite', '기존 스펙 덮어쓰기')
+    .action(async (source: string | undefined, options: { dryRun?: boolean; overwrite?: boolean }) => {
+      try {
+        await runMigrateOpenSpec(source, options);
+      } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+    });
+
+  // speckit 서브커맨드 - Spec Kit에서 마이그레이션
+  migrate
+    .command('speckit [source]')
+    .description('Spec Kit 프로젝트에서 마이그레이션합니다')
+    .option('--dry-run', '실제 파일 생성 없이 미리보기')
+    .option('--overwrite', '기존 스펙 덮어쓰기')
+    .action(async (source: string | undefined, options: { dryRun?: boolean; overwrite?: boolean }) => {
+      try {
+        await runMigrateSpecKit(source, options);
       } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
         process.exit(ExitCode.GENERAL_ERROR);
@@ -456,4 +506,251 @@ async function collectFilesWithExtensions(dirPath: string, extensions: string[])
 
   await scan(dirPath);
   return files;
+}
+
+/**
+ * 외부 도구 감지 실행
+ */
+async function runDetect(options: { path?: string }): Promise<void> {
+  const projectRoot = options.path ? path.resolve(options.path) : process.cwd();
+
+  logger.info('🔍 외부 SDD 도구 감지 중...');
+  logger.info(`   경로: ${projectRoot}`);
+  logger.newline();
+
+  const result = await detectExternalTools(projectRoot);
+
+  if (!result.success) {
+    logger.error(result.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const tools = result.data;
+
+  if (tools.length === 0) {
+    logger.info('감지된 외부 SDD 도구가 없습니다.');
+    return;
+  }
+
+  for (const tool of tools) {
+    const icon = getToolIcon(tool.tool);
+    const confidence = getConfidenceLabel(tool.confidence);
+
+    logger.info(`${icon} ${getToolName(tool.tool)}`);
+    logger.info(`   경로: ${tool.path}`);
+    logger.info(`   신뢰도: ${confidence}`);
+    logger.info(`   스펙 수: ${tool.specCount}개`);
+
+    if (tool.specs.length > 0) {
+      logger.newline();
+      logger.info('   발견된 스펙:');
+      for (const spec of tool.specs.slice(0, 5)) {
+        const status = spec.status ? ` [${spec.status}]` : '';
+        logger.listItem(`${spec.id}: ${spec.title || '(제목 없음)'}${status}`, 2);
+      }
+      if (tool.specs.length > 5) {
+        logger.info(`      ... 외 ${tool.specs.length - 5}개`);
+      }
+    }
+
+    logger.newline();
+  }
+
+  // 마이그레이션 안내
+  const openspec = tools.find(t => t.tool === 'openspec');
+  const speckit = tools.find(t => t.tool === 'speckit');
+
+  if (openspec || speckit) {
+    logger.info('💡 마이그레이션 명령어:');
+    if (openspec) {
+      logger.listItem(`sdd migrate openspec "${openspec.path}"`, 1);
+    }
+    if (speckit) {
+      logger.listItem(`sdd migrate speckit "${speckit.path}"`, 1);
+    }
+  }
+}
+
+/**
+ * OpenSpec에서 마이그레이션 실행
+ */
+async function runMigrateOpenSpec(
+  source: string | undefined,
+  options: { dryRun?: boolean; overwrite?: boolean }
+): Promise<void> {
+  const projectRoot = await findSddRoot();
+  if (!projectRoot) {
+    logger.error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.');
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  // 소스 경로 결정
+  let sourcePath: string;
+  if (source) {
+    sourcePath = path.resolve(source);
+  } else {
+    // 자동 감지
+    const detectResult = await detectExternalTools(projectRoot);
+    if (!detectResult.success) {
+      logger.error(detectResult.error.message);
+      process.exit(ExitCode.GENERAL_ERROR);
+    }
+
+    const openspec = detectResult.data.find(t => t.tool === 'openspec');
+    if (!openspec) {
+      logger.error('OpenSpec 프로젝트를 찾을 수 없습니다. 경로를 직접 지정하세요.');
+      process.exit(ExitCode.GENERAL_ERROR);
+    }
+
+    sourcePath = openspec.path;
+  }
+
+  const sddPath = path.join(projectRoot, '.sdd');
+
+  logger.info('🔄 OpenSpec에서 마이그레이션 중...');
+  logger.info(`   소스: ${sourcePath}`);
+  logger.info(`   대상: ${sddPath}`);
+  if (options.dryRun) {
+    logger.warn('   (dry-run 모드)');
+  }
+  logger.newline();
+
+  const result = await migrateFromOpenSpec(sourcePath, sddPath, {
+    dryRun: options.dryRun,
+    overwrite: options.overwrite,
+  });
+
+  if (!result.success) {
+    logger.error(result.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const data = result.data;
+
+  logger.success('✅ 마이그레이션 완료');
+  logger.info(`   생성: ${data.specsCreated}개`);
+  logger.info(`   스킵: ${data.specsSkipped}개`);
+
+  if (data.errors.length > 0) {
+    logger.newline();
+    logger.warn('⚠️  일부 오류 발생:');
+    for (const error of data.errors) {
+      logger.error(`   - ${error}`);
+    }
+  }
+
+  if (options.dryRun) {
+    logger.newline();
+    logger.info('실제 마이그레이션을 수행하려면 --dry-run 옵션을 제거하세요.');
+  }
+}
+
+/**
+ * Spec Kit에서 마이그레이션 실행
+ */
+async function runMigrateSpecKit(
+  source: string | undefined,
+  options: { dryRun?: boolean; overwrite?: boolean }
+): Promise<void> {
+  const projectRoot = await findSddRoot();
+  if (!projectRoot) {
+    logger.error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.');
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  // 소스 경로 결정
+  let sourcePath: string;
+  if (source) {
+    sourcePath = path.resolve(source);
+  } else {
+    // 자동 감지
+    const detectResult = await detectExternalTools(projectRoot);
+    if (!detectResult.success) {
+      logger.error(detectResult.error.message);
+      process.exit(ExitCode.GENERAL_ERROR);
+    }
+
+    const speckit = detectResult.data.find(t => t.tool === 'speckit');
+    if (!speckit) {
+      logger.error('Spec Kit 프로젝트를 찾을 수 없습니다. 경로를 직접 지정하세요.');
+      process.exit(ExitCode.GENERAL_ERROR);
+    }
+
+    sourcePath = speckit.path;
+  }
+
+  const sddPath = path.join(projectRoot, '.sdd');
+
+  logger.info('🔄 Spec Kit에서 마이그레이션 중...');
+  logger.info(`   소스: ${sourcePath}`);
+  logger.info(`   대상: ${sddPath}`);
+  if (options.dryRun) {
+    logger.warn('   (dry-run 모드)');
+  }
+  logger.newline();
+
+  const result = await migrateFromSpecKit(sourcePath, sddPath, {
+    dryRun: options.dryRun,
+    overwrite: options.overwrite,
+  });
+
+  if (!result.success) {
+    logger.error(result.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const data = result.data;
+
+  logger.success('✅ 마이그레이션 완료');
+  logger.info(`   생성: ${data.specsCreated}개`);
+  logger.info(`   스킵: ${data.specsSkipped}개`);
+
+  if (data.errors.length > 0) {
+    logger.newline();
+    logger.warn('⚠️  일부 오류 발생:');
+    for (const error of data.errors) {
+      logger.error(`   - ${error}`);
+    }
+  }
+
+  if (options.dryRun) {
+    logger.newline();
+    logger.info('실제 마이그레이션을 수행하려면 --dry-run 옵션을 제거하세요.');
+  }
+}
+
+/**
+ * 도구 아이콘 반환
+ */
+function getToolIcon(tool: string): string {
+  switch (tool) {
+    case 'openspec': return '📦';
+    case 'speckit': return '🔧';
+    case 'sdd': return '📋';
+    default: return '❓';
+  }
+}
+
+/**
+ * 도구 이름 반환
+ */
+function getToolName(tool: string): string {
+  switch (tool) {
+    case 'openspec': return 'OpenSpec';
+    case 'speckit': return 'Spec Kit';
+    case 'sdd': return 'SDD';
+    default: return tool;
+  }
+}
+
+/**
+ * 신뢰도 레이블 반환
+ */
+function getConfidenceLabel(confidence: string): string {
+  switch (confidence) {
+    case 'high': return '높음 ✓';
+    case 'medium': return '중간';
+    case 'low': return '낮음';
+    default: return confidence;
+  }
 }

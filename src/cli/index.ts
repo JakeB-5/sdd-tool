@@ -16,6 +16,9 @@ import { registerStartCommand } from './commands/start.js';
 import { registerMigrateCommand } from './commands/migrate.js';
 import { registerCicdCommand } from './commands/cicd.js';
 import { registerTransitionCommand } from './commands/transition.js';
+import { registerWatchCommand } from './commands/watch.js';
+import { registerQualityCommand } from './commands/quality.js';
+import { registerReportCommand } from './commands/report.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
@@ -41,6 +44,9 @@ registerStartCommand(program);
 registerMigrateCommand(program);
 registerCicdCommand(program);
 registerTransitionCommand(program);
+registerWatchCommand(program);
+registerQualityCommand(program);
+registerReportCommand(program);
 
 /**
  * CLI 실행
