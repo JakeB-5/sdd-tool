@@ -280,4 +280,190 @@ depends: null
       expect(parsed.summary.totalSpecs).toBe(3);
     }
   });
+
+  it('품질 분석을 제외할 수 있다', async () => {
+    await fs.mkdir(path.join(specsDir, 'no-quality-spec'));
+    await fs.writeFile(
+      path.join(specsDir, 'no-quality-spec', 'spec.md'),
+      `---
+id: no-quality-spec
+title: "품질 제외 스펙"
+status: draft
+depends: null
+---
+
+# 품질 제외 스펙
+
+시스템은 기능을 제공해야 한다(SHALL).
+
+## Scenario: 테스트
+
+- **GIVEN** 조건
+- **WHEN** 동작
+- **THEN** 결과
+`
+    );
+
+    const result = await generateReport(tempDir, {
+      format: 'json',
+      includeQuality: false,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const parsed = JSON.parse(result.data.content);
+      expect(parsed.quality).toBeUndefined();
+    }
+  });
+
+  it('검증 결과를 제외할 수 있다', async () => {
+    await fs.mkdir(path.join(specsDir, 'no-validation-spec'));
+    await fs.writeFile(
+      path.join(specsDir, 'no-validation-spec', 'spec.md'),
+      `---
+id: no-validation-spec
+title: "검증 제외 스펙"
+status: draft
+depends: null
+---
+
+# 검증 제외 스펙
+
+시스템은 기능을 제공해야 한다(SHALL).
+
+## Scenario: 테스트
+
+- **GIVEN** 조건
+- **WHEN** 동작
+- **THEN** 결과
+`
+    );
+
+    const result = await generateReport(tempDir, {
+      format: 'json',
+      includeValidation: false,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const parsed = JSON.parse(result.data.content);
+      expect(parsed.validation).toBeUndefined();
+    }
+  });
+
+  it('상태별 분포를 계산한다', async () => {
+    // 다양한 status의 스펙 생성
+    for (const status of ['draft', 'review', 'approved']) {
+      await fs.mkdir(path.join(specsDir, `${status}-status`));
+      await fs.writeFile(
+        path.join(specsDir, `${status}-status`, 'spec.md'),
+        `---
+id: ${status}-status
+title: "${status} 스펙"
+status: ${status}
+depends: null
+---
+
+# ${status} 스펙
+
+시스템은 기능을 제공해야 한다(SHALL).
+
+## Scenario: 테스트
+
+- **GIVEN** 조건
+- **WHEN** 동작
+- **THEN** 결과
+`
+      );
+    }
+
+    const result = await generateReport(tempDir, {
+      format: 'json',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const parsed = JSON.parse(result.data.content);
+      expect(parsed.summary.byStatus.draft).toBe(1);
+      expect(parsed.summary.byStatus.review).toBe(1);
+      expect(parsed.summary.byStatus.approved).toBe(1);
+    }
+  });
+
+  it('빈 스펙 디렉토리에서도 리포트를 생성한다', async () => {
+    const result = await generateReport(tempDir, {
+      format: 'json',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const parsed = JSON.parse(result.data.content);
+      expect(parsed.specs).toHaveLength(0);
+      expect(parsed.summary.totalSpecs).toBe(0);
+    }
+  });
+
+  it('Markdown 리포트에 품질 등급을 포함한다', async () => {
+    await fs.mkdir(path.join(specsDir, 'quality-md-spec'));
+    await fs.writeFile(
+      path.join(specsDir, 'quality-md-spec', 'spec.md'),
+      `---
+id: quality-md-spec
+title: "품질 마크다운 스펙"
+status: draft
+depends: null
+---
+
+# 품질 마크다운 스펙
+
+시스템은 기능을 제공해야 한다(SHALL).
+
+## 요구사항
+
+### REQ-01: 테스트 요구사항
+
+시스템은 기능을 제공해야 한다(SHALL).
+
+## Scenario: 테스트
+
+- **GIVEN** 조건
+- **WHEN** 동작
+- **THEN** 결과
+`
+    );
+
+    const result = await generateReport(tempDir, {
+      format: 'markdown',
+      includeQuality: true,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.content).toContain('## 품질 분석');
+      expect(result.data.content).toMatch(/평균 점수:.*%/);
+    }
+  });
+
+  it('frontmatter 없는 스펙도 처리한다', async () => {
+    await fs.mkdir(path.join(specsDir, 'no-frontmatter'));
+    await fs.writeFile(
+      path.join(specsDir, 'no-frontmatter', 'spec.md'),
+      `# No Frontmatter Spec
+
+This spec has no frontmatter.
+`
+    );
+
+    const result = await generateReport(tempDir, {
+      format: 'json',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const parsed = JSON.parse(result.data.content);
+      expect(parsed.specs.length).toBe(1);
+      expect(parsed.specs[0].id).toBe('no-frontmatter');
+      // title, status, phase는 undefined일 것
+    }
+  });
 });

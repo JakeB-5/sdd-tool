@@ -435,4 +435,252 @@ describe('formatProjectQualityResult', () => {
     expect(formatted).toContain('spec1');
     expect(formatted).toContain('spec2');
   });
+
+  it('각 등급별 아이콘을 표시한다', () => {
+    const result = {
+      averageScore: 95,
+      averagePercentage: 95,
+      grade: 'A' as const,
+      totalSpecs: 5,
+      specResults: [
+        { specId: 'a-spec', specPath: '', totalScore: 95, maxScore: 100, percentage: 95, grade: 'A' as const, items: [], summary: '', topSuggestions: [] },
+        { specId: 'b-spec', specPath: '', totalScore: 85, maxScore: 100, percentage: 85, grade: 'B' as const, items: [], summary: '', topSuggestions: [] },
+        { specId: 'c-spec', specPath: '', totalScore: 75, maxScore: 100, percentage: 75, grade: 'C' as const, items: [], summary: '', topSuggestions: [] },
+        { specId: 'd-spec', specPath: '', totalScore: 65, maxScore: 100, percentage: 65, grade: 'D' as const, items: [], summary: '', topSuggestions: [] },
+        { specId: 'f-spec', specPath: '', totalScore: 50, maxScore: 100, percentage: 50, grade: 'F' as const, items: [], summary: '', topSuggestions: [] },
+      ],
+      summary: '',
+    };
+
+    const formatted = formatProjectQualityResult(result);
+
+    expect(formatted).toContain('🏆'); // A 등급
+    expect(formatted).toContain('✅'); // B 등급
+    expect(formatted).toContain('🟡'); // C 등급
+    expect(formatted).toContain('🟠'); // D 등급
+    expect(formatted).toContain('🔴'); // F 등급
+  });
+});
+
+describe('analyzeSpecQuality with Constitution', () => {
+  let tempDir: string;
+  let specsDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-constitution-quality-'));
+    specsDir = path.join(tempDir, 'specs');
+    await fs.mkdir(specsDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('Constitution이 있을 때 constitution_version 필드를 평가한다', async () => {
+    // Constitution 파일 생성
+    await fs.writeFile(
+      path.join(tempDir, 'constitution.md'),
+      `---
+version: "1.0.0"
+---
+
+# 프로젝트 헌법
+`
+    );
+
+    // constitution_version이 있는 스펙
+    const specDir = path.join(specsDir, 'with-cv');
+    await fs.mkdir(specDir);
+    await fs.writeFile(
+      path.join(specDir, 'spec.md'),
+      `---
+id: with-cv
+title: "CV 스펙"
+status: draft
+depends: null
+constitution_version: "1.0.0"
+---
+
+# CV 스펙
+
+시스템은 기능을 제공해야 한다(SHALL).
+
+## Scenario: 테스트
+
+- **GIVEN** 조건
+- **WHEN** 동작
+- **THEN** 결과
+`
+    );
+
+    const result = await analyzeSpecQuality(path.join(specDir, 'spec.md'), tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const cvItem = result.data.items.find((i) => i.name.includes('Constitution'));
+      expect(cvItem).toBeDefined();
+      // Constitution 평가 항목이 존재하고 점수가 계산되었는지 확인
+      expect(cvItem!.maxScore).toBe(10);
+    }
+  });
+
+  it('Constitution이 있지만 스펙에 constitution_version이 없으면 제안을 생성한다', async () => {
+    // Constitution 파일 생성
+    await fs.writeFile(
+      path.join(tempDir, 'constitution.md'),
+      `---
+version: "1.0.0"
+---
+
+# 프로젝트 헌법
+`
+    );
+
+    // constitution_version이 없는 스펙
+    const specDir = path.join(specsDir, 'without-cv');
+    await fs.mkdir(specDir);
+    await fs.writeFile(
+      path.join(specDir, 'spec.md'),
+      `---
+id: without-cv
+title: "No CV 스펙"
+status: draft
+depends: null
+---
+
+# No CV 스펙
+
+시스템은 기능을 제공해야 한다(SHALL).
+
+## Scenario: 테스트
+
+- **GIVEN** 조건
+- **WHEN** 동작
+- **THEN** 결과
+`
+    );
+
+    const result = await analyzeSpecQuality(path.join(specDir, 'spec.md'), tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const cvItem = result.data.items.find((i) => i.name.includes('Constitution'));
+      expect(cvItem).toBeDefined();
+      expect(cvItem!.suggestions.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('analyzeProjectQuality nested directories', () => {
+  let tempDir: string;
+  let specsDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-nested-quality-'));
+    specsDir = path.join(tempDir, 'specs');
+    await fs.mkdir(specsDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('중첩된 디렉토리의 스펙도 분석한다', async () => {
+    // 1단계 스펙
+    const spec1Dir = path.join(specsDir, 'feature1');
+    await fs.mkdir(spec1Dir);
+    await fs.writeFile(
+      path.join(spec1Dir, 'spec.md'),
+      `---
+id: feature1
+status: draft
+depends: null
+---
+
+# Feature 1
+
+시스템은 기능을 제공해야 한다(SHALL).
+
+## Scenario: 테스트
+
+- **GIVEN** 조건
+- **WHEN** 동작
+- **THEN** 결과
+`
+    );
+
+    // 2단계 중첩 스펙 (id는 디렉토리명 'login'에서 추출됨)
+    const spec2Dir = path.join(specsDir, 'auth', 'login');
+    await fs.mkdir(spec2Dir, { recursive: true });
+    await fs.writeFile(
+      path.join(spec2Dir, 'spec.md'),
+      `---
+status: draft
+depends: null
+---
+
+# Auth Login
+
+시스템은 로그인을 제공해야 한다(SHALL).
+
+## Scenario: 테스트
+
+- **GIVEN** 조건
+- **WHEN** 동작
+- **THEN** 결과
+`
+    );
+
+    const result = await analyzeProjectQuality(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.totalSpecs).toBe(2);
+      const specIds = result.data.specResults.map((r) => r.specId);
+      expect(specIds).toContain('feature1');
+      // specId가 없으면 디렉토리명에서 추출됨 (login)
+      expect(specIds).toContain('login');
+    }
+  });
+});
+
+describe('formatQualityResult edge cases', () => {
+  it('F 등급에 적절한 아이콘을 표시한다', () => {
+    const result = {
+      specId: 'low-quality',
+      specPath: '/path/to/spec.md',
+      totalScore: 30,
+      maxScore: 100,
+      percentage: 30,
+      grade: 'F' as const,
+      items: [],
+      summary: '',
+      topSuggestions: ['개선 필요 1', '개선 필요 2'],
+    };
+
+    const formatted = formatQualityResult(result);
+
+    expect(formatted).toContain('🔴');
+    expect(formatted).toContain('F');
+    expect(formatted).toContain('개선 필요 1');
+  });
+
+  it('개선 제안이 없으면 제안 섹션을 생략한다', () => {
+    const result = {
+      specId: 'perfect',
+      specPath: '/path/to/spec.md',
+      totalScore: 100,
+      maxScore: 100,
+      percentage: 100,
+      grade: 'A' as const,
+      items: [],
+      summary: '',
+      topSuggestions: [],
+    };
+
+    const formatted = formatQualityResult(result);
+
+    expect(formatted).toContain('🏆');
+    expect(formatted).not.toContain('개선 제안:');
+  });
 });

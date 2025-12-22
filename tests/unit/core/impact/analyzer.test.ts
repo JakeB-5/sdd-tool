@@ -9,6 +9,7 @@ import {
   analyzeImpact,
   generateImpactReport,
   formatImpactResult,
+  formatImpactReport,
   analyzeChangeImpact,
 } from '../../../../src/core/impact/analyzer.js';
 
@@ -264,5 +265,233 @@ depends: spec1
       expect(result.data.totalSpecs).toBe(2);
       expect(result.data.totalEdges).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  it('스펙 디렉토리가 없으면 에러를 반환한다', async () => {
+    const result = await generateImpactReport('/non/existent/path');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('스펙 디렉토리');
+    }
+  });
+
+  it('고립된 스펙을 감지한다', async () => {
+    // 고립된 스펙 생성 (의존성 없음)
+    await fs.mkdir(path.join(specsDir, 'orphan1'));
+    await fs.writeFile(
+      path.join(specsDir, 'orphan1', 'spec.md'),
+      `---
+id: orphan1
+status: draft
+depends: null
+---
+
+# 고립 스펙 1
+`
+    );
+
+    await fs.mkdir(path.join(specsDir, 'orphan2'));
+    await fs.writeFile(
+      path.join(specsDir, 'orphan2', 'spec.md'),
+      `---
+id: orphan2
+status: draft
+depends: null
+---
+
+# 고립 스펙 2
+`
+    );
+
+    const result = await generateImpactReport(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.orphanSpecs.length).toBe(2);
+      expect(result.data.orphanSpecs).toContain('orphan1');
+      expect(result.data.orphanSpecs).toContain('orphan2');
+    }
+  });
+
+  it('가장 많이 연결된 스펙을 식별한다', async () => {
+    // 핵심 스펙 생성
+    await fs.mkdir(path.join(specsDir, 'core'));
+    await fs.writeFile(
+      path.join(specsDir, 'core', 'spec.md'),
+      `---
+id: core
+status: draft
+depends: null
+---
+
+# 핵심 스펙
+`
+    );
+
+    // 여러 스펙이 core에 의존
+    for (let i = 1; i <= 3; i++) {
+      await fs.mkdir(path.join(specsDir, `feature${i}`));
+      await fs.writeFile(
+        path.join(specsDir, `feature${i}`, 'spec.md'),
+        `---
+id: feature${i}
+status: draft
+depends: core
+---
+
+# 기능 ${i}
+`
+      );
+    }
+
+    const result = await generateImpactReport(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.mostConnectedSpecs.length).toBeGreaterThan(0);
+      // core가 가장 많이 연결된 스펙 중 하나여야 함
+      const coreSpec = result.data.mostConnectedSpecs.find((s) => s.id === 'core');
+      expect(coreSpec).toBeDefined();
+      expect(coreSpec?.inbound).toBe(3);
+    }
+  });
+});
+
+describe('analyzeChangeImpact', () => {
+  let tempDir: string;
+  let specsDir: string;
+  let changesDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-change-impact-'));
+    specsDir = path.join(tempDir, 'specs');
+    changesDir = path.join(tempDir, 'changes');
+    await fs.mkdir(specsDir, { recursive: true });
+    await fs.mkdir(changesDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('존재하지 않는 변경 제안에 에러를 반환한다', async () => {
+    const result = await analyzeChangeImpact(tempDir, 'CHG-999');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('CHG-999');
+    }
+  });
+
+  it('변경 제안의 영향을 분석한다', async () => {
+    // 스펙 생성
+    await fs.mkdir(path.join(specsDir, 'auth'));
+    await fs.writeFile(
+      path.join(specsDir, 'auth', 'spec.md'),
+      `---
+id: auth
+status: draft
+depends: null
+---
+
+# 인증 스펙
+`
+    );
+
+    await fs.mkdir(path.join(specsDir, 'user'));
+    await fs.writeFile(
+      path.join(specsDir, 'user', 'spec.md'),
+      `---
+id: user
+status: draft
+depends: auth
+---
+
+# 사용자 스펙
+`
+    );
+
+    // 변경 제안 생성
+    const changeDir = path.join(changesDir, 'CHG-001');
+    await fs.mkdir(changeDir, { recursive: true });
+    await fs.writeFile(
+      path.join(changeDir, 'proposal.md'),
+      `---
+id: CHG-001
+title: 인증 개선
+status: draft
+created: 2025-01-01
+author: tester
+---
+
+# 인증 개선
+
+## 배경
+
+인증 시스템 개선
+
+## 영향 받는 스펙
+
+- specs/auth/spec.md
+`
+    );
+
+    const result = await analyzeChangeImpact(tempDir, 'CHG-001');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.changeId).toBe('CHG-001');
+      expect(result.data.title).toBe('인증 개선');
+      expect(result.data.recommendations.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('formatImpactReport', () => {
+  it('영향도 리포트를 포맷팅한다', () => {
+    const report = {
+      generatedAt: '2025-01-01T00:00:00.000Z',
+      projectPath: '/test/project',
+      totalSpecs: 10,
+      totalEdges: 15,
+      mostConnectedSpecs: [
+        { id: 'core', title: '핵심', inbound: 5, outbound: 2, total: 7 },
+      ],
+      orphanSpecs: ['orphan1'],
+      circularDependencies: [],
+      healthScore: 85,
+      summary: '테스트 요약',
+    };
+
+    const formatted = formatImpactReport(report);
+
+    expect(formatted).toContain('프로젝트 의존성 리포트');
+    expect(formatted).toContain('총 스펙 수: 10');
+    expect(formatted).toContain('총 의존 관계: 15');
+    expect(formatted).toContain('85/100');
+    expect(formatted).toContain('core');
+    expect(formatted).toContain('orphan1');
+  });
+
+  it('순환 의존성이 있으면 표시한다', () => {
+    const report = {
+      generatedAt: '2025-01-01T00:00:00.000Z',
+      projectPath: '/test/project',
+      totalSpecs: 5,
+      totalEdges: 5,
+      mostConnectedSpecs: [],
+      orphanSpecs: [],
+      circularDependencies: [
+        { cycle: ['A', 'B', 'A'], description: '순환 의존성: A → B → A' },
+      ],
+      healthScore: 60,
+      summary: '순환 의존성 있음',
+    };
+
+    const formatted = formatImpactReport(report);
+
+    expect(formatted).toContain('순환 의존성');
+    expect(formatted).toContain('A → B → A');
   });
 });
