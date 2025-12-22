@@ -10,15 +10,243 @@ import {
   parseConstitution,
   validateConstitution,
   bumpVersion,
-  parseVersion,
   generateChangelog,
   parseChangelog,
   createChangelogEntry,
-  suggestBumpType,
+  type ParsedConstitution,
   type VersionBumpType,
   type ChangeType,
   type ChangelogEntry,
 } from '../../core/constitution/index.js';
+import { Result, success, failure } from '../../types/index.js';
+
+/**
+ * Constitution 표시 옵션
+ */
+export interface ShowOptions {
+  json?: boolean;
+}
+
+/**
+ * 버전 범프 옵션
+ */
+export interface BumpOptions {
+  major?: boolean;
+  minor?: boolean;
+  patch?: boolean;
+  message?: string;
+}
+
+/**
+ * 히스토리 옵션
+ */
+export interface HistoryOptions {
+  count: string;
+}
+
+/**
+ * Constitution 읽기 결과
+ */
+export interface ConstitutionReadResult {
+  content: string;
+  parsed: ParsedConstitution;
+}
+
+/**
+ * 버전 범프 결과
+ */
+export interface BumpResult {
+  previousVersion: string;
+  newVersion: string;
+  changelogPath: string;
+}
+
+/**
+ * 범프 유형 결정 (테스트 가능)
+ */
+export function determineBumpType(options: BumpOptions): VersionBumpType | null {
+  if (options.major) return 'major';
+  if (options.minor) return 'minor';
+  if (options.patch) return 'patch';
+  return null;
+}
+
+/**
+ * Constitution 읽기 (테스트 가능)
+ */
+export async function readConstitution(projectPath: string): Promise<Result<ConstitutionReadResult, Error>> {
+  const constitutionPath = path.join(projectPath, '.sdd', 'constitution.md');
+
+  if (!(await fileExists(constitutionPath))) {
+    return failure(new Error('Constitution이 없습니다. `sdd init`으로 프로젝트를 초기화하세요.'));
+  }
+
+  const contentResult = await readFile(constitutionPath);
+  if (!contentResult.success) {
+    return failure(new Error('Constitution 파일을 읽을 수 없습니다.'));
+  }
+
+  const parseResult = parseConstitution(contentResult.data);
+  if (!parseResult.success) {
+    return failure(new Error(`Constitution 파싱 실패: ${parseResult.error.message}`));
+  }
+
+  return success({
+    content: contentResult.data,
+    parsed: parseResult.data,
+  });
+}
+
+/**
+ * Constitution JSON 변환 (테스트 가능)
+ */
+export function constitutionToJson(constitution: ParsedConstitution): object {
+  return {
+    projectName: constitution.projectName,
+    version: constitution.metadata.version,
+    created: constitution.metadata.created,
+    updated: constitution.metadata.updated,
+    principles: constitution.principles,
+    forbidden: constitution.forbidden,
+    techStack: constitution.techStack,
+    qualityStandards: constitution.qualityStandards,
+  };
+}
+
+/**
+ * 버전 범프 실행 (테스트 가능)
+ */
+export async function executeBump(
+  projectPath: string,
+  bumpType: VersionBumpType,
+  message?: string
+): Promise<Result<BumpResult, Error>> {
+  const constitutionPath = path.join(projectPath, '.sdd', 'constitution.md');
+  const changelogPath = path.join(projectPath, '.sdd', 'CHANGELOG.md');
+
+  const readResult = await readConstitution(projectPath);
+  if (!readResult.success) {
+    return failure(readResult.error);
+  }
+
+  const { content, parsed } = readResult.data;
+  const currentVersion = parsed.metadata.version;
+  const newVersion = bumpVersion(currentVersion, bumpType);
+  const today = new Date().toISOString().split('T')[0];
+
+  // Constitution 업데이트
+  let updatedContent = content;
+
+  // version 업데이트
+  updatedContent = updatedContent.replace(
+    /^version:\s*.+$/m,
+    `version: ${newVersion}`
+  );
+
+  // updated 필드 추가/업데이트
+  if (/^updated:/m.test(updatedContent)) {
+    updatedContent = updatedContent.replace(
+      /^updated:\s*.+$/m,
+      `updated: ${today}`
+    );
+  } else {
+    updatedContent = updatedContent.replace(
+      /^(version:\s*.+)$/m,
+      `$1\nupdated: ${today}`
+    );
+  }
+
+  await writeFile(constitutionPath, updatedContent);
+
+  // CHANGELOG 업데이트
+  const changeType: ChangeType = bumpType === 'major' ? 'changed' : bumpType === 'minor' ? 'added' : 'fixed';
+  const changeDescription = message || `Constitution ${bumpType} 업데이트`;
+
+  const newEntry = createChangelogEntry(
+    currentVersion,
+    bumpType,
+    [{ type: changeType, description: changeDescription }],
+    message
+  );
+
+  let existingEntries: ChangelogEntry[] = [];
+  if (await fileExists(changelogPath)) {
+    const changelogContent = await readFile(changelogPath);
+    if (changelogContent.success) {
+      const parsed = parseChangelog(changelogContent.data);
+      if (parsed.success) {
+        existingEntries = parsed.data;
+      }
+    }
+  }
+
+  const allEntries = [newEntry, ...existingEntries];
+  const newChangelog = generateChangelog(allEntries);
+  await writeFile(changelogPath, newChangelog);
+
+  return success({
+    previousVersion: currentVersion,
+    newVersion,
+    changelogPath,
+  });
+}
+
+/**
+ * Constitution 검증 실행 (테스트 가능)
+ */
+export async function executeValidateConstitution(
+  projectPath: string
+): Promise<Result<ParsedConstitution, Error>> {
+  const readResult = await readConstitution(projectPath);
+  if (!readResult.success) {
+    return failure(readResult.error);
+  }
+
+  const validationResult = validateConstitution(readResult.data.parsed);
+  if (!validationResult.success) {
+    return failure(new Error(`Constitution 검증 실패: ${validationResult.error.message}`));
+  }
+
+  return success(readResult.data.parsed);
+}
+
+/**
+ * Changelog 이력 결과
+ */
+export interface HistoryResult {
+  entries: ChangelogEntry[];
+  totalCount: number;
+}
+
+/**
+ * Changelog 이력 조회 (테스트 가능)
+ */
+export async function getHistory(
+  projectPath: string,
+  count = 10
+): Promise<Result<HistoryResult, Error>> {
+  const changelogPath = path.join(projectPath, '.sdd', 'CHANGELOG.md');
+
+  if (!(await fileExists(changelogPath))) {
+    return success({ entries: [], totalCount: 0 });
+  }
+
+  const contentResult = await readFile(changelogPath);
+  if (!contentResult.success) {
+    return failure(new Error('CHANGELOG 파일을 읽을 수 없습니다.'));
+  }
+
+  const parseResult = parseChangelog(contentResult.data);
+  if (!parseResult.success) {
+    return failure(new Error(`CHANGELOG 파싱 실패: ${parseResult.error.message}`));
+  }
+
+  const entries = parseResult.data.slice(0, count);
+  return success({
+    entries,
+    totalCount: parseResult.data.length,
+  });
+}
 
 /**
  * constitution 명령어 등록
@@ -110,38 +338,17 @@ export function registerConstitutionCommand(program: Command): void {
  */
 async function runShow(options: { json?: boolean }): Promise<void> {
   const cwd = process.cwd();
-  const constitutionPath = path.join(cwd, '.sdd', 'constitution.md');
 
-  if (!(await fileExists(constitutionPath))) {
-    logger.error('Constitution이 없습니다. `sdd init`으로 프로젝트를 초기화하세요.');
-    process.exit(ExitCode.FILE_NOT_FOUND);
-  }
-
-  const contentResult = await readFile(constitutionPath);
-  if (!contentResult.success) {
-    logger.error('Constitution 파일을 읽을 수 없습니다.');
+  const result = await readConstitution(cwd);
+  if (!result.success) {
+    logger.error(result.error.message);
     process.exit(ExitCode.FILE_SYSTEM_ERROR);
   }
 
-  const parseResult = parseConstitution(contentResult.data);
-  if (!parseResult.success) {
-    logger.error(`Constitution 파싱 실패: ${parseResult.error.message}`);
-    process.exit(ExitCode.VALIDATION_ERROR);
-  }
-
-  const constitution = parseResult.data;
+  const constitution = result.data.parsed;
 
   if (options.json) {
-    console.log(JSON.stringify({
-      projectName: constitution.projectName,
-      version: constitution.metadata.version,
-      created: constitution.metadata.created,
-      updated: constitution.metadata.updated,
-      principles: constitution.principles,
-      forbidden: constitution.forbidden,
-      techStack: constitution.techStack,
-      qualityStandards: constitution.qualityStandards,
-    }, null, 2));
+    console.log(JSON.stringify(constitutionToJson(constitution), null, 2));
     return;
   }
 
@@ -193,26 +400,14 @@ async function runShow(options: { json?: boolean }): Promise<void> {
  */
 async function runVersion(): Promise<void> {
   const cwd = process.cwd();
-  const constitutionPath = path.join(cwd, '.sdd', 'constitution.md');
 
-  if (!(await fileExists(constitutionPath))) {
-    logger.error('Constitution이 없습니다.');
-    process.exit(ExitCode.FILE_NOT_FOUND);
-  }
-
-  const contentResult = await readFile(constitutionPath);
-  if (!contentResult.success) {
-    logger.error('Constitution 파일을 읽을 수 없습니다.');
+  const result = await readConstitution(cwd);
+  if (!result.success) {
+    logger.error(result.error.message);
     process.exit(ExitCode.FILE_SYSTEM_ERROR);
   }
 
-  const parseResult = parseConstitution(contentResult.data);
-  if (!parseResult.success) {
-    logger.error(`Constitution 파싱 실패: ${parseResult.error.message}`);
-    process.exit(ExitCode.VALIDATION_ERROR);
-  }
-
-  console.log(parseResult.data.metadata.version);
+  console.log(result.data.parsed.metadata.version);
 }
 
 /**
@@ -220,96 +415,22 @@ async function runVersion(): Promise<void> {
  */
 async function runBump(options: { major?: boolean; minor?: boolean; patch?: boolean; message?: string }): Promise<void> {
   const cwd = process.cwd();
-  const constitutionPath = path.join(cwd, '.sdd', 'constitution.md');
-  const changelogPath = path.join(cwd, '.sdd', 'CHANGELOG.md');
-
-  if (!(await fileExists(constitutionPath))) {
-    logger.error('Constitution이 없습니다.');
-    process.exit(ExitCode.FILE_NOT_FOUND);
-  }
 
   // 버전 범프 유형 결정
-  let bumpType: VersionBumpType;
-  if (options.major) {
-    bumpType = 'major';
-  } else if (options.minor) {
-    bumpType = 'minor';
-  } else if (options.patch) {
-    bumpType = 'patch';
-  } else {
+  const bumpType = determineBumpType(options);
+  if (!bumpType) {
     logger.error('버전 유형을 지정하세요: --major, --minor, 또는 --patch');
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  // Constitution 읽기
-  const contentResult = await readFile(constitutionPath);
-  if (!contentResult.success) {
-    logger.error('Constitution 파일을 읽을 수 없습니다.');
+  const result = await executeBump(cwd, bumpType, options.message);
+  if (!result.success) {
+    logger.error(result.error.message);
     process.exit(ExitCode.FILE_SYSTEM_ERROR);
   }
 
-  const parseResult = parseConstitution(contentResult.data);
-  if (!parseResult.success) {
-    logger.error(`Constitution 파싱 실패: ${parseResult.error.message}`);
-    process.exit(ExitCode.VALIDATION_ERROR);
-  }
-
-  const currentVersion = parseResult.data.metadata.version;
-  const newVersion = bumpVersion(currentVersion, bumpType);
-  const today = new Date().toISOString().split('T')[0];
-
-  // Constitution 업데이트
-  let updatedContent = contentResult.data;
-
-  // version 업데이트
-  updatedContent = updatedContent.replace(
-    /^version:\s*.+$/m,
-    `version: ${newVersion}`
-  );
-
-  // updated 필드 추가/업데이트
-  if (/^updated:/m.test(updatedContent)) {
-    updatedContent = updatedContent.replace(
-      /^updated:\s*.+$/m,
-      `updated: ${today}`
-    );
-  } else {
-    updatedContent = updatedContent.replace(
-      /^(version:\s*.+)$/m,
-      `$1\nupdated: ${today}`
-    );
-  }
-
-  await writeFile(constitutionPath, updatedContent);
-
-  // CHANGELOG 업데이트
-  const changeType: ChangeType = bumpType === 'major' ? 'changed' : bumpType === 'minor' ? 'added' : 'fixed';
-  const changeDescription = options.message || `Constitution ${bumpType} 업데이트`;
-
-  const newEntry = createChangelogEntry(
-    currentVersion,
-    bumpType,
-    [{ type: changeType, description: changeDescription }],
-    options.message
-  );
-
-  let existingEntries: ChangelogEntry[] = [];
-  if (await fileExists(changelogPath)) {
-    const changelogContent = await readFile(changelogPath);
-    if (changelogContent.success) {
-      const parsed = parseChangelog(changelogContent.data);
-      if (parsed.success) {
-        existingEntries = parsed.data;
-      }
-    }
-  }
-
-  const allEntries = [newEntry, ...existingEntries];
-  const newChangelog = generateChangelog(allEntries);
-  await writeFile(changelogPath, newChangelog);
-
-  logger.success(`Constitution 버전 업데이트: ${currentVersion} → ${newVersion}`);
-  logger.info(`CHANGELOG 업데이트: ${changelogPath}`);
+  logger.success(`Constitution 버전 업데이트: ${result.data.previousVersion} → ${result.data.newVersion}`);
+  logger.info(`CHANGELOG 업데이트: ${result.data.changelogPath}`);
 }
 
 /**
@@ -317,27 +438,15 @@ async function runBump(options: { major?: boolean; minor?: boolean; patch?: bool
  */
 async function runHistory(options: { count: string }): Promise<void> {
   const cwd = process.cwd();
-  const changelogPath = path.join(cwd, '.sdd', 'CHANGELOG.md');
+  const count = parseInt(options.count, 10) || 10;
 
-  if (!(await fileExists(changelogPath))) {
-    logger.warn('CHANGELOG가 없습니다. `sdd constitution bump`로 버전을 업데이트하면 생성됩니다.');
-    return;
-  }
-
-  const contentResult = await readFile(changelogPath);
-  if (!contentResult.success) {
-    logger.error('CHANGELOG 파일을 읽을 수 없습니다.');
+  const result = await getHistory(cwd, count);
+  if (!result.success) {
+    logger.error(result.error.message);
     process.exit(ExitCode.FILE_SYSTEM_ERROR);
   }
 
-  const parseResult = parseChangelog(contentResult.data);
-  if (!parseResult.success) {
-    logger.error(`CHANGELOG 파싱 실패: ${parseResult.error.message}`);
-    process.exit(ExitCode.VALIDATION_ERROR);
-  }
-
-  const count = parseInt(options.count, 10) || 10;
-  const entries = parseResult.data.slice(0, count);
+  const { entries } = result.data;
 
   if (entries.length === 0) {
     logger.info('변경 이력이 없습니다.');
@@ -364,34 +473,17 @@ async function runHistory(options: { count: string }): Promise<void> {
  */
 async function runValidate(): Promise<void> {
   const cwd = process.cwd();
-  const constitutionPath = path.join(cwd, '.sdd', 'constitution.md');
 
-  if (!(await fileExists(constitutionPath))) {
-    logger.error('Constitution이 없습니다.');
-    process.exit(ExitCode.FILE_NOT_FOUND);
+  const result = await executeValidateConstitution(cwd);
+  if (!result.success) {
+    logger.error(result.error.message);
+    process.exit(ExitCode.VALIDATION_FAILED);
   }
 
-  const contentResult = await readFile(constitutionPath);
-  if (!contentResult.success) {
-    logger.error('Constitution 파일을 읽을 수 없습니다.');
-    process.exit(ExitCode.FILE_SYSTEM_ERROR);
-  }
-
-  const parseResult = parseConstitution(contentResult.data);
-  if (!parseResult.success) {
-    logger.error(`Constitution 파싱 실패: ${parseResult.error.message}`);
-    process.exit(ExitCode.VALIDATION_ERROR);
-  }
-
-  const validationResult = validateConstitution(parseResult.data);
-  if (!validationResult.success) {
-    logger.error(`Constitution 검증 실패: ${validationResult.error.message}`);
-    process.exit(ExitCode.VALIDATION_ERROR);
-  }
-
+  const constitution = result.data;
   logger.success('Constitution 검증 통과');
-  logger.info(`프로젝트: ${parseResult.data.projectName}`);
-  logger.info(`버전: ${parseResult.data.metadata.version}`);
-  logger.info(`원칙 수: ${parseResult.data.principles.length}`);
-  logger.info(`금지 사항 수: ${parseResult.data.forbidden.length}`);
+  logger.info(`프로젝트: ${constitution.projectName}`);
+  logger.info(`버전: ${constitution.metadata.version}`);
+  logger.info(`원칙 수: ${constitution.principles.length}`);
+  logger.info(`금지 사항 수: ${constitution.forbidden.length}`);
 }

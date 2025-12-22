@@ -20,6 +20,265 @@ import {
 import { findSddRoot, directoryExists, ensureDir, writeFile, readFile, fileExists } from '../../utils/fs.js';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
+import { Result, success, failure } from '../../types/index.js';
+
+/**
+ * 변경 옵션
+ */
+export interface ChangeOptions {
+  list?: boolean;
+  title?: string;
+  spec?: string;
+}
+
+/**
+ * 변경 생성 결과
+ */
+export interface CreateChangeResult {
+  id: string;
+  proposalPath: string;
+  deltaPath: string;
+}
+
+/**
+ * 변경 정보
+ */
+export interface ChangeInfo {
+  id: string;
+  title: string;
+  status: string;
+  created: string;
+  affectedSpecs: string[];
+}
+
+/**
+ * 변경 목록 항목
+ */
+export interface ChangeListItem {
+  id: string;
+  title: string | null;
+  status: string;
+}
+
+/**
+ * Delta 정보
+ */
+export interface DeltaInfo {
+  added: Array<{ content: string }>;
+  modified: Array<{ content: string; before?: string; after?: string }>;
+  removed: Array<{ content: string }>;
+}
+
+/**
+ * 검증 결과
+ */
+export interface ChangeValidationResult {
+  proposalValid: boolean;
+  proposalTitle?: string;
+  proposalError?: string;
+  deltaValid: boolean;
+  deltaTypes?: string[];
+  deltaWarnings?: string[];
+  deltaErrors?: string[];
+  hasDelta: boolean;
+}
+
+/**
+ * 변경 목록 조회 (테스트 가능)
+ */
+export async function getChangeListItems(sddPath: string): Promise<Result<ChangeListItem[], Error>> {
+  const result = await listPendingChanges(sddPath);
+  if (!result.success) {
+    return failure(result.error);
+  }
+
+  return success(result.data.map(change => ({
+    id: change.id,
+    title: change.title || null,
+    status: change.status,
+  })));
+}
+
+/**
+ * 변경 정보 조회 (테스트 가능)
+ */
+export async function getChangeInfo(changePath: string): Promise<Result<ChangeInfo, Error>> {
+  const proposalPath = path.join(changePath, 'proposal.md');
+
+  if (!(await fileExists(proposalPath))) {
+    return failure(new Error('proposal.md를 찾을 수 없습니다.'));
+  }
+
+  const contentResult = await readFile(proposalPath);
+  if (!contentResult.success) {
+    return failure(new Error('proposal.md를 읽을 수 없습니다.'));
+  }
+
+  const parseResult = parseProposal(contentResult.data);
+  if (!parseResult.success) {
+    return failure(new Error(`proposal.md 파싱 실패: ${parseResult.error.message}`));
+  }
+
+  return success({
+    id: parseResult.data.metadata.id,
+    title: parseResult.data.title,
+    status: parseResult.data.metadata.status,
+    created: parseResult.data.metadata.created,
+    affectedSpecs: parseResult.data.affectedSpecs,
+  });
+}
+
+/**
+ * 변경 생성 (테스트 가능)
+ */
+export async function createChange(
+  sddPath: string,
+  options: { title?: string; spec?: string }
+): Promise<Result<CreateChangeResult, Error>> {
+  const changesPath = path.join(sddPath, 'changes');
+  await ensureDir(changesPath);
+
+  // 기존 ID 수집
+  const existingIds: string[] = [];
+  try {
+    const dirs = await fs.readdir(changesPath);
+    existingIds.push(...dirs.filter((d) => d.startsWith('CHG-')));
+  } catch {
+    // 디렉토리가 없을 수 있음
+  }
+
+  const newId = generateChangeId(existingIds);
+  const title = options.title || '새 변경 제안';
+  const affectedSpecs = options.spec ? [options.spec] : [];
+
+  const changePath = path.join(changesPath, newId);
+  await ensureDir(changePath);
+
+  // proposal.md 생성
+  const proposal = generateProposal({
+    id: newId,
+    title,
+    affectedSpecs,
+  });
+  const proposalPath = path.join(changePath, 'proposal.md');
+  await writeFile(proposalPath, proposal);
+
+  // delta.md 생성
+  const delta = generateDelta({
+    proposalId: newId,
+    title,
+  });
+  const deltaPath = path.join(changePath, 'delta.md');
+  await writeFile(deltaPath, delta);
+
+  return success({
+    id: newId,
+    proposalPath,
+    deltaPath,
+  });
+}
+
+/**
+ * 변경 적용 (테스트 가능)
+ */
+export async function applyChange(changePath: string): Promise<Result<void, Error>> {
+  const proposalPath = path.join(changePath, 'proposal.md');
+
+  if (!(await fileExists(proposalPath))) {
+    return failure(new Error('proposal.md를 찾을 수 없습니다.'));
+  }
+
+  const contentResult = await readFile(proposalPath);
+  if (!contentResult.success) {
+    return failure(new Error('proposal.md를 읽을 수 없습니다.'));
+  }
+
+  const updateResult = updateProposalStatus(contentResult.data, 'applied');
+  if (!updateResult.success) {
+    return failure(new Error('proposal.md를 업데이트할 수 없습니다.'));
+  }
+
+  await writeFile(proposalPath, updateResult.data);
+  return success(undefined);
+}
+
+/**
+ * Delta 정보 조회 (테스트 가능)
+ */
+export async function getDeltaInfo(changePath: string): Promise<Result<DeltaInfo, Error>> {
+  const deltaPath = path.join(changePath, 'delta.md');
+
+  if (!(await fileExists(deltaPath))) {
+    return failure(new Error('delta.md를 찾을 수 없습니다.'));
+  }
+
+  const deltaResult = await readFile(deltaPath);
+  if (!deltaResult.success) {
+    return failure(new Error('delta.md를 읽을 수 없습니다.'));
+  }
+
+  const parseResult = parseDelta(deltaResult.data);
+  if (!parseResult.success) {
+    return failure(new Error(`Delta 파싱 실패: ${parseResult.error.message}`));
+  }
+
+  return success({
+    added: parseResult.data.added,
+    modified: parseResult.data.modified,
+    removed: parseResult.data.removed,
+  });
+}
+
+/**
+ * 변경 제안 검증 (테스트 가능)
+ */
+export async function validateChange(changePath: string): Promise<Result<ChangeValidationResult, Error>> {
+  const result: ChangeValidationResult = {
+    proposalValid: false,
+    deltaValid: false,
+    hasDelta: false,
+  };
+
+  // Proposal 검증
+  const proposalPath = path.join(changePath, 'proposal.md');
+  if (await fileExists(proposalPath)) {
+    const proposalResult = await readFile(proposalPath);
+    if (proposalResult.success) {
+      const parsed = parseProposal(proposalResult.data);
+      if (parsed.success) {
+        result.proposalValid = true;
+        result.proposalTitle = parsed.data.title;
+      } else {
+        result.proposalError = parsed.error.message;
+      }
+    }
+  } else {
+    result.proposalError = 'proposal.md가 없습니다.';
+  }
+
+  // Delta 검증
+  const deltaPath = path.join(changePath, 'delta.md');
+  if (await fileExists(deltaPath)) {
+    result.hasDelta = true;
+    const deltaResult = await readFile(deltaPath);
+    if (deltaResult.success) {
+      const validation = validateDelta(deltaResult.data);
+      if (validation.valid) {
+        result.deltaValid = true;
+        const types: string[] = [];
+        if (validation.hasAdded) types.push('ADDED');
+        if (validation.hasModified) types.push('MODIFIED');
+        if (validation.hasRemoved) types.push('REMOVED');
+        result.deltaTypes = types;
+        result.deltaWarnings = validation.warnings;
+      } else {
+        result.deltaErrors = validation.errors;
+      }
+    }
+  }
+
+  return success(result);
+}
 
 /**
  * change 명령어 등록
@@ -114,7 +373,7 @@ async function runChange(
 
   // 목록 출력
   if (options.list) {
-    const result = await listPendingChanges(sddPath);
+    const result = await getChangeListItems(sddPath);
     if (!result.success) {
       logger.error(result.error.message);
       process.exit(ExitCode.GENERAL_ERROR);
@@ -142,60 +401,29 @@ async function runChange(
       process.exit(ExitCode.GENERAL_ERROR);
     }
 
-    const proposalPath = path.join(changePath, 'proposal.md');
-    try {
-      const content = await fs.readFile(proposalPath, 'utf-8');
-      const parseResult = parseProposal(content);
-      if (parseResult.success) {
-        logger.info(`변경 제안: ${parseResult.data.title}`);
-        logger.info(`상태: ${parseResult.data.metadata.status}`);
-        logger.info(`생성: ${parseResult.data.metadata.created}`);
-        if (parseResult.data.affectedSpecs.length > 0) {
-          logger.info('영향 스펙:');
-          parseResult.data.affectedSpecs.forEach((spec) => logger.listItem(spec, 1));
-        }
+    const infoResult = await getChangeInfo(changePath);
+    if (infoResult.success) {
+      logger.info(`변경 제안: ${infoResult.data.title}`);
+      logger.info(`상태: ${infoResult.data.status}`);
+      logger.info(`생성: ${infoResult.data.created}`);
+      if (infoResult.data.affectedSpecs.length > 0) {
+        logger.info('영향 스펙:');
+        infoResult.data.affectedSpecs.forEach((spec) => logger.listItem(spec, 1));
       }
-    } catch {
-      logger.error('proposal.md를 읽을 수 없습니다.');
+    } else {
+      logger.error(infoResult.error.message);
     }
     return;
   }
 
   // 새 변경 생성
-  const changesPath = path.join(sddPath, 'changes');
-  await ensureDir(changesPath);
-
-  // 기존 ID 수집
-  const existingIds: string[] = [];
-  try {
-    const dirs = await fs.readdir(changesPath);
-    existingIds.push(...dirs.filter((d) => d.startsWith('CHG-')));
-  } catch {
-    // 디렉토리가 없을 수 있음
+  const createResult = await createChange(sddPath, options);
+  if (!createResult.success) {
+    logger.error(createResult.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  const newId = generateChangeId(existingIds);
-  const title = options.title || '새 변경 제안';
-  const affectedSpecs = options.spec ? [options.spec] : [];
-
-  const changePath = path.join(changesPath, newId);
-  await ensureDir(changePath);
-
-  // proposal.md 생성
-  const proposal = generateProposal({
-    id: newId,
-    title,
-    affectedSpecs,
-  });
-  await writeFile(path.join(changePath, 'proposal.md'), proposal);
-
-  // delta.md 생성
-  const delta = generateDelta({
-    proposalId: newId,
-    title,
-  });
-  await writeFile(path.join(changePath, 'delta.md'), delta);
-
+  const newId = createResult.data.id;
   logger.success(`변경 제안이 생성되었습니다: ${newId}`);
   logger.newline();
   logger.info('생성된 파일:');
@@ -226,16 +454,9 @@ async function runApply(id: string): Promise<void> {
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  // proposal.md 상태 업데이트
-  const proposalPath = path.join(changePath, 'proposal.md');
-  try {
-    const content = await fs.readFile(proposalPath, 'utf-8');
-    const updateResult = updateProposalStatus(content, 'applied');
-    if (updateResult.success) {
-      await fs.writeFile(proposalPath, updateResult.data);
-    }
-  } catch {
-    logger.error('proposal.md를 업데이트할 수 없습니다.');
+  const result = await applyChange(changePath);
+  if (!result.success) {
+    logger.error(result.error.message);
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
@@ -286,25 +507,13 @@ async function runDiff(id: string): Promise<void> {
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  const deltaPath = path.join(changePath, 'delta.md');
-  if (!(await fileExists(deltaPath))) {
-    logger.error('delta.md를 찾을 수 없습니다.');
-    process.exit(ExitCode.GENERAL_ERROR);
-  }
-
-  const deltaResult = await readFile(deltaPath);
+  const deltaResult = await getDeltaInfo(changePath);
   if (!deltaResult.success) {
-    logger.error('delta.md를 읽을 수 없습니다.');
+    logger.error(deltaResult.error.message);
     process.exit(ExitCode.FILE_SYSTEM_ERROR);
   }
 
-  const parseResult = parseDelta(deltaResult.data);
-  if (!parseResult.success) {
-    logger.error(`Delta 파싱 실패: ${parseResult.error.message}`);
-    process.exit(ExitCode.VALIDATION_ERROR);
-  }
-
-  const delta = parseResult.data;
+  const delta = deltaResult.data;
 
   logger.info(`변경 Diff: ${id}`);
   logger.newline();
@@ -366,49 +575,40 @@ async function runValidateChange(id: string): Promise<void> {
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
+  const validationResult = await validateChange(changePath);
+  if (!validationResult.success) {
+    logger.error(validationResult.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const result = validationResult.data;
   let hasErrors = false;
 
-  // Proposal 검증
-  const proposalPath = path.join(changePath, 'proposal.md');
-  if (await fileExists(proposalPath)) {
-    const proposalResult = await readFile(proposalPath);
-    if (proposalResult.success) {
-      const parsed = parseProposal(proposalResult.data);
-      if (parsed.success) {
-        logger.success(`✓ proposal.md 유효 (${parsed.data.title})`);
-      } else {
-        logger.error(`✗ proposal.md 오류: ${parsed.error.message}`);
-        hasErrors = true;
-      }
-    }
+  // Proposal 결과 출력
+  if (result.proposalValid) {
+    logger.success(`✓ proposal.md 유효 (${result.proposalTitle})`);
   } else {
-    logger.error('✗ proposal.md가 없습니다.');
+    logger.error(`✗ proposal.md 오류: ${result.proposalError}`);
     hasErrors = true;
   }
 
-  // Delta 검증
-  const deltaPath = path.join(changePath, 'delta.md');
-  if (await fileExists(deltaPath)) {
-    const deltaResult = await readFile(deltaPath);
-    if (deltaResult.success) {
-      const validation = validateDelta(deltaResult.data);
-      if (validation.valid) {
-        const types = [];
-        if (validation.hasAdded) types.push('ADDED');
-        if (validation.hasModified) types.push('MODIFIED');
-        if (validation.hasRemoved) types.push('REMOVED');
-        logger.success(`✓ delta.md 유효 (${types.join(', ')})`);
-
-        for (const warning of validation.warnings) {
+  // Delta 결과 출력
+  if (result.hasDelta) {
+    if (result.deltaValid) {
+      logger.success(`✓ delta.md 유효 (${result.deltaTypes?.join(', ')})`);
+      if (result.deltaWarnings) {
+        for (const warning of result.deltaWarnings) {
           logger.warn(`  ⚠ ${warning}`);
         }
-      } else {
-        logger.error(`✗ delta.md 오류:`);
-        for (const error of validation.errors) {
+      }
+    } else {
+      logger.error(`✗ delta.md 오류:`);
+      if (result.deltaErrors) {
+        for (const error of result.deltaErrors) {
           logger.error(`  - ${error}`);
         }
-        hasErrors = true;
       }
+      hasErrors = true;
     }
   } else {
     logger.warn('⚠ delta.md가 없습니다.');
@@ -417,7 +617,7 @@ async function runValidateChange(id: string): Promise<void> {
   logger.newline();
   if (hasErrors) {
     logger.error(`검증 실패: ${id}`);
-    process.exit(ExitCode.VALIDATION_ERROR);
+    process.exit(ExitCode.VALIDATION_FAILED);
   } else {
     logger.success(`검증 통과: ${id}`);
   }
