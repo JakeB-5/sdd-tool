@@ -1,7 +1,7 @@
 # SDD Tool 구현 갭 분석
 
 > 스펙 문서와 실제 구현 간의 차이점 및 누락 사항 분석
-> **v0.4.0 기준 업데이트 (2025-12-22)**
+> **v0.5.0 기준 업데이트 (2025-12-22)**
 
 ---
 
@@ -310,7 +310,7 @@
 
 ## Phase 6: 운영
 
-### 01-migration.md - **구현 완료** ✅ (v0.3.0)
+### 01-migration.md - **구현 완료** ✅ (v0.5.0 강화)
 
 | 스펙 요구사항 | 상태 | 비고 |
 |---------------|------|------|
@@ -320,6 +320,9 @@
 | `sdd migrate scan` | ✅ | 디렉토리 스캔 |
 | RFC 2119/GIVEN-WHEN-THEN 감지 | ✅ | 변환 지원 |
 | 마이그레이션 보고서 | ✅ | 적합도 분류 |
+| `sdd migrate detect` | ✅ | **v0.5.0** 외부 도구 자동 감지 |
+| `sdd migrate openspec` | ✅ | **v0.5.0** OpenSpec 마이그레이션 |
+| `sdd migrate speckit` | ✅ | **v0.5.0** Spec Kit 마이그레이션 |
 
 ---
 
@@ -355,12 +358,47 @@
 | **What-if 시뮬레이션** | `sdd impact simulate` 영향도 분석에서 변경 전 예측 | ✅ 완료 |
 | **코드 영향도 분석** | `sdd impact --code` 스펙 변경이 소스 코드에 미치는 영향 분석 | ✅ 완료 |
 
+---
+
+## v0.5.0 구현 완료 사항 ✅
+
+### 주요 기능
+
+| 항목 | 설명 | 상태 |
+|------|------|------|
+| **Watch 모드** | `sdd watch` 스펙 파일 변경 실시간 감시 및 자동 검증 | ✅ 완료 |
+| **스펙 품질 분석** | `sdd quality` 8가지 기준으로 품질 점수 A-F 등급 산출 | ✅ 완료 |
+| **리포트 내보내기** | `sdd report` HTML/Markdown/JSON 형식 리포트 생성 | ✅ 완료 |
+| **외부 도구 마이그레이션** | `sdd migrate detect/openspec/speckit` 자동 감지 및 변환 | ✅ 완료 |
+
+### 상세 기능
+
+#### Watch 모드 (`sdd watch`)
+- `--no-validate`: 자동 검증 비활성화
+- `--impact`: 영향도 분석 포함
+- `-q, --quiet`: 성공 시 출력 생략
+- `--debounce <ms>`: 디바운스 시간 설정
+
+#### 품질 분석 (`sdd quality`)
+- RFC 2119 키워드, GIVEN-WHEN-THEN, 요구사항, 의존성, 구조, Constitution, 링크, 메타데이터 검사
+- `--all`: 전체 프로젝트 분석
+- `--min-score`: 최소 점수 기준
+
+#### 리포트 (`sdd report`)
+- `-f, --format`: html, markdown, json
+- `--no-quality`, `--no-validation`: 분석 제외 옵션
+
+#### 마이그레이션 강화
+- OpenSpec (`openspec/`) 자동 감지
+- Spec Kit (`.specify/`) 자동 감지
+- frontmatter 필드 자동 변환
+
 ### 미래 고려 사항 (선택적)
 
 | 항목 | 설명 | 비고 |
 |------|------|------|
-| OpenSpec/Spec Kit 자동 감지 | 마이그레이션 시 기존 도구 프로젝트 자동 인식 | 확장 기능 |
 | 실시간 AI 통합 | 자연어 변경 요청의 실제 AI 호출 | AI API 필요 |
+| 추가 언어 지원 | Python, Go 등 코드 분석 확장 | 확장 기능 |
 
 ---
 
@@ -391,31 +429,32 @@
 
 ## 테스트 커버리지 현황
 
-- **총 테스트**: 311개 (v0.4.0)
+- **총 테스트**: 311개 (v0.5.0)
 - **테스트 파일**: 30개
 - **통과율**: 100%
-- **신규 테스트 (v0.4.0)**: 31개
-  - violation-checker: 11개
-  - simulator: 9개
-  - code-analyzer: 11개
 
 ---
 
 ## 결론
 
-v0.4.0에서 스펙에 정의된 **모든 기능이 구현 완료**되었습니다.
+v0.5.0에서 스펙에 정의된 **모든 기능이 구현 완료**되었습니다.
 
-**v0.4.0 주요 성과:**
+**v0.5.0 주요 성과:**
+1. ✅ Watch 모드 (`sdd watch`) - 실시간 스펙 감시
+2. ✅ 스펙 품질 분석 (`sdd quality`) - 8가지 기준 평가
+3. ✅ 리포트 내보내기 (`sdd report`) - HTML/Markdown/JSON
+4. ✅ 외부 도구 마이그레이션 (`sdd migrate detect/openspec/speckit`)
+
+**v0.4.0 성과:**
 1. ✅ Constitution 위반 검증 (`sdd validate --constitution`)
 2. ✅ What-if 시뮬레이션 (`sdd impact simulate`)
 3. ✅ 코드 영향도 분석 (`sdd impact --code`)
 
 **향후 확장 가능 영역:**
-- OpenSpec/Spec Kit 프로젝트 자동 감지 및 마이그레이션
 - 실시간 AI 통합 (자연어 변경 요청 처리)
-- 추가 언어 지원 (Python, Go 등)
+- 추가 언어 지원 (Python, Go 등 코드 분석)
 
 ---
 
 *최종 업데이트: 2025-12-22*
-*기준 버전: v0.4.0*
+*기준 버전: v0.5.0*
