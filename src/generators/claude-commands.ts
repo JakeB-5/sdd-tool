@@ -900,5 +900,262 @@ sdd transition guide
 \`\`\`
 `,
     },
+    // CLI 래퍼 커맨드들
+    {
+      name: 'sdd.search',
+      content: `---
+description: SDD 스펙을 검색합니다
+allowed-tools: Bash, Read
+argument-hint: [query] [--status draft] [--phase phase1]
+---
+
+sdd search 명령어를 실행합니다.
+
+\`\`\`bash
+sdd search $ARGUMENTS
+\`\`\`
+
+## 옵션
+
+- \`--status <status>\`: 상태 필터 (draft, review, approved)
+- \`--phase <phase>\`: Phase 필터
+- \`--author <name>\`: 작성자 필터
+- \`--tags <tags>\`: 태그 필터 (콤마 구분)
+- \`--depends-on <spec>\`: 의존성 필터
+- \`--limit <n>\`: 결과 제한
+- \`--sort-by <field>\`: 정렬 기준 (relevance, created, updated, title, status)
+- \`-r, --regex\`: 정규식 검색
+- \`-c, --case-sensitive\`: 대소문자 구분
+- \`--json\`: JSON 출력
+
+검색 결과를 분석하고 관련 스펙 정보를 요약해주세요.
+`,
+    },
+    {
+      name: 'sdd.quality',
+      content: `---
+description: SDD 스펙 품질을 분석합니다
+allowed-tools: Bash, Read
+argument-hint: [specId] [--all] [--json]
+---
+
+sdd quality 명령어를 실행합니다.
+
+\`\`\`bash
+sdd quality $ARGUMENTS
+\`\`\`
+
+## 옵션
+
+- \`--all\`: 모든 스펙 분석
+- \`--json\`: JSON 형식 출력
+- \`--min-score <n>\`: 최소 점수 기준
+
+## 등급 기준
+
+| 등급 | 점수 | 설명 |
+|------|------|------|
+| A | 90-100 | 우수 |
+| B | 80-89 | 양호 |
+| C | 70-79 | 보통 |
+| D | 60-69 | 미흡 |
+| F | 0-59 | 부족 |
+
+분석 결과를 바탕으로 품질 개선 방안을 제안해주세요.
+`,
+    },
+    {
+      name: 'sdd.report',
+      content: `---
+description: SDD 프로젝트 리포트를 생성합니다
+allowed-tools: Bash, Read, Write
+argument-hint: [--format html] [-o report.html]
+---
+
+sdd report 명령어를 실행합니다.
+
+\`\`\`bash
+sdd report $ARGUMENTS
+\`\`\`
+
+## 옵션
+
+- \`--format <type>\`: 출력 형식 (html, markdown, json)
+- \`-o, --output <path>\`: 파일로 저장
+- \`--title <title>\`: 리포트 제목
+- \`--no-quality\`: 품질 분석 제외
+- \`--no-validation\`: 검증 결과 제외
+
+리포트 내용을 요약하고 주요 지표를 설명해주세요.
+`,
+    },
+    {
+      name: 'sdd.impact',
+      content: `---
+description: SDD 스펙 변경의 영향도를 분석합니다
+allowed-tools: Bash, Read
+argument-hint: <specId> [--graph] [--code] [--json]
+---
+
+sdd impact 명령어를 실행합니다.
+
+\`\`\`bash
+sdd impact $ARGUMENTS
+\`\`\`
+
+## 옵션
+
+- \`--graph\`: Mermaid 의존성 그래프 출력
+- \`--code\`: 코드 영향도 분석
+- \`--json\`: JSON 형식 출력
+
+## 서브커맨드
+
+- \`report\`: 전체 프로젝트 영향도 리포트
+- \`change <id>\`: 변경 제안의 영향도
+- \`simulate --remove <spec>\`: What-if 시뮬레이션
+
+영향받는 스펙과 코드를 분석하고 변경 전략을 제안해주세요.
+`,
+    },
+    {
+      name: 'sdd.list',
+      content: `---
+description: SDD 항목 목록을 조회합니다
+allowed-tools: Bash, Read
+argument-hint: [features|changes|specs|templates] [--status draft]
+---
+
+sdd list 명령어를 실행합니다.
+
+\`\`\`bash
+sdd list $ARGUMENTS
+\`\`\`
+
+## 서브커맨드
+
+- (없음): 프로젝트 요약
+- \`features\` (f): 기능 목록
+- \`changes\` (c): 변경 목록
+- \`specs\` (s): 스펙 파일 목록
+- \`templates\` (t): 템플릿 목록
+
+## 옵션
+
+- \`--status <status>\`: 상태별 필터 (features)
+- \`--pending\`: 대기 중만 (changes)
+- \`--archived\`: 아카이브만 (changes)
+
+목록을 분석하고 요약해주세요.
+`,
+    },
+    {
+      name: 'sdd.migrate',
+      content: `---
+description: 기존 프로젝트를 SDD로 마이그레이션합니다
+allowed-tools: Bash, Read
+argument-hint: [detect|openspec|speckit|docs] [--dry-run]
+---
+
+sdd migrate 명령어를 실행합니다.
+
+\`\`\`bash
+sdd migrate $ARGUMENTS
+\`\`\`
+
+## 서브커맨드
+
+- \`detect\`: 기존 도구 감지
+- \`openspec\`: OpenSpec에서 마이그레이션
+- \`speckit\`: SpecKit에서 마이그레이션
+- \`docs\`: 마크다운 문서 변환
+
+## 옵션
+
+- \`--dry-run\`: 미리보기
+- \`--overwrite\`: 기존 스펙 덮어쓰기
+- \`--source <path>\`: 소스 디렉토리
+
+마이그레이션 결과를 확인하고 필요한 후속 작업을 안내해주세요.
+`,
+    },
+    {
+      name: 'sdd.cicd',
+      content: `---
+description: CI/CD 파이프라인을 설정합니다
+allowed-tools: Bash, Read, Write
+argument-hint: [setup|hooks|check] [--platform github]
+---
+
+sdd cicd 명령어를 실행합니다.
+
+\`\`\`bash
+sdd cicd $ARGUMENTS
+\`\`\`
+
+## 서브커맨드
+
+- \`setup\`: CI/CD 워크플로우 생성
+- \`hooks\`: Git hooks 설정
+- \`check\`: CI 검증 실행
+
+## 옵션
+
+- \`--platform <type>\`: github, gitlab, all
+
+생성된 CI/CD 설정을 확인하고 추가 설정이 필요하면 안내해주세요.
+`,
+    },
+    {
+      name: 'sdd.watch',
+      content: `---
+description: 스펙 파일 변경을 감시합니다
+allowed-tools: Bash
+argument-hint: [--validate] [--path .sdd/specs]
+---
+
+sdd watch 명령어를 실행합니다.
+
+\`\`\`bash
+sdd watch $ARGUMENTS
+\`\`\`
+
+## 옵션
+
+- \`--path <dir>\`: 감시할 디렉토리
+- \`--validate\`: 변경 시 자동 검증
+- \`--quality\`: 변경 시 품질 검사
+
+Ctrl+C로 종료합니다.
+`,
+    },
+    {
+      name: 'sdd.prompt',
+      content: `---
+description: SDD 작업용 AI 프롬프트를 출력합니다
+allowed-tools: Bash, Read
+argument-hint: [change|apply|archive|validate] [--list]
+---
+
+sdd prompt 명령어를 실행합니다.
+
+\`\`\`bash
+sdd prompt $ARGUMENTS
+\`\`\`
+
+## 사용 가능한 프롬프트
+
+- \`change\`: 변경 제안 작성
+- \`apply\`: 변경 적용
+- \`archive\`: 변경 아카이브
+- \`validate\`: 스펙 검증
+
+## 옵션
+
+- \`--list\`: 사용 가능한 프롬프트 목록
+
+프롬프트 내용을 출력하고 사용 방법을 안내해주세요.
+`,
+    },
   ];
 }
