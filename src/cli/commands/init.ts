@@ -8,45 +8,30 @@ import { ExitCode } from '../../errors/index.js';
 import * as logger from '../../utils/logger.js';
 import { generateAgentsMd } from '../../generators/agents-md.js';
 import { generateClaudeCommands } from '../../generators/claude-commands.js';
+import { Result, success, failure } from '../../types/index.js';
 
 /**
- * init 명령어 등록
+ * 초기화 옵션
  */
-export function registerInitCommand(program: Command): void {
-  program
-    .command('init')
-    .description('SDD 프로젝트를 초기화합니다')
-    .option('-f, --force', '기존 .sdd/ 디렉토리 덮어쓰기')
-    .action(async (options: { force?: boolean }) => {
-      try {
-        await runInit(options);
-      } catch (error) {
-        logger.error(error instanceof Error ? error.message : String(error));
-        process.exit(ExitCode.GENERAL_ERROR);
-      }
-    });
+export interface InitOptions {
+  force?: boolean;
 }
 
 /**
- * 초기화 실행
+ * 초기화 결과
  */
-async function runInit(options: { force?: boolean }): Promise<void> {
-  const cwd = process.cwd();
-  const sddPath = path.join(cwd, '.sdd');
+export interface InitResult {
+  sddPath: string;
+  claudePath: string;
+  directories: string[];
+  files: string[];
+}
 
-  // 기존 디렉토리 확인
-  if (await directoryExists(sddPath)) {
-    if (!options.force) {
-      logger.error('.sdd/ 디렉토리가 이미 존재합니다. --force 옵션으로 덮어쓸 수 있습니다.');
-      process.exit(ExitCode.GENERAL_ERROR);
-    }
-    logger.warn('기존 .sdd/ 디렉토리를 덮어씁니다.');
-  }
-
-  logger.info('SDD 프로젝트를 초기화합니다...');
-
-  // 디렉토리 구조 생성
-  const directories = [
+/**
+ * 생성할 디렉토리 목록 반환 (테스트 가능)
+ */
+export function getInitDirectories(): string[] {
+  return [
     '.sdd',
     '.sdd/specs',
     '.sdd/changes',
@@ -55,62 +40,15 @@ async function runInit(options: { force?: boolean }): Promise<void> {
     '.claude',
     '.claude/commands',
   ];
-
-  for (const dir of directories) {
-    const result = await ensureDir(path.join(cwd, dir));
-    if (!result.success) {
-      logger.error(`디렉토리 생성 실패: ${dir}`);
-      process.exit(ExitCode.FILE_SYSTEM_ERROR);
-    }
-  }
-
-  // 기본 파일 생성
-  await createDefaultFiles(cwd);
-
-  // 템플릿 복사
-  await copyTemplates(cwd);
-
-  // Claude 슬래시 커맨드 생성
-  await createClaudeCommands(cwd);
-
-  logger.success('SDD 프로젝트가 초기화되었습니다.');
-  logger.newline();
-  logger.info('생성된 구조:');
-  logger.listItem('.sdd/');
-  logger.listItem('AGENTS.md', 1);
-  logger.listItem('constitution.md', 1);
-  logger.listItem('specs/', 1);
-  logger.listItem('changes/', 1);
-  logger.listItem('archive/', 1);
-  logger.listItem('templates/', 1);
-  logger.listItem('.claude/');
-  logger.listItem('commands/', 1);
-  logger.newline();
-  logger.info('Claude 슬래시 커맨드:');
-  logger.listItem('/sdd.start - 워크플로우 시작 (통합 진입점)');
-  logger.listItem('/sdd.constitution - 프로젝트 원칙 관리');
-  logger.listItem('/sdd.new - 새 기능 명세 작성');
-  logger.listItem('/sdd.plan - 구현 계획 작성');
-  logger.listItem('/sdd.tasks - 작업 분해');
-  logger.listItem('/sdd.implement - 구현 진행');
-  logger.listItem('/sdd.validate - 스펙 검증');
-  logger.listItem('/sdd.status - 상태 확인');
-  logger.listItem('/sdd.change - 변경 제안');
-  logger.newline();
-  logger.info('다음 단계:');
-  logger.listItem('constitution.md를 수정하여 프로젝트 원칙을 정의하세요');
-  logger.listItem('/sdd.new 로 첫 번째 기능 명세를 작성하세요');
 }
 
 /**
- * 기본 파일 생성
+ * Constitution 내용 생성 (테스트 가능)
  */
-async function createDefaultFiles(cwd: string): Promise<void> {
-  const projectName = path.basename(cwd);
+export function generateConstitutionContent(projectName: string): string {
   const today = new Date().toISOString().split('T')[0];
 
-  // constitution.md
-  const constitution = `---
+  return `---
 version: 1.0.0
 created: ${today}
 ---
@@ -145,22 +83,15 @@ created: ${today}
 
 - 테스트 커버리지: 80% 이상(SHOULD)
 `;
-
-  await writeFile(path.join(cwd, '.sdd', 'constitution.md'), constitution);
-
-  // AGENTS.md - 50줄 규칙 준수를 위해 생성기 사용
-  const agents = generateAgentsMd({ projectName });
-  await writeFile(path.join(cwd, '.sdd', 'AGENTS.md'), agents);
 }
 
 /**
- * 템플릿 복사
+ * 스펙 템플릿 내용 생성 (테스트 가능)
  */
-async function copyTemplates(cwd: string): Promise<void> {
+export function generateSpecTemplate(): string {
   const today = new Date().toISOString().split('T')[0];
 
-  // spec.md 템플릿
-  const specTemplate = `---
+  return `---
 status: draft
 created: ${today}
 depends: null
@@ -188,9 +119,115 @@ depends: null
 
 추가 설명이나 제약 조건
 `;
+}
 
-  // proposal.md 템플릿
-  const proposalTemplate = `---
+/**
+ * 초기화 실행 (테스트 가능)
+ */
+export async function executeInit(
+  projectPath: string,
+  options: InitOptions
+): Promise<Result<InitResult, Error>> {
+  const sddPath = path.join(projectPath, '.sdd');
+  const claudePath = path.join(projectPath, '.claude');
+
+  // 기존 디렉토리 확인
+  if (await directoryExists(sddPath)) {
+    if (!options.force) {
+      return failure(new Error('.sdd/ 디렉토리가 이미 존재합니다. --force 옵션으로 덮어쓸 수 있습니다.'));
+    }
+  }
+
+  const directories = getInitDirectories();
+  const createdDirs: string[] = [];
+
+  // 디렉토리 생성
+  for (const dir of directories) {
+    const result = await ensureDir(path.join(projectPath, dir));
+    if (!result.success) {
+      return failure(new Error(`디렉토리 생성 실패: ${dir}`));
+    }
+    createdDirs.push(dir);
+  }
+
+  const createdFiles: string[] = [];
+
+  // 기본 파일 생성
+  const projectName = path.basename(projectPath);
+
+  // constitution.md
+  const constitutionContent = generateConstitutionContent(projectName);
+  await writeFile(path.join(sddPath, 'constitution.md'), constitutionContent);
+  createdFiles.push('.sdd/constitution.md');
+
+  // AGENTS.md
+  const agentsContent = generateAgentsMd({ projectName });
+  await writeFile(path.join(sddPath, 'AGENTS.md'), agentsContent);
+  createdFiles.push('.sdd/AGENTS.md');
+
+  // 템플릿 파일 생성
+  const templateFiles = await createTemplateFiles(projectPath);
+  createdFiles.push(...templateFiles);
+
+  // Claude 슬래시 커맨드 생성
+  const commandFiles = await createCommandFiles(projectPath);
+  createdFiles.push(...commandFiles);
+
+  return success({
+    sddPath,
+    claudePath,
+    directories: createdDirs,
+    files: createdFiles,
+  });
+}
+
+/**
+ * 템플릿 파일 생성
+ */
+async function createTemplateFiles(projectPath: string): Promise<string[]> {
+  const templatesPath = path.join(projectPath, '.sdd', 'templates');
+  const files: string[] = [];
+
+  // spec.md 템플릿
+  await writeFile(path.join(templatesPath, 'spec.md'), generateSpecTemplate());
+  files.push('.sdd/templates/spec.md');
+
+  // 기타 템플릿 파일들도 생성
+  await writeFile(path.join(templatesPath, 'proposal.md'), generateProposalTemplate());
+  files.push('.sdd/templates/proposal.md');
+
+  await writeFile(path.join(templatesPath, 'delta.md'), generateDeltaTemplate());
+  files.push('.sdd/templates/delta.md');
+
+  await writeFile(path.join(templatesPath, 'tasks.md'), generateTasksTemplate());
+  files.push('.sdd/templates/tasks.md');
+
+  return files;
+}
+
+/**
+ * Claude 커맨드 파일 생성
+ */
+async function createCommandFiles(projectPath: string): Promise<string[]> {
+  const commandsPath = path.join(projectPath, '.claude', 'commands');
+  const files: string[] = [];
+
+  const commands = generateClaudeCommands();
+  for (const cmd of commands) {
+    await writeFile(path.join(commandsPath, `${cmd.name}.md`), cmd.content);
+    files.push(`.claude/commands/${cmd.name}.md`);
+  }
+
+  return files;
+}
+
+/**
+ * Proposal 템플릿 생성
+ */
+function generateProposalTemplate(): string {
+  const today = new Date().toISOString().split('T')[0];
+
+  return `---
 id: CHG-{{ID}}
 status: draft
 created: ${today}
@@ -253,9 +290,15 @@ created: ${today}
 - 영향도: 낮음/중간/높음
 - 복잡도: 낮음/중간/높음
 `;
+}
 
-  // delta.md 템플릿
-  const deltaTemplate = `---
+/**
+ * Delta 템플릿 생성
+ */
+function generateDeltaTemplate(): string {
+  const today = new Date().toISOString().split('T')[0];
+
+  return `---
 proposal: CHG-{{ID}}
 created: ${today}
 ---
@@ -286,9 +329,15 @@ created: ${today}
 
 (삭제되는 스펙 참조)
 `;
+}
 
-  // tasks.md 템플릿
-  const tasksTemplate = `---
+/**
+ * Tasks 템플릿 생성
+ */
+function generateTasksTemplate(): string {
+  const today = new Date().toISOString().split('T')[0];
+
+  return `---
 spec: {{SPEC_ID}}
 created: ${today}
 ---
@@ -339,23 +388,73 @@ graph LR
 | [→T] | 테스트 필요 |
 | [US] | 불확실/검토 필요 |
 `;
-
-  await writeFile(path.join(cwd, '.sdd', 'templates', 'spec.md'), specTemplate);
-  await writeFile(path.join(cwd, '.sdd', 'templates', 'proposal.md'), proposalTemplate);
-  await writeFile(path.join(cwd, '.sdd', 'templates', 'delta.md'), deltaTemplate);
-  await writeFile(path.join(cwd, '.sdd', 'templates', 'tasks.md'), tasksTemplate);
 }
 
 /**
- * Claude 슬래시 커맨드 생성
+ * init 명령어 등록
  */
-async function createClaudeCommands(cwd: string): Promise<void> {
-  const commands = generateClaudeCommands();
+export function registerInitCommand(program: Command): void {
+  program
+    .command('init')
+    .description('SDD 프로젝트를 초기화합니다')
+    .option('-f, --force', '기존 .sdd/ 디렉토리 덮어쓰기')
+    .action(async (options: InitOptions) => {
+      try {
+        await runInit(options);
+      } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+    });
+}
 
-  for (const cmd of commands) {
-    await writeFile(
-      path.join(cwd, '.claude', 'commands', `${cmd.name}.md`),
-      cmd.content
-    );
+/**
+ * 초기화 실행 (CLI 래퍼)
+ */
+async function runInit(options: InitOptions): Promise<void> {
+  const cwd = process.cwd();
+
+  // 기존 디렉토리 확인 시 경고 출력
+  if (await directoryExists(path.join(cwd, '.sdd'))) {
+    if (options.force) {
+      logger.warn('기존 .sdd/ 디렉토리를 덮어씁니다.');
+    }
   }
+
+  logger.info('SDD 프로젝트를 초기화합니다...');
+
+  const result = await executeInit(cwd, options);
+
+  if (!result.success) {
+    logger.error(result.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  logger.success('SDD 프로젝트가 초기화되었습니다.');
+  logger.newline();
+  logger.info('생성된 구조:');
+  logger.listItem('.sdd/');
+  logger.listItem('AGENTS.md', 1);
+  logger.listItem('constitution.md', 1);
+  logger.listItem('specs/', 1);
+  logger.listItem('changes/', 1);
+  logger.listItem('archive/', 1);
+  logger.listItem('templates/', 1);
+  logger.listItem('.claude/');
+  logger.listItem('commands/', 1);
+  logger.newline();
+  logger.info('Claude 슬래시 커맨드:');
+  logger.listItem('/sdd.start - 워크플로우 시작 (통합 진입점)');
+  logger.listItem('/sdd.constitution - 프로젝트 원칙 관리');
+  logger.listItem('/sdd.new - 새 기능 명세 작성');
+  logger.listItem('/sdd.plan - 구현 계획 작성');
+  logger.listItem('/sdd.tasks - 작업 분해');
+  logger.listItem('/sdd.implement - 구현 진행');
+  logger.listItem('/sdd.validate - 스펙 검증');
+  logger.listItem('/sdd.status - 상태 확인');
+  logger.listItem('/sdd.change - 변경 제안');
+  logger.newline();
+  logger.info('다음 단계:');
+  logger.listItem('constitution.md를 수정하여 프로젝트 원칙을 정의하세요');
+  logger.listItem('/sdd.new 로 첫 번째 기능 명세를 작성하세요');
 }
