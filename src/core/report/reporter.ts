@@ -269,7 +269,7 @@ function renderHtmlReport(data: ReportData): string {
     </tr>
   `).join('');
 
-  const qualityRows = data.quality?.results.map(q => `
+  const qualityRows = data.quality?.specResults?.map(q => `
     <tr>
       <td>${q.specId}</td>
       <td>${q.percentage}%</td>
@@ -278,7 +278,7 @@ function renderHtmlReport(data: ReportData): string {
     </tr>
   `).join('') || '';
 
-  const validationRows = data.validation?.results.map(v => `
+  const validationRows = data.validation?.files?.map(v => `
     <tr>
       <td>${v.file}</td>
       <td style="color:${v.errors.length > 0 ? '#ef4444' : '#22c55e'};">${v.errors.length > 0 ? '❌ 실패' : '✅ 통과'}</td>
@@ -464,11 +464,11 @@ function renderMarkdownReport(data: ReportData): string {
   if (data.quality) {
     lines.push('## 품질 분석');
     lines.push('');
-    lines.push(`평균 점수: **${data.quality.averagePercentage.toFixed(1)}%** (${data.quality.averageGrade})`);
+    lines.push(`평균 점수: **${data.quality.averagePercentage.toFixed(1)}%** (${data.quality.grade})`);
     lines.push('');
     lines.push('| 스펙 ID | 점수 | 등급 |');
     lines.push('|---------|------|------|');
-    for (const q of data.quality.results) {
+    for (const q of data.quality.specResults || []) {
       lines.push(`| ${q.specId} | ${q.percentage}% | ${q.grade} |`);
     }
     lines.push('');
@@ -478,15 +478,15 @@ function renderMarkdownReport(data: ReportData): string {
   if (data.validation) {
     lines.push('## 검증 결과');
     lines.push('');
-    lines.push(`- 검증된 스펙: ${data.validation.validCount}개`);
-    lines.push(`- 에러: ${data.validation.errorCount}개`);
-    lines.push(`- 경고: ${data.validation.warningCount}개`);
+    lines.push(`- 통과: ${data.validation.passed}개`);
+    lines.push(`- 실패: ${data.validation.failed}개`);
+    lines.push(`- 경고: ${data.validation.warnings}개`);
     lines.push('');
 
-    if (data.validation.errorCount > 0 || data.validation.warningCount > 0) {
+    if (data.validation.failed > 0 || data.validation.warnings > 0) {
       lines.push('### 상세 결과');
       lines.push('');
-      for (const v of data.validation.results) {
+      for (const v of data.validation.files || []) {
         if (v.errors.length > 0 || v.warnings.length > 0) {
           lines.push(`#### ${v.file}`);
           for (const e of v.errors) {

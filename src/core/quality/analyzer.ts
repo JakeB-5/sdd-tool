@@ -188,10 +188,10 @@ function scoreDependencies(spec: ParsedSpec): QualityScoreItem {
 
   let score = 0;
 
-  if (spec.frontmatter.depends) {
-    const deps = Array.isArray(spec.frontmatter.depends)
-      ? spec.frontmatter.depends
-      : [spec.frontmatter.depends];
+  if (spec.metadata.depends) {
+    const deps = Array.isArray(spec.metadata.depends)
+      ? spec.metadata.depends
+      : [spec.metadata.depends];
 
     if (deps.length > 0 && deps[0] !== null) {
       score = maxScore;
@@ -201,8 +201,8 @@ function scoreDependencies(spec: ParsedSpec): QualityScoreItem {
       details.push('의존성 없음 (명시적 선언)');
     }
   } else {
-    details.push('의존성 필드가 없음');
-    suggestions.push('frontmatter에 depends 필드를 추가하세요');
+    score = 5; // depends 필드가 없으면 기본 점수
+    details.push('의존성 필드 없음 (암시적 없음)');
   }
 
   return {
@@ -286,9 +286,9 @@ function scoreConstitution(spec: ParsedSpec, hasConstitution: boolean): QualityS
   if (!hasConstitution) {
     score = maxScore; // Constitution이 없으면 만점
     details.push('Constitution 미설정 (검사 생략)');
-  } else if (spec.frontmatter.constitution_version) {
+  } else if (spec.metadata.constitution_version) {
     score = maxScore;
-    details.push(`Constitution 버전: ${spec.frontmatter.constitution_version}`);
+    details.push(`Constitution 버전: ${spec.metadata.constitution_version}`);
   } else {
     details.push('constitution_version 필드 없음');
     suggestions.push('frontmatter에 constitution_version을 추가하세요');
@@ -351,7 +351,7 @@ function scoreMetadata(spec: ParsedSpec): QualityScoreItem {
   const missingRequired: string[] = [];
 
   for (const field of requiredFields) {
-    if (spec.frontmatter[field]) {
+    if ((spec.metadata as Record<string, unknown>)[field]) {
       score += 2;
     } else {
       missingRequired.push(field);
@@ -359,15 +359,15 @@ function scoreMetadata(spec: ParsedSpec): QualityScoreItem {
   }
 
   for (const field of optionalFields) {
-    if (spec.frontmatter[field]) {
+    if ((spec.metadata as Record<string, unknown>)[field]) {
       score += 1;
     }
   }
 
   score = Math.min(maxScore, score);
 
-  const presentFields = Object.keys(spec.frontmatter).filter(
-    (k) => spec.frontmatter[k] !== null && spec.frontmatter[k] !== undefined
+  const presentFields = Object.keys(spec.metadata).filter(
+    (k) => (spec.metadata as Record<string, unknown>)[k] !== null && (spec.metadata as Record<string, unknown>)[k] !== undefined
   );
   details.push(`메타데이터 필드: ${presentFields.length}개`);
 
@@ -439,7 +439,7 @@ export async function analyzeSpecQuality(
       .slice(0, 3)
       .flatMap((item) => item.suggestions);
 
-    const specId = spec.frontmatter.id || path.basename(path.dirname(specPath));
+    const specId = spec.metadata.id || path.basename(path.dirname(specPath));
 
     const summary = `스펙 '${specId}'의 품질 점수: ${totalScore}/${maxScore} (${percentage}%, 등급: ${grade})`;
 

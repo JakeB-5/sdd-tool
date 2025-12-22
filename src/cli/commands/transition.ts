@@ -94,9 +94,19 @@ async function runNewToChange(
   logger.newline();
   logger.info(`대상 스펙: ${specId}`);
 
+  // 기존 변경 ID 목록 가져오기
+  const changesPath = path.join(sddPath, 'changes');
+  const existingIds: string[] = [];
+  try {
+    const dirs = await fs.readdir(changesPath);
+    existingIds.push(...dirs.filter((d) => d.startsWith('CHG-')));
+  } catch {
+    // 디렉토리가 없을 수 있음
+  }
+
   // 변경 ID 생성
-  const changeId = generateChangeId();
-  const changePath = path.join(sddPath, 'changes', changeId);
+  const changeId = generateChangeId(existingIds);
+  const changePath = path.join(changesPath, changeId);
   await ensureDir(changePath);
 
   // 기존 스펙 내용 읽기
