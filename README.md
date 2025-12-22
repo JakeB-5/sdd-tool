@@ -256,6 +256,26 @@ sdd report --no-quality         # 품질 분석 제외
 sdd report --no-validation      # 검증 결과 제외
 ```
 
+### `sdd search`
+
+스펙을 검색합니다.
+
+```bash
+sdd search <query>              # 키워드로 검색
+sdd search auth                 # "auth" 포함 스펙 검색
+sdd search --status draft       # 상태별 필터링
+sdd search --phase phase-1      # 페이즈별 필터링
+sdd search --type spec          # 타입별 필터링 (spec, change)
+sdd search --json               # JSON 형식 출력
+sdd search --limit 10           # 결과 수 제한
+```
+
+검색 대상:
+- 스펙 제목 및 내용
+- 요구사항 텍스트
+- 시나리오 (GIVEN-WHEN-THEN)
+- 메타데이터 (id, status, phase)
+
 ### `sdd migrate`
 
 기존 문서나 외부 SDD 도구에서 마이그레이션합니다.
@@ -364,7 +384,9 @@ sdd transition change-to-new <change-id>
 
 `sdd init` 실행 시 `.claude/commands/` 디렉토리에 Claude Code용 슬래시 커맨드가 자동 생성됩니다.
 
-### 기본 워크플로우 커맨드
+### 전체 슬래시 커맨드 목록 (26개)
+
+#### 워크플로우 커맨드
 
 | 커맨드 | 설명 |
 |--------|------|
@@ -377,18 +399,37 @@ sdd transition change-to-new <change-id>
 | `/sdd.status` | 프로젝트 상태 확인 |
 | `/sdd.change` | 변경 제안 작성 |
 | `/sdd.constitution` | Constitution 관리 |
+| `/sdd.transition` | 워크플로우 전환 |
 
-### 고급 커맨드
+#### 분석 및 품질 커맨드
+
+| 커맨드 | 설명 |
+|--------|------|
+| `/sdd.analyze` | 요청 분석 및 규모 판단 |
+| `/sdd.impact` | 영향도 분석 |
+| `/sdd.quality` | 스펙 품질 분석 |
+| `/sdd.report` | 리포트 생성 |
+| `/sdd.search` | 스펙 검색 |
+
+#### 문서 생성 커맨드
+
+| 커맨드 | 설명 |
+|--------|------|
+| `/sdd.research` | 기술 리서치 문서 작성 |
+| `/sdd.data-model` | 데이터 모델 문서 작성 |
+| `/sdd.guide` | 전체 워크플로우 가이드 |
+| `/sdd.prepare` | 환경 준비 가이드 |
+
+#### 운영 커맨드
 
 | 커맨드 | 설명 |
 |--------|------|
 | `/sdd.chat` | 대화형 SDD 어시스턴트 |
-| `/sdd.guide` | 전체 워크플로우 가이드 |
-| `/sdd.transition` | 워크플로우 전환 |
-| `/sdd.analyze` | 요청 분석 및 규모 판단 |
-| `/sdd.research` | 기술 리서치 문서 작성 |
-| `/sdd.data-model` | 데이터 모델 문서 작성 |
-| `/sdd.prepare` | 환경 준비 가이드 |
+| `/sdd.list` | 항목 목록 조회 |
+| `/sdd.watch` | 파일 감시 모드 |
+| `/sdd.migrate` | 마이그레이션 |
+| `/sdd.cicd` | CI/CD 설정 |
+| `/sdd.prompt` | 프롬프트 출력 |
 
 ### 사용법
 
@@ -602,7 +643,11 @@ sdd-tool/
 │   │   │   ├── start.ts
 │   │   │   ├── transition.ts
 │   │   │   ├── migrate.ts
-│   │   │   └── cicd.ts
+│   │   │   ├── cicd.ts
+│   │   │   ├── watch.ts
+│   │   │   ├── quality.ts
+│   │   │   ├── report.ts
+│   │   │   └── search.ts
 │   │   └── index.ts
 │   ├── core/                   # 핵심 로직
 │   │   ├── spec/               # 스펙 파서/검증
@@ -613,6 +658,7 @@ sdd-tool/
 │   │   ├── watch/              # 파일 감시
 │   │   ├── quality/            # 품질 분석
 │   │   ├── report/             # 리포트 생성
+│   │   ├── search/             # 스펙 검색
 │   │   └── migrate/            # 마이그레이션
 │   ├── generators/             # 파일 생성기
 │   ├── prompts/                # 슬래시 커맨드
