@@ -7,25 +7,14 @@ import { promises as fs } from 'node:fs';
 import { logger } from '../../utils/index.js';
 import { fileExists, readDir } from '../../utils/fs.js';
 import { parseSpecMetadata } from '../../core/new/spec-generator.js';
-import { parseTasks, getNextTask } from '../../core/new/task-generator.js';
-import { listPendingChanges, listArchives } from '../../core/change/archive.js';
+import { parseTasks } from '../../core/new/task-generator.js';
+import { listPendingChanges, listArchives, type PendingChange } from '../../core/change/archive.js';
 import { getCurrentBranch, listFeatureBranches } from '../../core/new/branch.js';
 
 /**
- * status 명령어 등록
+ * 기능 정보
  */
-export function registerStatusCommand(program: Command): void {
-  program
-    .command('status')
-    .description('SDD 프로젝트 상태 조회')
-    .option('--json', 'JSON 형식으로 출력')
-    .option('--verbose', '상세 정보 출력')
-    .action(async (options) => {
-      await handleStatus(options);
-    });
-}
-
-interface FeatureInfo {
+export interface FeatureInfo {
   id: string;
   title: string;
   status: string;
@@ -38,105 +27,32 @@ interface FeatureInfo {
   };
 }
 
-interface ProjectStatus {
+/**
+ * 프로젝트 상태
+ */
+export interface ProjectStatus {
   initialized: boolean;
   hasConstitution: boolean;
   hasAgents: boolean;
   features: FeatureInfo[];
-  pendingChanges: string[];
+  pendingChanges: PendingChange[];
   archivedChanges: number;
   currentBranch?: string;
   featureBranches: string[];
 }
 
 /**
- * status 명령어 핸들러
+ * 상태 조회 옵션
  */
-async function handleStatus(options: { json?: boolean; verbose?: boolean }): Promise<void> {
-  const cwd = process.cwd();
-  const sddPath = path.join(cwd, '.sdd');
-
-  const status: ProjectStatus = {
-    initialized: false,
-    hasConstitution: false,
-    hasAgents: false,
-    features: [],
-    pendingChanges: [],
-    archivedChanges: 0,
-    featureBranches: [],
-  };
-
-  // .sdd 디렉토리 확인
-  status.initialized = await fileExists(sddPath);
-
-  if (!status.initialized) {
-    if (options.json) {
-      console.log(JSON.stringify(status, null, 2));
-    } else {
-      logger.warn('SDD 프로젝트가 초기화되지 않았습니다.');
-      logger.info('sdd init 명령어로 초기화하세요.');
-    }
-    return;
-  }
-
-  // 헌법 확인
-  status.hasConstitution = await fileExists(path.join(sddPath, 'constitution.md'));
-
-  // AGENTS.md 확인
-  status.hasAgents = await fileExists(path.join(sddPath, 'AGENTS.md'));
-
-  // 기능 스펙 조회
-  const specsPath = path.join(sddPath, 'specs');
-  if (await fileExists(specsPath)) {
-    const specsResult = await readDir(specsPath);
-    if (specsResult.success) {
-      for (const entry of specsResult.data) {
-        const featurePath = path.join(specsPath, entry);
-        const stat = await fs.stat(featurePath);
-
-        if (stat.isDirectory()) {
-          const featureInfo = await getFeatureInfo(entry, featurePath);
-          status.features.push(featureInfo);
-        }
-      }
-    }
-  }
-
-  // 대기 중인 변경 조회
-  const pendingResult = await listPendingChanges(sddPath);
-  if (pendingResult.success) {
-    status.pendingChanges = pendingResult.data;
-  }
-
-  // 아카이브된 변경 수 조회
-  const archiveResult = await listArchives(sddPath);
-  if (archiveResult.success) {
-    status.archivedChanges = archiveResult.data.length;
-  }
-
-  // Git 브랜치 정보
-  const currentBranchResult = await getCurrentBranch(cwd);
-  if (currentBranchResult.success) {
-    status.currentBranch = currentBranchResult.data;
-  }
-
-  const featureBranchesResult = await listFeatureBranches(cwd);
-  if (featureBranchesResult.success) {
-    status.featureBranches = featureBranchesResult.data;
-  }
-
-  // 출력
-  if (options.json) {
-    console.log(JSON.stringify(status, null, 2));
-  } else {
-    printStatus(status, options.verbose);
-  }
+export interface StatusOptions {
+  json?: boolean;
+  verbose?: boolean;
 }
 
 /**
- * 기능 정보 조회
+ * 기능 정보 조회 (테스트 가능)
  */
-async function getFeatureInfo(id: string, featurePath: string): Promise<FeatureInfo> {
+export async function getFeatureInfo(id: string, featurePath: string): Promise<FeatureInfo> {
   const info: FeatureInfo = {
     id,
     title: id,
@@ -176,6 +92,140 @@ async function getFeatureInfo(id: string, featurePath: string): Promise<FeatureI
 
   return info;
 }
+
+/**
+ * 프로젝트 상태 조회 (테스트 가능)
+ */
+export async function getProjectStatus(projectPath: string): Promise<ProjectStatus> {
+  const sddPath = path.join(projectPath, '.sdd');
+
+  const status: ProjectStatus = {
+    initialized: false,
+    hasConstitution: false,
+    hasAgents: false,
+    features: [],
+    pendingChanges: [],
+    archivedChanges: 0,
+    featureBranches: [],
+  };
+
+  // .sdd 디렉토리 확인
+  status.initialized = await fileExists(sddPath);
+
+  if (!status.initialized) {
+    return status;
+  }
+
+  // 헌법 확인
+  status.hasConstitution = await fileExists(path.join(sddPath, 'constitution.md'));
+
+  // AGENTS.md 확인
+  status.hasAgents = await fileExists(path.join(sddPath, 'AGENTS.md'));
+
+  // 기능 스펙 조회
+  const specsPath = path.join(sddPath, 'specs');
+  if (await fileExists(specsPath)) {
+    const specsResult = await readDir(specsPath);
+    if (specsResult.success) {
+      for (const entry of specsResult.data) {
+        const featurePath = path.join(specsPath, entry);
+        const stat = await fs.stat(featurePath);
+
+        if (stat.isDirectory()) {
+          const featureInfo = await getFeatureInfo(entry, featurePath);
+          status.features.push(featureInfo);
+        }
+      }
+    }
+  }
+
+  // 대기 중인 변경 조회
+  const pendingResult = await listPendingChanges(sddPath);
+  if (pendingResult.success) {
+    status.pendingChanges = pendingResult.data;
+  }
+
+  // 아카이브된 변경 수 조회
+  const archiveResult = await listArchives(sddPath);
+  if (archiveResult.success) {
+    status.archivedChanges = archiveResult.data.length;
+  }
+
+  // Git 브랜치 정보
+  const currentBranchResult = await getCurrentBranch(projectPath);
+  if (currentBranchResult.success) {
+    status.currentBranch = currentBranchResult.data;
+  }
+
+  const featureBranchesResult = await listFeatureBranches(projectPath);
+  if (featureBranchesResult.success) {
+    status.featureBranches = featureBranchesResult.data;
+  }
+
+  return status;
+}
+
+/**
+ * 상태 아이콘
+ */
+export function getStatusIcon(status: string): string {
+  switch (status) {
+    case 'draft':
+      return '📝';
+    case 'specified':
+      return '📄';
+    case 'planned':
+      return '📋';
+    case 'tasked':
+      return '✏️';
+    case 'implementing':
+      return '🔨';
+    case 'completed':
+      return '✅';
+    default:
+      return '❓';
+  }
+}
+
+/**
+ * status 명령어 등록
+ */
+export function registerStatusCommand(program: Command): void {
+  program
+    .command('status')
+    .description('SDD 프로젝트 상태 조회')
+    .option('--json', 'JSON 형식으로 출력')
+    .option('--verbose', '상세 정보 출력')
+    .action(async (options: StatusOptions) => {
+      await handleStatus(options);
+    });
+}
+
+/**
+ * status 명령어 핸들러 (CLI 래퍼)
+ */
+async function handleStatus(options: StatusOptions): Promise<void> {
+  const cwd = process.cwd();
+  const status = await getProjectStatus(cwd);
+
+  if (!status.initialized) {
+    if (options.json) {
+      console.log(JSON.stringify(status, null, 2));
+    } else {
+      logger.warn('SDD 프로젝트가 초기화되지 않았습니다.');
+      logger.info('sdd init 명령어로 초기화하세요.');
+    }
+    return;
+  }
+
+  // 출력
+  if (options.json) {
+    console.log(JSON.stringify(status, null, 2));
+  } else {
+    printStatus(status, options.verbose);
+  }
+}
+
 
 /**
  * 상태 출력
@@ -273,24 +323,3 @@ function printStatus(status: ProjectStatus, verbose?: boolean): void {
   console.log('');
 }
 
-/**
- * 상태 아이콘
- */
-function getStatusIcon(status: string): string {
-  switch (status) {
-    case 'draft':
-      return '📝';
-    case 'specified':
-      return '📄';
-    case 'planned':
-      return '📋';
-    case 'tasked':
-      return '✏️';
-    case 'implementing':
-      return '🔨';
-    case 'completed':
-      return '✅';
-    default:
-      return '❓';
-  }
-}

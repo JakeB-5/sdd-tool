@@ -10,6 +10,258 @@ import { parseSpecMetadata } from '../../core/new/spec-generator.js';
 import { listPendingChanges, listArchives } from '../../core/change/archive.js';
 
 /**
+ * 기능 정보
+ */
+export interface FeatureListItem {
+  id: string;
+  title: string;
+  status: string;
+}
+
+/**
+ * 기능 목록 옵션
+ */
+export interface FeatureListOptions {
+  status?: string;
+}
+
+/**
+ * 변경 목록 옵션
+ */
+export interface ChangeListOptions {
+  pending?: boolean;
+  archived?: boolean;
+}
+
+/**
+ * 변경 목록 결과
+ */
+export interface ChangeListResult {
+  pending: string[];
+  archived: string[];
+}
+
+/**
+ * 스펙 파일 항목
+ */
+export interface SpecFileItem {
+  path: string;
+  name: string;
+  isDirectory: boolean;
+  children?: SpecFileItem[];
+}
+
+/**
+ * 프로젝트 요약
+ */
+export interface ProjectSummary {
+  featureCount: number;
+  pendingChangeCount: number;
+  archivedChangeCount: number;
+}
+
+/**
+ * 상태 아이콘 반환 (테스트 가능)
+ */
+export function getListStatusIcon(status: string): string {
+  switch (status) {
+    case 'draft':
+      return '📝';
+    case 'specified':
+      return '📄';
+    case 'planned':
+      return '📋';
+    case 'tasked':
+      return '✏️';
+    case 'implementing':
+      return '🔨';
+    case 'completed':
+      return '✅';
+    default:
+      return '❓';
+  }
+}
+
+/**
+ * 기능 목록 조회 (테스트 가능)
+ */
+export async function getFeatureList(
+  projectPath: string,
+  options: FeatureListOptions = {}
+): Promise<FeatureListItem[]> {
+  const specsPath = path.join(projectPath, '.sdd', 'specs');
+
+  if (!(await fileExists(specsPath))) {
+    return [];
+  }
+
+  const result = await readDir(specsPath);
+  if (!result.success) {
+    return [];
+  }
+
+  const features: FeatureListItem[] = [];
+
+  for (const entry of result.data) {
+    const featurePath = path.join(specsPath, entry);
+    const stat = await fs.stat(featurePath);
+
+    if (stat.isDirectory()) {
+      const specPath = path.join(featurePath, 'spec.md');
+      if (await fileExists(specPath)) {
+        const content = await fs.readFile(specPath, 'utf-8');
+        const metadata = parseSpecMetadata(content);
+        if (metadata) {
+          if (!options.status || metadata.status === options.status) {
+            features.push({
+              id: entry,
+              title: metadata.title,
+              status: metadata.status,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return features;
+}
+
+/**
+ * 변경 목록 조회 (테스트 가능)
+ */
+export async function getChangeList(
+  projectPath: string,
+  options: ChangeListOptions = {}
+): Promise<ChangeListResult> {
+  const sddPath = path.join(projectPath, '.sdd');
+
+  const result: ChangeListResult = {
+    pending: [],
+    archived: [],
+  };
+
+  if (!(await fileExists(sddPath))) {
+    return result;
+  }
+
+  if (!options.archived) {
+    const pendingResult = await listPendingChanges(sddPath);
+    if (pendingResult.success) {
+      result.pending = pendingResult.data.map(c => String(c));
+    }
+  }
+
+  if (!options.pending) {
+    const archiveResult = await listArchives(sddPath);
+    if (archiveResult.success) {
+      result.archived = archiveResult.data.map(a => a.id);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 스펙 파일 트리 조회 (테스트 가능)
+ */
+export async function getSpecFileTree(specsPath: string): Promise<SpecFileItem[]> {
+  if (!(await fileExists(specsPath))) {
+    return [];
+  }
+
+  return walkSpecsTree(specsPath);
+}
+
+/**
+ * 스펙 디렉토리 트리 순회
+ */
+async function walkSpecsTree(basePath: string): Promise<SpecFileItem[]> {
+  const result = await readDir(basePath);
+  if (!result.success) return [];
+
+  const items: SpecFileItem[] = [];
+
+  for (const entry of result.data) {
+    const fullPath = path.join(basePath, entry);
+    const stat = await fs.stat(fullPath);
+
+    if (stat.isDirectory()) {
+      const children = await walkSpecsTree(fullPath);
+      items.push({
+        path: fullPath,
+        name: entry,
+        isDirectory: true,
+        children,
+      });
+    } else if (entry.endsWith('.md')) {
+      items.push({
+        path: fullPath,
+        name: entry,
+        isDirectory: false,
+      });
+    }
+  }
+
+  return items;
+}
+
+/**
+ * 템플릿 목록 조회 (테스트 가능)
+ */
+export async function getTemplateList(projectPath: string): Promise<string[]> {
+  const templatesPath = path.join(projectPath, '.sdd', 'templates');
+
+  if (!(await fileExists(templatesPath))) {
+    return [];
+  }
+
+  const result = await readDir(templatesPath);
+  if (!result.success) {
+    return [];
+  }
+
+  return result.data.filter(f => f.endsWith('.md'));
+}
+
+/**
+ * 프로젝트 요약 조회 (테스트 가능)
+ */
+export async function getProjectSummary(projectPath: string): Promise<ProjectSummary | null> {
+  const sddPath = path.join(projectPath, '.sdd');
+
+  if (!(await fileExists(sddPath))) {
+    return null;
+  }
+
+  // 기능 수
+  const specsPath = path.join(sddPath, 'specs');
+  let featureCount = 0;
+  if (await fileExists(specsPath)) {
+    const result = await readDir(specsPath);
+    if (result.success) {
+      for (const entry of result.data) {
+        const stat = await fs.stat(path.join(specsPath, entry));
+        if (stat.isDirectory()) featureCount++;
+      }
+    }
+  }
+
+  // 변경 수
+  const pendingResult = await listPendingChanges(sddPath);
+  const pendingChangeCount = pendingResult.success ? pendingResult.data.length : 0;
+
+  const archiveResult = await listArchives(sddPath);
+  const archivedChangeCount = archiveResult.success ? archiveResult.data.length : 0;
+
+  return {
+    featureCount,
+    pendingChangeCount,
+    archivedChangeCount,
+  };
+}
+
+/**
  * list 명령어 등록
  */
 export function registerListCommand(program: Command): void {
@@ -64,46 +316,10 @@ export function registerListCommand(program: Command): void {
 }
 
 /**
- * 기능 목록 조회
+ * 기능 목록 조회 (CLI 래퍼)
  */
 async function listFeatures(options: { status?: string }): Promise<void> {
-  const cwd = process.cwd();
-  const specsPath = path.join(cwd, '.sdd', 'specs');
-
-  if (!(await fileExists(specsPath))) {
-    logger.warn('스펙 디렉토리가 없습니다. sdd init을 먼저 실행하세요.');
-    return;
-  }
-
-  const result = await readDir(specsPath);
-  if (!result.success) {
-    logger.error('스펙 디렉토리를 읽을 수 없습니다.');
-    return;
-  }
-
-  const features: Array<{ id: string; title: string; status: string }> = [];
-
-  for (const entry of result.data) {
-    const featurePath = path.join(specsPath, entry);
-    const stat = await fs.stat(featurePath);
-
-    if (stat.isDirectory()) {
-      const specPath = path.join(featurePath, 'spec.md');
-      if (await fileExists(specPath)) {
-        const content = await fs.readFile(specPath, 'utf-8');
-        const metadata = parseSpecMetadata(content);
-        if (metadata) {
-          if (!options.status || metadata.status === options.status) {
-            features.push({
-              id: entry,
-              title: metadata.title,
-              status: metadata.status,
-            });
-          }
-        }
-      }
-    }
-  }
+  const features = await getFeatureList(process.cwd(), options);
 
   if (features.length === 0) {
     logger.info('기능이 없습니다.');
@@ -114,32 +330,25 @@ async function listFeatures(options: { status?: string }): Promise<void> {
   console.log('📋 기능 목록');
   console.log('─'.repeat(50));
   for (const f of features) {
-    const statusIcon = getStatusIcon(f.status);
+    const statusIcon = getListStatusIcon(f.status);
     console.log(`${statusIcon} ${f.title} (${f.id}) - ${f.status}`);
   }
   console.log('');
 }
 
 /**
- * 변경 목록 조회
+ * 변경 목록 조회 (CLI 래퍼)
  */
 async function listChanges(options: { pending?: boolean; archived?: boolean }): Promise<void> {
-  const cwd = process.cwd();
-  const sddPath = path.join(cwd, '.sdd');
-
-  if (!(await fileExists(sddPath))) {
-    logger.warn('.sdd 디렉토리가 없습니다. sdd init을 먼저 실행하세요.');
-    return;
-  }
+  const result = await getChangeList(process.cwd(), options);
 
   console.log('');
 
   if (!options.archived) {
-    const pendingResult = await listPendingChanges(sddPath);
-    if (pendingResult.success && pendingResult.data.length > 0) {
+    if (result.pending.length > 0) {
       console.log('📝 대기 중인 변경');
       console.log('─'.repeat(30));
-      for (const change of pendingResult.data) {
+      for (const change of result.pending) {
         console.log(`  - ${change}`);
       }
       console.log('');
@@ -149,11 +358,10 @@ async function listChanges(options: { pending?: boolean; archived?: boolean }): 
   }
 
   if (!options.pending) {
-    const archiveResult = await listArchives(sddPath);
-    if (archiveResult.success && archiveResult.data.length > 0) {
+    if (result.archived.length > 0) {
       console.log('📦 아카이브된 변경');
       console.log('─'.repeat(30));
-      for (const archive of archiveResult.data) {
+      for (const archive of result.archived) {
         console.log(`  - ${archive}`);
       }
       console.log('');
@@ -164,13 +372,13 @@ async function listChanges(options: { pending?: boolean; archived?: boolean }): 
 }
 
 /**
- * 스펙 파일 목록
+ * 스펙 파일 목록 (CLI 래퍼)
  */
 async function listSpecs(): Promise<void> {
-  const cwd = process.cwd();
-  const specsPath = path.join(cwd, '.sdd', 'specs');
+  const specsPath = path.join(process.cwd(), '.sdd', 'specs');
+  const tree = await getSpecFileTree(specsPath);
 
-  if (!(await fileExists(specsPath))) {
+  if (tree.length === 0) {
     logger.warn('스펙 디렉토리가 없습니다.');
     return;
   }
@@ -179,65 +387,53 @@ async function listSpecs(): Promise<void> {
   console.log('📄 스펙 파일 목록');
   console.log('─'.repeat(50));
 
-  await walkSpecs(specsPath, '');
+  printSpecTree(tree, '');
   console.log('');
 }
 
 /**
- * 스펙 디렉토리 순회
+ * 스펙 트리 출력
  */
-async function walkSpecs(basePath: string, prefix: string): Promise<void> {
-  const result = await readDir(basePath);
-  if (!result.success) return;
-
-  for (const entry of result.data) {
-    const fullPath = path.join(basePath, entry);
-    const stat = await fs.stat(fullPath);
-
-    if (stat.isDirectory()) {
-      console.log(`${prefix}📁 ${entry}/`);
-      await walkSpecs(fullPath, prefix + '   ');
-    } else if (entry.endsWith('.md')) {
-      console.log(`${prefix}📄 ${entry}`);
+function printSpecTree(items: SpecFileItem[], prefix: string): void {
+  for (const item of items) {
+    if (item.isDirectory) {
+      console.log(`${prefix}📁 ${item.name}/`);
+      if (item.children) {
+        printSpecTree(item.children, prefix + '   ');
+      }
+    } else {
+      console.log(`${prefix}📄 ${item.name}`);
     }
   }
 }
 
 /**
- * 템플릿 목록
+ * 템플릿 목록 (CLI 래퍼)
  */
 async function listTemplates(): Promise<void> {
-  const cwd = process.cwd();
-  const templatesPath = path.join(cwd, '.sdd', 'templates');
+  const templates = await getTemplateList(process.cwd());
 
-  if (!(await fileExists(templatesPath))) {
+  if (templates.length === 0) {
     logger.warn('템플릿 디렉토리가 없습니다.');
-    return;
-  }
-
-  const result = await readDir(templatesPath);
-  if (!result.success) {
-    logger.error('템플릿 디렉토리를 읽을 수 없습니다.');
     return;
   }
 
   console.log('');
   console.log('📑 템플릿 목록');
   console.log('─'.repeat(30));
-  for (const template of result.data.filter(f => f.endsWith('.md'))) {
+  for (const template of templates) {
     console.log(`  - ${template}`);
   }
   console.log('');
 }
 
 /**
- * 전체 요약
+ * 전체 요약 (CLI 래퍼)
  */
 async function listSummary(): Promise<void> {
-  const cwd = process.cwd();
-  const sddPath = path.join(cwd, '.sdd');
+  const summary = await getProjectSummary(process.cwd());
 
-  if (!(await fileExists(sddPath))) {
+  if (!summary) {
     logger.warn('.sdd 디렉토리가 없습니다. sdd init을 먼저 실행하세요.');
     return;
   }
@@ -245,30 +441,9 @@ async function listSummary(): Promise<void> {
   console.log('');
   console.log('📊 SDD 프로젝트 요약');
   console.log('═'.repeat(40));
-
-  // 기능 수
-  const specsPath = path.join(sddPath, 'specs');
-  let featureCount = 0;
-  if (await fileExists(specsPath)) {
-    const result = await readDir(specsPath);
-    if (result.success) {
-      for (const entry of result.data) {
-        const stat = await fs.stat(path.join(specsPath, entry));
-        if (stat.isDirectory()) featureCount++;
-      }
-    }
-  }
-  console.log(`📋 기능: ${featureCount}개`);
-
-  // 변경 수
-  const pendingResult = await listPendingChanges(sddPath);
-  const pendingCount = pendingResult.success ? pendingResult.data.length : 0;
-  console.log(`📝 대기 중인 변경: ${pendingCount}개`);
-
-  const archiveResult = await listArchives(sddPath);
-  const archiveCount = archiveResult.success ? archiveResult.data.length : 0;
-  console.log(`📦 아카이브된 변경: ${archiveCount}개`);
-
+  console.log(`📋 기능: ${summary.featureCount}개`);
+  console.log(`📝 대기 중인 변경: ${summary.pendingChangeCount}개`);
+  console.log(`📦 아카이브된 변경: ${summary.archivedChangeCount}개`);
   console.log('');
   console.log('상세 정보:');
   console.log('  sdd list features - 기능 목록');
@@ -276,26 +451,4 @@ async function listSummary(): Promise<void> {
   console.log('  sdd list specs    - 스펙 파일 목록');
   console.log('  sdd status        - 프로젝트 상태');
   console.log('');
-}
-
-/**
- * 상태 아이콘
- */
-function getStatusIcon(status: string): string {
-  switch (status) {
-    case 'draft':
-      return '📝';
-    case 'specified':
-      return '📄';
-    case 'planned':
-      return '📋';
-    case 'tasked':
-      return '✏️';
-    case 'implementing':
-      return '🔨';
-    case 'completed':
-      return '✅';
-    default:
-      return '❓';
-  }
 }
