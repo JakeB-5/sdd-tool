@@ -6,8 +6,9 @@ import path from 'node:path';
 import chalk from 'chalk';
 import { validateSpecs, type FileValidationResult } from '../../core/spec/validator.js';
 import { ExitCode } from '../../errors/index.js';
-import { findSddRoot } from '../../utils/fs.js';
+import { findSddRoot, fileExists } from '../../utils/fs.js';
 import * as logger from '../../utils/logger.js';
+import { formatViolationReport } from '../../core/constitution/index.js';
 
 /**
  * validate 명령어 등록
@@ -20,7 +21,9 @@ export function registerValidateCommand(program: Command): void {
     .option('-s, --strict', '경고도 에러로 처리')
     .option('-q, --quiet', '요약만 출력')
     .option('-l, --check-links', '참조 링크 유효성 검사')
-    .action(async (targetPath: string, options: { strict?: boolean; quiet?: boolean; checkLinks?: boolean }) => {
+    .option('-c, --constitution', 'Constitution 위반 검사 (기본값)')
+    .option('--no-constitution', 'Constitution 검사 건너뛰기')
+    .action(async (targetPath: string, options: ValidateOptions) => {
       try {
         await runValidate(targetPath, options);
       } catch (error) {
@@ -31,11 +34,21 @@ export function registerValidateCommand(program: Command): void {
 }
 
 /**
+ * CLI 옵션
+ */
+interface ValidateOptions {
+  strict?: boolean;
+  quiet?: boolean;
+  checkLinks?: boolean;
+  constitution?: boolean;
+}
+
+/**
  * 검증 실행
  */
 async function runValidate(
   targetPath: string,
-  options: { strict?: boolean; quiet?: boolean; checkLinks?: boolean }
+  options: ValidateOptions
 ): Promise<void> {
   // 대상 경로 결정
   let resolvedPath: string;
@@ -59,10 +72,22 @@ async function runValidate(
     specsRoot = path.join(sddRoot, '.sdd', 'specs');
   }
 
+  // Constitution 검증 여부 결정 (기본값: true, --no-constitution 시 false)
+  const checkConstitution = options.constitution !== false;
+  let hasConstitution = false;
+
+  if (checkConstitution && sddRoot) {
+    const constitutionPath = path.join(sddRoot, '.sdd', 'constitution.md');
+    hasConstitution = await fileExists(constitutionPath);
+  }
+
   if (!options.quiet) {
     logger.info(`검증 중: ${resolvedPath}`);
     if (options.checkLinks) {
       logger.info('(참조 링크 검증 포함)');
+    }
+    if (checkConstitution && hasConstitution) {
+      logger.info('(Constitution 위반 검사 포함)');
     }
     logger.newline();
   }
@@ -72,6 +97,8 @@ async function runValidate(
     strict: options.strict,
     checkLinks: options.checkLinks,
     specsRoot,
+    checkConstitution: checkConstitution && hasConstitution,
+    sddRoot: sddRoot || undefined,
   });
 
   if (!result.success) {
@@ -123,5 +150,15 @@ function printFileResult(result: FileValidationResult, basePath: string): void {
   // 경고 출력
   for (const warning of result.warnings) {
     console.log(chalk.yellow(`  ⚠ ${warning.message}`));
+  }
+
+  // Constitution 검사 결과 요약
+  if (result.constitutionCheck) {
+    const cc = result.constitutionCheck;
+    if (cc.passed) {
+      console.log(chalk.green(`  ✓ Constitution 검사 통과 (${cc.rulesChecked}개 규칙)`));
+    } else {
+      console.log(chalk.red(`  ✗ Constitution 위반 발견 (${cc.violations.length}건)`));
+    }
   }
 }

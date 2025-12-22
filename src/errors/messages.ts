@@ -30,6 +30,7 @@ export const ErrorMessages: Record<ErrorCode, string> = {
   [ErrorCode.CONSTITUTION_NOT_FOUND]: 'constitution.md를 찾을 수 없습니다',
   [ErrorCode.CONSTITUTION_PARSE_ERROR]: 'Constitution 파싱 실패: {0}',
   [ErrorCode.CONSTITUTION_VIOLATION]: 'Constitution 원칙 위반: {0}',
+  [ErrorCode.CONSTITUTION_VERSION_MISMATCH]: 'Constitution 버전 불일치: {0}',
 
   // 변경 워크플로우 에러
   [ErrorCode.PROPOSAL_NOT_FOUND]: '제안서를 찾을 수 없습니다: {0}',

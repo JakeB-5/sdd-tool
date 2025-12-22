@@ -243,6 +243,93 @@
 
 ---
 
+## v0.4.0 고급 분석 기능
+
+> ROADMAP-v0.4.0.md 기반
+
+### 4.1 Constitution 위반 검증 ✅
+
+**스펙**: `ROADMAP-v0.4.0.md` - 기능 1
+
+- [x] Constitution 원칙 파싱
+  - [x] `## 원칙` / `## Principles` 섹션 추출
+  - [x] 키워드 추출 로직
+  - [x] SHALL NOT / MUST NOT 패턴 인식
+- [x] 위반 검사 로직
+  - [x] 키워드 매칭 기반 위반 감지
+  - [x] 위반 심각도 분류 (critical/warning/info)
+  - [x] 버전 불일치 검사
+- [x] CLI 통합
+  - [x] `sdd validate --constitution` 옵션 추가
+  - [x] `sdd validate --no-constitution` 스킵 옵션
+- [x] 테스트 작성
+  - [x] violation-checker 단위 테스트 (11개)
+  - [x] 통합 테스트
+
+### 4.2 What-if 시뮬레이션 ✅
+
+**스펙**: `ROADMAP-v0.4.0.md` - 기능 2
+
+- [x] 델타 파싱
+  - [x] ADDED 섹션 파싱
+  - [x] MODIFIED 섹션 (Before/After) 파싱
+  - [x] REMOVED 섹션 파싱
+- [x] 가상 의존성 그래프
+  - [x] 현재 상태 그래프 복제
+  - [x] 델타 적용 가상 그래프 생성
+  - [x] 영향도 재계산
+- [x] 비교 로직
+  - [x] 리스크 점수 변화 계산
+  - [x] 새로 영향받는 스펙 탐지
+  - [x] 비교 결과 출력 형식
+- [x] CLI 통합
+  - [x] `sdd impact simulate <feature> <proposal>` 서브커맨드
+- [x] 테스트 작성
+  - [x] simulator 단위 테스트 (9개)
+
+### 4.3 코드 영향도 분석 ✅
+
+**스펙**: `ROADMAP-v0.4.0.md` - 기능 3
+
+- [x] 스펙-코드 연결
+  - [x] 파일명/디렉토리명 매칭
+  - [x] 주석에서 스펙 ID 참조 탐지 (`// spec: feature-id`)
+  - [x] 매핑 설정 파일 지원 (`.sdd/code-mapping.json`)
+- [x] 코드 분석
+  - [x] TypeScript/JavaScript 파일 파싱
+  - [x] import/export 관계 추적
+  - [x] 간접 영향 파일 탐지
+- [x] 출력 형식
+  - [x] 영향받는 파일 목록
+  - [x] 파일별 영향도 수준 (high/medium/low)
+  - [x] 리스크 점수 및 권장사항
+- [x] CLI 통합
+  - [x] `sdd impact <feature> --code` 옵션
+- [x] 테스트 작성
+  - [x] code-analyzer 단위 테스트 (11개)
+
+---
+
+## v0.4.0 진행 상황 추적
+
+| Phase | 태스크 | 상태 |
+|-------|--------|------|
+| 4.1 | Constitution 원칙 파싱 | ✅ 완료 |
+| 4.1 | 위반 검사 로직 | ✅ 완료 |
+| 4.1 | CLI 통합 (--constitution) | ✅ 완료 |
+| 4.1 | 테스트 | ✅ 완료 |
+| 4.2 | 델타 파싱 | ✅ 완료 |
+| 4.2 | 가상 의존성 그래프 | ✅ 완료 |
+| 4.2 | 비교 로직 | ✅ 완료 |
+| 4.2 | CLI 통합 (simulate) | ✅ 완료 |
+| 4.2 | 테스트 | ✅ 완료 |
+| 4.3 | 스펙-코드 연결 | ✅ 완료 |
+| 4.3 | 코드 분석 | ✅ 완료 |
+| 4.3 | CLI 통합 (--code) | ✅ 완료 |
+| 4.3 | 테스트 | ✅ 완료 |
+
+---
+
 *생성일: 2025-12-21*
 *최종 업데이트: 2025-12-22*
-*기준 문서: GAP-ANALYSIS.md*
+*기준 문서: GAP-ANALYSIS.md, ROADMAP-v0.4.0.md*

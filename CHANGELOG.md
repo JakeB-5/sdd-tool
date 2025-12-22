@@ -1,0 +1,169 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [0.4.0] - 2025-12-22
+
+### Added
+
+#### Constitution 위반 검증
+- `sdd validate --constitution`: 스펙이 Constitution 원칙을 위반하는지 자동 검사
+- `sdd validate --no-constitution`: Constitution 검사 스킵 옵션
+- SHALL NOT / MUST NOT 키워드 기반 위반 감지
+- 버전 불일치 경고 (Major/Minor/Patch 심각도 분류)
+- 위반 리포트 포맷팅 및 권장사항 제공
+
+#### What-if 시뮬레이션
+- `sdd impact simulate <feature> <proposal>`: 변경 전 영향도 예측
+- ADDED/MODIFIED/REMOVED 델타 파싱
+- 가상 의존성 그래프 생성 및 비교
+- 리스크 점수 변화 계산
+- 새로 영향받는 스펙 탐지
+- 시뮬레이션 결과 포맷팅 (현재 vs 변경 후 비교)
+
+#### 코드 영향도 분석
+- `sdd impact <feature> --code`: 스펙 변경이 소스 코드에 미치는 영향 분석
+- 스펙-코드 연결 탐지:
+  - 주석 참조 (`// spec: feature-id`, `/* spec: feature-id */`, `@spec feature-id`)
+  - 파일명/디렉토리명 매칭
+  - 매핑 설정 파일 지원 (`.sdd/code-mapping.json`)
+- import/export 관계 추적 (간접 영향 파일 탐지)
+- 리스크 점수 및 권장사항 제공
+
+### Changed
+- `sdd impact` 명령어에 `-c, --code` 옵션 추가
+- `sdd validate` 명령어에 `-c, --constitution` 및 `--no-constitution` 옵션 추가
+
+### Technical
+- 새 모듈: `src/core/constitution/violation-checker.ts`
+- 새 모듈: `src/core/impact/simulator.ts`
+- 새 모듈: `src/core/impact/code-analyzer.ts`
+- 테스트 31개 추가 (총 311개)
+
+---
+
+## [0.3.0] - 2025-12-21
+
+### Added
+
+#### Constitution 시스템
+- `sdd constitution show`: 현재 Constitution 표시
+- `sdd constitution version`: 버전만 표시
+- `sdd constitution validate`: 형식 검증
+- `sdd constitution history`: 변경 이력 조회
+- `sdd constitution bump`: 버전 업데이트 (--major/--minor/--patch)
+- Constitution 시맨틱 버전 관리 (MAJOR/MINOR/PATCH)
+- 스펙 생성 시 `constitution_version` 필드 자동 추가
+
+#### 변경 워크플로우
+- `sdd change`: 변경 제안 생성
+- `sdd change -l`: 진행 중인 변경 목록
+- `sdd change <id>`: 특정 변경 조회
+- `sdd change diff <id>`: 변경 내용 diff 미리보기
+- `sdd change validate <id>`: 변경 제안 검증
+- `sdd change apply <id>`: 변경 적용 및 상태 업데이트
+- `sdd change archive <id>`: 완료된 변경 아카이브
+- 델타 자동 생성 (ADDED/MODIFIED/REMOVED)
+
+#### 통합 진입점
+- `sdd start`: 대화형 워크플로우 선택 메뉴
+- `sdd start --status`: 상태만 표시
+- `sdd start --workflow <name>`: 특정 워크플로우 시작
+- 현재 프로젝트 상태 기반 워크플로우 추천
+
+#### 영향도 분석
+- `sdd impact <feature>`: 특정 기능 영향도 분석
+- `sdd impact <feature> --graph`: 의존성 그래프 출력 (Mermaid)
+- `sdd impact report`: 전체 프로젝트 리포트
+- `sdd impact change <id>`: 변경 제안 영향도 분석
+- 내용 기반 의존성 추론 (암시적 참조 감지)
+- 리스크 점수 산출 및 레벨 분류
+- 간접(transitive) 영향 분석
+- 순환 의존성 탐지
+
+#### 마이그레이션 도구
+- `sdd migrate docs <source>`: 문서 마이그레이션
+- `sdd migrate analyze <file>`: 문서 분석
+- `sdd migrate scan [dir]`: 디렉토리 스캔
+- RFC 2119 키워드 감지
+- GIVEN-WHEN-THEN 시나리오 감지
+- 적합도 분류 (준비됨/일부/미준비)
+
+#### CI/CD 통합
+- `sdd cicd setup`: GitHub Actions 설정
+- `sdd cicd setup gitlab`: GitLab CI 설정
+- `sdd cicd hooks`: Git hooks 설정 (Husky)
+- `sdd cicd check`: CI 검증 실행
+
+#### 워크플로우 라우팅
+- `sdd transition new-to-change <spec-id>`: new → change 전환
+- `sdd transition change-to-new <change-id>`: change → new 전환
+- `sdd transition guide`: 전환 가이드
+
+#### 검증 강화
+- `sdd validate --check-links`: 참조 링크 유효성 검사
+- 깨진 내부 링크 탐지
+- dependencies 필드 검증
+
+#### 브랜치 관리
+- `sdd new <name> --numbered`: 자동 번호 부여 (feature/001-name)
+- `sdd new counter`: 카운터 조회/설정
+- `.sdd/counter.json` 메커니즘
+
+#### 슬래시 커맨드
+- `/sdd.start`: 통합 진입점
+- `/sdd.new`: 새 기능 명세 작성
+- `/sdd.plan`: 구현 계획 작성
+- `/sdd.tasks`: 작업 분해
+- `/sdd.implement`: 순차적 구현
+- `/sdd.validate`: 스펙 검증
+- `/sdd.status`: 프로젝트 상태
+- `/sdd.change`: 변경 제안
+- `/sdd.constitution`: Constitution 관리
+- `/sdd.chat`: 대화형 SDD 어시스턴트
+- `/sdd.guide`: 워크플로우 가이드
+- `/sdd.transition`: 워크플로우 전환
+- `/sdd.analyze`: 요청 분석 및 규모 판단
+- `/sdd.research`: 기술 리서치 문서
+- `/sdd.data-model`: 데이터 모델 문서
+- `/sdd.prepare`: 환경 준비 가이드
+
+---
+
+## [0.2.0] - 2025-12-20
+
+### Added
+- `sdd init`: 프로젝트 초기화
+- `sdd new <feature>`: 새 기능 생성
+- `sdd new plan <feature>`: 구현 계획 생성
+- `sdd new tasks <feature>`: 작업 분해 생성
+- `sdd validate`: 스펙 검증
+- `sdd status`: 프로젝트 상태 조회
+- `sdd list`: 항목 목록 조회
+- `sdd prompt`: 슬래시 커맨드 프롬프트 출력
+- YAML frontmatter 파싱
+- RFC 2119 키워드 검증
+- GIVEN-WHEN-THEN 시나리오 검증
+
+---
+
+## [0.1.0] - 2025-12-19
+
+### Added
+- 초기 프로젝트 구조
+- 기본 CLI 프레임워크 (Commander.js)
+- TypeScript 설정
+- ESM 모듈 구조
+- 기본 테스트 프레임워크 (Vitest)
+
+---
+
+[0.4.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/JakeB-5/sdd-tool/releases/tag/v0.1.0

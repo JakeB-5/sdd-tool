@@ -4,3 +4,4 @@
 export * from './schemas.js';
 export * from './parser.js';
 export * from './changelog.js';
+export * from './violation-checker.js';

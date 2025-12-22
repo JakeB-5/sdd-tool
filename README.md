@@ -122,6 +122,8 @@ sdd validate                    # 전체 검증
 sdd validate path/to/spec.md    # 특정 파일 검증
 sdd validate --strict           # 엄격 모드 (경고도 에러)
 sdd validate --check-links      # 참조 링크 유효성 검사
+sdd validate --constitution     # Constitution 위반 검사 (기본값)
+sdd validate --no-constitution  # Constitution 검사 스킵
 sdd validate --quiet            # 조용한 모드
 ```
 
@@ -130,6 +132,7 @@ sdd validate --quiet            # 조용한 모드
 - RFC 2119 키워드 사용
 - GIVEN-WHEN-THEN 시나리오 포함
 - 참조 링크 유효성 (--check-links)
+- Constitution 원칙 위반 (--constitution)
 
 ### `sdd constitution`
 
@@ -167,13 +170,29 @@ sdd change archive <id>         # 변경 아카이브
 스펙 변경의 영향도를 분석합니다.
 
 ```bash
+# 기본 영향도 분석
 sdd impact <feature>            # 특정 기능 영향도 분석
 sdd impact <feature> --graph    # 의존성 그래프 출력 (Mermaid)
 sdd impact <feature> --json     # JSON 형식 출력
+
+# 코드 영향도 분석
+sdd impact <feature> --code     # 스펙 변경이 코드에 미치는 영향 분석
+sdd impact <feature> --code --json  # JSON 형식
+
+# 리포트 및 변경 분석
 sdd impact report               # 전체 프로젝트 리포트
 sdd impact report --json        # JSON 형식 리포트
 sdd impact change <id>          # 변경 제안 영향도 분석
+
+# What-if 시뮬레이션
+sdd impact simulate <feature> <proposal>  # 변경 전 영향도 예측
+sdd impact simulate auth change-001       # 예시
 ```
+
+코드 영향도 분석은 다음 방법으로 스펙-코드 연결을 탐지합니다:
+- 주석 참조: `// spec: feature-id`, `/* spec: feature-id */`, `@spec feature-id`
+- 파일명/디렉토리명 매칭: `auth.ts` ↔ `auth` 스펙
+- 매핑 설정: `.sdd/code-mapping.json` 파일 사용
 
 ### `sdd transition`
 
@@ -409,6 +428,70 @@ sdd cicd setup gitlab
 sdd cicd hooks
 # .husky/pre-commit, pre-push 생성
 ```
+
+## 고급 기능
+
+### 코드 매핑 설정
+
+`.sdd/code-mapping.json` 파일을 사용하여 스펙과 코드 파일 간의 명시적 매핑을 정의할 수 있습니다:
+
+```json
+{
+  "version": "1.0.0",
+  "mappings": [
+    {
+      "specId": "user-auth",
+      "files": [
+        "src/core/auth.ts",
+        "src/services/auth-service.ts"
+      ],
+      "directories": [
+        "src/auth/"
+      ]
+    },
+    {
+      "specId": "payment",
+      "files": [
+        "src/payment/handler.ts"
+      ]
+    }
+  ],
+  "patterns": {
+    "include": ["src/**/*.ts"],
+    "exclude": ["**/*.test.ts", "**/*.spec.ts"]
+  }
+}
+```
+
+### Constitution 위반 검증
+
+스펙이 Constitution에 정의된 원칙을 위반하는지 자동으로 검사합니다:
+
+```bash
+# Constitution 위반 검사 포함 (기본값)
+sdd validate
+
+# Constitution 검사 스킵
+sdd validate --no-constitution
+```
+
+위반 감지 예시:
+- Constitution: "평문 비밀번호를 저장해서는 안 된다(SHALL NOT)"
+- 스펙: "비밀번호를 평문으로 저장한다" → 위반 경고 출력
+
+### What-if 시뮬레이션
+
+변경을 적용하기 전에 영향도를 예측합니다:
+
+```bash
+sdd impact simulate <feature> <proposal>
+```
+
+시뮬레이션 결과:
+- 현재 상태 vs 변경 후 상태 비교
+- 리스크 점수 변화
+- 새로 영향받는 스펙 목록
+- 권장사항 및 경고
 
 ## 개발
 

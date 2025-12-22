@@ -6,6 +6,12 @@ import { parseSpec, validateSpecFormat } from './parser.js';
 import { readFile, listFiles, directoryExists, fileExists } from '../../utils/fs.js';
 import { ValidationError, ErrorCode } from '../../errors/index.js';
 import { Result, success, failure, type ValidationResult, type SpecValidationError, type SpecValidationWarning } from '../../types/index.js';
+import {
+  parseConstitution,
+  checkConstitutionViolations,
+  type ConstitutionCheckResult,
+  type Violation,
+} from '../constitution/index.js';
 
 /**
  * 검증 옵션
@@ -17,6 +23,10 @@ export interface ValidateOptions {
   checkLinks?: boolean;
   /** 스펙 루트 경로 (링크 검증 시 사용) */
   specsRoot?: string;
+  /** Constitution 위반 검증 */
+  checkConstitution?: boolean;
+  /** SDD 루트 경로 (Constitution 검증 시 사용) */
+  sddRoot?: string;
 }
 
 /**
@@ -43,6 +53,8 @@ export interface FileValidationResult {
   warnings: SpecValidationWarning[];
   /** 깨진 링크 목록 */
   brokenLinks?: BrokenLink[];
+  /** Constitution 위반 검사 결과 */
+  constitutionCheck?: ConstitutionCheckResult;
 }
 
 /**
@@ -137,6 +149,66 @@ export async function validateSpecFile(
           message: `깨진 ${link.type} 링크: ${link.target}`,
           location: { file: filePath, line: link.line },
         });
+      }
+    }
+  }
+
+  // Constitution 위반 검증
+  if (options.checkConstitution && options.sddRoot) {
+    const constitutionPath = path.join(options.sddRoot, '.sdd', 'constitution.md');
+    const constReadResult = await readFile(constitutionPath);
+
+    if (constReadResult.success) {
+      const constParseResult = parseConstitution(constReadResult.data);
+
+      if (constParseResult.success) {
+        const constitution = constParseResult.data;
+        const specConstitutionVersion = spec.metadata.constitution_version as string | undefined;
+
+        const checkResult = checkConstitutionViolations(
+          content,
+          specConstitutionVersion,
+          constitution
+        );
+
+        result.constitutionCheck = checkResult;
+
+        // 위반 사항을 에러/경고로 변환
+        for (const violation of checkResult.violations) {
+          if (violation.severity === 'critical') {
+            result.valid = false;
+            result.errors.push({
+              code: ErrorCode.CONSTITUTION_VIOLATION,
+              message: `[${violation.ruleId}] ${violation.message}`,
+              location: { file: filePath, line: violation.line },
+            });
+          } else {
+            result.warnings.push({
+              code: 'W003',
+              message: `[Constitution] ${violation.message}`,
+              location: { file: filePath, line: violation.line },
+            });
+          }
+        }
+
+        // 버전 불일치 경고/에러
+        if (checkResult.versionMismatch) {
+          const vm = checkResult.versionMismatch;
+          if (vm.severity === 'critical') {
+            result.valid = false;
+            result.errors.push({
+              code: ErrorCode.CONSTITUTION_VERSION_MISMATCH,
+              message: vm.message,
+              location: { file: filePath },
+            });
+          } else {
+            result.warnings.push({
+              code: 'W004',
+              message: vm.message,
+              location: { file: filePath },
+            });
+          }
+        }
       }
     }
   }
