@@ -19,6 +19,7 @@ import { registerTransitionCommand } from './commands/transition.js';
 import { registerWatchCommand } from './commands/watch.js';
 import { registerQualityCommand } from './commands/quality.js';
 import { registerReportCommand } from './commands/report.js';
+import { registerSearchCommand } from './commands/search.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
@@ -47,6 +48,7 @@ registerTransitionCommand(program);
 registerWatchCommand(program);
 registerQualityCommand(program);
 registerReportCommand(program);
+registerSearchCommand(program);
 
 /**
  * CLI 실행
