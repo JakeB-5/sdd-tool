@@ -43,6 +43,8 @@ export default defineConfig({
             { text: 'sdd new', link: '/cli/new' },
             { text: 'sdd validate', link: '/cli/validate' },
             { text: 'sdd prepare', link: '/cli/prepare' },
+            { text: 'sdd status', link: '/cli/status' },
+            { text: 'sdd list', link: '/cli/list' },
             { text: 'sdd sync', link: '/cli/sync' },
             { text: 'sdd diff', link: '/cli/diff' },
             { text: 'sdd export', link: '/cli/export' },
