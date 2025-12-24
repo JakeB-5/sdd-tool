@@ -131,6 +131,65 @@ AI가 tasks.md를 읽고, TDD 방식으로 구현을 안내합니다.
 
 ---
 
+## 구현 준비: sdd prepare
+
+구현 전 필요한 Claude Code 서브에이전트와 스킬을 점검합니다.
+
+### 워크플로우
+
+```
+/sdd.new → /sdd.plan → /sdd.tasks → sdd prepare → /sdd.implement
+                                         ↑
+                               서브에이전트/스킬 점검
+```
+
+### 사용법
+
+```bash
+sdd prepare user-auth
+```
+
+tasks.md를 분석하여 필요한 도구를 자동으로 감지합니다:
+
+```
+ℹ 기능 'user-auth' 준비 점검 중...
+
+✓ 분석 완료
+
+총 작업 수: 5개
+서브에이전트: 2개 필요 (존재: 0, 누락: 2)
+스킬: 3개 필요 (존재: 1, 누락: 2)
+
+⚠ 누락된 서브에이전트:
+  - test-runner: 테스트 실행 및 결과 분석 에이전트
+  - api-scaffold: REST API 보일러플레이트 생성 에이전트
+
+⚠ 누락된 스킬:
+  - gen-api: API 엔드포인트 생성 스킬
+  - review: 코드 리뷰 스킬
+
+ℹ 보고서: .sdd/specs/user-auth/prepare.md
+ℹ 누락된 도구를 자동 생성하려면: sdd prepare user-auth --auto-approve
+```
+
+### Claude Code 도구 위치
+
+| 도구 유형 | 위치 |
+|-----------|------|
+| 서브에이전트 | `.claude/agents/<name>.md` |
+| 스킬 | `.claude/skills/<name>/SKILL.md` |
+| 슬래시 커맨드 | `.claude/commands/<name>.md` |
+
+### 옵션
+
+| 옵션 | 설명 |
+|------|------|
+| `--dry-run` | 파일 생성 없이 분석 결과만 출력 |
+| `--auto-approve` | 누락된 도구를 자동으로 생성 |
+| `--json` | JSON 형식으로 출력 |
+
+---
+
 ## 슬래시 커맨드 (26개)
 
 `sdd init` 실행 시 `.claude/commands/`에 자동 생성됩니다.
@@ -172,7 +231,7 @@ AI가 tasks.md를 읽고, TDD 방식으로 구현을 안내합니다.
 | `/sdd.research` | 기술 리서치 문서 |
 | `/sdd.data-model` | 데이터 모델 문서 |
 | `/sdd.guide` | 워크플로우 가이드 |
-| `/sdd.prepare` | 환경 준비 가이드 |
+| `/sdd.prepare` | 서브에이전트/스킬 점검 |
 
 ### 운영
 
@@ -286,6 +345,14 @@ sdd quality                 # 품질 분석
 sdd quality --min-score 70  # 최소 점수 기준
 sdd report                  # 리포트 생성
 sdd search <query>          # 스펙 검색
+```
+
+### 구현 준비
+
+```bash
+sdd prepare <feature>              # 서브에이전트/스킬 점검
+sdd prepare <feature> --dry-run    # 변경 없이 분석만
+sdd prepare <feature> --auto-approve  # 누락 도구 자동 생성
 ```
 
 ### 운영
