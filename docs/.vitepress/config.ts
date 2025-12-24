@@ -33,6 +33,13 @@ export default defineConfig({
             { text: '모범 사례', link: '/guide/best-practices' },
           ],
         },
+        {
+          text: '확장',
+          items: [
+            { text: '현재 한계점', link: '/guide/limitations' },
+            { text: '스케일업 로드맵', link: '/guide/scaling-roadmap' },
+          ],
+        },
       ],
       '/cli/': [
         {
