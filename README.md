@@ -32,7 +32,7 @@ npm install -g sdd-tool
 ## 빠른 시작
 
 ```bash
-# 1. 프로젝트 초기화 (슬래시 커맨드 26개 자동 생성)
+# 1. 프로젝트 초기화 (슬래시 커맨드 28개 자동 생성)
 sdd init
 
 # 2. Claude Code 실행
@@ -79,7 +79,7 @@ claude
 
 ---
 
-## 슬래시 커맨드 (26개)
+## 슬래시 커맨드 (28개)
 
 `sdd init` 실행 시 `.claude/commands/`에 자동 생성됩니다.
 
@@ -395,7 +395,7 @@ your-project/
 │   └── archive/            # 완료된 변경
 │
 └── .claude/
-    ├── commands/           # 슬래시 커맨드 (26개)
+    ├── commands/           # 슬래시 커맨드 (28개)
     │   ├── sdd.start.md
     │   ├── sdd.new.md
     │   ├── sdd.prepare.md
