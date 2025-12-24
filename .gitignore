@@ -27,3 +27,6 @@ pnpm-debug.log*
 # Temporary files
 *.tmp
 *.temp
+
+# Internal documents (not for public)
+INTERNAL-*
