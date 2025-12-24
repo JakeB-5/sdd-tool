@@ -32,7 +32,7 @@ npm install -g sdd-tool
 ## 빠른 시작
 
 ```bash
-# 1. 프로젝트 초기화 (슬래시 커맨드 28개 자동 생성)
+# 1. 프로젝트 초기화 (슬래시 커맨드 29개 자동 생성)
 sdd init
 
 # 2. Claude Code 실행
@@ -79,7 +79,7 @@ claude
 
 ---
 
-## 슬래시 커맨드 (28개)
+## 슬래시 커맨드 (29개)
 
 `sdd init` 실행 시 `.claude/commands/`에 자동 생성됩니다.
 
@@ -116,6 +116,7 @@ claude
 | `/sdd.list` | 항목 목록 조회 |
 | `/sdd.sync` | 스펙-코드 동기화 검증 |
 | `/sdd.diff` | 스펙 변경사항 시각화 |
+| `/sdd.export` | 스펙 내보내기 (HTML, JSON) |
 
 ### 문서 생성
 
@@ -376,6 +377,18 @@ sdd diff --stat             # 통계 요약
 sdd diff --json             # JSON 출력
 ```
 
+### 스펙 내보내기 (v0.9.0)
+
+```bash
+sdd export user-auth        # 단일 스펙 HTML 내보내기
+sdd export --all            # 전체 스펙 내보내기
+sdd export --format json    # JSON 형식
+sdd export --format markdown # 마크다운 병합
+sdd export -o ./docs/specs.html # 출력 경로 지정
+sdd export --theme dark     # 다크 테마
+sdd export --no-toc         # 목차 제외
+```
+
 ---
 
 ## Claude Code 도구 구조
@@ -395,7 +408,7 @@ your-project/
 │   └── archive/            # 완료된 변경
 │
 └── .claude/
-    ├── commands/           # 슬래시 커맨드 (28개)
+    ├── commands/           # 슬래시 커맨드 (29개)
     │   ├── sdd.start.md
     │   ├── sdd.new.md
     │   ├── sdd.prepare.md

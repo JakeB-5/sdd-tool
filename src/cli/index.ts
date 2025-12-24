@@ -23,6 +23,7 @@ import { registerSearchCommand } from './commands/search.js';
 import { registerPrepareCommand } from './commands/prepare.js';
 import { registerSyncCommand } from './commands/sync.js';
 import { registerDiffCommand } from './commands/diff.js';
+import { registerExportCommand } from './commands/export.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
@@ -55,6 +56,7 @@ registerSearchCommand(program);
 registerPrepareCommand(program);
 registerSyncCommand(program);
 registerDiffCommand(program);
+registerExportCommand(program);
 
 /**
  * CLI 실행
