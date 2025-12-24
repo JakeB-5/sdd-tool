@@ -39,14 +39,15 @@ export async function searchSpecs(
     const index = indexResult.data;
 
     // 검색 실행
-    let results = filterByOptions(index, options);
+    const filtered = filterByOptions(index, options);
 
     // 전문 검색
+    let results: SearchResultItem[];
     if (options.query) {
-      results = searchByQuery(results, options.query, options);
+      results = searchByQuery(filtered, options.query, options);
     } else {
       // 쿼리가 없으면 기본 점수 부여
-      results = results.map((item) => ({ ...item, score: 100, matches: [] }));
+      results = filtered.map((item) => ({ ...item, score: 100, matches: [] }));
     }
 
     // 정렬
@@ -122,13 +123,13 @@ async function collectSpecs(
       index.push({
         id: specId === '.' ? entry.name : specId,
         path: relativePath,
-        title: metadata.title || specId,
+        title: String(metadata.title || specId),
         content,
-        status: metadata.status || 'unknown',
-        phase: metadata.phase || 'unknown',
-        author: metadata.author || '',
-        created: metadata.created || '',
-        updated: metadata.updated || stat.mtime.toISOString().split('T')[0],
+        status: String(metadata.status || 'unknown'),
+        phase: String(metadata.phase || 'unknown'),
+        author: String(metadata.author || ''),
+        created: String(metadata.created || ''),
+        updated: String(metadata.updated || stat.mtime.toISOString().split('T')[0]),
         depends: parseDependencies(metadata.depends),
         tags: parseTags(metadata.tags),
       });

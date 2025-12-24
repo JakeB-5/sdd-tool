@@ -30,6 +30,7 @@ export const ExportOptionsSchema = z.object({
   specIds: z.array(z.string()).optional(),
 });
 export type ExportOptions = z.infer<typeof ExportOptionsSchema>;
+export type ExportOptionsInput = z.input<typeof ExportOptionsSchema>;
 
 /**
  * 파싱된 요구사항

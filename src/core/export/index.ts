@@ -12,7 +12,7 @@ export { generateJson, generateSummaryJson } from './json-exporter.js';
 import { parseAllSpecs, parseSpecById } from './spec-parser.js';
 import { generateHtml } from './html-exporter.js';
 import { generateJson } from './json-exporter.js';
-import type { ExportOptions, ExportResult, ParsedSpec } from './schemas.js';
+import type { ExportOptions, ExportOptionsInput, ExportResult, ParsedSpec } from './schemas.js';
 
 /**
  * 기본 출력 파일명 생성
@@ -31,7 +31,7 @@ function getDefaultOutputPath(
  */
 export async function executeExport(
   projectRoot: string,
-  options: ExportOptions = {}
+  options: ExportOptionsInput = {}
 ): Promise<ExportResult> {
   const {
     format = 'html',

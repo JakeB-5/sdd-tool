@@ -64,6 +64,8 @@ export interface SearchResultItem {
   depends?: string[];
   /** 태그 */
   tags?: string[];
+  /** 컨텐츠 */
+  content?: string;
   /** 매칭 점수 (0-100) */
   score: number;
   /** 매칭된 컨텍스트 (전문 검색 시) */

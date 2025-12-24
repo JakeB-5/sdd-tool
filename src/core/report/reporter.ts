@@ -195,8 +195,8 @@ export async function generateReport(
       const validationResult = await validateSpecs(sddPath, { strict: false });
       if (validationResult.success) {
         reportData.validation = validationResult.data;
-        reportData.summary.validationErrors = validationResult.data.errorCount;
-        reportData.summary.validationWarnings = validationResult.data.warningCount;
+        reportData.summary.validationErrors = validationResult.data.failed;
+        reportData.summary.validationWarnings = validationResult.data.warnings;
       }
     }
 

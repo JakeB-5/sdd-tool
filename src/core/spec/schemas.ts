@@ -37,6 +37,9 @@ export const SpecMetadataSchema = z.object({
   depends: z.string().nullable().optional(),
   command: z.string().optional(),
   author: z.string().optional(),
+  id: z.string().optional(),
+  constitution_version: z.string().optional(),
+  dependencies: z.array(z.string()).optional(),
 });
 export type SpecMetadata = z.infer<typeof SpecMetadataSchema>;
 

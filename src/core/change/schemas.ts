@@ -49,7 +49,8 @@ export type ProposalMetadata = z.infer<typeof ProposalMetadataSchema>;
  */
 export const DeltaItemSchema = z.object({
   type: DeltaTypeSchema,
-  target: z.string(),
+  target: z.string().optional(),
+  content: z.string(),
   before: z.string().optional(),
   after: z.string().optional(),
   description: z.string().optional(),

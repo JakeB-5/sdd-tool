@@ -12,6 +12,8 @@ export const ExitCode = {
   CONSTITUTION_VIOLATION: 3,
   FILE_SYSTEM_ERROR: 4,
   USER_CANCELLED: 5,
+  INIT_ERROR: 6,
+  VALIDATION_ERROR: 7,
 } as const;
 
 export type ExitCode = (typeof ExitCode)[keyof typeof ExitCode];

@@ -3,20 +3,9 @@
  */
 import matter from 'gray-matter';
 import { z } from 'zod';
-import { DeltaType, DeltaMetadataSchema } from './schemas.js';
+import { DeltaType, DeltaItem } from './schemas.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
-
-/**
- * 델타 항목
- */
-export interface DeltaItem {
-  type: DeltaType;
-  content: string;
-  target?: string;
-  before?: string;
-  after?: string;
-}
 
 /**
  * 파싱된 델타

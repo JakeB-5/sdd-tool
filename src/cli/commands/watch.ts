@@ -104,15 +104,15 @@ async function runWatch(options: {
 
       if (result.success) {
         const data = result.data;
-        const hasErrors = data.results.some((r) => r.errors.length > 0);
-        const hasWarnings = data.results.some((r) => r.warnings.length > 0);
+        const hasErrors = data.files.some((r: { errors: unknown[] }) => r.errors.length > 0);
+        const hasWarnings = data.files.some((r: { warnings: unknown[] }) => r.warnings.length > 0);
 
         if (hasErrors) {
           errorCount++;
-          logger.error(`❌ 검증 실패: ${data.errorCount}개 에러, ${data.warningCount}개 경고`);
+          logger.error(`❌ 검증 실패: ${data.failed}개 에러, ${data.warnings}개 경고`);
 
           // 에러 상세 표시
-          for (const specResult of data.results) {
+          for (const specResult of data.files) {
             if (specResult.errors.length > 0) {
               logger.error(`   ${specResult.file}:`);
               for (const err of specResult.errors) {
@@ -122,11 +122,11 @@ async function runWatch(options: {
           }
         } else if (hasWarnings) {
           if (!options.quiet) {
-            logger.warn(`⚠️  검증 완료: ${data.warningCount}개 경고`);
+            logger.warn(`⚠️  검증 완료: ${data.warnings}개 경고`);
           }
         } else {
           if (!options.quiet) {
-            logger.success(`✅ 검증 통과 (${data.validCount}개 스펙)`);
+            logger.success(`✅ 검증 통과 (${data.passed}개 스펙)`);
           }
         }
       } else {

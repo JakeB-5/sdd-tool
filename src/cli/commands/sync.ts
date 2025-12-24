@@ -57,7 +57,7 @@ export function registerSyncCommand(program: Command): void {
     .option('--exclude <patterns>', '제외 패턴 (콤마 구분)', parsePatterns)
     .action(async (specId: string | undefined, opts: Record<string, unknown>) => {
       try {
-        const projectRoot = findSddRoot(process.cwd());
+        const projectRoot = await findSddRoot(process.cwd());
         if (!projectRoot) {
           logger.error('SDD 프로젝트가 아닙니다. sdd init을 먼저 실행하세요.');
           process.exit(ExitCode.INIT_ERROR);
