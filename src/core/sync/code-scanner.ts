@@ -1,7 +1,7 @@
 /**
  * 코드 스캐너 - 소스 코드에서 @spec 주석 스캔
  */
-import { promises as fs } from 'node:fs';
+import { promises as fs, statSync } from 'node:fs';
 import path from 'node:path';
 import { glob } from 'glob';
 import type { CodeReference } from './schemas.js';
@@ -132,7 +132,7 @@ export class CodeScanner {
    */
   exists(): boolean {
     try {
-      const stat = require('fs').statSync(this.srcDir);
+      const stat = statSync(this.srcDir);
       return stat.isDirectory();
     } catch {
       return false;

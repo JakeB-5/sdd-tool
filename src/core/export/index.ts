@@ -98,7 +98,7 @@ export async function executeExport(
           .join('\n\n---\n\n');
         break;
 
-      case 'pdf':
+      case 'pdf': {
         // PDF는 HTML 생성 후 안내 메시지
         content = generateHtml(specs, {
           theme,
@@ -116,6 +116,7 @@ export async function executeExport(
           size: Buffer.byteLength(content, 'utf-8'),
           error: `PDF 직접 생성은 지원하지 않습니다. ${htmlPath} 파일을 브라우저에서 열어 PDF로 인쇄하세요.`,
         };
+      }
 
       default:
         return {

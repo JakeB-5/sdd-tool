@@ -1,7 +1,7 @@
 /**
  * 스펙 파서 - 스펙 파일에서 요구사항 ID 추출
  */
-import { promises as fs } from 'node:fs';
+import { promises as fs, statSync } from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
 import type { ExtractedRequirement } from './schemas.js';
@@ -172,7 +172,7 @@ export class SpecParser {
    */
   exists(): boolean {
     try {
-      const stat = require('fs').statSync(this.specsDir);
+      const stat = statSync(this.specsDir);
       return stat.isDirectory();
     } catch {
       return false;
