@@ -4,8 +4,9 @@ export default defineConfig({
   title: 'SDD Tool',
   description: 'Spec-Driven Development CLI - AI와 함께하는 명세 기반 개발 도구',
   lang: 'ko-KR',
+  base: '/sdd-tool/',
 
-  head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
+  head: [['link', { rel: 'icon', href: '/sdd-tool/favicon.ico' }]],
 
   themeConfig: {
     nav: [
