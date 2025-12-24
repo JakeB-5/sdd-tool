@@ -38,6 +38,7 @@ export default defineConfig({
           items: [
             { text: '현재 한계점', link: '/guide/limitations' },
             { text: '스케일업 로드맵', link: '/guide/scaling-roadmap' },
+            { text: '대규모 확장 로드맵', link: '/guide/enterprise-roadmap' },
           ],
         },
       ],
