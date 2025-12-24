@@ -20,6 +20,7 @@ import { registerWatchCommand } from './commands/watch.js';
 import { registerQualityCommand } from './commands/quality.js';
 import { registerReportCommand } from './commands/report.js';
 import { registerSearchCommand } from './commands/search.js';
+import { registerPrepareCommand } from './commands/prepare.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
@@ -49,6 +50,7 @@ registerWatchCommand(program);
 registerQualityCommand(program);
 registerReportCommand(program);
 registerSearchCommand(program);
+registerPrepareCommand(program);
 
 /**
  * CLI 실행
