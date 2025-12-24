@@ -21,6 +21,8 @@ import { registerQualityCommand } from './commands/quality.js';
 import { registerReportCommand } from './commands/report.js';
 import { registerSearchCommand } from './commands/search.js';
 import { registerPrepareCommand } from './commands/prepare.js';
+import { registerSyncCommand } from './commands/sync.js';
+import { registerDiffCommand } from './commands/diff.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
@@ -51,6 +53,8 @@ registerQualityCommand(program);
 registerReportCommand(program);
 registerSearchCommand(program);
 registerPrepareCommand(program);
+registerSyncCommand(program);
+registerDiffCommand(program);
 
 /**
  * CLI 실행

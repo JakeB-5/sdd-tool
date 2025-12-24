@@ -1,7 +1,7 @@
 ---
 id: phase4-sync
 title: "sdd sync - 스펙-코드 동기화 검증"
-status: draft
+status: approved
 version: 0.8.0
 created: 2025-12-24
 author: Claude

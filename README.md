@@ -114,6 +114,8 @@ claude
 | `/sdd.search` | 스펙 검색 |
 | `/sdd.status` | 프로젝트 상태 확인 |
 | `/sdd.list` | 항목 목록 조회 |
+| `/sdd.sync` | 스펙-코드 동기화 검증 |
+| `/sdd.diff` | 스펙 변경사항 시각화 |
 
 ### 문서 생성
 
@@ -356,6 +358,22 @@ sdd impact <feature>        # 영향도 분석
 sdd quality                 # 품질 분석
 sdd report                  # 리포트 생성
 sdd search <query>          # 스펙 검색
+```
+
+### 동기화 및 변경 추적 (v0.8.0)
+
+```bash
+sdd sync                    # 스펙-코드 동기화 검증
+sdd sync user-auth          # 특정 스펙만 검증
+sdd sync --ci --threshold 80 # CI 모드 (동기화율 임계값)
+sdd sync --json             # JSON 출력
+sdd sync --markdown         # 마크다운 리포트
+
+sdd diff                    # 스펙 변경사항 (작업 디렉토리)
+sdd diff --staged           # 스테이징된 변경
+sdd diff abc123 def456      # 커밋 간 비교
+sdd diff --stat             # 통계 요약
+sdd diff --json             # JSON 출력
 ```
 
 ---

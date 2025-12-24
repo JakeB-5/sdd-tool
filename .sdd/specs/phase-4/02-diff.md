@@ -1,7 +1,7 @@
 ---
 id: phase4-diff
 title: "sdd diff - 스펙 변경사항 시각화"
-status: draft
+status: approved
 version: 0.8.0
 created: 2025-12-24
 author: Claude
