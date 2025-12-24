@@ -11,6 +11,523 @@ SDD Tool을 중규모 SaaS (5-15명, 50-150개 스펙)로 확장하기 위한 �
 
 ---
 
+## Phase 0: 협업 기반 (Git 워크플로우)
+
+> **최우선 구현 대상**: 기술적 기능보다 선행되어야 하는 협업 기반
+
+### 0.1 커밋 컨벤션
+
+**목적**: 스펙 변경사항 추적 용이, 자동화된 변경 이력 생성
+
+#### Conventional Commits 확장
+
+```
+<type>(<scope>): <subject>
+
+[optional body]
+
+[optional footer]
+```
+
+**타입 정의**:
+
+| 타입 | 설명 | 예시 |
+|------|------|------|
+| `spec` | 스펙 신규 생성 | `spec(auth): add user-login specification` |
+| `spec-update` | 스펙 내용 수정 | `spec-update(auth): add MFA requirements to user-login` |
+| `spec-status` | 스펙 상태 변경 | `spec-status(auth): user-login draft → review` |
+| `plan` | 구현 계획 | `plan(auth): add implementation plan for user-login` |
+| `tasks` | 작업 분해 | `tasks(auth): break down user-login into 5 tasks` |
+| `constitution` | Constitution 변경 | `constitution: add security principles (v1.1.0)` |
+| `sdd-config` | SDD 설정 변경 | `sdd-config: add billing domain` |
+
+**스코프 규칙**:
+
+```
+# 도메인/스펙 계층 구조
+spec(auth): ...                    # 도메인 전체
+spec(auth/user-login): ...         # 특정 스펙
+spec(auth,billing): ...            # 다중 도메인
+
+# 특수 스코프
+spec(*): ...                       # 전체 스펙 영향
+constitution: ...                  # Constitution (스코프 없음)
+```
+
+**Footer 활용**:
+
+```
+spec(billing): add subscription-model specification
+
+새로운 구독 모델 스펙 추가:
+- 월간/연간 플랜 정의
+- 업그레이드/다운그레이드 규칙
+- 프로모션 코드 처리
+
+Refs: #123
+Breaking-Spec: payment-gateway (결제 흐름 변경 필요)
+Depends-On: user-auth, billing/pricing
+```
+
+#### 커밋 메시지 템플릿
+
+```bash
+# .gitmessage
+# <type>(<scope>): <subject>
+# |<---- 50자 이내 ---->|
+
+# 본문 (선택사항)
+# |<---- 72자 이내 ---->|
+
+# Footer (선택사항)
+# Refs: #이슈번호
+# Breaking-Spec: 영향받는-스펙
+# Depends-On: 의존-스펙
+# Reviewed-By: @리뷰어
+```
+
+**설정**:
+
+```bash
+git config commit.template .gitmessage
+```
+
+---
+
+### 0.2 브랜치 전략
+
+#### 스펙 개발용 브랜치 모델
+
+```
+main (또는 master)
+  │
+  ├── spec/auth/user-login        # 개별 스펙 작업
+  ├── spec/billing/subscription
+  │
+  ├── spec-bundle/q1-features     # 관련 스펙 묶음
+  │
+  └── constitution/v2.0           # Constitution 변경
+```
+
+**브랜치 명명 규칙**:
+
+| 패턴 | 용도 | 예시 |
+|------|------|------|
+| `spec/<domain>/<name>` | 개별 스펙 | `spec/auth/user-login` |
+| `spec-bundle/<name>` | 스펙 묶음 | `spec-bundle/payment-v2` |
+| `constitution/<version>` | Constitution | `constitution/v2.0` |
+| `sdd-infra/<name>` | SDD 설정/구조 | `sdd-infra/add-billing-domain` |
+
+#### 워크플로우
+
+```
+1. 스펙 작업 시작
+   main ──→ spec/auth/user-login
+
+2. 스펙 작성 & 리뷰
+   spec/auth/user-login에서 작업
+   PR 생성 → 리뷰 → 승인
+
+3. 병합
+   spec/auth/user-login ──→ main
+   (squash merge 권장)
+
+4. 브랜치 삭제
+   spec/auth/user-login 삭제
+```
+
+#### 보호 규칙
+
+```yaml
+# GitHub Branch Protection 예시
+main:
+  required_reviews: 2
+  required_status_checks:
+    - sdd-validate
+    - sdd-lint
+  restrictions:
+    - dismiss_stale_reviews: true
+
+# 스펙 브랜치는 자유롭게
+spec/*:
+  required_reviews: 0
+  allow_force_push: true
+```
+
+---
+
+### 0.3 스펙 변경 워크플로우
+
+#### 단일 스펙 변경
+
+```bash
+# 1. 브랜치 생성
+git checkout -b spec/auth/user-login
+
+# 2. 스펙 작성
+sdd new auth/user-login
+
+# 3. 검증
+sdd validate auth/user-login
+
+# 4. 커밋
+git add .sdd/specs/auth/user-login/
+git commit -m "spec(auth): add user-login specification
+
+사용자 로그인 기능 명세:
+- 이메일/비밀번호 인증
+- OAuth 2.0 (Google, GitHub)
+- 세션 관리 정책
+
+Depends-On: data-model/user"
+
+# 5. PR 생성
+gh pr create --title "spec(auth): user-login" --body "..."
+
+# 6. 리뷰 후 병합
+gh pr merge --squash
+```
+
+#### 다중 스펙 변경 (Breaking Change)
+
+```bash
+# 1. 번들 브랜치 생성
+git checkout -b spec-bundle/payment-v2
+
+# 2. 관련 스펙들 수정
+sdd new billing/payment-gateway-v2
+# ... 여러 스펙 작업
+
+# 3. 영향 분석
+sdd impact billing/payment-gateway --code
+
+# 4. 변경 요약 커밋
+git commit -m "spec-bundle(billing): payment system v2
+
+결제 시스템 전면 개편:
+- payment-gateway-v2: 새 PG 연동
+- refund-policy: 환불 정책 변경
+- subscription: 결제 주기 변경
+
+Breaking-Spec: billing/checkout, billing/invoice
+Migration-Guide: docs/migration/payment-v2.md"
+
+# 5. PR에 상세 설명
+gh pr create --title "spec-bundle: Payment System v2" \
+  --body "$(cat <<EOF
+## 변경 범위
+- 신규: payment-gateway-v2, refund-policy-v2
+- 수정: subscription, checkout
+- 영향: invoice, reporting
+
+## Breaking Changes
+checkout 스펙의 payment_method 필드 구조 변경
+
+## 마이그레이션
+docs/migration/payment-v2.md 참조
+EOF
+)"
+```
+
+#### Constitution 변경
+
+```bash
+# 1. Constitution 브랜치 (특별 관리)
+git checkout -b constitution/v2.0
+
+# 2. 변경 및 버전 업데이트
+sdd constitution bump --minor
+# constitution.md 수정
+
+# 3. 영향 분석
+sdd validate --constitution  # 위반 스펙 확인
+
+# 4. 커밋 (상세 기록)
+git commit -m "constitution: v2.0 - add API design principles
+
+신규 원칙:
+- API 응답 형식 표준화 (MUST)
+- 에러 코드 체계 (MUST)
+- 버전 관리 정책 (SHOULD)
+
+Breaking: 기존 API 스펙 중 12개 업데이트 필요
+- api/user-endpoint
+- api/product-endpoint
+..."
+
+# 5. 전체 팀 리뷰 필수
+gh pr create --reviewer @tech-leads @architects
+```
+
+---
+
+### 0.4 Git Hooks 자동화
+
+#### Pre-commit: 스펙 검증
+
+```bash
+#!/bin/bash
+# .husky/pre-commit
+
+# 변경된 스펙 파일 확인
+CHANGED_SPECS=$(git diff --cached --name-only | grep "^\.sdd/specs/")
+
+if [ -n "$CHANGED_SPECS" ]; then
+  echo "🔍 스펙 검증 중..."
+
+  # 개별 스펙 검증
+  for spec in $CHANGED_SPECS; do
+    sdd validate "$spec" || exit 1
+  done
+
+  echo "✅ 스펙 검증 통과"
+fi
+```
+
+#### Commit-msg: 컨벤션 검사
+
+```bash
+#!/bin/bash
+# .husky/commit-msg
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# 스펙 관련 커밋 패턴
+SPEC_PATTERN="^(spec|spec-update|spec-status|plan|tasks|constitution|sdd-config)(\(.+\))?: .+"
+
+# 일반 커밋 패턴 (feat, fix, etc.)
+GENERAL_PATTERN="^(feat|fix|docs|style|refactor|test|chore)(\(.+\))?: .+"
+
+if [[ ! $COMMIT_MSG =~ $SPEC_PATTERN ]] && [[ ! $COMMIT_MSG =~ $GENERAL_PATTERN ]]; then
+  echo "❌ 커밋 메시지 형식 오류"
+  echo ""
+  echo "스펙 커밋: spec(<scope>): <message>"
+  echo "일반 커밋: feat(<scope>): <message>"
+  echo ""
+  echo "자세한 내용: docs/guide/scaling-roadmap.md#0.1-커밋-컨벤션"
+  exit 1
+fi
+```
+
+#### Pre-push: 전체 검증
+
+```bash
+#!/bin/bash
+# .husky/pre-push
+
+echo "🔍 푸시 전 검증..."
+
+# 전체 스펙 검증
+sdd validate || exit 1
+
+# 순환 의존성 검사
+sdd deps check --cycles || exit 1
+
+# Constitution 정합성
+sdd validate --constitution || exit 1
+
+echo "✅ 검증 완료"
+```
+
+#### 설정 자동화 CLI
+
+```bash
+# Git hooks 설정
+sdd git hooks install         # Husky 설치 및 훅 설정
+sdd git hooks uninstall       # 훅 제거
+
+# 커밋 템플릿 설정
+sdd git template install      # .gitmessage 설정
+
+# 전체 Git 설정
+sdd git setup                 # hooks + template + .gitignore
+```
+
+---
+
+### 0.5 .gitignore 및 Git 설정
+
+#### SDD용 .gitignore
+
+```gitignore
+# .gitignore
+
+# SDD 캐시 (재생성 가능)
+.sdd/index.json
+.sdd/.cache/
+
+# 로컬 설정
+.sdd/local.yml
+
+# 생성된 리포트
+.sdd/reports/
+
+# 임시 파일
+.sdd/**/*.tmp
+.sdd/**/*.bak
+```
+
+#### Git Attributes
+
+```gitattributes
+# .gitattributes
+
+# 스펙 파일은 항상 LF
+.sdd/**/*.md text eol=lf
+
+# 머지 전략: 스펙 충돌 시 수동 해결
+.sdd/specs/** merge=spec-merge
+.sdd/constitution.md merge=constitution-merge
+```
+
+#### 커스텀 머지 드라이버 (선택)
+
+```bash
+# .git/config 또는 global config
+[merge "spec-merge"]
+    name = SDD Spec Merge Driver
+    driver = sdd merge %O %A %B %P
+
+[merge "constitution-merge"]
+    name = SDD Constitution Merge Driver
+    driver = sdd merge --constitution %O %A %B %P
+```
+
+---
+
+### 0.6 CI 연동
+
+#### GitHub Actions: 스펙 검증
+
+```yaml
+# .github/workflows/sdd-validate.yml
+name: SDD Validate
+
+on:
+  pull_request:
+    paths:
+      - '.sdd/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SDD
+        run: npm install -g sdd-tool
+
+      - name: Validate Specs
+        run: sdd validate --ci
+
+      - name: Check Dependencies
+        run: sdd deps check
+
+      - name: Constitution Check
+        run: sdd validate --constitution
+
+      - name: Comment PR
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ SDD 검증 실패. 상세 내용은 Actions 로그를 확인하세요.'
+            })
+```
+
+#### PR 라벨 자동화
+
+```yaml
+# .github/workflows/sdd-labeler.yml
+name: SDD Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect Changes
+        id: changes
+        run: |
+          SPECS=$(git diff --name-only origin/main | grep "^\.sdd/specs/" | cut -d'/' -f3 | sort -u)
+          echo "domains=$SPECS" >> $GITHUB_OUTPUT
+
+          if git diff --name-only origin/main | grep -q "constitution.md"; then
+            echo "constitution=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Apply Labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const domains = '${{ steps.changes.outputs.domains }}'.split('\n').filter(Boolean);
+            const labels = domains.map(d => `spec:${d}`);
+
+            if ('${{ steps.changes.outputs.constitution }}' === 'true') {
+              labels.push('constitution');
+            }
+
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: labels
+              });
+            }
+```
+
+---
+
+### 구현 체크리스트
+
+```
+Phase 0 구현 순서:
+
+□ 0.1 커밋 컨벤션
+  □ 컨벤션 문서화
+  □ .gitmessage 템플릿
+  □ commitlint 설정
+
+□ 0.2 브랜치 전략
+  □ 브랜치 명명 규칙 문서화
+  □ GitHub Branch Protection 설정
+  □ 브랜치 템플릿 스크립트
+
+□ 0.3 워크플로우
+  □ 단일 스펙 가이드
+  □ 번들 스펙 가이드
+  □ Constitution 변경 가이드
+
+□ 0.4 Git Hooks
+  □ sdd git hooks install CLI
+  □ pre-commit 훅
+  □ commit-msg 훅
+  □ pre-push 훅
+
+□ 0.5 Git 설정
+  □ .gitignore 템플릿
+  □ .gitattributes 템플릿
+  □ sdd init에서 자동 생성
+
+□ 0.6 CI 연동
+  □ sdd-validate.yml 템플릿
+  □ sdd-labeler.yml 템플릿
+  □ sdd cicd setup 명령어 확장
+```
+
+---
+
 ## Phase 1: 성능 최적화
 
 ### 1.1 인덱스 캐시 시스템
@@ -520,6 +1037,10 @@ sdd report --format html --output report.html
 
 | Phase | 기능 | 난이도 | 영향도 | 예상 작업 |
 |-------|------|--------|--------|-----------|
+| **0** | 커밋 컨벤션 | 낮음 | 높음 | 문서 + 템플릿 |
+| **0** | 브랜치 전략 | 낮음 | 높음 | 문서 + 보호 규칙 |
+| **0** | Git Hooks | 중 | 높음 | CLI + 훅 스크립트 |
+| **0** | CI 연동 | 중 | 높음 | 워크플로우 템플릿 |
 | **1** | 인덱스 캐시 | 중 | 높음 | 스키마 + 빌더 + CLI |
 | **1** | 인터랙티브 그래프 | 중 | 중 | D3.js 템플릿 |
 | **2** | 도메인 분리 | 높음 | 높음 | 구조 변경 + CLI |
@@ -529,6 +1050,8 @@ sdd report --format html --output report.html
 | **4** | GitHub 연동 | 중 | 중 | API 연동 |
 | **4** | VSCode 확장 | 높음 | 높음 | 별도 프로젝트 |
 | **5** | 대시보드 | 중 | 중 | blessed/ink |
+
+> **Phase 0이 최우선**: 기술적 기능(Phase 1-5)보다 협업 기반(Phase 0)을 먼저 구축해야 팀 확장 시 혼란을 방지할 수 있습니다.
 
 ## 관련 문서
 
