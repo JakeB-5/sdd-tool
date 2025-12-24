@@ -7,6 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0] - 2025-12-24
+
+### Added
+
+#### CI/CD Pipeline
+- `ci.yml`: PR 품질 검사 (테스트, 린트, 타입체크, 빌드, 커버리지)
+- `release.yml`: 태그 푸시 시 자동 npm 배포
+- `docs.yml`: 문서 자동 배포 (GitHub Pages)
+- Codecov 연동
+
+#### VitePress Documentation Site
+- 시작하기 가이드 (설치, 첫 프로젝트, 워크플로우)
+- CLI 명령어 레퍼런스 (init, new, validate, prepare, sync, diff, export)
+- 슬래시 커맨드 가이드 (29개 커맨드)
+- 스펙 작성 가이드 (RFC 2119, GIVEN-WHEN-THEN, Constitution)
+
+#### Documentation
+- `CONTRIBUTING.md`: 기여자 가이드
+- `CHANGELOG.md`: 변경 이력 정리
+
+### Changed
+- vitest 커버리지 json-summary reporter 추가
+- 테스트 커버리지 임계값 80% 유지
+
+---
+
+## [0.9.0] - 2025-12-24
+
+### Added
+- `sdd export`: 스펙 내보내기 명령어
+  - HTML 내보내기 (반응형 스타일, 목차, RFC 2119 키워드 강조)
+  - JSON 내보내기 (구조화된 요구사항/시나리오)
+  - Markdown 내보내기 (병합 문서)
+- `/sdd.export` 슬래시 커맨드 (29번째 커맨드)
+- Light/Dark 테마 지원
+- `--all` 옵션으로 일괄 내보내기
+
+---
+
+## [0.8.0] - 2025-12-24
+
+### Added
+- `sdd sync`: 스펙-코드 동기화 검증
+  - `@spec REQ-xxx` 코드 주석 인식
+  - 테스트에서 `REQ-xxx` 참조 인식
+  - 동기화율 리포트
+  - CI 모드 (`--ci --threshold 80`)
+- `sdd diff`: 스펙 변경사항 시각화
+  - 작업 디렉토리, 스테이징, 커밋 간 비교
+  - RFC 2119 키워드 변경 강조
+  - 구조적 diff (요구사항, 시나리오)
+- `/sdd.sync`, `/sdd.diff` 슬래시 커맨드 (27, 28번째)
+
+---
+
+## [0.7.0] - 2025-12-23
+
+### Added
+- `sdd prepare`: 서브에이전트/스킬 점검
+  - tasks.md 분석하여 필요한 도구 감지
+  - 누락된 서브에이전트/스킬 자동 생성
+  - `--dry-run`, `--auto-approve` 옵션
+- `/sdd.prepare` 슬래시 커맨드 (26번째)
+
+### Fixed
+- Windows 경로 호환성 문제 해결
+
+---
+
+## [0.6.0] - 2025-12-22
+
+### Added
+- `sdd search`: 스펙 검색 명령어
+- `/sdd.search`, `/sdd.impact`, `/sdd.quality` 슬래시 커맨드
+
+---
+
 ## [0.5.0] - 2025-12-22
 
 ### Added

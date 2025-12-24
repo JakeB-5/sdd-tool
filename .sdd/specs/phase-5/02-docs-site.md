@@ -1,7 +1,7 @@
 ---
 id: phase5-docs
 title: "문서 사이트"
-status: draft
+status: approved
 version: 1.0.0
 created: 2025-12-24
 author: Claude

@@ -1,7 +1,7 @@
 ---
 id: phase5-cicd
 title: "CI/CD 강화"
-status: draft
+status: approved
 version: 1.0.0
 created: 2025-12-24
 author: Claude

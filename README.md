@@ -3,9 +3,12 @@
 **Spec-Driven Development CLI** - AI와 함께하는 명세 기반 개발 도구
 
 [![npm version](https://img.shields.io/npm/v/sdd-tool)](https://www.npmjs.com/package/sdd-tool)
+[![CI](https://github.com/JakeB-5/sdd-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/JakeB-5/sdd-tool/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+📚 **[문서 사이트](https://jakeb-5.github.io/sdd-tool/)** | 🚀 **[시작하기](https://jakeb-5.github.io/sdd-tool/guide/getting-started)** | 📋 **[CLI 레퍼런스](https://jakeb-5.github.io/sdd-tool/cli/)**
 
 ## 개요
 
@@ -435,8 +438,34 @@ pnpm run build
 pnpm test
 ```
 
+### 문서 개발
+
+```bash
+pnpm run docs:dev      # 개발 서버
+pnpm run docs:build    # 빌드
+pnpm run docs:preview  # 미리보기
+```
+
+### 테스트 커버리지
+
+```bash
+pnpm run test:coverage  # 커버리지 리포트
+```
+
+---
+
+## 기여
+
+기여를 환영합니다! [CONTRIBUTING.md](CONTRIBUTING.md)를 참고해주세요.
+
+---
+
+## 변경 이력
+
+자세한 변경 이력은 [CHANGELOG.md](CHANGELOG.md)를 참고해주세요.
+
 ---
 
 ## 라이선스
 
-MIT License
+MIT License - 자세한 내용은 [LICENSE](LICENSE) 파일을 참고해주세요.
