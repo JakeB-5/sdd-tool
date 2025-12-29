@@ -338,8 +338,8 @@ export async function setupGit(
   }
 
   return success({
-    hooks: hooksResult.value,
-    template: templateResult.value,
+    hooks: hooksResult.data,
+    template: templateResult.data,
   });
 }
 
@@ -370,7 +370,7 @@ export function registerGitCommand(program: Command): void {
             process.exit(ExitCode.GENERAL_ERROR);
           }
 
-          const { installed, skipped, backedUp } = result.value;
+          const { installed, skipped, backedUp } = result.data;
 
           if (installed.length > 0) {
             logger.success(`설치됨: ${installed.join(', ')}`);
@@ -397,8 +397,8 @@ export function registerGitCommand(program: Command): void {
             process.exit(ExitCode.GENERAL_ERROR);
           }
 
-          if (result.value.length > 0) {
-            logger.success(`제거됨: ${result.value.join(', ')}`);
+          if (result.data.length > 0) {
+            logger.success(`제거됨: ${result.data.join(', ')}`);
           } else {
             logger.info('제거할 훅이 없습니다.');
           }
@@ -436,7 +436,7 @@ export function registerGitCommand(program: Command): void {
         }
 
         logger.success('.gitmessage 파일이 생성되었습니다.');
-        if (result.value.configured) {
+        if (result.data.configured) {
           logger.success('git config commit.template이 설정되었습니다.');
         } else {
           logger.warn('git config 설정에 실패했습니다.');

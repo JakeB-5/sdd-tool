@@ -466,11 +466,11 @@ async function promptGitSetup(projectPath: string, autoApprove: boolean): Promis
 
       if (result.success) {
         logger.success('Git 워크플로우 설치 완료!');
-        if (result.value.hooks.installed.length > 0) {
-          logger.listItem(`Hooks: ${result.value.hooks.installed.join(', ')}`);
+        if (result.data.hooks.installed.length > 0) {
+          logger.listItem(`Hooks: ${result.data.hooks.installed.join(', ')}`);
         }
-        if (result.value.template.installed.length > 0) {
-          logger.listItem(`템플릿: ${result.value.template.installed.join(', ')}`);
+        if (result.data.template.installed.length > 0) {
+          logger.listItem(`템플릿: ${result.data.template.installed.join(', ')}`);
         }
       } else {
         logger.warn('Git 워크플로우 설치 실패: ' + result.error.message);
