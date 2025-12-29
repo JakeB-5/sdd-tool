@@ -517,6 +517,7 @@ export async function saveReport(
         content = formatReportMarkdown(report);
         break;
       case 'txt':
+        // eslint-disable-next-line no-control-regex
         content = formatReport(report).replace(/\x1b\[[0-9;]*m/g, ''); // ANSI 제거
         break;
       default:

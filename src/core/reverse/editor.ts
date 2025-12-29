@@ -300,12 +300,13 @@ export class SpecEditor {
       case 'remove-contract':
         this.spec.contracts.splice(operation.index, 1);
         break;
-      case 'update-domain':
+      case 'update-domain': {
         this.spec.domain = operation.value;
         // ID도 업데이트
         const name = this.spec.id.split('/')[1];
         this.spec.id = `${operation.value}/${name}`;
         break;
+      }
       case 'add-related-spec':
         this.spec.relatedSpecs.push(operation.specId);
         break;
@@ -346,12 +347,13 @@ export class SpecEditor {
       case 'remove-contract':
         this.spec.contracts.splice(operation.index, 0, previousValue as ExtractedContract);
         break;
-      case 'update-domain':
+      case 'update-domain': {
         const prevDomain = previousValue as string;
         const name = this.spec.id.split('/')[1];
         this.spec.domain = prevDomain;
         this.spec.id = `${prevDomain}/${name}`;
         break;
+      }
       case 'add-related-spec':
         this.spec.relatedSpecs = this.spec.relatedSpecs.filter(
           id => id !== operation.specId

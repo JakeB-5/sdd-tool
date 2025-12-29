@@ -62,7 +62,6 @@ export {
   extractSpecs,
   saveExtractedSpecs,
   loadDraftSpecs,
-  deleteDraftSpec,
   groupSymbolsByDomain,
   groupSymbolsByFunction,
   filterSymbols,

@@ -112,7 +112,7 @@ export async function executeValidate(
   options: ValidateOptions,
   context: ValidateContext
 ): Promise<Result<ValidateResult, Error>> {
-  let resolvedPath = context.resolvedPath;
+  const resolvedPath = context.resolvedPath;
 
   // 도메인 필터가 있으면 해당 도메인 스펙만 검증
   if (context.domainFilter && context.sddRoot) {
