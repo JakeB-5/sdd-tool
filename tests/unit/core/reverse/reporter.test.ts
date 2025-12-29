@@ -51,22 +51,29 @@ describe('reporter', () => {
       reporter.start();
 
       const scanResult: ScanResult = {
-        files: [
-          { path: 'src/auth/login.ts', symbolCount: 5 },
-          { path: 'src/core/utils.ts', symbolCount: 10 },
-        ],
-        suggestedDomains: [
-          { name: 'auth', description: '인증', path: 'src/auth', confidence: 0.8, files: [] },
-        ],
-        dependencies: [],
-        totalSymbols: 15,
+        path: tempDir,
+        scannedAt: new Date(),
+        options: {},
+        summary: {} as ScanSummary,
+        files: ['src/auth/login.ts', 'src/core/utils.ts'],
+        symbols: [],
+        directories: ['src/auth', 'src/core'],
       };
 
       const summary: ScanSummary = {
         fileCount: 2,
         symbolCount: 15,
-        domainCount: 1,
-        complexityGrade: 'B',
+        symbolsByKind: {},
+        languageDistribution: { ts: 15 },
+        suggestedDomains: [
+          { name: 'auth', description: '인증', path: 'src/auth', fileCount: 1, symbolCount: 5, confidence: 80, files: [] },
+        ],
+        complexity: {
+          estimatedLoc: 500,
+          avgFileSize: 250,
+          dependencyCount: 5,
+          grade: 'medium',
+        },
       };
 
       reporter.addScanResult(scanResult, summary);
@@ -131,7 +138,7 @@ describe('reporter', () => {
         approved: 3,
         rejected: 1,
         pending: 1,
-        revision: 0,
+        needsRevision: 0,
       };
 
       reporter.addReviewSummary(reviewSummary);
