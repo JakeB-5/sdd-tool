@@ -15,6 +15,8 @@ SDD Tool CLI 명령어 레퍼런스입니다.
 | [`sdd sync`](/cli/sync) | 스펙-코드 동기화 |
 | [`sdd diff`](/cli/diff) | 스펙 변경사항 |
 | [`sdd export`](/cli/export) | 스펙 내보내기 |
+| [`sdd git`](/cli/git) | Git 워크플로우 설정 |
+| [`sdd cicd`](/cli/cicd) | CI/CD 파이프라인 설정 |
 
 ## 전역 옵션
 
@@ -42,4 +44,10 @@ sdd sync
 
 # HTML로 스펙 내보내기
 sdd export --all --format html
+
+# Git 워크플로우 설정
+sdd git setup
+
+# CI/CD 설정 (GitHub Actions)
+sdd cicd setup github
 ```

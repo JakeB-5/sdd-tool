@@ -88,6 +88,8 @@ export default defineConfig({
             { text: 'sdd sync', link: '/cli/sync' },
             { text: 'sdd diff', link: '/cli/diff' },
             { text: 'sdd export', link: '/cli/export' },
+            { text: 'sdd git', link: '/cli/git' },
+            { text: 'sdd cicd', link: '/cli/cicd' },
           ],
         },
       ],

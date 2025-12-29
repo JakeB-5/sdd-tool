@@ -31,13 +31,28 @@ sdd init
 - `.sdd/` - 명세 저장소
 - `.claude/commands/` - 29개의 슬래시 커맨드
 
-### 2. Claude Code 실행
+### 2. Git 워크플로우 설정 (선택)
+
+팀 협업을 위한 Git 워크플로우를 설정합니다:
+
+```bash
+sdd git setup
+```
+
+이 명령어는 다음을 설정합니다:
+- Git Hooks (pre-commit, commit-msg, pre-push)
+- 커밋 메시지 템플릿
+- SDD용 .gitignore/.gitattributes
+
+자세한 내용은 [Git 워크플로우](/guide/commit-convention) 문서를 참고하세요.
+
+### 3. Claude Code 실행
 
 ```bash
 claude
 ```
 
-### 3. 워크플로우 시작
+### 4. 워크플로우 시작
 
 ```
 /sdd.start

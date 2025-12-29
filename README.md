@@ -392,6 +392,25 @@ sdd export --theme dark     # 다크 테마
 sdd export --no-toc         # 목차 제외
 ```
 
+### Git 워크플로우 (v1.0.0)
+
+```bash
+# Git Hooks 설정
+sdd git hooks install       # pre-commit, commit-msg, pre-push 설치
+sdd git hooks uninstall     # hooks 제거
+
+# 커밋 템플릿 설정
+sdd git template install    # .gitmessage 템플릿 설치
+
+# 전체 Git 워크플로우 설정
+sdd git setup               # hooks + template + .gitignore/.gitattributes
+
+# CI/CD 설정
+sdd cicd setup github       # GitHub Actions 워크플로우 생성
+sdd cicd setup gitlab       # GitLab CI 설정 생성
+sdd cicd check              # CI 환경 검증
+```
+
 ---
 
 ## Claude Code 도구 구조
