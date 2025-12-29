@@ -35,7 +35,7 @@ npm install -g sdd-tool
 ## 빠른 시작
 
 ```bash
-# 1. 프로젝트 초기화 (슬래시 커맨드 29개 자동 생성)
+# 1. 프로젝트 초기화 (슬래시 커맨드 + Git/CI-CD 설정)
 sdd init
 
 # 2. Claude Code 실행
@@ -334,7 +334,9 @@ constitution_version: 1.0.0
 ### 기본 명령어
 
 ```bash
-sdd init                    # 프로젝트 초기화
+sdd init                    # 프로젝트 초기화 (대화형 Git/CI-CD 설정 포함)
+sdd init --skip-git-setup   # Git/CI-CD 설정 건너뛰기
+sdd init --auto-approve     # 모든 설정 자동 승인
 sdd validate                # 스펙 검증
 sdd status                  # 상태 확인
 sdd list                    # 목록 조회
