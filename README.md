@@ -394,6 +394,40 @@ sdd export --theme dark     # 다크 테마
 sdd export --no-toc         # 목차 제외
 ```
 
+### 도메인 관리 (v1.2.0)
+
+```bash
+sdd domain create auth              # 새 도메인 생성
+sdd domain list                     # 도메인 목록
+sdd domain show auth                # 도메인 상세 정보
+sdd domain link auth user-login     # 스펙을 도메인에 연결
+sdd domain depends order --on auth  # 도메인 의존성 설정
+sdd domain graph                    # 의존성 그래프 (Mermaid)
+sdd domain graph --format dot       # DOT 형식
+```
+
+### 컨텍스트 관리 (v1.2.0)
+
+```bash
+sdd context set auth                # 컨텍스트 설정
+sdd context set auth order          # 여러 도메인
+sdd context set auth --include-deps # 의존성 포함
+sdd context show                    # 현재 컨텍스트
+sdd context specs                   # 컨텍스트 내 스펙 목록
+sdd context clear                   # 컨텍스트 해제
+```
+
+### 역추출 (v1.2.0)
+
+```bash
+sdd reverse scan                    # 프로젝트 구조 스캔
+sdd reverse scan --depth deep       # 심층 분석
+sdd reverse extract                 # 스펙 초안 추출
+sdd reverse extract --ai            # AI 기반 의도 추론
+sdd reverse review                  # 추출된 스펙 리뷰
+sdd reverse finalize                # 승인된 스펙 확정
+```
+
 ### Git 워크플로우 (v1.0.0)
 
 ```bash
@@ -422,29 +456,36 @@ your-project/
 ├── .sdd/
 │   ├── constitution.md     # 프로젝트 헌법
 │   ├── AGENTS.md           # AI 워크플로우 가이드
+│   ├── domains.yml         # 도메인 정의 (v1.2.0)
+│   ├── .context.json       # 현재 컨텍스트 (v1.2.0)
 │   ├── specs/              # 기능 명세
-│   │   └── feature-name/
-│   │       ├── spec.md
-│   │       ├── plan.md
-│   │       ├── tasks.md
-│   │       └── prepare.md  # 도구 점검 결과
+│   │   ├── feature-name/   # 단순 기능
+│   │   │   ├── spec.md
+│   │   │   ├── plan.md
+│   │   │   └── tasks.md
+│   │   └── domain-name/    # 도메인별 그룹 (v1.2.0)
+│   │       └── feature/
+│   │           └── spec.md
 │   ├── changes/            # 변경 제안
-│   └── archive/            # 완료된 변경
+│   ├── archive/            # 완료된 변경
+│   └── drafts/             # 역추출 임시 스펙 (v1.2.0)
 │
 └── .claude/
     ├── commands/           # 슬래시 커맨드 (29개)
     │   ├── sdd.start.md
     │   ├── sdd.new.md
-    │   ├── sdd.prepare.md
     │   └── ...
     ├── agents/             # 서브에이전트
     │   ├── test-runner.md
     │   └── api-scaffold.md
-    └── skills/             # 스킬
-        ├── test/
-        │   └── SKILL.md
-        └── gen-api/
-            └── SKILL.md
+    ├── skills/             # 스킬 (v1.2.0)
+    │   ├── dev-implement.md
+    │   ├── dev-test.md
+    │   ├── sdd-reverse.md
+    │   ├── sdd-domain.md
+    │   ├── sdd-context.md
+    │   └── ...
+    └── settings.json       # 스킬 설정 (v1.2.0)
 ```
 
 ---

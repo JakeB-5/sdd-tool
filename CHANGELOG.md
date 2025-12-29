@@ -11,22 +11,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### 도메인 시스템 (Domain System)
+- `sdd domain create`: 새 도메인 생성
+- `sdd domain list`: 도메인 목록 조회
+- `sdd domain show <name>`: 도메인 상세 정보
+- `sdd domain link <domain> <spec>`: 스펙을 도메인에 연결
+- `sdd domain unlink <domain> <spec>`: 스펙 연결 해제
+- `sdd domain depends <domain> --on <target>`: 도메인 의존성 설정
+- `sdd domain graph`: 의존성 그래프 시각화 (Mermaid, DOT, JSON)
+- `sdd domain delete`: 도메인 삭제
+- `sdd domain rename`: 도메인 이름 변경
+- `sdd domain validate`: 도메인 구조 검증
+- 순환 의존성 감지 (Tarjan 알고리즘)
+- `domains.yml` 스키마 및 JSON Schema 지원
+
+#### 컨텍스트 시스템 (Context System)
+- `sdd context set <domain...>`: 작업 컨텍스트 설정
+- `sdd context show`: 현재 컨텍스트 표시
+- `sdd context clear`: 컨텍스트 해제
+- `sdd context add <domain>`: 도메인 추가
+- `sdd context remove <domain>`: 도메인 제거
+- `sdd context specs`: 컨텍스트 내 스펙 목록
+- `sdd context export`: 컨텍스트 기반 프롬프트 내보내기
+- `--include-deps`: 의존 도메인 자동 포함
+- 대규모 프로젝트 스케일링 지원
+
 #### 역방향 스펙 추출 (Reverse Spec Extraction)
 - `sdd reverse scan`: 프로젝트 구조 스캔
   - 디렉토리 구조 분석
-  - 언어 분포 통계
+  - 언어 분포 통계 (30+ 언어 지원)
   - 도메인 추정
+  - Serena MCP 통합
 - `sdd reverse extract`: 코드에서 스펙 초안 추출
   - 심볼 분석 (클래스, 함수, 인터페이스)
   - 신뢰도 점수 계산 (documentation, naming, structure, testCoverage, typing)
   - GIVEN-WHEN-THEN 시나리오 추론
+  - AI 기반 의도 추론 (`--ai` 옵션)
   - `--domain`, `--depth`, `--min-confidence` 옵션
 - `sdd reverse review`: 추출된 스펙 리뷰
   - pending/approved/rejected/needs_revision 상태 관리
+  - 인라인 편집 지원 (undo/redo)
+  - AI 어시스턴트 통합
   - 리뷰 코멘트 추가
 - `sdd reverse finalize`: 승인된 스펙 확정
   - `--all` 옵션으로 일괄 확정
+  - 도메인 자동 생성
+  - 역추출 보고서 생성
   - 정식 SDD 스펙 마크다운 생성
+
+#### 스펙 생성 확장
+- `sdd new <domain>/<feature>`: 도메인/기능 형식 지원
+- `sdd new --domain <name>`: 명시적 도메인 지정
+- 컨텍스트 기반 도메인 자동 감지
+- 도메인별 커스텀 템플릿 지원
+
+#### 검증 확장
+- `sdd validate --domain <name>`: 특정 도메인만 검증
+- `sdd validate --orphan-specs`: 고아 스펙 감지
+- 도메인 경계 검증 (의존성 규칙 준수)
 
 #### Claude Code 슬래시 커맨드 스킬
 - `/dev-implement`: 스펙 기반 TDD 구현
@@ -36,15 +78,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/dev-status`: 구현 진행 상황
 - `/dev-test`: Vitest 테스트 실행
 - `/sdd-reverse`: 역추출 워크플로우
+- `/sdd-domain`: 도메인 관리
+- `/sdd-context`: 컨텍스트 관리
+- `/sdd-analyze`: 코드베이스 분석
+- `/sdd-import`: 외부 문서 가져오기
 
 ### Technical
-- 새 모듈: `src/core/reverse/scanner.ts`
-- 새 모듈: `src/core/reverse/extractor.ts`
-- 새 모듈: `src/core/reverse/confidence.ts`
-- 새 모듈: `src/core/reverse/spec-generator.ts`
-- 새 모듈: `src/core/reverse/review.ts`
-- 새 모듈: `src/core/reverse/finalizer.ts`
-- 테스트 171개 추가 (총 1333개)
+- 새 모듈: `src/core/domain/` (graph, parser, service)
+- 새 모듈: `src/core/context/` (manager, storage)
+- 새 모듈: `src/core/reverse/` (scanner, extractor, confidence, spec-generator, review, finalizer, editor, ai-assistant, reporter, cleanup, domain-generator, intent-inferrer)
+- 새 모듈: `src/core/validators/domain-validator.ts`
+- 새 모듈: `src/integrations/serena/` (client, types, connection, requirement-checker)
+- 새 모듈: `src/schemas/domains.schema.ts`
+- 새 모듈: `src/utils/language-detector.ts`
+- CLI 명령어: `src/cli/commands/domain.ts`, `context.ts`, `reverse.ts`
+- 문서: `docs/guide/` (domains, context, reverse-extraction, large-projects)
+- 문서: `docs/cli/` (domain, context, reverse)
+- 문서: `docs/tutorial/` (greenfield, brownfield)
+- 테스트 200개+ 추가 (총 1362개)
 - `.claude/skills/` 디렉토리 및 설정 추가
 
 ---
