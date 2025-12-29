@@ -149,11 +149,12 @@ dependencies:
 
 ### 장기 대응
 
-1. **도구 확장**: [스케일업 로드맵](./scaling-roadmap.md) 참조
+1. **도구 확장**: [스케일업 로드맵](./scaling.md) 참조
 2. **프로젝트 분리**: 마이크로서비스별 독립 SDD
 3. **대안 도구 검토**: 엔터프라이즈급 요구사항 관리 도구
 
 ## 관련 문서
 
-- [스케일업 로드맵](./scaling-roadmap.md) - 중규모 확장 계획
-- [모범 사례](./best-practices.md) - 효과적인 사용법
+- [로드맵 개요](./overview.md) - 전체 로드맵
+- [스케일업 로드맵](./scaling.md) - 중규모 확장 계획
+- [모범 사례](/guide/best-practices.md) - 효과적인 사용법

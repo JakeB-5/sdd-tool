@@ -1055,5 +1055,6 @@ sdd report --format html --output report.html
 
 ## 관련 문서
 
-- [현재 한계점](./limitations.md) - 도구의 현실적 한계
-- [모범 사례](./best-practices.md) - 효과적인 사용법
+- [현재 한계점](./current-limits.md) - 도구의 현실적 한계
+- [로드맵 개요](./overview.md) - 전체 로드맵
+- [모범 사례](/guide/best-practices.md) - 효과적인 사용법

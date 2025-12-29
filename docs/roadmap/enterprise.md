@@ -2,7 +2,7 @@
 
 SDD Tool을 엔터프라이즈 규모 (15명+, 150개+ 스펙, 멀티팀)로 확장하기 위한 장기 로드맵입니다.
 
-> **전제조건**: [스케일업 로드맵](./scaling-roadmap.md)의 Phase 1-5 완료 후 진행
+> **전제조건**: [스케일업 로드맵](./scaling.md)의 Phase 1-5 완료 후 진행
 
 ## 목표
 
@@ -917,6 +917,7 @@ sdd config set sync.mode bidirectional
 
 ## 관련 문서
 
-- [현재 한계점](./limitations.md) - 도구의 현실적 한계
-- [스케일업 로드맵](./scaling-roadmap.md) - 중규모 확장 (Phase 1-5)
-- [모범 사례](./best-practices.md) - 효과적인 사용법
+- [현재 한계점](./current-limits.md) - 도구의 현실적 한계
+- [스케일업 로드맵](./scaling.md) - 중규모 확장 (Phase 1-5)
+- [로드맵 개요](./overview.md) - 전체 로드맵
+- [모범 사례](/guide/best-practices.md) - 효과적인 사용법

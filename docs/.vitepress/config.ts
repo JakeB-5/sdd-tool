@@ -14,6 +14,7 @@ export default defineConfig({
       { text: 'CLI', link: '/cli/' },
       { text: '슬래시 커맨드', link: '/commands/' },
       { text: '스펙 작성', link: '/spec-writing/' },
+      { text: '로드맵', link: '/roadmap/' },
     ],
 
     sidebar: {
@@ -33,13 +34,32 @@ export default defineConfig({
             { text: '모범 사례', link: '/guide/best-practices' },
           ],
         },
+      ],
+      '/roadmap/': [
         {
-          text: '확장',
+          text: '로드맵',
           items: [
-            { text: '현재 한계점', link: '/guide/limitations' },
-            { text: '로드맵 v2 (고도화)', link: '/guide/roadmap-v2' },
-            { text: '스케일업 로드맵', link: '/guide/scaling-roadmap' },
-            { text: '대규모 확장 로드맵', link: '/guide/enterprise-roadmap' },
+            { text: '개요', link: '/roadmap/' },
+            { text: '현재 한계점', link: '/roadmap/current-limits' },
+          ],
+        },
+        {
+          text: '메인 로드맵',
+          items: [
+            { text: '로드맵 v2 (전체)', link: '/roadmap/overview' },
+          ],
+        },
+        {
+          text: 'Phase별 상세',
+          items: [
+            { text: 'Phase 0: Git 워크플로우', link: '/roadmap/scaling' },
+            { text: 'Phase 1-R: 역방향 추출', link: '/roadmap/reverse-extraction' },
+          ],
+        },
+        {
+          text: '참고',
+          items: [
+            { text: '엔터프라이즈 로드맵', link: '/roadmap/enterprise' },
           ],
         },
       ],
