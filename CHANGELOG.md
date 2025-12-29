@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2025-12-29
+
+### Added
+
+#### 대화형 프로젝트 초기화
+- `sdd init` 시 프로젝트 구조 자동 분석
+- Git 워크플로우 설정 제안 (사용자 승인 후 실행)
+- CI/CD 설정 제안 (사용자 승인 후 실행)
+- `--skip-git-setup`: Git/CI-CD 설정 건너뛰기
+- `--auto-approve`: 모든 설정 자동 승인 (CI/스크립트용)
+
+#### 프로젝트 분석기
+- Git 저장소 상태 감지
+- Git hooks 설치 여부 확인
+- GitHub Actions / GitLab CI 설정 감지
+- Node.js / TypeScript 프로젝트 감지
+- SDD 프로젝트 초기화 여부 확인
+
+#### /sdd.start 슬래시 커맨드 개선
+- 프로젝트 구조 분석 안내 추가
+- Git/CI-CD 설정 제안 시나리오 추가
+- 사용자 승인 기반 설정 플로우
+
+### Technical
+- 새 모듈: `src/utils/project-analyzer.ts`
+- `src/cli/commands/init.ts`에 대화형 프롬프트 추가
+
+
 ## [1.0.1] - 2025-12-24
 
 ### Fixed
@@ -326,6 +354,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.1.0]: https://github.com/JakeB-5/sdd-tool/compare/v1.0.1...v1.1.0
+[1.0.1]: https://github.com/JakeB-5/sdd-tool/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.9.0...v1.0.0
+[0.9.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.2.0...v0.3.0
