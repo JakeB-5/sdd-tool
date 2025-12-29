@@ -506,7 +506,7 @@ export function registerDomainCommand(program: Command): void {
 
       if (!result.success) {
         logger.error('도메인 생성 실패', result.error.message);
-        process.exit(ExitCode.ERROR);
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       logger.success('도메인 생성 완료', `${result.data.id} 도메인이 생성되었습니다.`);
@@ -527,7 +527,7 @@ export function registerDomainCommand(program: Command): void {
 
       if (!result.success) {
         logger.error('도메인 목록 조회 실패', result.error.message);
-        process.exit(ExitCode.ERROR);
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       if (options.json) {
@@ -546,7 +546,7 @@ export function registerDomainCommand(program: Command): void {
 
       if (!result.success) {
         logger.error('도메인 조회 실패', result.error.message);
-        process.exit(ExitCode.ERROR);
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       const d = result.data;
@@ -580,7 +580,7 @@ export function registerDomainCommand(program: Command): void {
 
       if (!result.success) {
         logger.error('도메인 삭제 실패', result.error.message);
-        process.exit(ExitCode.ERROR);
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       logger.success('도메인 삭제 완료', `'${domainId}' 도메인이 삭제되었습니다.`);
@@ -595,7 +595,7 @@ export function registerDomainCommand(program: Command): void {
 
       if (!result.success) {
         logger.error('도메인 이름 변경 실패', result.error.message);
-        process.exit(ExitCode.ERROR);
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       logger.success('도메인 이름 변경 완료', `'${oldId}' → '${newId}'`);
@@ -613,7 +613,7 @@ export function registerDomainCommand(program: Command): void {
 
       if (!result.success) {
         logger.error('그래프 생성 실패', result.error.message);
-        process.exit(ExitCode.ERROR);
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       console.log(result.data);
@@ -632,7 +632,7 @@ export function registerDomainCommand(program: Command): void {
 
       if (!result.success) {
         logger.error('검증 실패', result.error.message);
-        process.exit(ExitCode.ERROR);
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       console.log(result.data.message);
@@ -651,7 +651,7 @@ export function registerDomainCommand(program: Command): void {
 
       if (!result.success) {
         logger.error('스펙 연결 실패', result.error.message);
-        process.exit(ExitCode.ERROR);
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       logger.success('스펙 연결 완료', `${specIds.length}개의 스펙이 '${domainId}' 도메인에 연결되었습니다.`);
@@ -666,7 +666,7 @@ export function registerDomainCommand(program: Command): void {
 
       if (!result.success) {
         logger.error('스펙 연결 해제 실패', result.error.message);
-        process.exit(ExitCode.ERROR);
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       logger.success('스펙 연결 해제 완료', `${specIds.length}개의 스펙이 '${domainId}' 도메인에서 연결 해제되었습니다.`);
@@ -684,7 +684,7 @@ export function registerDomainCommand(program: Command): void {
 
       if (!result.success) {
         logger.error('의존성 설정 실패', result.error.message);
-        process.exit(ExitCode.ERROR);
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       const action = options.remove ? '제거' : '추가';
@@ -702,7 +702,7 @@ export function registerDomainCommand(program: Command): void {
 
       if (!result.success) {
         logger.error('도메인 업데이트 실패', result.error.message);
-        process.exit(ExitCode.ERROR);
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       logger.success('도메인 업데이트 완료', `'${domainId}' 도메인이 업데이트되었습니다.`);

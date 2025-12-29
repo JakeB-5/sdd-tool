@@ -5,7 +5,7 @@
  */
 
 import { Result, success, failure } from '../../types/index.js';
-import type { SymbolInfo } from '../../integrations/serena/types.js';
+import { SymbolKind, type SymbolInfo } from '../../integrations/serena/types.js';
 
 /**
  * 추론된 의도
@@ -258,7 +258,7 @@ function inferScenariosFromCode(
   const scenarios: InferredScenario[] = [];
 
   for (const symbol of symbols) {
-    if (symbol.kind === 'function' || symbol.kind === 'method') {
+    if (symbol.kind === SymbolKind.Function || symbol.kind === SymbolKind.Method) {
       // 기본 시나리오 생성
       const scenario: InferredScenario = {
         name: `${symbol.name} 실행`,
@@ -390,7 +390,7 @@ function inferDomainFromPath(symbols: SymbolInfo[]): string | undefined {
   const location = symbols[0].location;
   if (!location) return undefined;
 
-  const filePath = location.file || '';
+  const filePath = location.relativePath || '';
   const parts = filePath.split(/[/\\]/);
 
   // src/<domain>/... 패턴

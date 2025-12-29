@@ -134,25 +134,28 @@ export class ReverseExtractionReporter {
   /**
    * 스캔 결과 추가
    */
-  addScanResult(result: ScanResult, summary: ScanSummary): void {
-    const byLanguage: Record<string, number> = {};
-    for (const file of result.files) {
-      const ext = path.extname(file.path).slice(1) || 'unknown';
-      byLanguage[ext] = (byLanguage[ext] || 0) + file.symbolCount;
-    }
+  addScanResult(_result: ScanResult, summary: ScanSummary): void {
+    // 복잡도 등급을 문자 등급으로 변환
+    const gradeMap: Record<string, string> = {
+      'low': 'A',
+      'medium': 'B',
+      'high': 'C',
+      'very-high': 'D',
+    };
+    const complexityGrade = gradeMap[summary.complexity.grade] || 'C';
 
     this.report.scan = {
       totalFiles: summary.fileCount,
       totalSymbols: summary.symbolCount,
-      byLanguage,
-      suggestedDomains: result.suggestedDomains.map(d => d.name),
-      complexityGrade: summary.complexityGrade,
+      byLanguage: summary.languageDistribution,
+      suggestedDomains: summary.suggestedDomains.map(d => d.name),
+      complexityGrade,
     };
 
     // 권장사항 추가
-    if (summary.complexityGrade === 'A' || summary.complexityGrade === 'B') {
+    if (complexityGrade === 'A' || complexityGrade === 'B') {
       this.report.recommendations!.push('코드베이스 구조가 양호합니다. 자동 추출을 진행하세요.');
-    } else if (summary.complexityGrade === 'D' || summary.complexityGrade === 'F') {
+    } else if (complexityGrade === 'D') {
       this.report.recommendations!.push('복잡한 코드베이스입니다. 단계적 추출을 권장합니다.');
     }
   }
@@ -200,12 +203,12 @@ export class ReverseExtractionReporter {
    * 리뷰 결과 추가
    */
   addReviewSummary(summary: ReviewSummary): void {
-    const total = summary.approved + summary.rejected + summary.pending + summary.revision;
+    const total = summary.approved + summary.rejected + summary.pending + summary.needsRevision;
     this.report.review = {
       totalReviewed: total,
       approved: summary.approved,
       rejected: summary.rejected,
-      pending: summary.pending + summary.revision,
+      pending: summary.pending + summary.needsRevision,
       approvalRate: total > 0
         ? Math.round((summary.approved / total) * 100)
         : 0,

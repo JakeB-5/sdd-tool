@@ -60,6 +60,8 @@ export interface ExtractedContract {
   description: string;
   /** 시그니처 */
   signature?: string;
+  /** AI 추론 여부 */
+  inferred?: boolean;
 }
 
 /**

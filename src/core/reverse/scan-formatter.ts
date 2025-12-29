@@ -41,6 +41,10 @@ export interface SuggestedDomain {
   symbolCount: number;
   /** 신뢰도 (0-100) */
   confidence: number;
+  /** 설명 */
+  description?: string;
+  /** 포함된 파일 목록 */
+  files?: string[];
 }
 
 /**

@@ -90,7 +90,7 @@ export async function generateDomainsFromSuggestions(
     const domainId = suggestion.name;
 
     // 비어있는 도메인 건너뛰기
-    if (!includeEmpty && suggestion.files.length === 0) {
+    if (!includeEmpty && (!suggestion.files || suggestion.files.length === 0)) {
       result.skipped.push({
         domain: domainId,
         reason: '스펙이 없는 도메인',
@@ -135,7 +135,7 @@ export async function generateDomainsFromSuggestions(
         id: domainId,
         description: suggestion.description || `${domainId} 도메인`,
         path: suggestion.path,
-        specCount: suggestion.files.length,
+        specCount: suggestion.files?.length || 0,
         dependencies,
       });
     } else {
