@@ -4,7 +4,7 @@ Claude Code에서 사용하는 SDD 슬래시 커맨드 가이드입니다.
 
 ## 개요
 
-`sdd init` 실행 시 `.claude/commands/`에 29개의 슬래시 커맨드가 자동 생성됩니다.
+`sdd init` 실행 시 `.claude/commands/`와 `.claude/skills/`에 슬래시 커맨드와 개발 스킬이 자동 생성됩니다.
 
 ## 커맨드 목록
 
@@ -20,6 +20,25 @@ Claude Code에서 사용하는 SDD 슬래시 커맨드 가이드입니다.
 | [`/sdd.prepare`](/commands/sdd-prepare) | 도구 점검 |
 | [`/sdd.implement`](/commands/sdd-implement) | 순차적 구현 |
 | [`/sdd.validate`](/commands/sdd-validate) | 스펙 검증 |
+
+### 도메인 & 역추출 (v1.2.0)
+
+| 커맨드 | 설명 |
+|--------|------|
+| [`/sdd.reverse`](/commands/sdd-reverse) | 레거시 코드에서 스펙 역추출 |
+| [`/sdd.domain`](/commands/sdd-domain) | 도메인 관리 (생성, 연결, 그래프) |
+| [`/sdd.context`](/commands/sdd-context) | 작업 컨텍스트 설정 |
+
+### 개발 스킬 (v1.2.0)
+
+| 스킬 | 설명 |
+|------|------|
+| [`/dev-implement`](/commands/dev-implement) | 스펙 기반 TDD 구현 |
+| [`/dev-next`](/commands/dev-next) | 다음 구현할 스펙 추천 |
+| [`/dev-review`](/commands/dev-review) | 코드 리뷰 |
+| [`/dev-scaffold`](/commands/dev-scaffold) | 보일러플레이트 생성 |
+| [`/dev-status`](/commands/dev-status) | 구현 진행 상황 |
+| [`/dev-test`](/commands/dev-test) | Vitest 테스트 실행 |
 
 ### 변경 관리
 
@@ -61,12 +80,6 @@ Claude Code에서 사용하는 SDD 슬래시 커맨드 가이드입니다.
 | `/sdd.cicd` | CI/CD 설정 |
 | `/sdd.prompt` | 프롬프트 출력 |
 
-### 역추출
-
-| 커맨드 | 설명 |
-|--------|------|
-| [`/sdd-reverse`](/commands/sdd-reverse) | 레거시 코드에서 스펙 역추출 |
-
 ## 사용법
 
 Claude Code에서 슬래시로 시작하는 커맨드를 입력합니다:
@@ -79,4 +92,38 @@ Claude Code에서 슬래시로 시작하는 커맨드를 입력합니다:
 
 ```
 /sdd.new 사용자 인증 기능
+```
+
+## v1.2.0 새 기능
+
+### 역추출 워크플로우
+
+레거시 코드에서 SDD 스펙을 자동 추출합니다:
+
+```
+/sdd.reverse scan              # 프로젝트 스캔
+/sdd.reverse extract           # 스펙 추출
+/sdd.reverse review            # 리뷰
+/sdd.reverse finalize          # 확정
+```
+
+### 도메인 시스템
+
+대규모 프로젝트를 논리적으로 그룹화합니다:
+
+```
+/sdd.domain create auth        # 도메인 생성
+/sdd.domain graph              # 의존성 그래프
+/sdd.context set auth payment  # 작업 컨텍스트 설정
+```
+
+### 개발 스킬
+
+스펙 기반 TDD 개발을 지원합니다:
+
+```
+/dev-next                      # 다음 구현할 스펙
+/dev-implement auth/login      # 구현
+/dev-test                      # 테스트 실행
+/dev-review                    # 코드 리뷰
 ```

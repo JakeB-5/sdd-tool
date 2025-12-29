@@ -133,7 +133,7 @@ export default defineConfig({
       ],
       '/commands/': [
         {
-          text: '슬래시 커맨드',
+          text: '핵심 워크플로우',
           items: [
             { text: '개요', link: '/commands/' },
             { text: '/sdd.start', link: '/commands/sdd-start' },
@@ -144,6 +144,25 @@ export default defineConfig({
             { text: '/sdd.prepare', link: '/commands/sdd-prepare' },
             { text: '/sdd.implement', link: '/commands/sdd-implement' },
             { text: '/sdd.validate', link: '/commands/sdd-validate' },
+          ],
+        },
+        {
+          text: '도메인 & 역추출',
+          items: [
+            { text: '/sdd.reverse', link: '/commands/sdd-reverse' },
+            { text: '/sdd.domain', link: '/commands/sdd-domain' },
+            { text: '/sdd.context', link: '/commands/sdd-context' },
+          ],
+        },
+        {
+          text: '개발 스킬',
+          items: [
+            { text: '/dev-implement', link: '/commands/dev-implement' },
+            { text: '/dev-next', link: '/commands/dev-next' },
+            { text: '/dev-review', link: '/commands/dev-review' },
+            { text: '/dev-scaffold', link: '/commands/dev-scaffold' },
+            { text: '/dev-status', link: '/commands/dev-status' },
+            { text: '/dev-test', link: '/commands/dev-test' },
           ],
         },
       ],

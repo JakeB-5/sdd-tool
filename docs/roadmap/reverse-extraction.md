@@ -1,11 +1,11 @@
-# 역방향 스펙 추출 (Reverse Spec Extraction) 계획
+# 역방향 스펙 추출 (Reverse Spec Extraction)
 
-> **문서 상태**: 구현됨 (v0.6.0)
+> **문서 상태**: ✅ 구현 완료 (v1.2.0)
 > **작성일**: 2024-12-24
-> **업데이트**: 2024-12-29
+> **업데이트**: 2025-12-29
 > **목적**: 레거시/기존 프로젝트에 SDD 도입을 위한 코드 → 스펙 역추출 기능
 > **핵심 전략**: Serena MCP 활용으로 개발 난이도 대폭 감소
-> **관련 문서**: [CLI 레퍼런스](/cli/reverse), [슬래시 커맨드](/commands/sdd-reverse)
+> **관련 문서**: [CLI 레퍼런스](/cli/reverse), [슬래시 커맨드](/commands/sdd-reverse), [역추출 가이드](/guide/reverse-extraction)
 
 ---
 
@@ -972,73 +972,73 @@ ai_strategy:
 | Phase 4 (추가 언어) | 6-8주 | 0주 (불필요) |
 | **총합** | **16-23주** | **4-7주** |
 
-### Phase 1: Serena 통합 + 구조 추출 (MVP)
+### Phase 1: Serena 통합 + 구조 추출 (MVP) ✅ 완료
 
 ```
-□ Serena MCP 통합
-  □ MCP 클라이언트 설정
-  □ find_symbol 래핑
-  □ find_referencing_symbols 래핑
-  □ 연결 테스트
+✅ Serena MCP 통합
+  ✅ MCP 클라이언트 설정
+  ✅ find_symbol 래핑
+  ✅ find_referencing_symbols 래핑
+  ✅ 연결 테스트
 
-□ File Scanner (간단)
-  □ 디렉토리 트리 생성
-  □ 파일 목록 (언어 감지는 Serena)
+✅ File Scanner (간단)
+  ✅ 디렉토리 트리 생성
+  ✅ 파일 목록 (언어 감지는 Serena)
 
-□ Spec Generator (기본)
-  □ Serena 결과 → domains.yml 변환
-  □ domain.md 템플릿
-  □ 기본 spec.md 생성
+✅ Spec Generator (기본)
+  ✅ Serena 결과 → domains.yml 변환
+  ✅ domain.md 템플릿
+  ✅ 기본 spec.md 생성
 
-□ CLI
-  □ sdd reverse scan
-  □ sdd reverse extract --shallow
+✅ CLI
+  ✅ sdd reverse scan
+  ✅ sdd reverse extract --shallow
 ```
 
-**예상 기간**: 1-2주
-**목표**: Serena로 심볼 추출 → 도메인/스펙 구조 자동 생성
+**완료**: v1.2.0
+**구현 파일**: `src/core/reverse/scanner.ts`, `src/core/reverse/extractor.ts`
 
-### Phase 2: 상세 추출 + 테스트 연동
-
-```
-□ Serena 심화 활용
-  □ 메서드 시그니처 상세 추출
-  □ 참조 관계 → 의존성 그래프
-  □ 에러 타입 추출
-
-□ 테스트 파서 (간단 - 구조만)
-  □ describe/it 블록 파싱
-  □ 테스트명 → 시나리오 힌트
-  □ GIVEN-WHEN-THEN 추론 (AI)
-
-□ 코드 링크 자동화
-  □ spec ↔ code 자동 연결
-  □ .reverse-meta.json 생성
-```
-
-**예상 기간**: 1-2주
-**목표**: 상세 인터페이스 + 테스트 기반 시나리오
-
-### Phase 3: AI 분석 + 검토 워크플로우
+### Phase 2: 상세 추출 + 테스트 연동 ✅ 완료
 
 ```
-□ Claude 연동 분석
-  □ 의도 추론 프롬프트
-  □ 요구사항 생성 프롬프트
-  □ 시나리오 보강 프롬프트
+✅ Serena 심화 활용
+  ✅ 메서드 시그니처 상세 추출
+  ✅ 참조 관계 → 의존성 그래프
+  ✅ 에러 타입 추출
 
-□ 신뢰도 시스템
-  □ 섹션별 신뢰도 계산
-  □ 검토 필요 항목 자동 표시
+✅ 테스트 파서 (간단 - 구조만)
+  ✅ describe/it 블록 파싱
+  ✅ 테스트명 → 시나리오 힌트
+  ✅ GIVEN-WHEN-THEN 추론 (AI)
 
-□ 검토 워크플로우
-  □ sdd reverse review (인터랙티브)
-  □ sdd reverse finalize
-  □ 상태 전환 (extracted → draft)
+✅ 코드 링크 자동화
+  ✅ spec ↔ code 자동 연결
+  ✅ .reverse-meta.json 생성
 ```
 
-**예상 기간**: 2-3주
-**목표**: AI 의도 추론 + 인간 검토 완성
+**완료**: v1.2.0
+**구현 파일**: `src/core/reverse/spec-generator.ts`, `src/core/reverse/meta.ts`
+
+### Phase 3: AI 분석 + 검토 워크플로우 ✅ 완료
+
+```
+✅ Claude 연동 분석
+  ✅ 의도 추론 프롬프트
+  ✅ 요구사항 생성 프롬프트
+  ✅ 시나리오 보강 프롬프트
+
+✅ 신뢰도 시스템
+  ✅ 섹션별 신뢰도 계산
+  ✅ 검토 필요 항목 자동 표시
+
+✅ 검토 워크플로우
+  ✅ sdd reverse review (인터랙티브)
+  ✅ sdd reverse finalize
+  ✅ 상태 전환 (extracted → draft)
+```
+
+**완료**: v1.2.0
+**구현 파일**: `src/core/reverse/review.ts`, `src/core/reverse/finalizer.ts`, `src/core/reverse/intent-inferrer.ts`
 
 ### Phase 4: ~~추가 언어 지원~~ → 삭제
 
