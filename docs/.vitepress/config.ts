@@ -34,6 +34,16 @@ export default defineConfig({
             { text: '모범 사례', link: '/guide/best-practices' },
           ],
         },
+        {
+          text: 'Git 워크플로우',
+          items: [
+            { text: '커밋 컨벤션', link: '/guide/commit-convention' },
+            { text: '브랜치 전략', link: '/guide/branch-strategy' },
+            { text: '단일 스펙 변경', link: '/guide/workflow-single-spec' },
+            { text: '다중 스펙 변경', link: '/guide/workflow-bundle-spec' },
+            { text: 'Constitution 변경', link: '/guide/workflow-constitution' },
+          ],
+        },
       ],
       '/roadmap/': [
         {

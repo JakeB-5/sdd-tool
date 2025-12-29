@@ -33,3 +33,4 @@ INTERNAL-*
 
 # Local tasks (not committed)
 .tasks/
+docs/.vitepress/cache/

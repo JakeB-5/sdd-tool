@@ -1,0 +1,20 @@
+# <type>(<scope>): <subject>
+# |<----  50자 이내로 작성하세요  ---->|
+#
+# 스펙 타입: spec, spec-update, spec-status, plan, tasks, constitution, sdd-config
+# 일반 타입: feat, fix, docs, style, refactor, test, chore
+#
+# 스코프 예시:
+#   spec(auth): ...              - 도메인 전체
+#   spec(auth/user-login): ...   - 특정 스펙
+#   spec(auth,billing): ...      - 다중 도메인
+#   constitution: ...            - 스코프 없음
+
+# 본문 (선택사항, 72자 줄바꿈)
+# |<----  72자 이내로 작성하세요  ---->|
+
+# Footer (선택사항)
+# Refs: #이슈번호
+# Breaking-Spec: 영향받는-스펙
+# Depends-On: 의존-스펙
+# Reviewed-By: @리뷰어
