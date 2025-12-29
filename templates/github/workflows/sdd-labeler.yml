@@ -1,0 +1,125 @@
+# SDD PR 라벨러 워크플로우
+# 변경된 도메인에 따라 자동으로 라벨을 추가합니다
+
+name: SDD Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '.sdd/**'
+
+jobs:
+  label:
+    name: Add Labels
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Changes
+        id: changes
+        run: |
+          # 변경된 도메인 감지
+          DOMAINS=$(git diff --name-only origin/${{ github.base_ref }} | \
+            grep "^\.sdd/specs/" | \
+            cut -d'/' -f3 | \
+            sort -u | \
+            tr '\n' ' ')
+          echo "domains=$DOMAINS" >> $GITHUB_OUTPUT
+
+          # Constitution 변경 감지
+          if git diff --name-only origin/${{ github.base_ref }} | grep -q "constitution.md"; then
+            echo "constitution=true" >> $GITHUB_OUTPUT
+          else
+            echo "constitution=false" >> $GITHUB_OUTPUT
+          fi
+
+          # 스펙 변경 타입 감지
+          ADDED=$(git diff --name-only --diff-filter=A origin/${{ github.base_ref }} | grep "^\.sdd/specs/" | wc -l)
+          MODIFIED=$(git diff --name-only --diff-filter=M origin/${{ github.base_ref }} | grep "^\.sdd/specs/" | wc -l)
+          DELETED=$(git diff --name-only --diff-filter=D origin/${{ github.base_ref }} | grep "^\.sdd/specs/" | wc -l)
+
+          if [ "$ADDED" -gt 0 ]; then
+            echo "has_added=true" >> $GITHUB_OUTPUT
+          fi
+          if [ "$MODIFIED" -gt 0 ]; then
+            echo "has_modified=true" >> $GITHUB_OUTPUT
+          fi
+          if [ "$DELETED" -gt 0 ]; then
+            echo "has_deleted=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Labels if Not Exist
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const domains = '${{ steps.changes.outputs.domains }}'.trim().split(' ').filter(Boolean);
+
+            const labelConfigs = [
+              ...domains.map(d => ({ name: `spec:${d}`, color: '0366d6', description: `${d} 도메인 스펙` })),
+              { name: 'constitution', color: 'b60205', description: 'Constitution 변경' },
+              { name: 'spec:new', color: '0e8a16', description: '새 스펙 추가' },
+              { name: 'spec:update', color: 'fbca04', description: '스펙 수정' },
+              { name: 'spec:remove', color: 'd93f0b', description: '스펙 삭제' },
+            ];
+
+            for (const label of labelConfigs) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                });
+              } catch (e) {
+                if (e.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label.name,
+                    color: label.color,
+                    description: label.description,
+                  });
+                }
+              }
+            }
+
+      - name: Apply Labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = [];
+
+            // 도메인 라벨
+            const domains = '${{ steps.changes.outputs.domains }}'.trim().split(' ').filter(Boolean);
+            labels.push(...domains.map(d => `spec:${d}`));
+
+            // Constitution 라벨
+            if ('${{ steps.changes.outputs.constitution }}' === 'true') {
+              labels.push('constitution');
+            }
+
+            // 변경 타입 라벨
+            if ('${{ steps.changes.outputs.has_added }}' === 'true') {
+              labels.push('spec:new');
+            }
+            if ('${{ steps.changes.outputs.has_modified }}' === 'true') {
+              labels.push('spec:update');
+            }
+            if ('${{ steps.changes.outputs.has_deleted }}' === 'true') {
+              labels.push('spec:remove');
+            }
+
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: labels,
+              });
+
+              console.log(`Added labels: ${labels.join(', ')}`);
+            }

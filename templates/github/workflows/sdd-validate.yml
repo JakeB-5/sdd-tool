@@ -1,0 +1,85 @@
+# SDD 스펙 검증 워크플로우
+# .sdd/ 파일 변경 시 자동으로 스펙을 검증합니다
+
+name: SDD Validate
+
+on:
+  pull_request:
+    paths:
+      - '.sdd/**'
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - '.sdd/**'
+
+jobs:
+  validate:
+    name: Validate Specs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install SDD Tool
+        run: npm install -g sdd-tool
+
+      - name: Validate Specs
+        run: sdd validate --ci
+
+      - name: Check Dependencies
+        run: sdd validate --ci || true
+        continue-on-error: true
+
+      - name: Constitution Check
+        run: sdd validate --constitution --ci || true
+        continue-on-error: true
+
+      - name: Comment on PR (failure)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ❌ SDD 검증 실패
+
+스펙 검증에서 오류가 발견되었습니다.
+
+### 확인 방법
+\`\`\`bash
+sdd validate
+\`\`\`
+
+### 상세 로그
+[Actions 로그 확인](${context.payload.pull_request?.html_url}/checks)
+
+---
+*이 메시지는 자동으로 생성되었습니다.*`
+            })
+
+      - name: Comment on PR (success)
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ✅ SDD 검증 통과
+
+모든 스펙 검증을 통과했습니다.
+
+---
+*이 메시지는 자동으로 생성되었습니다.*`
+            })

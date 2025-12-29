@@ -107,11 +107,17 @@ async function setupGitHubActions(projectRoot: string, strict: boolean): Promise
   const workflowDir = path.join(projectRoot, '.github', 'workflows');
   await ensureDir(workflowDir);
 
-  const workflowContent = generateGitHubWorkflow(strict);
-  const workflowPath = path.join(workflowDir, 'sdd-validate.yml');
-
-  await writeFile(workflowPath, workflowContent);
+  // 검증 워크플로우
+  const validateContent = generateGitHubWorkflow(strict);
+  const validatePath = path.join(workflowDir, 'sdd-validate.yml');
+  await writeFile(validatePath, validateContent);
   logger.info(`✅ GitHub Actions 워크플로우 생성: .github/workflows/sdd-validate.yml`);
+
+  // 라벨러 워크플로우
+  const labelerContent = generateGitHubLabeler();
+  const labelerPath = path.join(workflowDir, 'sdd-labeler.yml');
+  await writeFile(labelerPath, labelerContent);
+  logger.info(`✅ GitHub Actions 라벨러 생성: .github/workflows/sdd-labeler.yml`);
 }
 
 /**
@@ -182,6 +188,73 @@ jobs:
         with:
           name: impact-report
           path: impact-report.json
+`;
+}
+
+/**
+ * GitHub Actions 라벨러 생성
+ */
+function generateGitHubLabeler(): string {
+  return `# SDD PR 라벨러 워크플로우
+# 변경된 도메인에 따라 자동으로 라벨을 추가합니다
+
+name: SDD Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '.sdd/**'
+
+jobs:
+  label:
+    name: Add Labels
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Changes
+        id: changes
+        run: |
+          # 변경된 도메인 감지
+          DOMAINS=$(git diff --name-only origin/\${{ github.base_ref }} | \\
+            grep "^\\.sdd/specs/" | \\
+            cut -d'/' -f3 | \\
+            sort -u | \\
+            tr '\\n' ' ')
+          echo "domains=$DOMAINS" >> $GITHUB_OUTPUT
+
+          # Constitution 변경 감지
+          if git diff --name-only origin/\${{ github.base_ref }} | grep -q "constitution.md"; then
+            echo "constitution=true" >> $GITHUB_OUTPUT
+          else
+            echo "constitution=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Apply Labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = [];
+            const domains = '\${{ steps.changes.outputs.domains }}'.trim().split(' ').filter(Boolean);
+            labels.push(...domains.map(d => \`spec:\${d}\`));
+
+            if ('\${{ steps.changes.outputs.constitution }}' === 'true') {
+              labels.push('constitution');
+            }
+
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: labels,
+              });
+            }
 `;
 }
 

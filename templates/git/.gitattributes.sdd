@@ -1,0 +1,39 @@
+# SDD Tool - .gitattributes 템플릿
+# 이 파일의 내용을 프로젝트 .gitattributes에 추가하세요
+
+# ===================
+# 스펙 파일 설정
+# ===================
+
+# 스펙 파일은 항상 LF 사용 (크로스 플랫폼 일관성)
+.sdd/**/*.md text eol=lf
+.sdd/**/*.yml text eol=lf
+.sdd/**/*.yaml text eol=lf
+.sdd/**/*.json text eol=lf
+
+# Constitution 파일
+.sdd/constitution.md text eol=lf
+
+# ===================
+# 머지 전략
+# ===================
+
+# 스펙 파일 충돌 시 수동 해결 (union 머지 사용 안 함)
+.sdd/specs/** merge=binary
+
+# Constitution 충돌 시 수동 해결
+.sdd/constitution.md merge=binary
+
+# ===================
+# Diff 설정
+# ===================
+
+# 마크다운 파일은 단어 단위 diff
+.sdd/**/*.md diff=markdown
+
+# ===================
+# 언어 통계
+# ===================
+
+# 스펙 문서는 문서로 분류
+.sdd/**/*.md linguist-documentation

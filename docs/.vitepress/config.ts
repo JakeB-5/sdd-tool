@@ -42,6 +42,7 @@ export default defineConfig({
             { text: '단일 스펙 변경', link: '/guide/workflow-single-spec' },
             { text: '다중 스펙 변경', link: '/guide/workflow-bundle-spec' },
             { text: 'Constitution 변경', link: '/guide/workflow-constitution' },
+            { text: 'CI/CD 설정', link: '/guide/cicd-setup' },
           ],
         },
       ],
