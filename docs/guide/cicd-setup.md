@@ -216,4 +216,4 @@ GitHub Actions에서 라벨 추가 실패 시:
 
 - [커밋 컨벤션](./commit-convention.md)
 - [브랜치 전략](./branch-strategy.md)
-- [Git Hooks 설정](/cli/git-hooks.md)
+- [Git Hooks 설정](/cli/git)

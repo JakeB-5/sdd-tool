@@ -232,4 +232,4 @@ spec(auth): add user login with email password oauth google github apple sso sam
 
 - [브랜치 전략](./branch-strategy.md)
 - [단일 스펙 워크플로우](./workflow-single-spec.md)
-- [Git Hooks 설정](/cli/git-hooks.md)
+- [Git Hooks 설정](/cli/git)
