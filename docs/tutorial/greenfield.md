@@ -330,9 +330,9 @@ sdd status
 
 ## 다음 단계
 
-- [스펙 작성 가이드](../guide/spec-authoring.md)
-- [TDD 워크플로우](../guide/tdd-workflow.md)
-- [CI/CD 통합](../guide/ci-cd.md)
+- [스펙 작성 가이드](/spec-writing/)
+- [워크플로우 가이드](/guide/workflow)
+- [CI/CD 설정](/guide/cicd-setup)
 
 ## 요약
 

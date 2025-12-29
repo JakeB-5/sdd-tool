@@ -211,8 +211,8 @@ sdd reverse finalize
 
 - [Serena MCP GitHub](https://github.com/serena-ai/serena-mcp)
 - [Serena 문서](https://docs.serena.ai/mcp)
-- [SDD CLI 문서](/docs/cli/reverse.md)
-- [역추출 가이드](/docs/guide/reverse-extraction.md)
+- [SDD CLI 문서](/cli/reverse)
+- [역추출 가이드](/guide/reverse-extraction)
 
 ## 개발/테스트 모드
 
