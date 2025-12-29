@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json.schemastore.org/claude-settings.json",
+  "projectName": "sdd-tool",
+  "skills": [
+    {
+      "name": "dev-implement",
+      "description": ".sdd/specs/의 스펙 문서를 읽고 TDD 방식으로 TypeScript 코드를 구현합니다. GIVEN-WHEN-THEN 시나리오를 테스트로 변환하고 코드를 작성합니다. 사용자가 \"구현해\", \"개발해\", \"코딩해\", \"implement\" 등을 요청할 때 사용합니다.",
+      "path": "skills/dev-implement.md"
+    },
+    {
+      "name": "dev-next",
+      "description": "의존성 그래프를 분석하여 다음 구현할 스펙을 추천합니다. 사용자가 \"다음 뭐 해\", \"다음 작업\", \"뭐 구현할까\", \"next\" 등을 요청할 때 사용합니다.",
+      "path": "skills/dev-next.md"
+    },
+    {
+      "name": "dev-review",
+      "description": "구현된 코드가 스펙을 충족하는지 검증하고 코드 품질, 타입 안전성, 에러 처리를 검토합니다. 사용자가 \"리뷰해줘\", \"코드 검토\", \"품질 확인\", \"review\" 등을 요청할 때 사용합니다.",
+      "path": "skills/dev-review.md"
+    },
+    {
+      "name": "dev-scaffold",
+      "description": "SDD CLI의 새 명령어, 모듈, 파서, 검증기의 TypeScript 보일러플레이트 코드를 생성합니다. 사용자가 \"새 명령어 만들어\", \"모듈 추가\", \"scaffold\", \"보일러플레이트\" 등을 요청할 때 사용합니다.",
+      "path": "skills/dev-scaffold.md"
+    },
+    {
+      "name": "dev-status",
+      "description": "SDD CLI 구현 진행 상황을 분석하고 Phase별 스펙 현황, 구현 완료율, 테스트 통과율을 보고합니다. 사용자가 \"현황\", \"진행 상황\", \"얼마나 됐어\", \"status\" 등을 요청할 때 사용합니다.",
+      "path": "skills/dev-status.md"
+    },
+    {
+      "name": "dev-test",
+      "description": "Vitest를 사용하여 테스트를 작성하거나 실행합니다. 대상 파일을 분석하여 테스트 케이스를 생성하고 커버리지를 확인합니다. 사용자가 \"테스트 작성\", \"테스트 실행\", \"커버리지\", \"vitest\" 등을 요청할 때 사용합니다.",
+      "path": "skills/dev-test.md"
+    },
+    {
+      "name": "sdd-reverse",
+      "description": "레거시 코드베이스에서 SDD 스펙을 역추출합니다. scan → extract → review → finalize 워크플로우를 제공합니다. 사용자가 \"역추출\", \"reverse\", \"스펙 추출\", \"레거시 분석\" 등을 요청할 때 사용합니다.",
+      "path": "skills/sdd-reverse.md"
+    },
+    {
+      "name": "sdd-domain",
+      "description": "도메인을 관리하고 의존성 그래프를 시각화합니다. 사용자가 \"도메인 목록\", \"도메인 생성\", \"domain\" 등을 요청할 때 사용합니다.",
+      "path": "skills/sdd-domain.md"
+    },
+    {
+      "name": "sdd-context",
+      "description": "작업 컨텍스트를 설정하고 관리합니다. 대규모 프로젝트에서 특정 도메인에 집중할 때 유용합니다. 사용자가 \"컨텍스트 설정\", \"context\" 등을 요청할 때 사용합니다.",
+      "path": "skills/sdd-context.md"
+    },
+    {
+      "name": "sdd-analyze",
+      "description": "레거시 코드베이스를 분석하여 도메인 경계와 스펙 후보를 식별합니다. 사용자가 \"분석\", \"analyze\", \"코드 분석\" 등을 요청할 때 사용합니다.",
+      "path": "skills/sdd-analyze.md"
+    },
+    {
+      "name": "sdd-import",
+      "description": "외부 문서(Notion, Confluence, Markdown 등)에서 SDD 스펙을 생성합니다. 사용자가 \"가져오기\", \"import\", \"문서 변환\" 등을 요청할 때 사용합니다.",
+      "path": "skills/sdd-import.md"
+    }
+  ]
+}

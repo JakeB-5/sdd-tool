@@ -10,6 +10,7 @@ import { parseSpecMetadata } from '../../core/new/spec-generator.js';
 import { parseTasks } from '../../core/new/task-generator.js';
 import { listPendingChanges, listArchives, type PendingChange } from '../../core/change/archive.js';
 import { getCurrentBranch, listFeatureBranches } from '../../core/new/branch.js';
+import { createDomainService } from '../../core/domain/service.js';
 
 /**
  * 기능 정보
@@ -47,6 +48,7 @@ export interface ProjectStatus {
 export interface StatusOptions {
   json?: boolean;
   verbose?: boolean;
+  domain?: string;
 }
 
 /**
@@ -196,6 +198,7 @@ export function registerStatusCommand(program: Command): void {
     .description('SDD 프로젝트 상태 조회')
     .option('--json', 'JSON 형식으로 출력')
     .option('--verbose', '상세 정보 출력')
+    .option('-d, --domain <domain>', '특정 도메인 상태만 조회')
     .action(async (options: StatusOptions) => {
       await handleStatus(options);
     });
@@ -206,7 +209,7 @@ export function registerStatusCommand(program: Command): void {
  */
 async function handleStatus(options: StatusOptions): Promise<void> {
   const cwd = process.cwd();
-  const status = await getProjectStatus(cwd);
+  let status = await getProjectStatus(cwd);
 
   if (!status.initialized) {
     if (options.json) {
@@ -216,6 +219,37 @@ async function handleStatus(options: StatusOptions): Promise<void> {
       logger.info('sdd init 명령어로 초기화하세요.');
     }
     return;
+  }
+
+  // 도메인 필터
+  if (options.domain) {
+    const domainService = createDomainService(cwd);
+    const domainResult = await domainService.get(options.domain);
+
+    if (!domainResult.success || !domainResult.data) {
+      logger.error(`도메인을 찾을 수 없습니다: ${options.domain}`);
+      return;
+    }
+
+    const domainSpecs = new Set(domainResult.data.specs || []);
+
+    // 도메인 스펙만 필터링
+    status = {
+      ...status,
+      features: status.features.filter(f => domainSpecs.has(f.id)),
+    };
+
+    if (!options.json) {
+      console.log(`\n📋 도메인 "${options.domain}" 상태`);
+      console.log('─'.repeat(40));
+      if (domainResult.data.description) {
+        console.log(`   설명: ${domainResult.data.description}`);
+      }
+      if (domainResult.data.dependsOn && domainResult.data.dependsOn.length > 0) {
+        console.log(`   의존: ${domainResult.data.dependsOn.join(', ')}`);
+      }
+      console.log('');
+    }
   }
 
   // 출력

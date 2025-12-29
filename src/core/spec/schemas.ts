@@ -40,6 +40,14 @@ export const SpecMetadataSchema = z.object({
   id: z.string().optional(),
   constitution_version: z.string().optional(),
   dependencies: z.array(z.string()).optional(),
+  /** 소속 도메인 ID (Phase 1 추가) */
+  domain: z.string().optional(),
+  /** 추출 출처 (역추출 시 사용) */
+  extracted_from: z.string().optional(),
+  /** 리뷰 필요 플래그 */
+  needs_review: z.boolean().optional(),
+  /** 신뢰도 점수 (역추출 시 사용, 0-100) */
+  confidence: z.number().min(0).max(100).optional(),
 });
 export type SpecMetadata = z.infer<typeof SpecMetadataSchema>;
 

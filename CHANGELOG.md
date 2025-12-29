@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2025-12-29
+
+### Added
+
+#### 역방향 스펙 추출 (Reverse Spec Extraction)
+- `sdd reverse scan`: 프로젝트 구조 스캔
+  - 디렉토리 구조 분석
+  - 언어 분포 통계
+  - 도메인 추정
+- `sdd reverse extract`: 코드에서 스펙 초안 추출
+  - 심볼 분석 (클래스, 함수, 인터페이스)
+  - 신뢰도 점수 계산 (documentation, naming, structure, testCoverage, typing)
+  - GIVEN-WHEN-THEN 시나리오 추론
+  - `--domain`, `--depth`, `--min-confidence` 옵션
+- `sdd reverse review`: 추출된 스펙 리뷰
+  - pending/approved/rejected/needs_revision 상태 관리
+  - 리뷰 코멘트 추가
+- `sdd reverse finalize`: 승인된 스펙 확정
+  - `--all` 옵션으로 일괄 확정
+  - 정식 SDD 스펙 마크다운 생성
+
+#### Claude Code 슬래시 커맨드 스킬
+- `/dev-implement`: 스펙 기반 TDD 구현
+- `/dev-next`: 다음 구현할 스펙 추천
+- `/dev-review`: 코드 리뷰
+- `/dev-scaffold`: 보일러플레이트 생성
+- `/dev-status`: 구현 진행 상황
+- `/dev-test`: Vitest 테스트 실행
+- `/sdd-reverse`: 역추출 워크플로우
+
+### Technical
+- 새 모듈: `src/core/reverse/scanner.ts`
+- 새 모듈: `src/core/reverse/extractor.ts`
+- 새 모듈: `src/core/reverse/confidence.ts`
+- 새 모듈: `src/core/reverse/spec-generator.ts`
+- 새 모듈: `src/core/reverse/review.ts`
+- 새 모듈: `src/core/reverse/finalizer.ts`
+- 테스트 171개 추가 (총 1333개)
+- `.claude/skills/` 디렉토리 및 설정 추가
+
+---
+
 ## [1.1.0] - 2025-12-29
 
 ### Added
@@ -354,6 +396,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.2.0]: https://github.com/JakeB-5/sdd-tool/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/JakeB-5/sdd-tool/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/JakeB-5/sdd-tool/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/JakeB-5/sdd-tool/compare/v0.9.0...v1.0.0

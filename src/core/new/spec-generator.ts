@@ -10,6 +10,7 @@ export interface GenerateSpecOptions {
   id: string;
   title: string;
   description: string;
+  domain?: string;
   requirements?: string[];
   scenarios?: Array<{
     name: string;
@@ -29,6 +30,7 @@ export function generateSpec(options: GenerateSpecOptions): string {
   const today = new Date().toISOString().split('T')[0];
   const status = options.status || 'draft';
   const depends = options.depends?.length ? `\n  - ${options.depends.join('\n  - ')}` : 'null';
+  const domainLine = options.domain ? `\ndomain: ${options.domain}` : '';
   const constitutionLine = options.constitutionVersion
     ? `\nconstitution_version: ${options.constitutionVersion}`
     : '';
@@ -37,7 +39,7 @@ export function generateSpec(options: GenerateSpecOptions): string {
 id: ${options.id}
 title: "${options.title}"
 status: ${status}
-created: ${today}
+created: ${today}${domainLine}
 depends: ${depends}${constitutionLine}
 ---
 

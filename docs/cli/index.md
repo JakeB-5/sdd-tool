@@ -17,6 +17,7 @@ SDD Tool CLI 명령어 레퍼런스입니다.
 | [`sdd export`](/cli/export) | 스펙 내보내기 |
 | [`sdd git`](/cli/git) | Git 워크플로우 설정 |
 | [`sdd cicd`](/cli/cicd) | CI/CD 파이프라인 설정 |
+| [`sdd reverse`](/cli/reverse) | 레거시 코드에서 스펙 역추출 |
 
 ## 전역 옵션
 

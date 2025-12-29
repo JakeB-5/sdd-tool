@@ -20,6 +20,8 @@ export interface InitOptions {
   force?: boolean;
   skipGitSetup?: boolean;
   autoApprove?: boolean;
+  /** 도메인 설정 파일 생성 여부 */
+  withDomains?: boolean;
 }
 
 /**
@@ -35,8 +37,8 @@ export interface InitResult {
 /**
  * 생성할 디렉토리 목록 반환 (테스트 가능)
  */
-export function getInitDirectories(): string[] {
-  return [
+export function getInitDirectories(withDomains = false): string[] {
+  const dirs = [
     '.sdd',
     '.sdd/specs',
     '.sdd/changes',
@@ -45,6 +47,12 @@ export function getInitDirectories(): string[] {
     '.claude',
     '.claude/commands',
   ];
+
+  if (withDomains) {
+    dirs.push('.sdd/domains');
+  }
+
+  return dirs;
 }
 
 /**
@@ -87,6 +95,43 @@ created: ${today}
 ## 품질 기준
 
 - 테스트 커버리지: 80% 이상(SHOULD)
+`;
+}
+
+/**
+ * domains.yml 기본 템플릿 생성
+ */
+export function generateDomainsYaml(): string {
+  return `# 도메인 설정 파일
+# 프로젝트의 도메인 구조와 의존성을 정의합니다.
+
+version: "1.0"
+
+domains:
+  core:
+    description: "핵심 공통 기능"
+    path: "src/core"
+    specs: []
+    dependencies:
+      uses: []
+
+# 도메인 추가 예시:
+# auth:
+#   description: "인증/인가"
+#   path: "src/auth"
+#   specs:
+#     - user-login
+#     - oauth-google
+#   dependencies:
+#     uses: [core]
+
+# 도메인 간 규칙 (선택사항):
+# rules:
+#   - from: order
+#     to: auth
+#     type: uses
+#     allowed: true
+#     reason: "주문 시 인증 필요"
 `;
 }
 
@@ -143,7 +188,7 @@ export async function executeInit(
     }
   }
 
-  const directories = getInitDirectories();
+  const directories = getInitDirectories(options.withDomains);
   const createdDirs: string[] = [];
 
   // 디렉토리 생성
@@ -169,6 +214,13 @@ export async function executeInit(
   const agentsContent = generateAgentsMd({ projectName });
   await writeFile(path.join(sddPath, 'AGENTS.md'), agentsContent);
   createdFiles.push('.sdd/AGENTS.md');
+
+  // domains.yml (--with-domains 옵션 사용 시)
+  if (options.withDomains) {
+    const domainsContent = generateDomainsYaml();
+    await writeFile(path.join(sddPath, 'domains.yml'), domainsContent);
+    createdFiles.push('.sdd/domains.yml');
+  }
 
   // 템플릿 파일 생성
   const templateFiles = await createTemplateFiles(projectPath);
@@ -630,6 +682,7 @@ export function registerInitCommand(program: Command): void {
     .option('-f, --force', '기존 .sdd/ 디렉토리 덮어쓰기')
     .option('--skip-git-setup', 'Git/CI-CD 설정 건너뛰기')
     .option('--auto-approve', '모든 설정을 자동 승인')
+    .option('--with-domains', '도메인 설정 파일(domains.yml) 생성')
     .action(async (options: InitOptions) => {
       try {
         await runInit(options);

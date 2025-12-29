@@ -14,6 +14,7 @@ export default defineConfig({
       { text: 'CLI', link: '/cli/' },
       { text: '슬래시 커맨드', link: '/commands/' },
       { text: '스펙 작성', link: '/spec-writing/' },
+      { text: '튜토리얼', link: '/tutorial/greenfield' },
       { text: '로드맵', link: '/roadmap/' },
     ],
 
@@ -43,6 +44,30 @@ export default defineConfig({
             { text: '다중 스펙 변경', link: '/guide/workflow-bundle-spec' },
             { text: 'Constitution 변경', link: '/guide/workflow-constitution' },
             { text: 'CI/CD 설정', link: '/guide/cicd-setup' },
+          ],
+        },
+        {
+          text: '대규모 프로젝트',
+          items: [
+            { text: '도메인 시스템', link: '/guide/domains' },
+            { text: '컨텍스트 가이드', link: '/guide/context' },
+            { text: '역추출 가이드', link: '/guide/reverse-extraction' },
+            { text: '대규모 프로젝트', link: '/guide/large-projects' },
+          ],
+        },
+        {
+          text: 'Serena 통합',
+          items: [
+            { text: 'Serena 설정', link: '/guide/serena-setup' },
+          ],
+        },
+      ],
+      '/tutorial/': [
+        {
+          text: '튜토리얼',
+          items: [
+            { text: '그린필드 프로젝트', link: '/tutorial/greenfield' },
+            { text: '브라운필드 프로젝트', link: '/tutorial/brownfield' },
           ],
         },
       ],
@@ -90,6 +115,19 @@ export default defineConfig({
             { text: 'sdd export', link: '/cli/export' },
             { text: 'sdd git', link: '/cli/git' },
             { text: 'sdd cicd', link: '/cli/cicd' },
+          ],
+        },
+        {
+          text: '도메인 & 컨텍스트',
+          items: [
+            { text: 'sdd domain', link: '/cli/domain' },
+            { text: 'sdd context', link: '/cli/context' },
+          ],
+        },
+        {
+          text: '역추출',
+          items: [
+            { text: 'sdd reverse', link: '/cli/reverse' },
           ],
         },
       ],

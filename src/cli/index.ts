@@ -25,6 +25,9 @@ import { registerSyncCommand } from './commands/sync.js';
 import { registerDiffCommand } from './commands/diff.js';
 import { registerExportCommand } from './commands/export.js';
 import { registerGitCommand } from './commands/git.js';
+import { registerDomainCommand } from './commands/domain.js';
+import { registerContextCommand } from './commands/context.js';
+import { registerReverseCommand } from './commands/reverse.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
@@ -59,6 +62,9 @@ registerSyncCommand(program);
 registerDiffCommand(program);
 registerExportCommand(program);
 registerGitCommand(program);
+registerDomainCommand(program);
+registerContextCommand(program);
+registerReverseCommand(program);
 
 /**
  * CLI 실행

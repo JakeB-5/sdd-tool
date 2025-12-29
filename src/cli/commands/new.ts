@@ -19,6 +19,8 @@ import { logger } from '../../utils/index.js';
 import { ensureDir, fileExists, readFile, writeFile } from '../../utils/fs.js';
 import { parseConstitution } from '../../core/constitution/index.js';
 import { Result, success, failure } from '../../types/index.js';
+import { createDomainService } from '../../core/domain/service.js';
+import { createContextManager } from '../../core/context/manager.js';
 
 /**
  * 새 기능 옵션
@@ -32,6 +34,7 @@ export interface NewFeatureOptions {
   tasks?: boolean;
   all?: boolean;
   checklist?: boolean;
+  domain?: string;
 }
 
 /**
@@ -42,6 +45,18 @@ export interface CreateFeatureResult {
   featurePath: string;
   branchName?: string;
   filesCreated: string[];
+  domain?: string;
+}
+
+/**
+ * 도메인/기능 이름 파싱
+ */
+export function parseDomainFeatureName(input: string): { domain?: string; name: string } {
+  if (input.includes('/')) {
+    const [domain, ...rest] = input.split('/');
+    return { domain, name: rest.join('/') };
+  }
+  return { name: input };
 }
 
 /**
@@ -75,6 +90,47 @@ export async function getConstitutionVersion(sddPath: string): Promise<string | 
 }
 
 /**
+ * 도메인 자동 감지
+ * 1. 현재 컨텍스트에서 단일 활성 도메인이 있으면 사용
+ * 2. 없으면 undefined 반환
+ */
+export async function detectDomain(projectPath: string): Promise<string | undefined> {
+  const manager = createContextManager(projectPath);
+  const contextResult = await manager.get();
+
+  if (!contextResult.success) {
+    return undefined;
+  }
+
+  const { activeDomains } = contextResult.data;
+
+  // 단일 활성 도메인이 있으면 자동 선택
+  if (activeDomains.length === 1) {
+    return activeDomains[0];
+  }
+
+  return undefined;
+}
+
+/**
+ * 도메인 존재 여부 검증
+ */
+export async function validateDomain(projectPath: string, domainId: string): Promise<Result<void, Error>> {
+  const domainService = createDomainService(projectPath);
+  const result = await domainService.get(domainId);
+
+  if (!result.success) {
+    return result;
+  }
+
+  if (!result.data) {
+    return failure(new Error(`도메인을 찾을 수 없습니다: ${domainId}`));
+  }
+
+  return success(undefined);
+}
+
+/**
  * 기능 생성 (테스트 가능)
  */
 export async function createFeature(
@@ -82,22 +138,42 @@ export async function createFeature(
   name: string,
   options: NewFeatureOptions
 ): Promise<Result<CreateFeatureResult, Error>> {
+  const projectPath = path.dirname(sddPath);
+
+  // 도메인 파싱 (입력에서 <domain>/<name> 형식 지원)
+  const parsed = parseDomainFeatureName(name);
+  const effectiveName = parsed.name;
+  let domain = options.domain || parsed.domain;
+
+  // 도메인이 없으면 자동 감지 시도
+  if (!domain) {
+    domain = await detectDomain(projectPath);
+  }
+
+  // 도메인이 지정되었으면 존재 여부 검증
+  if (domain) {
+    const validateResult = await validateDomain(projectPath, domain);
+    if (!validateResult.success) {
+      return validateResult;
+    }
+  }
+
   // 기능 ID 생성
   let featureId: string;
   let branchName: string | undefined;
 
   if (options.numbered) {
-    const numberResult = await getNextFeatureNumber(sddPath, name);
+    const numberResult = await getNextFeatureNumber(sddPath, effectiveName);
     if (!numberResult.success) {
       return failure(new Error(`번호 생성 실패: ${numberResult.error.message}`));
     }
     featureId = numberResult.data.fullId;
     branchName = numberResult.data.branchName;
   } else {
-    featureId = generateFeatureId(name);
+    featureId = generateFeatureId(effectiveName);
   }
 
-  const title = options.title || name;
+  const title = options.title || effectiveName;
   const description = options.description || `${title} 기능 명세`;
   const featurePath = path.join(sddPath, 'specs', featureId);
 
@@ -117,6 +193,7 @@ export async function createFeature(
     id: featureId,
     title,
     description,
+    domain,
     constitutionVersion,
   });
   await writeFile(path.join(featurePath, 'spec.md'), specContent);
@@ -156,11 +233,22 @@ export async function createFeature(
     filesCreated.push('checklist.md');
   }
 
+  // 도메인에 스펙 연결
+  if (domain) {
+    const domainService = createDomainService(projectPath);
+    const linkResult = await domainService.linkSpec(domain, featureId);
+    if (!linkResult.success) {
+      // 연결 실패는 경고만 (스펙 자체는 생성됨)
+      logger.warn(`도메인 연결 실패: ${linkResult.error.message}`);
+    }
+  }
+
   return success({
     featureId,
     featurePath,
     branchName,
     filesCreated,
+    domain,
   });
 }
 
@@ -285,10 +373,11 @@ export async function getCounterStatus(sddPath: string): Promise<Result<CounterS
 export function registerNewCommand(program: Command): void {
   const newCmd = program
     .command('new')
-    .description('새로운 기능 생성')
-    .argument('[name]', '기능 이름')
+    .description('새로운 기능 생성 (<domain>/<name> 형식 지원)')
+    .argument('[name]', '기능 이름 (예: auth/login 또는 login)')
     .option('--title <title>', '기능 제목')
     .option('--description <desc>', '기능 설명')
+    .option('-d, --domain <domain>', '도메인 지정 (auth/login 형식도 가능)')
     .option('--no-branch', '브랜치 생성 안 함')
     .option('--numbered', '자동 번호 부여 (feature/001-name 형식)')
     .option('--plan', '계획 파일도 함께 생성')
@@ -346,6 +435,7 @@ async function handleNew(
   options: {
     title?: string;
     description?: string;
+    domain?: string;
     branch?: boolean;
     numbered?: boolean;
     plan?: boolean;
@@ -356,6 +446,11 @@ async function handleNew(
 ): Promise<void> {
   if (!name) {
     logger.error('기능 이름을 입력해주세요: sdd new <name>');
+    logger.info('');
+    logger.info('사용법:');
+    logger.info('  sdd new <name>                  기본 기능 생성');
+    logger.info('  sdd new <domain>/<name>         도메인과 함께 생성');
+    logger.info('  sdd new <name> --domain <d>     도메인 옵션으로 생성');
     process.exit(1);
   }
 
@@ -375,7 +470,12 @@ async function handleNew(
     process.exit(1);
   }
 
-  const { featureId, featurePath, branchName, filesCreated } = result.data;
+  const { featureId, featurePath, branchName, filesCreated, domain } = result.data;
+
+  // 도메인 정보 로깅
+  if (domain) {
+    logger.info(`📁 도메인: ${domain}`);
+  }
 
   // 번호 부여 시 로깅
   if (options.numbered && branchName) {
@@ -406,7 +506,11 @@ async function handleNew(
   }
 
   logger.info('');
-  logger.info(`🎉 기능 '${featureId}' 생성 완료!`);
+  if (domain) {
+    logger.info(`🎉 기능 '${domain}/${featureId}' 생성 완료!`);
+  } else {
+    logger.info(`🎉 기능 '${featureId}' 생성 완료!`);
+  }
   logger.info('');
   logger.info('다음 단계:');
   logger.info(`  1. ${featurePath}/spec.md 편집`);

@@ -1,0 +1,155 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sdd-tool.dev/schemas/domains.json",
+  "title": "SDD Domains Configuration",
+  "description": "도메인 설정 파일 (domains.yml) 스키마",
+  "type": "object",
+  "required": ["version", "domains"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "스키마 버전",
+      "default": "1.0",
+      "examples": ["1.0"]
+    },
+    "domains": {
+      "type": "object",
+      "description": "도메인 정의 맵",
+      "additionalProperties": {
+        "$ref": "#/definitions/domain"
+      }
+    },
+    "rules": {
+      "type": "array",
+      "description": "도메인 간 의존성 규칙",
+      "items": {
+        "$ref": "#/definitions/rule"
+      }
+    }
+  },
+  "definitions": {
+    "domainId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "도메인 ID (영문 소문자로 시작, 소문자/숫자/하이픈만 허용)"
+    },
+    "domain": {
+      "type": "object",
+      "description": "단일 도메인 정의",
+      "required": ["description"],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "도메인 설명",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "description": "소스 코드 경로",
+          "examples": ["src/auth", "src/core"]
+        },
+        "specs": {
+          "type": "array",
+          "description": "이 도메인에 속한 스펙 ID 목록",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "dependencies": {
+          "$ref": "#/definitions/dependencies"
+        },
+        "defaults": {
+          "$ref": "#/definitions/defaults"
+        },
+        "owner": {
+          "type": "string",
+          "description": "도메인 소유자",
+          "examples": ["@security-team", "@backend-team"]
+        },
+        "tags": {
+          "type": "array",
+          "description": "태그 목록",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "도메인 의존성 정의",
+      "properties": {
+        "uses": {
+          "type": "array",
+          "description": "사용하는 도메인 목록 (일반적인 의존)",
+          "items": {
+            "$ref": "#/definitions/domainId"
+          },
+          "default": []
+        },
+        "extends": {
+          "type": "array",
+          "description": "확장하는 도메인 목록",
+          "items": {
+            "$ref": "#/definitions/domainId"
+          },
+          "default": []
+        },
+        "implements": {
+          "type": "array",
+          "description": "구현하는 인터페이스 도메인 목록",
+          "items": {
+            "$ref": "#/definitions/domainId"
+          },
+          "default": []
+        }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "description": "도메인 기본값 설정",
+      "properties": {
+        "author": {
+          "type": "string",
+          "description": "기본 작성자"
+        },
+        "reviewers": {
+          "type": "array",
+          "description": "기본 리뷰어 목록",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "description": "도메인 간 의존성 규칙",
+      "required": ["from", "to", "type", "allowed"],
+      "properties": {
+        "from": {
+          "$ref": "#/definitions/domainId",
+          "description": "출발 도메인"
+        },
+        "to": {
+          "$ref": "#/definitions/domainId",
+          "description": "도착 도메인"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["uses", "extends", "implements"],
+          "description": "의존성 타입"
+        },
+        "allowed": {
+          "type": "boolean",
+          "description": "허용 여부"
+        },
+        "reason": {
+          "type": "string",
+          "description": "규칙 사유 (위반 시 표시)"
+        }
+      }
+    }
+  }
+}

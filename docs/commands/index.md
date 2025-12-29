@@ -61,6 +61,12 @@ Claude Code에서 사용하는 SDD 슬래시 커맨드 가이드입니다.
 | `/sdd.cicd` | CI/CD 설정 |
 | `/sdd.prompt` | 프롬프트 출력 |
 
+### 역추출
+
+| 커맨드 | 설명 |
+|--------|------|
+| [`/sdd-reverse`](/commands/sdd-reverse) | 레거시 코드에서 스펙 역추출 |
+
 ## 사용법
 
 Claude Code에서 슬래시로 시작하는 커맨드를 입력합니다:

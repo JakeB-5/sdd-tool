@@ -12,7 +12,12 @@ import {
   createTasks,
   createChecklist,
   getCounterStatus,
+  parseDomainFeatureName,
+  detectDomain,
+  validateDomain,
 } from '../../../../src/cli/commands/new.js';
+import { executeDomainCreate } from '../../../../src/cli/commands/domain.js';
+import { executeContextSet, executeContextClear } from '../../../../src/cli/commands/context.js';
 
 describe('getConstitutionVersion', () => {
   let tempDir: string;
@@ -279,6 +284,143 @@ describe('getCounterStatus', () => {
     if (result.success) {
       expect(result.data.nextNumber).toBeGreaterThan(0);
       expect(result.data.totalFeatures).toBeGreaterThanOrEqual(0);
+    }
+  });
+});
+
+describe('parseDomainFeatureName', () => {
+  it('슬래시가 없으면 이름만 반환한다', () => {
+    const result = parseDomainFeatureName('login');
+    expect(result).toEqual({ name: 'login' });
+    expect(result.domain).toBeUndefined();
+  });
+
+  it('도메인/이름 형식을 파싱한다', () => {
+    const result = parseDomainFeatureName('auth/login');
+    expect(result).toEqual({ domain: 'auth', name: 'login' });
+  });
+
+  it('중첩된 슬래시를 처리한다', () => {
+    const result = parseDomainFeatureName('auth/oauth/google');
+    expect(result).toEqual({ domain: 'auth', name: 'oauth/google' });
+  });
+});
+
+describe('detectDomain', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-detect-domain-'));
+    await fs.mkdir(path.join(tempDir, '.sdd'), { recursive: true });
+    await fs.mkdir(path.join(tempDir, '.sdd', 'domains'), { recursive: true });
+    await fs.mkdir(path.join(tempDir, '.sdd', 'specs'), { recursive: true });
+
+    // 테스트용 도메인 생성
+    await executeDomainCreate('core', { description: '핵심' }, tempDir);
+    await executeDomainCreate('auth', { description: '인증' }, tempDir);
+  });
+
+  afterEach(async () => {
+    await executeContextClear(tempDir);
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('컨텍스트가 없으면 undefined를 반환한다', async () => {
+    const result = await detectDomain(tempDir);
+    expect(result).toBeUndefined();
+  });
+
+  it('단일 활성 도메인이면 해당 도메인을 반환한다', async () => {
+    await executeContextSet(['auth'], { includeDeps: false }, tempDir);
+    const result = await detectDomain(tempDir);
+    expect(result).toBe('auth');
+  });
+
+  it('여러 활성 도메인이면 undefined를 반환한다', async () => {
+    await executeContextSet(['core', 'auth'], {}, tempDir);
+    const result = await detectDomain(tempDir);
+    expect(result).toBeUndefined();
+  });
+});
+
+describe('validateDomain', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-validate-domain-'));
+    await fs.mkdir(path.join(tempDir, '.sdd'), { recursive: true });
+    await fs.mkdir(path.join(tempDir, '.sdd', 'domains'), { recursive: true });
+
+    // 테스트용 도메인 생성
+    await executeDomainCreate('auth', { description: '인증' }, tempDir);
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('존재하는 도메인은 success를 반환한다', async () => {
+    const result = await validateDomain(tempDir, 'auth');
+    expect(result.success).toBe(true);
+  });
+
+  it('존재하지 않는 도메인은 failure를 반환한다', async () => {
+    const result = await validateDomain(tempDir, 'nonexistent');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('도메인을 찾을 수 없습니다');
+    }
+  });
+});
+
+describe('createFeature with domain', () => {
+  let tempDir: string;
+  let sddPath: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-feature-domain-'));
+    sddPath = path.join(tempDir, '.sdd');
+    await fs.mkdir(sddPath, { recursive: true });
+    await fs.mkdir(path.join(sddPath, 'specs'), { recursive: true });
+    await fs.mkdir(path.join(sddPath, 'domains'), { recursive: true });
+
+    // 테스트용 도메인 생성
+    await executeDomainCreate('auth', { description: '인증' }, tempDir);
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('도메인이 지정되면 spec에 도메인이 포함된다', async () => {
+    const result = await createFeature(sddPath, 'login', { domain: 'auth' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const specPath = path.join(result.data.featurePath, 'spec.md');
+      const specContent = await fs.readFile(specPath, 'utf-8');
+      expect(specContent).toContain('domain: auth');
+    }
+  });
+
+  it('도메인/이름 형식으로 생성한다', async () => {
+    const result = await createFeature(sddPath, 'auth/oauth', {});
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.featureId).toBe('oauth');
+      const specPath = path.join(result.data.featurePath, 'spec.md');
+      const specContent = await fs.readFile(specPath, 'utf-8');
+      expect(specContent).toContain('domain: auth');
+    }
+  });
+
+  it('존재하지 않는 도메인은 실패한다', async () => {
+    const result = await createFeature(sddPath, 'login', { domain: 'nonexistent' });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('도메인을 찾을 수 없습니다');
     }
   });
 });
