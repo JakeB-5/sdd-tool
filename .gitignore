@@ -30,3 +30,6 @@ pnpm-debug.log*
 
 # Internal documents (not for public)
 INTERNAL-*
+
+# Local tasks (not committed)
+.tasks/
