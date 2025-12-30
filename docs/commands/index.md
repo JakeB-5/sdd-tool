@@ -31,14 +31,16 @@ Claude Code에서 사용하는 SDD 슬래시 커맨드 가이드입니다.
 
 ### 개발 스킬 (v1.2.0)
 
+> **Note**: 스킬은 슬래시 커맨드와 다릅니다. Claude가 작업 컨텍스트에 따라 자동으로 선택하여 사용합니다.
+
 | 스킬 | 설명 |
 |------|------|
-| [`/dev-implement`](/commands/dev-implement) | 스펙 기반 TDD 구현 |
-| [`/dev-next`](/commands/dev-next) | 다음 구현할 스펙 추천 |
-| [`/dev-review`](/commands/dev-review) | 코드 리뷰 |
-| [`/dev-scaffold`](/commands/dev-scaffold) | 보일러플레이트 생성 |
-| [`/dev-status`](/commands/dev-status) | 구현 진행 상황 |
-| [`/dev-test`](/commands/dev-test) | Vitest 테스트 실행 |
+| [`dev-implement`](/commands/dev-implement) | 스펙 기반 TDD 구현 |
+| [`dev-next`](/commands/dev-next) | 다음 구현할 스펙 추천 |
+| [`dev-review`](/commands/dev-review) | 코드 리뷰 |
+| [`dev-scaffold`](/commands/dev-scaffold) | 보일러플레이트 생성 |
+| [`dev-status`](/commands/dev-status) | 구현 진행 상황 |
+| [`dev-test`](/commands/dev-test) | Vitest 테스트 실행 |
 
 ### 변경 관리
 
@@ -119,11 +121,11 @@ Claude Code에서 슬래시로 시작하는 커맨드를 입력합니다:
 
 ### 개발 스킬
 
-스펙 기반 TDD 개발을 지원합니다:
+스펙 기반 TDD 개발을 지원합니다. 스킬은 `/` 없이 Claude가 작업에 따라 자동으로 사용합니다:
 
-```
-/dev-next                      # 다음 구현할 스펙
-/dev-implement auth/login      # 구현
-/dev-test                      # 테스트 실행
-/dev-review                    # 코드 리뷰
-```
+- `dev-next` - 다음 구현할 스펙 추천
+- `dev-implement` - 스펙 기반 TDD 구현
+- `dev-test` - 테스트 실행
+- `dev-review` - 코드 리뷰
+
+사용 예: "auth/login 스펙을 구현해줘" → Claude가 자동으로 `dev-implement` 스킬 사용

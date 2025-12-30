@@ -1,18 +1,19 @@
-# /dev-review
+# dev-review (Skill)
 
 구현된 코드가 스펙을 충족하는지 검증하는 개발 스킬입니다.
 
+> **Note**: 이것은 슬래시 커맨드가 아닌 **스킬**입니다. Claude가 작업 컨텍스트에 따라 자동으로 선택하여 사용합니다.
+
 ## 개요
 
-`/dev-review`는 구현된 코드가 스펙을 충족하는지 검증하고 코드 품질, 타입 안전성, 에러 처리를 검토합니다.
+`dev-review` 스킬은 구현된 코드가 스펙을 충족하는지 검증하고 코드 품질, 타입 안전성, 에러 처리를 검토합니다.
 
-## 사용법
+## 트리거 조건
 
-```
-/dev-review                       # 최근 변경 리뷰
-/dev-review auth/login            # 특정 스펙 리뷰
-/dev-review src/auth/login.ts     # 특정 파일 리뷰
-```
+Claude가 다음과 같은 요청을 받으면 자동으로 이 스킬을 사용합니다:
+
+- "리뷰해줘", "코드 검토", "품질 확인"
+- "review this code"
 
 ## 검토 항목
 
@@ -22,10 +23,10 @@
 4. **타입 안전성**: TypeScript 타입 적절성
 5. **에러 처리**: 예외 케이스 처리
 
-## 출력 예시
+## 사용 예시
 
 ```
-User: /dev-review auth/login
+User: auth/login 코드 리뷰해줘
 
 Claude: 📋 코드 리뷰: auth/login
 
@@ -68,8 +69,7 @@ Claude: 📋 코드 리뷰: auth/login
 ⚠️ 일부 개선 필요
 ```
 
-## 관련 명령어
+## 관련 스킬
 
-- [`/dev-implement`](/commands/dev-implement) - 스펙 구현
-- [`/dev-test`](/commands/dev-test) - 테스트 실행
-- [`/sdd.validate`](/commands/sdd-validate) - 스펙 검증
+- [`dev-implement`](/commands/dev-implement) - 스펙 구현
+- [`dev-test`](/commands/dev-test) - 테스트 실행

@@ -1,18 +1,20 @@
-# /dev-implement
+# dev-implement (Skill)
 
 스펙 기반 TDD 구현을 수행하는 개발 스킬입니다.
 
+> **Note**: 이것은 슬래시 커맨드가 아닌 **스킬**입니다. Claude가 작업 컨텍스트에 따라 자동으로 선택하여 사용합니다.
+
 ## 개요
 
-`/dev-implement`는 `.sdd/specs/`의 스펙 문서를 읽고 TDD 방식으로 TypeScript 코드를 구현합니다. GIVEN-WHEN-THEN 시나리오를 테스트로 변환하고 코드를 작성합니다.
+`dev-implement` 스킬은 `.sdd/specs/`의 스펙 문서를 읽고 TDD 방식으로 TypeScript 코드를 구현합니다. GIVEN-WHEN-THEN 시나리오를 테스트로 변환하고 코드를 작성합니다.
 
-## 사용법
+## 트리거 조건
 
-```
-/dev-implement                    # 다음 구현할 스펙 자동 선택
-/dev-implement auth/login         # 특정 스펙 구현
-/dev-implement --domain auth      # 특정 도메인 스펙 구현
-```
+Claude가 다음과 같은 요청을 받으면 자동으로 이 스킬을 사용합니다:
+
+- "auth/login 스펙을 구현해줘"
+- "구현해줘", "개발해줘", "코딩해줘"
+- "implement this spec"
 
 ## 워크플로우
 
@@ -22,10 +24,10 @@
 4. **리팩토링**: 코드 품질 개선
 5. **검증**: 테스트 실행 및 확인
 
-## 예시
+## 사용 예시
 
 ```
-User: /dev-implement auth/login
+User: auth/login 스펙을 구현해줘
 
 Claude: 📋 스펙 로드: auth/login
 
@@ -79,16 +81,8 @@ export async function login(
 ✅ 테스트 통과: 2/2
 ```
 
-## 옵션
+## 관련 스킬
 
-| 옵션 | 설명 |
-|------|------|
-| `--dry-run` | 실제 파일 생성 없이 미리보기 |
-| `--test-only` | 테스트만 생성 |
-| `--skip-tests` | 테스트 건너뛰고 구현만 |
-
-## 관련 명령어
-
-- [`/dev-next`](/commands/dev-next) - 다음 구현할 스펙 추천
-- [`/dev-test`](/commands/dev-test) - 테스트 실행
-- [`/dev-review`](/commands/dev-review) - 코드 리뷰
+- [`dev-next`](/commands/dev-next) - 다음 구현할 스펙 추천
+- [`dev-test`](/commands/dev-test) - 테스트 실행
+- [`dev-review`](/commands/dev-review) - 코드 리뷰
