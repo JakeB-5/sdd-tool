@@ -438,7 +438,7 @@ allowed-tools: Read, Glob, Grep, Bash
 - 설명: 사용자 로그인
 - 블로커: core/validation 구현 필요
 
-/sdd.dev-implement core/validation 으로 시작하세요.
+"core/validation 구현해줘" 라고 요청하세요.
 \`\`\`
 `,
     },

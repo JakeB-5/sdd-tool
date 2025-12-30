@@ -252,8 +252,8 @@ sdd start --workflow validate
 
 모든 작업이 완료되면:
 1. \`sdd validate\`로 최종 검증
-2. PR 생성 또는 머지
-3. 필요시 \`/sdd.archive\`로 아카이브
+2. 커밋 후 PR 생성 또는 머지
+3. \`/sdd.status\`로 전체 진행 상황 확인
 `,
     },
     {
@@ -288,6 +288,19 @@ sdd validate --strict
 
 검증 실패 시 해당 파일을 열어 오류를 수정하세요.
 각 오류 메시지에는 해결 방법이 포함되어 있습니다.
+
+## 다음 단계
+
+검증 결과에 따라:
+
+- **모두 통과**: 커밋 후 PR 생성 또는 머지
+- **오류 발생**: 오류 수정 후 \`sdd validate\` 재실행
+- **경고만 발생**: 경고 검토 후 진행 여부 결정
+
+검증 통과 후 권장 워크플로우:
+1. \`git add .sdd/\` - 스펙 변경 스테이징
+2. \`git commit -m "spec: <설명>"\` - 커밋
+3. PR 생성 및 리뷰 요청
 `,
     },
     {
@@ -1476,6 +1489,263 @@ sdd export user-auth --no-toc
 \`\`\`
 
 내보낸 파일의 내용을 확인하고 필요시 추가 형식으로 내보내세요.
+`,
+    },
+    // 도메인 & 역추출 커맨드들
+    {
+      name: 'sdd.reverse',
+      content: `레거시 코드베이스에서 SDD 스펙을 역추출합니다.
+
+## 개요
+
+기존 코드를 분석하여 SDD 스펙 초안을 자동 생성합니다.
+리뷰와 승인 과정을 통해 정식 스펙으로 확정합니다.
+
+## 하위 명령어
+
+\`\`\`
+/sdd.reverse scan [path]         # 프로젝트 구조 스캔
+/sdd.reverse extract [path]      # 코드에서 스펙 추출
+/sdd.reverse review [spec-id]    # 추출된 스펙 리뷰
+/sdd.reverse finalize [spec-id]  # 승인된 스펙 확정
+\`\`\`
+
+## 워크플로우
+
+\`\`\`
+scan → extract → review → finalize
+\`\`\`
+
+### 1. Scan (스캔)
+
+프로젝트를 분석하여 디렉토리 구조, 언어 분포, 도메인을 추정합니다.
+
+\`\`\`bash
+sdd reverse scan
+sdd reverse scan src/
+\`\`\`
+
+### 2. Extract (추출)
+
+스캔 결과를 기반으로 코드에서 스펙 초안을 추출합니다.
+
+\`\`\`bash
+sdd reverse extract
+sdd reverse extract --domain auth
+sdd reverse extract --depth deep
+\`\`\`
+
+**옵션:**
+- \`--domain <name>\`: 특정 도메인만 추출
+- \`--depth <level>\`: 분석 깊이 (shallow, medium, deep)
+- \`--min-confidence <n>\`: 최소 신뢰도 필터
+
+### 3. Review (리뷰)
+
+추출된 스펙 초안을 리뷰하고 승인/거부합니다.
+
+\`\`\`bash
+sdd reverse review              # 리뷰 대기 목록
+sdd reverse review auth/login   # 특정 스펙 상세
+\`\`\`
+
+### 4. Finalize (확정)
+
+승인된 스펙을 정식 SDD 스펙으로 변환합니다.
+
+\`\`\`bash
+sdd reverse finalize --all      # 모든 승인 스펙 확정
+sdd reverse finalize auth/login # 특정 스펙 확정
+\`\`\`
+
+## 출력 파일
+
+| 파일 | 설명 |
+|------|------|
+| \`.sdd/.reverse-meta.json\` | 스캔 결과 메타데이터 |
+| \`.sdd/.reverse-drafts/\` | 스펙 초안 디렉토리 |
+| \`.sdd/specs/\` | 확정된 스펙 디렉토리 |
+
+## 다음 단계
+
+- 확정 후: \`/sdd.validate\`로 스펙 검증
+- 도메인 정리: \`/sdd.domain\`으로 도메인 구조화
+`,
+    },
+    {
+      name: 'sdd.domain',
+      content: `도메인을 관리합니다.
+
+## 개요
+
+SDD 프로젝트의 도메인을 생성, 조회, 수정, 삭제합니다.
+대규모 프로젝트에서 스펙을 논리적으로 그룹화할 때 사용합니다.
+
+## 하위 명령어
+
+\`\`\`
+/sdd.domain create <name>          # 도메인 생성
+/sdd.domain list                   # 도메인 목록
+/sdd.domain show <name>            # 상세 정보
+/sdd.domain link <domain> <spec>   # 스펙 연결
+/sdd.domain graph                  # 의존성 그래프
+\`\`\`
+
+### create
+
+새 도메인을 생성합니다.
+
+\`\`\`bash
+sdd domain create auth
+sdd domain create payment --description "결제 처리"
+\`\`\`
+
+### list
+
+모든 도메인을 조회합니다.
+
+\`\`\`bash
+sdd domain list
+sdd domain list --tree      # 트리 형태
+\`\`\`
+
+### show
+
+특정 도메인의 상세 정보를 표시합니다.
+
+\`\`\`bash
+sdd domain show auth
+\`\`\`
+
+### link / unlink
+
+스펙을 도메인에 연결하거나 해제합니다.
+
+\`\`\`bash
+sdd domain link auth user-login
+sdd domain unlink auth user-login
+\`\`\`
+
+### depends
+
+도메인 간 의존성을 설정합니다.
+
+\`\`\`bash
+sdd domain depends payment --on auth
+\`\`\`
+
+### graph
+
+도메인 의존성 그래프를 시각화합니다.
+
+\`\`\`bash
+sdd domain graph              # Mermaid 형식
+sdd domain graph --format dot # DOT 형식
+\`\`\`
+
+### validate
+
+도메인 구조를 검증합니다.
+
+\`\`\`bash
+sdd domain validate
+\`\`\`
+
+검증 항목:
+- 순환 의존성 감지
+- 고아 스펙 확인
+- 스키마 유효성
+
+## 다음 단계
+
+- 도메인 생성 후: \`/sdd.context set <domain>\`으로 작업 컨텍스트 설정
+- 스펙 연결 후: \`/sdd.domain graph\`로 구조 확인
+`,
+    },
+    {
+      name: 'sdd.context',
+      content: `작업 컨텍스트를 관리합니다.
+
+## 개요
+
+현재 작업 중인 도메인 범위를 설정합니다.
+대규모 프로젝트에서 관련 스펙만 집중하여 작업할 때 사용합니다.
+
+## 하위 명령어
+
+\`\`\`
+/sdd.context set <domain...>  # 컨텍스트 설정
+/sdd.context show             # 현재 컨텍스트
+/sdd.context clear            # 컨텍스트 해제
+/sdd.context specs            # 컨텍스트 내 스펙 목록
+/sdd.context export           # 프롬프트 내보내기
+\`\`\`
+
+### set
+
+작업 컨텍스트를 설정합니다.
+
+\`\`\`bash
+sdd context set auth
+sdd context set auth payment order
+sdd context set auth --include-deps  # 의존 도메인 포함
+\`\`\`
+
+### show
+
+현재 설정된 컨텍스트를 표시합니다.
+
+\`\`\`bash
+sdd context show
+\`\`\`
+
+### add / remove
+
+컨텍스트에 도메인을 추가하거나 제거합니다.
+
+\`\`\`bash
+sdd context add order
+sdd context remove payment
+\`\`\`
+
+### clear
+
+컨텍스트를 해제합니다.
+
+\`\`\`bash
+sdd context clear
+\`\`\`
+
+### specs
+
+컨텍스트 내 스펙 목록을 표시합니다.
+
+\`\`\`bash
+sdd context specs
+\`\`\`
+
+### export
+
+컨텍스트 기반 프롬프트를 내보냅니다.
+
+\`\`\`bash
+sdd context export
+sdd context export --format markdown
+\`\`\`
+
+## 컨텍스트 효과
+
+컨텍스트가 설정되면:
+
+1. **스펙 생성**: \`/sdd.new\`에서 도메인 자동 감지
+2. **검증**: \`/sdd.validate\`에서 해당 도메인만 검증
+3. **목록**: \`/sdd.list\`에서 컨텍스트 스펙만 표시
+4. **구현**: 구현 시 관련 스펙 참조
+
+## 다음 단계
+
+- 컨텍스트 설정 후: \`/sdd.new\`로 스펙 작성
+- 작업 완료 후: \`/sdd.context clear\`로 해제
 `,
     },
   ];

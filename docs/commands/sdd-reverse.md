@@ -1,18 +1,18 @@
-# /sdd-reverse
+# /sdd.reverse
 
 레거시 코드베이스에서 SDD 스펙을 역추출하는 슬래시 커맨드입니다.
 
 ## 개요
 
-`/sdd-reverse`는 기존 코드를 분석하여 SDD 스펙 초안을 자동 생성합니다. Claude Code의 대화형 인터페이스를 통해 리뷰와 승인 과정을 진행할 수 있습니다.
+`/sdd.reverse`는 기존 코드를 분석하여 SDD 스펙 초안을 자동 생성합니다. Claude Code의 대화형 인터페이스를 통해 리뷰와 승인 과정을 진행할 수 있습니다.
 
 ## 사용법
 
 ```
-/sdd-reverse scan [path]         # 프로젝트 구조 스캔
-/sdd-reverse extract [path]      # 코드에서 스펙 추출
-/sdd-reverse review [spec-id]    # 추출된 스펙 리뷰
-/sdd-reverse finalize [spec-id]  # 승인된 스펙 확정
+/sdd.reverse scan [path]         # 프로젝트 구조 스캔
+/sdd.reverse extract [path]      # 코드에서 스펙 추출
+/sdd.reverse review [spec-id]    # 추출된 스펙 리뷰
+/sdd.reverse finalize [spec-id]  # 승인된 스펙 확정
 ```
 
 ## 워크플로우
@@ -26,8 +26,8 @@ scan → extract → review → finalize
 프로젝트를 분석하여 디렉토리 구조, 언어 분포, 도메인을 추정합니다.
 
 ```
-/sdd-reverse scan
-/sdd-reverse scan src/
+/sdd.reverse scan
+/sdd.reverse scan src/
 ```
 
 **출력 예시:**
@@ -56,9 +56,9 @@ scan → extract → review → finalize
 스캔 결과를 기반으로 코드에서 스펙 초안을 추출합니다.
 
 ```
-/sdd-reverse extract
-/sdd-reverse extract --domain auth
-/sdd-reverse extract --depth deep
+/sdd.reverse extract
+/sdd.reverse extract --domain auth
+/sdd.reverse extract --depth deep
 ```
 
 **옵션:**
@@ -71,8 +71,8 @@ scan → extract → review → finalize
 추출된 스펙 초안을 리뷰하고 승인/거부합니다.
 
 ```
-/sdd-reverse review              # 리뷰 대기 목록
-/sdd-reverse review auth/login   # 특정 스펙 상세
+/sdd.reverse review              # 리뷰 대기 목록
+/sdd.reverse review auth/login   # 특정 스펙 상세
 ```
 
 **리뷰 상태:**
@@ -86,8 +86,8 @@ scan → extract → review → finalize
 승인된 스펙을 정식 SDD 스펙으로 변환합니다.
 
 ```
-/sdd-reverse finalize --all      # 모든 승인 스펙 확정
-/sdd-reverse finalize auth/login # 특정 스펙 확정
+/sdd.reverse finalize --all      # 모든 승인 스펙 확정
+/sdd.reverse finalize auth/login # 특정 스펙 확정
 ```
 
 ## 출력 파일
@@ -101,7 +101,7 @@ scan → extract → review → finalize
 ## 예시: 전체 워크플로우
 
 ```
-User: /sdd-reverse scan
+User: /sdd.reverse scan
 
 Claude: 🔍 프로젝트 스캔 완료!
 
@@ -113,11 +113,11 @@ Claude: 🔍 프로젝트 스캔 완료!
 
 💡 추정 도메인: auth, order, core
 
-다음 단계: /sdd-reverse extract 실행
+다음 단계: /sdd.reverse extract 실행
 
 ---
 
-User: /sdd-reverse extract --depth deep
+User: /sdd.reverse extract --depth deep
 
 Claude: 📝 스펙 추출 완료!
 
@@ -128,11 +128,11 @@ Claude: 📝 스펙 추출 완료!
 
 ⚠️ 검토 필요 항목: 8개
 
-다음 단계: /sdd-reverse review 실행
+다음 단계: /sdd.reverse review 실행
 
 ---
 
-User: /sdd-reverse review auth/user-authentication
+User: /sdd.reverse review auth/user-authentication
 
 Claude: 📋 스펙 리뷰: auth/user-authentication
 
@@ -158,11 +158,11 @@ User: 1
 
 Claude: ✅ auth/user-authentication 승인됨
 
-다음 단계: /sdd-reverse finalize auth/user-authentication
+다음 단계: /sdd.reverse finalize auth/user-authentication
 
 ---
 
-User: /sdd-reverse finalize --all
+User: /sdd.reverse finalize --all
 
 Claude: 🎉 스펙 확정 완료!
 
