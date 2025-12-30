@@ -23,11 +23,12 @@ describe('getInitDirectories', () => {
     expect(dirs).toContain('.sdd/templates');
     expect(dirs).toContain('.claude');
     expect(dirs).toContain('.claude/commands');
+    expect(dirs).toContain('.claude/skills');
   });
 
-  it('7개의 디렉토리를 반환한다', () => {
+  it('8개의 디렉토리를 반환한다', () => {
     const dirs = getInitDirectories();
-    expect(dirs.length).toBe(7);
+    expect(dirs.length).toBe(8);
   });
 });
 
