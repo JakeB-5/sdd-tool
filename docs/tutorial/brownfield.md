@@ -400,23 +400,21 @@ Claude: 📝 스펙 추가
 
 core/user-model 스펙을 생성합니다:
 
----
-id: core/user-model
-name: 사용자 모델
-status: approved
----
+  ---
+  id: core/user-model
+  name: 사용자 모델
+  status: approved
+  ---
 
-# 사용자 모델
+  # 사용자 모델
 
-```typescript
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
+  interface User {
+    id: string;
+    email: string;
+    name: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }
 
 auth/login의 의존성에 core/user-model 추가
 
@@ -466,57 +464,56 @@ Claude: 🧪 테스트 생성: auth/login
 스펙의 시나리오를 기반으로 테스트를 생성합니다:
 
 src/auth/login.test.ts:
-```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { login } from './authService';
-import { User } from '../models/User';
 
-describe('login', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  import { describe, it, expect, beforeEach, vi } from 'vitest';
+  import { login } from './authService';
+  import { User } from '../models/User';
 
-  it('유효한 자격증명으로 로그인 성공', async () => {
-    const result = await login({
-      email: 'user@test.com',
-      password: 'valid-password'
+  describe('login', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
     });
 
-    expect(result.token).toBeDefined();
-    expect(result.refreshToken).toBeDefined();
-    expect(result.user.email).toBe('user@test.com');
-  });
+    it('유효한 자격증명으로 로그인 성공', async () => {
+      const result = await login({
+        email: 'user@test.com',
+        password: 'valid-password'
+      });
 
-  it('잘못된 비밀번호로 401 에러', async () => {
-    await expect(login({
-      email: 'user@test.com',
-      password: 'wrong-password'
-    })).rejects.toThrow('INVALID_PASSWORD');
-  });
+      expect(result.token).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
+      expect(result.user.email).toBe('user@test.com');
+    });
 
-  it('존재하지 않는 사용자로 404 에러', async () => {
-    await expect(login({
-      email: 'unknown@test.com',
-      password: 'any-password'
-    })).rejects.toThrow('USER_NOT_FOUND');
-  });
-
-  it('5회 실패 후 계정 잠금', async () => {
-    // 5회 실패 시뮬레이션
-    for (let i = 0; i < 5; i++) {
+    it('잘못된 비밀번호로 401 에러', async () => {
       await expect(login({
         email: 'user@test.com',
-        password: 'wrong'
-      })).rejects.toThrow();
-    }
+        password: 'wrong-password'
+      })).rejects.toThrow('INVALID_PASSWORD');
+    });
 
-    await expect(login({
-      email: 'user@test.com',
-      password: 'correct'
-    })).rejects.toThrow('ACCOUNT_LOCKED');
+    it('존재하지 않는 사용자로 404 에러', async () => {
+      await expect(login({
+        email: 'unknown@test.com',
+        password: 'any-password'
+      })).rejects.toThrow('USER_NOT_FOUND');
+    });
+
+    it('5회 실패 후 계정 잠금', async () => {
+      // 5회 실패 시뮬레이션
+      for (let i = 0; i < 5; i++) {
+        await expect(login({
+          email: 'user@test.com',
+          password: 'wrong'
+        })).rejects.toThrow();
+      }
+
+      await expect(login({
+        email: 'user@test.com',
+        password: 'correct'
+      })).rejects.toThrow('ACCOUNT_LOCKED');
+    });
   });
-});
-```
 
 테스트 파일을 생성하시겠습니까? [Y/n]
 ```

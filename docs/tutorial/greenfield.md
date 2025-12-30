@@ -207,25 +207,21 @@ Claude: 📋 스펙 초안
 ### 계약
 
 입력:
-```typescript
-interface CreateTodoInput {
-  title: string;        // 1-200자, 필수
-  description?: string; // 선택
-  dueDate?: Date;       // 선택
-}
-```
+  interface CreateTodoInput {
+    title: string;        // 1-200자, 필수
+    description?: string; // 선택
+    dueDate?: Date;       // 선택
+  }
 
 출력:
-```typescript
-interface Todo {
-  id: string;
-  title: string;
-  description?: string;
-  dueDate?: Date;
-  completed: boolean;
-  createdAt: Date;
-}
-```
+  interface Todo {
+    id: string;
+    title: string;
+    description?: string;
+    dueDate?: Date;
+    completed: boolean;
+    createdAt: Date;
+  }
 
 스펙을 저장하시겠습니까? [Y/n]
 ```
@@ -384,54 +380,52 @@ Claude가 TDD 방식으로 구현을 진행합니다:
 ## 작업 1/6: 타입 정의
 
 src/todo/types.ts:
-```typescript
-export interface CreateTodoInput {
-  title: string;
-  description?: string;
-  dueDate?: Date;
-}
 
-export interface Todo {
-  id: string;
-  title: string;
-  description?: string;
-  dueDate?: Date;
-  completed: boolean;
-  createdAt: Date;
-}
-```
+  export interface CreateTodoInput {
+    title: string;
+    description?: string;
+    dueDate?: Date;
+  }
+
+  export interface Todo {
+    id: string;
+    title: string;
+    description?: string;
+    dueDate?: Date;
+    completed: boolean;
+    createdAt: Date;
+  }
 
 ✅ 타입 정의 완료
 
 ## 작업 2/6: 테스트 작성
 
 src/todo/create-todo.test.ts:
-```typescript
-import { describe, it, expect } from 'vitest';
-import { createTodo } from './create-todo';
 
-describe('createTodo', () => {
-  it('유효한 데이터로 할 일을 생성한다', () => {
-    const input = { title: '테스트 할 일' };
-    const result = createTodo(input);
+  import { describe, it, expect } from 'vitest';
+  import { createTodo } from './create-todo';
 
-    expect(result.title).toBe('테스트 할 일');
-    expect(result.completed).toBe(false);
-    expect(result.id).toBeDefined();
+  describe('createTodo', () => {
+    it('유효한 데이터로 할 일을 생성한다', () => {
+      const input = { title: '테스트 할 일' };
+      const result = createTodo(input);
+
+      expect(result.title).toBe('테스트 할 일');
+      expect(result.completed).toBe(false);
+      expect(result.id).toBeDefined();
+    });
+
+    it('제목이 없으면 에러를 반환한다', () => {
+      expect(() => createTodo({ title: '' }))
+        .toThrow('TITLE_REQUIRED');
+    });
+
+    it('제목이 200자를 초과하면 에러를 반환한다', () => {
+      const longTitle = 'a'.repeat(201);
+      expect(() => createTodo({ title: longTitle }))
+        .toThrow('TITLE_TOO_LONG');
+    });
   });
-
-  it('제목이 없으면 에러를 반환한다', () => {
-    expect(() => createTodo({ title: '' }))
-      .toThrow('TITLE_REQUIRED');
-  });
-
-  it('제목이 200자를 초과하면 에러를 반환한다', () => {
-    const longTitle = 'a'.repeat(201);
-    expect(() => createTodo({ title: longTitle }))
-      .toThrow('TITLE_TOO_LONG');
-  });
-});
-```
 
 테스트 실행 중... ❌ 3/3 실패 (예상대로)
 
