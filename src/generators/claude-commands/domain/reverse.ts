@@ -53,6 +53,8 @@ sdd reverse scan --no-create-domains  # 도메인 생성 없이 스캔만
 - 도메인 자동 생성 (.sdd/domains.yml에 추가)
 - 스캔 메타데이터 저장 (.sdd/.reverse-meta.json)
 
+**완료 후 안내:** "스캔이 완료되었습니다. \`/sdd.reverse extract\`로 코드에서 스펙을 추출하세요."
+
 ### 2. Extract (추출)
 
 **Claude 지시:** \`sdd reverse extract\` CLI 명령어를 실행하세요.
@@ -69,6 +71,8 @@ sdd reverse extract --depth deep    # 깊은 분석
 - 스펙 초안 생성 → \`.sdd/.reverse-drafts/<domain>/<name>.json\`
 - 상태: \`pending\` (아직 승인되지 않음)
 
+**완료 후 안내:** "추출이 완료되었습니다. \`/sdd.reverse review\`로 스펙을 리뷰하세요."
+
 ### 3. Review (리뷰)
 
 **Claude 지시:** \`sdd reverse review\` CLI 명령어를 실행하세요.
@@ -81,6 +85,8 @@ sdd reverse review auth/login   # 특정 스펙 상세 보기
 **수행 작업:**
 - 추출된 초안 검토
 - 승인/거부 결정
+
+**완료 후 안내:** "리뷰가 완료되었습니다. \`/sdd.reverse finalize\`로 승인된 스펙을 확정하세요."
 
 ### 4. Finalize (확정)
 
@@ -96,6 +102,8 @@ sdd reverse finalize auth/login # 특정 스펙 확정
 - \`.sdd/.reverse-drafts/\`에서 승인된 스펙 읽기
 - \`.sdd/specs/<feature-id>/spec.md\` 생성
 - 초안 파일 삭제
+
+**완료 후 안내:** "스펙 확정이 완료되었습니다. \`/sdd.validate\`로 스펙을 검증하거나 \`/sdd.new\`로 새 기능을 추가할 수 있습니다."
 
 ## 출력 파일
 
