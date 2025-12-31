@@ -63,9 +63,9 @@ describe('generateAgentsMd', () => {
   it('슬래시 커맨드 목록을 포함한다', () => {
     const result = generateAgentsMd({ projectName: 'test' });
 
-    expect(result).toContain('/sdd:new');
-    expect(result).toContain('/sdd:plan');
-    expect(result).toContain('/sdd:validate');
+    expect(result).toContain('/sdd.new');
+    expect(result).toContain('/sdd.plan');
+    expect(result).toContain('/sdd.validate');
   });
 });
 
