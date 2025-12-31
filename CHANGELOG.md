@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.6] - 2025-12-31
+
+### Added
+
+- `sdd reverse review --approve`: 스펙 승인 옵션
+- `sdd reverse review --reject`: 스펙 거부 옵션
+- `sdd reverse finalize -d/--domain`: 특정 도메인 확정 옵션
+
+### Fixed
+
+- `/sdd.start` 브라운필드 프로젝트 감지 및 `/sdd.reverse` 제안 추가
+- `/sdd.reverse` 프롬프트에 CLI 사용 강조 지시 추가
+- `domains.yml` vs `domains.json` 문서 불일치 수정
+- `sdd reverse scan` 시 도메인 자동 생성 기능 추가 (`--no-create-domains`로 비활성화)
+
+### Documentation
+
+- 출력 파일 테이블에 생성 시점 추가
+- `.sdd/domains/<domain>/domain.md` 파일 문서화
+- `.sdd/.reverse-meta.json` 파일 문서화
+- 브라운필드 튜토리얼 업데이트
+
+
 ## [1.2.0] - 2025-12-29
 
 ### Added
