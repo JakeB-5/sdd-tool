@@ -95,11 +95,12 @@ describe('finalizer', () => {
       expect(result.success).toBe(true);
       if (!result.success) return;
 
-      expect(result.data.id).toBe('auth/login');
+      // 새 형식: id는 feature-id만 (domain/name에서 name만 추출)
+      expect(result.data.id).toBe('login');
       expect(result.data.domain).toBe('auth');
 
-      // 파일이 생성되었는지 확인
-      const specPath = path.join(sddPath, 'specs', 'auth', 'login.md');
+      // 파일이 생성되었는지 확인: .sdd/specs/<feature-id>/spec.md
+      const specPath = path.join(sddPath, 'specs', 'login', 'spec.md');
       const exists = await fs.stat(specPath).then(() => true).catch(() => false);
       expect(exists).toBe(true);
     });
@@ -108,7 +109,8 @@ describe('finalizer', () => {
       const spec = createMockSpec();
       await finalizeSpec(sddRoot, spec);
 
-      const specPath = path.join(sddPath, 'specs', 'auth', 'login.md');
+      // 새 형식: .sdd/specs/<feature-id>/spec.md
+      const specPath = path.join(sddPath, 'specs', 'login', 'spec.md');
       const content = await fs.readFile(specPath, 'utf-8');
 
       // 주요 섹션 확인
@@ -189,7 +191,8 @@ describe('finalizer', () => {
       expect(result.success).toBe(true);
       if (!result.success) return;
 
-      expect(result.data.id).toBe('auth/login');
+      // 새 형식: id는 feature-id만 (domain/name에서 name만 추출)
+      expect(result.data.id).toBe('login');
     });
 
     it('존재하지 않는 스펙은 실패', async () => {
@@ -203,9 +206,9 @@ describe('finalizer', () => {
       const result = {
         finalized: [
           {
-            id: 'auth/login',
+            id: 'login',
             domain: 'auth',
-            specPath: '.sdd/specs/auth/login.md',
+            specPath: '.sdd/specs/login/spec.md',
             original: createMockSpec(),
             finalizedAt: new Date(),
           },
@@ -216,7 +219,7 @@ describe('finalizer', () => {
 
       const output = formatFinalizeResult(result);
       expect(output).toContain('스펙 확정 결과');
-      expect(output).toContain('auth/login');
+      expect(output).toContain('login');
       expect(output).toContain('다음 단계');
     });
 

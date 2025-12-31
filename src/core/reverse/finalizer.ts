@@ -147,19 +147,25 @@ function convertToSddSpec(spec: ExtractedSpec): string {
 
 /**
  * 단일 스펙 확정
+ *
+ * /sdd.new와 동일한 형식으로 생성:
+ * - 경로: .sdd/specs/<feature-id>/spec.md
+ * - 도메인: 메타데이터로 저장 (폴더 경로에 미포함)
  */
 export async function finalizeSpec(
   sddRoot: string,
   spec: ExtractedSpec
 ): Promise<Result<FinalizedSpec, Error>> {
   try {
-    // 스펙 디렉토리 생성
-    const specsDir = path.join(sddRoot, '.sdd', 'specs', spec.domain);
-    await ensureDir(specsDir);
+    // feature-id 추출 (domain/name 형식에서 name만 사용)
+    const featureId = spec.id.includes('/') ? spec.id.split('/').pop()! : spec.id;
 
-    // 스펙 파일명 생성
-    const fileName = spec.id.split('/').pop()! + '.md';
-    const specPath = path.join(specsDir, fileName);
+    // 스펙 디렉토리 생성: .sdd/specs/<feature-id>/
+    const featurePath = path.join(sddRoot, '.sdd', 'specs', featureId);
+    await ensureDir(featurePath);
+
+    // 스펙 파일: spec.md
+    const specPath = path.join(featurePath, 'spec.md');
 
     // SDD 형식으로 변환
     const content = convertToSddSpec(spec);
@@ -168,7 +174,7 @@ export async function finalizeSpec(
     await fs.writeFile(specPath, content, 'utf-8');
 
     return success({
-      id: spec.id,
+      id: featureId,
       domain: spec.domain,
       specPath: path.relative(sddRoot, specPath),
       original: spec,
@@ -370,6 +376,9 @@ export function formatFinalizeResult(result: FinalizeResult): string {
 
 /**
  * 확정된 스펙 목록 조회
+ *
+ * 새 형식: .sdd/specs/<feature-id>/spec.md
+ * 도메인은 spec.md 내 메타데이터에서 추출
  */
 export async function getFinalizedSpecs(
   sddRoot: string
@@ -383,32 +392,33 @@ export async function getFinalizedSpecs(
   const specs: FinalizedSpec[] = [];
 
   try {
-    const domains = await fs.readdir(specsDir);
+    const entries = await fs.readdir(specsDir);
 
-    for (const domain of domains) {
-      const domainPath = path.join(specsDir, domain);
-      const stat = await fs.stat(domainPath);
+    for (const entry of entries) {
+      const entryPath = path.join(specsDir, entry);
+      const stat = await fs.stat(entryPath);
       if (!stat.isDirectory()) continue;
 
-      const files = await fs.readdir(domainPath);
-      for (const file of files) {
-        if (!file.endsWith('.md')) continue;
+      // spec.md 파일 확인
+      const specPath = path.join(entryPath, 'spec.md');
+      if (!await fileExists(specPath)) continue;
 
-        const specPath = path.join(domainPath, file);
-        const content = await fs.readFile(specPath, 'utf-8');
+      const content = await fs.readFile(specPath, 'utf-8');
 
-        // 메타데이터 파싱 (간단히)
-        const idMatch = content.match(/id:\s*(.+)/);
-        const id = idMatch ? idMatch[1].trim() : `${domain}/${file.replace('.md', '')}`;
+      // 메타데이터 파싱
+      const idMatch = content.match(/id:\s*(.+)/);
+      const domainMatch = content.match(/domain:\s*(.+)/);
 
-        specs.push({
-          id,
-          domain,
-          specPath: path.relative(sddRoot, specPath),
-          original: {} as ExtractedSpec, // 원본은 로드하지 않음
-          finalizedAt: (await fs.stat(specPath)).mtime,
-        });
-      }
+      const id = idMatch ? idMatch[1].trim() : entry;
+      const domain = domainMatch ? domainMatch[1].trim() : 'unknown';
+
+      specs.push({
+        id,
+        domain,
+        specPath: path.relative(sddRoot, specPath),
+        original: {} as ExtractedSpec, // 원본은 로드하지 않음
+        finalizedAt: (await fs.stat(specPath)).mtime,
+      });
     }
 
     return success(specs);
