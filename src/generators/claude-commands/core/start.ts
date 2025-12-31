@@ -10,88 +10,62 @@ export const startCommand: ClaudeCommand = {
 ## 개요
 
 이 커맨드는 SDD 프로젝트의 통합 진입점입니다.
-현재 상태를 확인하고 적절한 워크플로우를 안내합니다.
+현재 상태를 확인하고 **wizard 형태**로 필요한 설정을 한 번에 진행합니다.
 
 ## 지시사항
 
-1. 먼저 프로젝트 구조를 분석하세요:
-   - .sdd/ 디렉토리 존재 여부 확인
-   - .sdd/specs/ 디렉토리 내 스펙 파일 존재 여부 확인
-   - src/ 또는 lib/ 등 기존 코드 존재 여부 확인 (브라운필드 판별)
-   - .git/ 디렉토리 존재 여부 확인
-   - .git/hooks/ 디렉토리의 SDD 훅 설치 여부 확인
-   - .github/workflows/ 디렉토리의 SDD 워크플로우 존재 여부 확인
+### Phase 1: 프로젝트 분석 (자동)
 
-2. 분석 결과에 따라 사용자에게 안내하세요:
-   - SDD 미초기화: \`sdd init\` 실행 권장
-   - **기존 코드가 있고 스펙이 없음 (브라운필드)**: \`/sdd.reverse\` 실행 권장
-   - 스펙 없음 (그린필드): \`/sdd.new\` 실행 권장
-   - Git Hooks 미설치: Git 워크플로우 설정 권장
-   - CI/CD 미설정: GitHub Actions 설정 권장
+다음 항목을 **자동으로 분석**하고 결과를 요약 테이블로 보여주세요:
 
-3. 설정이 필요한 경우 사용자에게 **질문**하고 **승인**을 받은 후 실행하세요
+| 항목 | 확인 방법 | 결과 |
+|------|----------|------|
+| SDD 초기화 | .sdd/ 디렉토리 존재 | ✓/✗ |
+| 스펙 파일 | .sdd/specs/*.md 존재 | 0개/N개 |
+| 기존 코드 | src/, lib/, app/ 존재 | ✓/✗ (브라운필드) |
+| Git 저장소 | .git/ 존재 | ✓/✗ |
+| Git Hooks | .git/hooks/pre-commit 등 | ✓/✗ |
+| CI/CD | .github/workflows/*.yml | ✓/✗ |
 
-## Git 워크플로우 설정 확인
+### Phase 2: Wizard - 필요한 설정 일괄 선택 요청
 
-다음 명령어로 프로젝트 상태를 확인할 수 있습니다:
+분석 결과 **필요한 설정이 있으면**, \`AskUserQuestion\` 도구를 사용하여 **한 번에 선택**받으세요.
 
-\`\`\`bash
-# 프로젝트 상태 확인
-sdd status
+**중요**: multiSelect: true를 사용하여 사용자가 원하는 항목만 선택할 수 있게 하세요.
 
-# Git 워크플로우 설정
-sdd git setup
-
-# CI/CD 설정
-sdd cicd setup github
+예시 질문:
+\`\`\`
+"다음 중 진행할 작업을 선택하세요 (복수 선택 가능)"
+옵션:
+- SDD 초기화 (sdd init)
+- Git Hooks 설치
+- GitHub Actions CI/CD 설정
+- Constitution 작성 (/sdd.constitution)
 \`\`\`
 
-### 설정 제안 시나리오
+### Phase 3: 선택된 항목 자동 실행
 
-1. **Git Hooks가 없는 경우**:
-   "Git Hooks가 설치되지 않았습니다. 커밋/푸시 시 자동 스펙 검증을 활성화하시겠습니까?"
-   → 승인 시: \`sdd git hooks install\` 실행
+사용자가 선택한 항목들을 **순차적으로 실행**하고 진행 상황을 보고하세요:
 
-2. **커밋 템플릿이 없는 경우**:
-   "커밋 메시지 템플릿을 설치하시겠습니까? 일관된 커밋 형식을 사용할 수 있습니다."
-   → 승인 시: \`sdd git template install\` 실행
+1. 각 작업 시작 전: "🔄 [작업명] 진행 중..."
+2. 작업 완료 후: "✅ [작업명] 완료"
+3. 모든 작업 완료 후: 다음 단계 안내
 
-3. **GitHub Actions가 없는 경우**:
-   "GitHub Actions CI/CD를 설정하시겠습니까? PR 시 자동으로 스펙을 검증합니다."
-   → 승인 시: \`sdd cicd setup github\` 실행
+### Phase 4: 다음 워크플로우 안내
 
-## 사용 가능한 워크플로우
+설정 완료 후 프로젝트 상태에 따라 안내:
+- **그린필드** (기존 코드 없음): \`/sdd.new\`로 첫 기능 명세 작성 권장
+- **브라운필드** (기존 코드 있음): \`/sdd.reverse\`로 스펙 역추출 권장
+- **스펙 있음**: \`/sdd.status\`로 현황 확인 또는 \`/sdd.implement\`로 구현 진행
 
-- **new-feature**: 새 기능 명세 작성
-- **change-spec**: 기존 스펙 변경
-- **validate**: 명세 검증
-- **status**: 상태 확인
-- **constitution**: Constitution 관리
-- **git-setup**: Git 워크플로우 설정
+## 실행할 명령어 매핑
 
-## 명령어
-
-\`\`\`bash
-# 프로젝트 상태 및 워크플로우 메뉴
-sdd start
-
-# 상태만 확인
-sdd start --status
-
-# 특정 워크플로우 바로 시작
-sdd start --workflow new-feature
-sdd start --workflow change-spec
-sdd start --workflow validate
-\`\`\`
-
-## 프로젝트 미초기화 시
-
-프로젝트가 초기화되지 않은 경우:
-1. \`sdd init\`으로 프로젝트를 초기화하세요 (Git/CI-CD 설정 포함)
-2. \`/sdd.constitution\`으로 프로젝트 원칙을 정의하세요
-3. 다음 단계 선택:
-   - **그린필드** (새 프로젝트): \`/sdd.new\`로 첫 기능 명세를 작성하세요
-   - **브라운필드** (기존 코드): \`/sdd.reverse\`로 기존 코드에서 스펙을 추출하세요
+| 설정 항목 | 실행 명령어 |
+|----------|------------|
+| SDD 초기화 | \`sdd init --skip-git-setup\` |
+| Git Hooks | \`sdd git hooks install\` |
+| 커밋 템플릿 | \`sdd git template install\` |
+| GitHub Actions | \`sdd cicd setup github\` |
 
 ## 브라운필드 프로젝트 (기존 코드베이스)
 
