@@ -356,14 +356,14 @@ Claude: 📋 일괄 승인 대상
 ✅ 스펙 확정 완료
 
 저장된 스펙:
-  .sdd/specs/auth/login.md
-  .sdd/specs/auth/register.md
-  .sdd/specs/auth/logout.md
-  .sdd/specs/user/get-user.md
-  .sdd/specs/user/update-user.md
-  .sdd/specs/order/create-order.md
-  .sdd/specs/order/get-order.md
-  .sdd/specs/core/validation.md
+  .sdd/specs/login/spec.md (도메인: auth)
+  .sdd/specs/register/spec.md (도메인: auth)
+  .sdd/specs/logout/spec.md (도메인: auth)
+  .sdd/specs/get-user/spec.md (도메인: user)
+  .sdd/specs/update-user/spec.md (도메인: user)
+  .sdd/specs/create-order/spec.md (도메인: order)
+  .sdd/specs/get-order/spec.md (도메인: order)
+  .sdd/specs/validation/spec.md (도메인: core)
 
 domains.yml 업데이트됨
 초안 파일 정리됨
@@ -385,8 +385,8 @@ domains.yml 업데이트됨
 의존성: 유효
 
 경고: 2개
-  ⚠ auth/login: 출력 타입 User가 core에 정의되지 않음
-  ⚠ order/create-order: 의존성 payment 누락 가능성
+  ⚠ login: 출력 타입 User가 core에 정의되지 않음
+  ⚠ create-order: 의존성 payment 누락 가능성
 
 오류: 0개
 ```
@@ -398,12 +398,13 @@ User: User 타입 스펙을 추가하고 경고 해결해줘
 
 Claude: 📝 스펙 추가
 
-core/user-model 스펙을 생성합니다:
+user-model 스펙을 생성합니다 (도메인: core):
 
   ---
-  id: core/user-model
+  id: user-model
   name: 사용자 모델
   status: approved
+  domain: core
   ---
 
   # 사용자 모델
@@ -416,7 +417,7 @@ core/user-model 스펙을 생성합니다:
     updatedAt: Date;
   }
 
-auth/login의 의존성에 core/user-model 추가
+login의 의존성에 user-model 추가
 
 ✅ 경고 해결됨
 ```
@@ -457,9 +458,9 @@ auth/login의 의존성에 core/user-model 추가
 기존 코드에 테스트를 추가합니다:
 
 ```
-User: auth/login에 테스트가 없어. 스펙 기반으로 테스트 작성해줘
+User: login에 테스트가 없어. 스펙 기반으로 테스트 작성해줘
 
-Claude: 🧪 테스트 생성: auth/login
+Claude: 🧪 테스트 생성: login (도메인: auth)
 
 스펙의 시나리오를 기반으로 테스트를 생성합니다:
 
@@ -527,7 +528,7 @@ src/auth/login.test.ts:
 ```
 
 ```
-📝 새 스펙 작성: auth/password-reset
+📝 새 스펙 작성: password-reset (도메인: auth)
 
 기능 설명을 알려주세요:
 - 이메일로 재설정 링크 발송
@@ -538,7 +539,7 @@ User: 이메일로 링크 보내고, 1시간 유효해. 새 비밀번호는 8자
 
 Claude: 📋 스펙 초안
 
-## auth/password-reset
+## password-reset (도메인: auth)
 
 ### 시나리오
 
@@ -572,18 +573,18 @@ Claude: 📋 스펙 초안
 🔄 스펙-코드 동기화 검사
 
 ✅ 동기화됨: 7개
-  - auth/login
-  - auth/register
-  - auth/logout
+  - login (도메인: auth)
+  - register (도메인: auth)
+  - logout (도메인: auth)
   ...
 
 ⚠ 불일치: 2개
-  - user/update-user
+  - update-user (도메인: user)
     스펙: email 필드 수정 가능
     코드: email 수정 불가 (readonly)
     → 스펙 또는 코드 수정 필요
 
-  - order/create-order
+  - create-order (도메인: order)
     스펙: quantity 필수
     코드: quantity 기본값 1
     → 스펙 업데이트 권장
@@ -599,41 +600,36 @@ Claude: 📋 스펙 초안
 
 ```mermaid
 graph TB
-    core[core]
-    auth[auth]
-    user[user]
-    order[order]
-
-    core --> auth
-    core --> user
-    core --> order
-    auth --> user
-    auth --> order
-
-    subgraph core
+    subgraph core[core 도메인]
         validation[validation ✅]
         user-model[user-model ✅]
     end
 
-    subgraph auth
+    subgraph auth[auth 도메인]
         login[login ✅]
         register[register ✅]
         logout[logout ✅]
         password-reset[password-reset 📝]
     end
 
-    subgraph user
+    subgraph user[user 도메인]
         get-user[get-user ✅]
         update-user[update-user ⚠]
         delete-user[delete-user 📝]
     end
 
-    subgraph order
+    subgraph order[order 도메인]
         create-order[create-order ⚠]
         get-order[get-order ✅]
         list-orders[list-orders 📝]
         update-order[update-order 📝]
     end
+
+    core --> auth
+    core --> user
+    core --> order
+    auth --> user
+    auth --> order
 ```
 
 ## 다음 단계

@@ -231,8 +231,9 @@ Claude: 📋 스펙 초안
 ```
 ✅ 스펙 저장 완료
 
-파일: .sdd/specs/todo/create-todo.md
+파일: .sdd/specs/create-todo/spec.md
 상태: draft
+도메인: todo
 
 다음 단계:
 - /sdd.new 으로 추가 스펙 작성
@@ -266,38 +267,38 @@ Claude: 📋 스펙 초안
 ✅ 검증 완료
 
 스펙: 6개
-  ✅ core/validation
-  ✅ todo/create-todo
-  ✅ todo/get-todo
-  ✅ todo/update-todo
-  ✅ todo/delete-todo
-  ✅ todo/list-todos
+  ✅ validation (도메인: core)
+  ✅ create-todo (도메인: todo)
+  ✅ get-todo (도메인: todo)
+  ✅ update-todo (도메인: todo)
+  ✅ delete-todo (도메인: todo)
+  ✅ list-todos (도메인: todo)
 
 경고: 0개
 오류: 0개
 
 의존성 그래프:
-  core/validation
-    └── todo/create-todo
-    └── todo/update-todo
+  validation
+    └── create-todo
+    └── update-todo
 ```
 
 ## Step 7: 구현 계획
 
 ```
-/sdd.plan todo/create-todo
+/sdd.plan create-todo
 ```
 
 Claude가 구현 계획을 작성합니다:
 
 ```
-📐 구현 계획: todo/create-todo
+📐 구현 계획: create-todo
 
 ## 개요
 할 일 생성 기능을 TDD 방식으로 구현합니다.
 
 ## 의존성
-- core/validation (먼저 구현 필요)
+- validation (먼저 구현 필요)
 
 ## 구현 순서
 
@@ -329,11 +330,11 @@ Claude가 구현 계획을 작성합니다:
 ## Step 8: 작업 분해
 
 ```
-/sdd.tasks todo/create-todo
+/sdd.tasks create-todo
 ```
 
 ```
-📋 작업 분해: todo/create-todo
+📋 작업 분해: create-todo
 
 [ ] 1. 타입 정의
     - CreateTodoInput 인터페이스 작성
@@ -369,13 +370,13 @@ Claude가 구현 계획을 작성합니다:
 ## Step 9: 구현
 
 ```
-/sdd.implement todo/create-todo
+/sdd.implement create-todo
 ```
 
 Claude가 TDD 방식으로 구현을 진행합니다:
 
 ```
-🔨 구현 시작: todo/create-todo
+🔨 구현 시작: create-todo
 
 ## 작업 1/6: 타입 정의
 
@@ -435,7 +436,7 @@ src/todo/create-todo.test.ts:
 구현이 완료되면:
 
 ```
-✅ 구현 완료: todo/create-todo
+✅ 구현 완료: create-todo
 
 테스트: ✅ 3/3 통과
 파일:
@@ -465,17 +466,17 @@ Claude가 자동으로 `dev-next` 스킬을 사용합니다:
 
 의존성 순서 기준:
 
-1. core/validation ⭐ (의존성 없음)
-   - todo/create-todo, todo/update-todo가 의존
+1. validation ⭐ (의존성 없음)
+   - create-todo, update-todo가 의존
 
-2. todo/get-todo (core 완료 후)
+2. get-todo (validation 완료 후)
    - 단순 조회, 빠른 구현 가능
 
-3. todo/list-todos (get-todo 완료 후)
+3. list-todos (get-todo 완료 후)
    - 페이지네이션 포함
 
-추천: core/validation 먼저 구현하세요.
-/sdd.implement core/validation
+추천: validation 먼저 구현하세요.
+"validation 구현해줘" 라고 요청하세요.
 ```
 
 ## 진행 상황 확인
@@ -499,7 +500,7 @@ Claude가 자동으로 `dev-next` 스킬을 사용합니다:
 테스트: 8/8 통과
 
 다음 단계:
-  → /sdd.implement todo/get-todo
+  → "get-todo 구현해줘" 라고 요청하세요
 ```
 
 ## 도메인 그래프 확인
@@ -510,22 +511,20 @@ Claude가 자동으로 `dev-next` 스킬을 사용합니다:
 
 ```mermaid
 graph LR
-    core[core]
-    todo[todo]
-
-    core --> todo
-
-    subgraph core
+    subgraph core[core 도메인]
         validation[validation ✅]
     end
 
-    subgraph todo
+    subgraph todo[todo 도메인]
         create[create-todo ✅]
         get[get-todo 📝]
         update[update-todo 📝]
         delete[delete-todo 📝]
         list[list-todos 📝]
     end
+
+    validation --> create
+    validation --> update
 ```
 
 ## 다음 단계
