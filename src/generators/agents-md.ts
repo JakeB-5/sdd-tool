@@ -68,6 +68,7 @@ export function generateAgentsMd(options: AgentsGeneratorOptions): string {
 .sdd/
 ├── constitution.md    # 프로젝트 헌법 (원칙, 제약)
 ├── AGENTS.md          # 이 파일 (AI 워크플로우 지침)
+├── domains.yml        # 도메인 정의
 ├── specs/             # 스펙 문서
 │   └── <feature>/
 │       └── spec.md
@@ -86,20 +87,27 @@ export function generateAgentsMd(options: AgentsGeneratorOptions): string {
 
 ### 신규 기능 워크플로우
 
-1. \`/sdd:new <feature>\` - 스펙 초안 작성
-2. \`/sdd:plan\` - 구현 계획 수립
-3. \`/sdd:tasks\` - 작업 분해 (마커: [P1-3], [→T], [US])
+1. \`/sdd.new <feature>\` - 스펙 초안 작성
+2. \`/sdd.plan\` - 구현 계획 수립
+3. \`/sdd.tasks\` - 작업 분해 (마커: [P1-3], [→T], [US])
 4. 순차적 구현 및 테스트
 5. 리뷰 및 머지
 
+### 역추출 워크플로우 (브라운필드)
+
+1. \`/sdd.reverse scan\` - 프로젝트 스캔 및 도메인 생성
+2. \`/sdd.reverse extract\` - 코드에서 스펙 추출
+3. \`/sdd.reverse review\` - 추출된 스펙 리뷰/승인
+4. \`/sdd.reverse finalize\` - 승인된 스펙 확정
+
 ### 변경 워크플로우
 
-1. \`/sdd:change <id>\` - 제안서(proposal.md) 작성
+1. \`/sdd.change <id>\` - 제안서(proposal.md) 작성
 2. delta.md 작성 (ADDED/MODIFIED/REMOVED)
 3. tasks.md 작업 목록 생성
 4. 구현
-5. \`/sdd:apply\` - 델타를 스펙에 병합
-6. \`/sdd:archive\` - 완료된 변경 아카이브
+5. \`/sdd.apply\` - 델타를 스펙에 병합
+6. \`/sdd.archive\` - 완료된 변경 아카이브
 
 ---
 
@@ -118,17 +126,22 @@ sdd validate --strict    # 경고도 에러로 처리
 
 | 명령어 | 설명 |
 |--------|------|
-| \`/sdd:init\` | 프로젝트 초기화 |
-| \`/sdd:constitution\` | Constitution 생성/수정 |
-| \`/sdd:new\` | 신규 스펙 생성 |
-| \`/sdd:plan\` | 구현 계획 수립 |
-| \`/sdd:tasks\` | 작업 분해 |
-| \`/sdd:change\` | 변경 제안 |
-| \`/sdd:impact\` | 영향도 분석 |
-| \`/sdd:apply\` | 델타 적용 |
-| \`/sdd:archive\` | 아카이브 |
-| \`/sdd:validate\` | 형식 검증 |
-| \`/sdd:status\` | 현황 조회 |
+| \`/sdd.init\` | 프로젝트 초기화 |
+| \`/sdd.constitution\` | Constitution 생성/수정 |
+| \`/sdd.new\` | 신규 스펙 생성 |
+| \`/sdd.plan\` | 구현 계획 수립 |
+| \`/sdd.tasks\` | 작업 분해 |
+| \`/sdd.change\` | 변경 제안 |
+| \`/sdd.impact\` | 영향도 분석 |
+| \`/sdd.apply\` | 델타 적용 |
+| \`/sdd.archive\` | 아카이브 |
+| \`/sdd.validate\` | 형식 검증 |
+| \`/sdd.status\` | 현황 조회 |
+| \`/sdd.reverse\` | 레거시 코드에서 스펙 역추출 |
+| \`/sdd.domain\` | 도메인 관리 |
+| \`/sdd.start\` | SDD 시작 가이드 |
+| \`/sdd.guide\` | SDD 가이드 |
+| \`/sdd.prepare\` | 환경 준비 |
 
 ---
 
