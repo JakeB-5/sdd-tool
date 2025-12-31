@@ -24,17 +24,25 @@ export const reverseCommand: ClaudeCommand = {
 ## 워크플로우
 
 \`\`\`
-scan → extract → review → finalize
+scan (+ 도메인 자동 생성) → extract → review → finalize
 \`\`\`
 
-### 1. Scan (스캔)
+### 1. Scan (스캔 + 도메인 생성)
 
-프로젝트를 분석하여 디렉토리 구조, 언어 분포, 도메인을 추정합니다.
+프로젝트를 분석하여 디렉토리 구조, 언어 분포를 파악하고 **도메인을 자동 생성**합니다.
 
 \`\`\`bash
-sdd reverse scan
-sdd reverse scan src/
+sdd reverse scan                    # 스캔 + 도메인 자동 생성
+sdd reverse scan src/               # 특정 경로 스캔
+sdd reverse scan --no-create-domains  # 도메인 생성 없이 스캔만
 \`\`\`
+
+**주요 기능:**
+- 프로젝트 구조 분석 (src/, lib/, packages/ 등)
+- 언어 분포 확인
+- **도메인 자동 생성** (기본 활성화)
+  - 소스 디렉토리 구조에서 도메인 추정
+  - 이미 존재하는 도메인은 건너뜀
 
 ### 2. Extract (추출)
 
@@ -80,6 +88,7 @@ sdd reverse finalize auth/login # 특정 스펙 확정
 ## 다음 단계
 
 - 확정 후: \`/sdd.validate\`로 스펙 검증
-- 도메인 정리: \`/sdd.domain\`으로 도메인 구조화
+- 도메인 수정: \`/sdd.domain\`으로 도메인 상세 조정 (이름 변경, 의존성 추가 등)
+- 새 기능: \`/sdd.new\`로 새 스펙 작성
 `,
 };

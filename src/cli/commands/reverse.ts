@@ -38,6 +38,7 @@ import {
   formatFinalizeResult,
   type ScanResult,
 } from '../../core/reverse/index.js';
+import { createDomainService } from '../../core/domain/service.js';
 import { promises as fs } from 'node:fs';
 
 /**
@@ -68,6 +69,8 @@ export interface ReverseScanOptions extends ReverseCommonOptions {
   json?: boolean;
   /** 이전 스캔과 비교 */
   compare?: boolean;
+  /** 도메인 자동 생성 (기본값: true) */
+  createDomains?: boolean;
 }
 
 /**
@@ -195,6 +198,48 @@ async function handleScan(
     }
   }
 
+  // 도메인 자동 생성 (기본값: true)
+  const shouldCreateDomains = options.createDomains !== false;
+  if (shouldCreateDomains && result.summary.suggestedDomains.length > 0) {
+    const domainService = createDomainService(sddRoot);
+    const existingDomainsResult = await domainService.list();
+    const existingDomainIds = existingDomainsResult.success
+      ? existingDomainsResult.data.map(d => d.id)
+      : [];
+
+    let createdCount = 0;
+    let skippedCount = 0;
+
+    for (const suggested of result.summary.suggestedDomains) {
+      // 이미 존재하는 도메인은 건너뛰기
+      if (existingDomainIds.includes(suggested.name)) {
+        skippedCount++;
+        continue;
+      }
+
+      const createResult = await domainService.create(suggested.name, {
+        description: `${suggested.name} 도메인 (reverse scan으로 자동 생성)`,
+        path: suggested.path,
+      });
+
+      if (createResult.success) {
+        createdCount++;
+      }
+    }
+
+    if (!options.quiet && (createdCount > 0 || skippedCount > 0)) {
+      console.log('');
+      console.log(chalk.bold('📁 도메인 자동 생성:'));
+      if (createdCount > 0) {
+        console.log(chalk.green(`   ✅ ${createdCount}개 도메인 생성됨`));
+      }
+      if (skippedCount > 0) {
+        console.log(chalk.dim(`   ⏭️  ${skippedCount}개 도메인 이미 존재 (건너뜀)`));
+      }
+      console.log('');
+    }
+  }
+
   // Serena 사용 가능 시 추가 분석 안내
   if (!options.skipSerenaCheck) {
     const serenaCheck = await ensureSerenaAvailable('scan', { skipSerenaCheck: true, quiet: true });
@@ -202,6 +247,13 @@ async function handleScan(
       console.log(chalk.dim('💡 Serena MCP를 연결하면 심볼 수준 분석이 가능합니다.'));
       console.log(chalk.dim('   docs/guide/serena-setup.md 참조\n'));
     }
+  }
+
+  // 다음 단계 안내
+  if (!options.quiet && !options.json) {
+    console.log(chalk.bold('💡 다음 단계:'));
+    console.log('   sdd reverse extract    # 코드에서 스펙 추출');
+    console.log('');
   }
 }
 
@@ -519,13 +571,16 @@ export function registerReverseCommand(program: Command): void {
   // scan 서브커맨드
   reverse
     .command('scan [path]')
-    .description('프로젝트 구조 스캔')
+    .description('프로젝트 구조 스캔 및 도메인 자동 생성')
     .option('-d, --depth <n>', '분석 깊이', parseInt)
     .option('-i, --include <pattern>', '포함 패턴 (glob)')
     .option('-e, --exclude <pattern>', '제외 패턴 (glob)')
     .option('-l, --language <lang>', '특정 언어만')
     .option('-o, --output <file>', '결과 저장 파일')
     .option('-q, --quiet', '조용한 모드')
+    .option('--json', 'JSON 형식 출력')
+    .option('--compare', '이전 스캔과 비교')
+    .option('--no-create-domains', '도메인 자동 생성 비활성화')
     .option('--skip-serena-check', 'Serena 체크 건너뛰기 (개발용)')
     .action(handleScan);
 
