@@ -78,13 +78,15 @@ sdd reverse extract --depth deep    # 깊은 분석
 **Claude 지시:** \`sdd reverse review\` CLI 명령어를 실행하세요.
 
 \`\`\`bash
-sdd reverse review              # 리뷰 대기 목록 확인
-sdd reverse review auth/login   # 특정 스펙 상세 보기
+sdd reverse review                      # 리뷰 대기 목록 확인
+sdd reverse review auth/login           # 특정 스펙 상세 보기
+sdd reverse review auth/login --approve # 스펙 승인
+sdd reverse review auth/login --reject  # 스펙 거부
 \`\`\`
 
 **수행 작업:**
 - 추출된 초안 검토
-- 승인/거부 결정
+- \`--approve\`로 승인, \`--reject\`로 거부
 
 **완료 후 안내:** "리뷰가 완료되었습니다. \`/sdd.reverse finalize\`로 승인된 스펙을 확정하세요."
 
@@ -94,8 +96,9 @@ sdd reverse review auth/login   # 특정 스펙 상세 보기
 **주의:** finalize 후에만 \`.sdd/specs/\`에 스펙이 생성됩니다!
 
 \`\`\`bash
-sdd reverse finalize --all      # 모든 승인 스펙 확정
-sdd reverse finalize auth/login # 특정 스펙 확정
+sdd reverse finalize --all        # 모든 승인 스펙 확정
+sdd reverse finalize auth/login   # 특정 스펙 확정
+sdd reverse finalize -d auth      # 특정 도메인 확정
 \`\`\`
 
 **수행 작업:**

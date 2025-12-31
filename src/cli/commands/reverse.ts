@@ -89,6 +89,10 @@ export interface ReverseExtractOptions extends ReverseCommonOptions {
  * review 옵션
  */
 export interface ReverseReviewOptions extends ReverseCommonOptions {
+  /** 스펙 승인 */
+  approve?: boolean;
+  /** 스펙 거부 */
+  reject?: boolean;
   /** 모든 스펙 리뷰 */
   all?: boolean;
 }
@@ -394,7 +398,7 @@ async function handleReview(
     return;
   }
 
-  // 특정 스펙 상세 보기
+  // 특정 스펙 처리
   if (specId) {
     const item = items.find(i => i.specId === specId || i.specId.endsWith(`/${specId}`));
     if (!item) {
@@ -402,6 +406,34 @@ async function handleReview(
       process.exit(ExitCode.GENERAL_ERROR);
     }
 
+    // 승인 처리
+    if (options.approve) {
+      const result = await approveSpec(sddPath, item.specId);
+      if (result.success) {
+        logger.success(`승인됨: ${item.specId}`);
+        console.log('');
+        console.log(chalk.bold('💡 다음 단계:'));
+        console.log('   sdd reverse finalize --all    # 승인된 스펙 확정');
+      } else {
+        logger.error(result.error.message);
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+      return;
+    }
+
+    // 거부 처리
+    if (options.reject) {
+      const result = await rejectSpec(sddPath, item.specId);
+      if (result.success) {
+        logger.success(`거부됨: ${item.specId}`);
+      } else {
+        logger.error(result.error.message);
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
+      return;
+    }
+
+    // 상세 보기
     console.log(formatSpecDetail(item));
     console.log(chalk.bold('💡 작업:'));
     console.log(`   sdd reverse review ${specId} --approve    # 승인`);
@@ -601,6 +633,8 @@ export function registerReverseCommand(program: Command): void {
     .command('review [spec]')
     .description('추출된 스펙 리뷰')
     .option('-a, --all', '모든 스펙 리뷰')
+    .option('--approve', '스펙 승인')
+    .option('--reject', '스펙 거부')
     .option('-q, --quiet', '조용한 모드')
     .action(handleReview);
 
