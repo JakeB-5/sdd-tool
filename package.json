@@ -1,6 +1,6 @@
 {
   "name": "sdd-tool",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "Unified Spec-Driven Development CLI - AI-first specification workflow",
   "type": "module",
   "bin": {

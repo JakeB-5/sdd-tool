@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.7] - 2025-12-31
+
+### Added
+
+- `sdd reverse review --reason <reason>`: 거부 사유 지정 옵션
+
+### Fixed
+
+- `rejectSpec` 함수 호출 시 필수 인자 누락 수정
+
+
 ## [1.2.6] - 2025-12-31
 
 ### Added
