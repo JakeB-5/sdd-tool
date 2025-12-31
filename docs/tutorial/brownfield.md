@@ -115,7 +115,10 @@ Claude가 코드베이스를 분석합니다:
   중간 신뢰도 (50-80%): 3개
   낮은 신뢰도 (<50%): 1개
 
-도메인 구조를 생성하시겠습니까? [Y/n]
+메타데이터 저장: .sdd/.reverse-meta.json
+도메인 자동 생성: 4개 (core, auth, user, order)
+
+💡 다음 단계: /sdd.reverse extract
 ```
 
 ## Step 3: 도메인 생성
@@ -159,7 +162,12 @@ Claude: 📁 도메인 구조 제안
 
 ✅ 도메인 생성 완료
 
-domains.yml이 생성되었습니다.
+생성된 파일:
+  .sdd/domains.yml              ← 도메인 설정 (YAML 형식)
+  .sdd/domains/core/domain.md   ← 도메인별 문서
+  .sdd/domains/auth/domain.md
+  .sdd/domains/user/domain.md
+  .sdd/domains/order/domain.md
 ```
 
 ## Step 4: 역추출 실행

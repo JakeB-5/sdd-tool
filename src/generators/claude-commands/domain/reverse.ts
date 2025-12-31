@@ -107,11 +107,17 @@ sdd reverse finalize auth/login # 특정 스펙 확정
 
 ## 출력 파일
 
-| 파일 | 설명 |
-|------|------|
-| \`.sdd/.reverse-meta.json\` | 스캔 결과 메타데이터 |
-| \`.sdd/.reverse-drafts/\` | 스펙 초안 디렉토리 |
-| \`.sdd/specs/\` | 확정된 스펙 디렉토리 |
+**주의:** CLI가 생성하는 파일 형식을 정확히 따르세요!
+
+| 파일 | 설명 | 생성 시점 |
+|------|------|----------|
+| \`.sdd/domains.yml\` | 도메인 설정 (YAML 형식, JSON 아님!) | scan |
+| \`.sdd/domains/<domain>/domain.md\` | 도메인별 문서 | scan |
+| \`.sdd/.reverse-meta.json\` | 스캔/추출 메타데이터 | scan, extract |
+| \`.sdd/.reverse-drafts/\` | 스펙 초안 디렉토리 | extract |
+| \`.sdd/specs/<feature-id>/spec.md\` | 확정된 스펙 | finalize |
+
+**파일을 직접 생성하지 마세요!** 모든 파일은 CLI 명령어로 생성됩니다.
 
 ## 다음 단계
 
