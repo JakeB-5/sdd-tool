@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.8] - 2025-12-31
+
+### Improved
+
+- `/sdd.start` wizard 형태로 개선
+  - Phase 1: 프로젝트 상태 자동 분석 (테이블 형식)
+  - Phase 2: AskUserQuestion으로 필요한 설정 일괄 선택
+  - Phase 3: 선택된 항목 순차 실행 + 진행 상황 보고
+  - Phase 4: 그린필드/브라운필드에 따른 다음 워크플로우 안내
+
+
 ## [1.2.7] - 2025-12-31
 
 ### Added
