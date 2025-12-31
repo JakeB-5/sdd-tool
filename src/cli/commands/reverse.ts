@@ -93,6 +93,8 @@ export interface ReverseReviewOptions extends ReverseCommonOptions {
   approve?: boolean;
   /** 스펙 거부 */
   reject?: boolean;
+  /** 거부 사유 */
+  reason?: string;
   /** 모든 스펙 리뷰 */
   all?: boolean;
 }
@@ -423,7 +425,7 @@ async function handleReview(
 
     // 거부 처리
     if (options.reject) {
-      const result = await rejectSpec(sddPath, item.specId);
+      const result = await rejectSpec(sddPath, item.specId, options.reason || '사용자에 의해 거부됨');
       if (result.success) {
         logger.success(`거부됨: ${item.specId}`);
       } else {
@@ -635,6 +637,7 @@ export function registerReverseCommand(program: Command): void {
     .option('-a, --all', '모든 스펙 리뷰')
     .option('--approve', '스펙 승인')
     .option('--reject', '스펙 거부')
+    .option('--reason <reason>', '거부 사유')
     .option('-q, --quiet', '조용한 모드')
     .action(handleReview);
 
