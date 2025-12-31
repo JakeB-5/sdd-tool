@@ -16,12 +16,16 @@ export const startCommand: ClaudeCommand = {
 
 1. 먼저 프로젝트 구조를 분석하세요:
    - .sdd/ 디렉토리 존재 여부 확인
+   - .sdd/specs/ 디렉토리 내 스펙 파일 존재 여부 확인
+   - src/ 또는 lib/ 등 기존 코드 존재 여부 확인 (브라운필드 판별)
    - .git/ 디렉토리 존재 여부 확인
    - .git/hooks/ 디렉토리의 SDD 훅 설치 여부 확인
    - .github/workflows/ 디렉토리의 SDD 워크플로우 존재 여부 확인
 
 2. 분석 결과에 따라 사용자에게 안내하세요:
    - SDD 미초기화: \`sdd init\` 실행 권장
+   - **기존 코드가 있고 스펙이 없음 (브라운필드)**: \`/sdd.reverse\` 실행 권장
+   - 스펙 없음 (그린필드): \`/sdd.new\` 실행 권장
    - Git Hooks 미설치: Git 워크플로우 설정 권장
    - CI/CD 미설정: GitHub Actions 설정 권장
 
@@ -85,7 +89,23 @@ sdd start --workflow validate
 프로젝트가 초기화되지 않은 경우:
 1. \`sdd init\`으로 프로젝트를 초기화하세요 (Git/CI-CD 설정 포함)
 2. \`/sdd.constitution\`으로 프로젝트 원칙을 정의하세요
-3. \`/sdd.new\`로 첫 기능 명세를 작성하세요
+3. 다음 단계 선택:
+   - **그린필드** (새 프로젝트): \`/sdd.new\`로 첫 기능 명세를 작성하세요
+   - **브라운필드** (기존 코드): \`/sdd.reverse\`로 기존 코드에서 스펙을 추출하세요
+
+## 브라운필드 프로젝트 (기존 코드베이스)
+
+기존 코드가 있는 프로젝트에서 SDD를 도입할 때:
+
+1. **스펙 역추출**: \`/sdd.reverse scan\`으로 프로젝트 구조 분석
+2. **스펙 추출**: \`/sdd.reverse extract\`로 코드에서 스펙 초안 생성
+3. **리뷰 및 확정**: \`/sdd.reverse review\` → \`/sdd.reverse finalize\`
+4. 이후 새 기능은 \`/sdd.new\`로 작성
+
+**브라운필드 판별 기준**:
+- src/, lib/, app/ 등 소스 디렉토리가 존재
+- .sdd/specs/ 에 스펙 파일이 없거나 적음
+- package.json, requirements.txt 등 프로젝트 설정 파일 존재
 
 ## Git 워크플로우 상세
 
