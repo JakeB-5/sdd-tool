@@ -345,10 +345,16 @@ sdd list                    # 목록 조회
 ### 기능 개발
 
 ```bash
-sdd new <name>              # 새 기능 생성
+sdd new <name>              # 새 기능 생성 (common 도메인)
+sdd new <name> -d <domain>  # 도메인 지정 생성 (v1.3.0)
 sdd new <name> --all        # spec + plan + tasks 모두 생성
 sdd prepare <name>          # 서브에이전트/스킬 점검
 ```
+
+**v1.3.0 도메인 기반 구조:**
+- 도메인 미지정 시 `common` 폴더에 생성
+- 경로: `.sdd/specs/<domain>/<feature>/spec.md`
+- 예: `sdd new login -d auth` → `.sdd/specs/auth/login/spec.md`
 
 ### 변경 관리
 
@@ -458,17 +464,20 @@ your-project/
 │   ├── AGENTS.md           # AI 워크플로우 가이드
 │   ├── domains.yml         # 도메인 정의 (v1.2.0)
 │   ├── .context.json       # 현재 컨텍스트 (v1.2.0)
-│   ├── specs/              # 기능 명세
-│   │   ├── feature-name/   # 단순 기능
-│   │   │   ├── spec.md
-│   │   │   ├── plan.md
-│   │   │   └── tasks.md
-│   │   └── domain-name/    # 도메인별 그룹 (v1.2.0)
-│   │       └── feature/
-│   │           └── spec.md
+│   ├── specs/              # 기능 명세 (v1.3.0: 도메인 기반 구조)
+│   │   ├── common/         # 기본 도메인 (도메인 미지정 시)
+│   │   │   └── feature-name/
+│   │   │       ├── spec.md
+│   │   │       ├── plan.md
+│   │   │       └── tasks.md
+│   │   └── auth/           # 도메인별 그룹
+│   │       └── login/
+│   │           ├── spec.md
+│   │           ├── plan.md
+│   │           └── tasks.md
 │   ├── changes/            # 변경 제안
 │   ├── archive/            # 완료된 변경
-│   └── drafts/             # 역추출 임시 스펙 (v1.2.0)
+│   └── .reverse-drafts/    # 역추출 임시 스펙 (v1.2.0)
 │
 └── .claude/
     ├── commands/           # 슬래시 커맨드 (29개)

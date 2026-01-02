@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-01-02
+
+### Changed
+
+- **스펙 디렉토리 구조 변경** (Breaking Change)
+  - 기존: `.sdd/specs/<feature-name>/spec.md`
+  - 변경: `.sdd/specs/<domain>/<feature-name>/spec.md`
+  - 도메인 미지정 시 `common` 폴더에 생성
+  - 예: `sdd new login -d auth` → `.sdd/specs/auth/login/spec.md`
+
+- `sdd new` 명령어 도메인 기반 생성 기본화
+- `sdd reverse finalize` 도메인 기반 경로로 스펙 확정
+- `sdd status` 도메인 기반 구조 지원
+
+### Fixed
+
+- `sdd reverse extract`에서 스펙 파일이 잘못된 경로에 생성되던 문제 수정
+  - 기존: `.sdd/specs/<domain>/<feature>.md`
+  - 수정: `.sdd/specs/<domain>/<feature>/spec.md`
+
+
 ## [1.2.9] - 2025-12-31
 
 ### Improved

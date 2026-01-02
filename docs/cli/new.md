@@ -18,29 +18,44 @@ sdd new <name> [options]
 
 | 옵션 | 설명 |
 |------|------|
+| `-d, --domain <domain>` | 도메인 지정 (v1.3.0) |
 | `--all` | spec, plan, tasks 모두 생성 |
 
 ## 생성되는 파일
 
 ```
-.sdd/specs/<name>/
+.sdd/specs/<domain>/<name>/
 ├── spec.md     # 기능 명세
 ├── plan.md     # 구현 계획 (--all 옵션)
 └── tasks.md    # 작업 분해 (--all 옵션)
 ```
 
+::: tip v1.3.0 도메인 기반 구조
+- 도메인 미지정 시 `common` 폴더에 생성됩니다
+- 예: `sdd new login -d auth` → `.sdd/specs/auth/login/spec.md`
+:::
+
 ## 예시
 
-### 명세만 생성
+### 기본 생성 (common 도메인)
 
 ```bash
 sdd new user-auth
+# → .sdd/specs/common/user-auth/spec.md
+```
+
+### 도메인 지정 생성
+
+```bash
+sdd new login -d auth
+# → .sdd/specs/auth/login/spec.md
 ```
 
 ### 모든 파일 생성
 
 ```bash
-sdd new user-auth --all
+sdd new user-auth --all -d auth
+# → .sdd/specs/auth/user-auth/spec.md, plan.md, tasks.md
 ```
 
 ## 서브커맨드

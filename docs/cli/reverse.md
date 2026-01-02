@@ -76,11 +76,16 @@ sdd reverse finalize auth/login     # 특정 스펙만 확정
 
 ## 출력 파일
 
-| 파일 | 설명 |
-|------|------|
-| `.sdd/.reverse-meta.json` | 스캔 결과 메타데이터 |
-| `.sdd/.reverse-drafts/<domain>/<spec>.json` | 스펙 초안 |
-| `.sdd/specs/<domain>/<spec>.md` | 확정된 스펙 |
+| 파일 | 설명 | 생성 시점 |
+|------|------|----------|
+| `.sdd/.reverse-meta.json` | 스캔 결과 메타데이터 | `scan` |
+| `.sdd/.reverse-drafts/<domain>/<spec>.json` | 스펙 초안 | `extract` |
+| `.sdd/specs/<domain>/<spec>/spec.md` | 확정된 스펙 (v1.3.0) | `finalize` |
+
+::: tip v1.3.0 경로 변경
+확정된 스펙은 이제 `<domain>/<feature>/spec.md` 형식으로 저장됩니다.
+예: `.sdd/specs/auth/login/spec.md`
+:::
 
 ## 사용 예시
 
@@ -101,7 +106,7 @@ sdd reverse review
 
 # 4. 확정
 sdd reverse finalize --all
-# → .sdd/specs/에 정식 스펙 생성
+# → .sdd/specs/<domain>/<feature>/spec.md에 정식 스펙 생성
 ```
 
 ### 특정 도메인만 추출

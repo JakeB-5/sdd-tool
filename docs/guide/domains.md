@@ -174,13 +174,19 @@ sdd validate --orphan-specs
 ### 도메인/스펙 형식
 
 ```bash
-sdd new auth/mfa-setup
+sdd new mfa-setup -d auth
+# → .sdd/specs/auth/mfa-setup/spec.md (v1.3.0)
 ```
 
 이 명령은:
 1. `auth` 도메인 존재 확인
-2. `auth/mfa-setup` 스펙 생성
+2. `.sdd/specs/auth/mfa-setup/` 디렉토리에 스펙 생성
 3. domains.yml 자동 업데이트
+
+::: tip v1.3.0 구조
+스펙은 항상 `specs/<domain>/<feature>/spec.md` 형식으로 생성됩니다.
+도메인 미지정 시 `common` 도메인에 생성됩니다.
+:::
 
 ### 도메인 자동 감지
 
