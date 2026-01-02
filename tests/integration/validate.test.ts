@@ -56,7 +56,8 @@ describe('sdd validate', () => {
       { cwd: tempDir }
     );
 
-    const specPath = path.join(tempDir, '.sdd', 'specs', 'specific-feature', 'spec.md');
+    // 도메인 미지정 시 common 폴더에 생성됨
+    const specPath = path.join(tempDir, '.sdd', 'specs', 'common', 'specific-feature', 'spec.md');
     const { stdout } = await execAsync(
       `node "${cliPath}" validate "${specPath}"`,
       { cwd: tempDir }

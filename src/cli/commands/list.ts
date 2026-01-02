@@ -84,6 +84,7 @@ export function getListStatusIcon(status: string): string {
 
 /**
  * 기능 목록 조회 (테스트 가능)
+ * 도메인 기반 구조 (.sdd/specs/<domain>/<feature>/spec.md) 지원
  */
 export async function getFeatureList(
   projectPath: string,
@@ -103,21 +104,30 @@ export async function getFeatureList(
   const features: FeatureListItem[] = [];
 
   for (const entry of result.data) {
-    const featurePath = path.join(specsPath, entry);
-    const stat = await fs.stat(featurePath);
+    const entryPath = path.join(specsPath, entry);
+    const stat = await fs.stat(entryPath);
 
     if (stat.isDirectory()) {
-      const specPath = path.join(featurePath, 'spec.md');
-      if (await fileExists(specPath)) {
-        const content = await fs.readFile(specPath, 'utf-8');
-        const metadata = parseSpecMetadata(content);
-        if (metadata) {
-          if (!options.status || metadata.status === options.status) {
-            features.push({
-              id: entry,
-              title: metadata.title,
-              status: metadata.status,
-            });
+      // 직접 하위에 spec.md가 있는지 확인 (기존 구조 호환)
+      const directSpecPath = path.join(entryPath, 'spec.md');
+      if (await fileExists(directSpecPath)) {
+        const feature = await parseFeatureSpec(directSpecPath, entry, options.status);
+        if (feature) features.push(feature);
+      } else {
+        // 도메인 폴더로 간주하고 하위 디렉토리 탐색
+        const domainResult = await readDir(entryPath);
+        if (domainResult.success) {
+          for (const featureEntry of domainResult.data) {
+            const featurePath = path.join(entryPath, featureEntry);
+            const featureStat = await fs.stat(featurePath);
+            if (featureStat.isDirectory()) {
+              const specPath = path.join(featurePath, 'spec.md');
+              if (await fileExists(specPath)) {
+                const featureId = `${entry}/${featureEntry}`;
+                const feature = await parseFeatureSpec(specPath, featureId, options.status);
+                if (feature) features.push(feature);
+              }
+            }
           }
         }
       }
@@ -125,6 +135,28 @@ export async function getFeatureList(
   }
 
   return features;
+}
+
+/**
+ * 스펙 파일에서 기능 정보 파싱
+ */
+async function parseFeatureSpec(
+  specPath: string,
+  featureId: string,
+  statusFilter?: string
+): Promise<FeatureListItem | null> {
+  const content = await fs.readFile(specPath, 'utf-8');
+  const metadata = parseSpecMetadata(content);
+  if (metadata) {
+    if (!statusFilter || metadata.status === statusFilter) {
+      return {
+        id: featureId,
+        title: metadata.title,
+        status: metadata.status,
+      };
+    }
+  }
+  return null;
 }
 
 /**
@@ -226,6 +258,7 @@ export async function getTemplateList(projectPath: string): Promise<string[]> {
 
 /**
  * 프로젝트 요약 조회 (테스트 가능)
+ * 도메인 기반 구조 지원
  */
 export async function getProjectSummary(projectPath: string): Promise<ProjectSummary | null> {
   const sddPath = path.join(projectPath, '.sdd');
@@ -234,18 +267,9 @@ export async function getProjectSummary(projectPath: string): Promise<ProjectSum
     return null;
   }
 
-  // 기능 수
-  const specsPath = path.join(sddPath, 'specs');
-  let featureCount = 0;
-  if (await fileExists(specsPath)) {
-    const result = await readDir(specsPath);
-    if (result.success) {
-      for (const entry of result.data) {
-        const stat = await fs.stat(path.join(specsPath, entry));
-        if (stat.isDirectory()) featureCount++;
-      }
-    }
-  }
+  // 기능 수 (getFeatureList 활용하여 정확한 카운트)
+  const features = await getFeatureList(projectPath);
+  const featureCount = features.length;
 
   // 변경 수
   const pendingResult = await listPendingChanges(sddPath);

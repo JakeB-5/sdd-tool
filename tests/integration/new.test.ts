@@ -34,8 +34,8 @@ describe('sdd new', () => {
 
     expect(stdout).toContain('spec.md 생성');
 
-    // spec.md 확인
-    const specPath = path.join(tempDir, '.sdd', 'specs', 'auth-login', 'spec.md');
+    // spec.md 확인 (도메인 미지정 시 common 폴더에 생성)
+    const specPath = path.join(tempDir, '.sdd', 'specs', 'common', 'auth-login', 'spec.md');
     const content = await fs.readFile(specPath, 'utf-8');
 
     expect(content).toContain('id: auth-login');
@@ -49,7 +49,8 @@ describe('sdd new', () => {
       { cwd: tempDir }
     );
 
-    const featurePath = path.join(tempDir, '.sdd', 'specs', 'user-profile');
+    // 도메인 미지정 시 common 폴더에 생성
+    const featurePath = path.join(tempDir, '.sdd', 'specs', 'common', 'user-profile');
 
     // spec.md 확인
     const specExists = await fs.stat(path.join(featurePath, 'spec.md')).catch(() => false);
@@ -75,16 +76,16 @@ describe('sdd new', () => {
       { cwd: tempDir }
     );
 
-    // plan 생성
+    // plan 생성 (common/payment 형식으로 경로 지정)
     const { stdout } = await execAsync(
-      `node "${cliPath}" new plan payment`,
+      `node "${cliPath}" new plan common/payment`,
       { cwd: tempDir }
     );
 
     expect(stdout).toContain('계획 생성');
 
-    // plan.md 확인
-    const planPath = path.join(tempDir, '.sdd', 'specs', 'payment', 'plan.md');
+    // plan.md 확인 (common 폴더에 생성됨)
+    const planPath = path.join(tempDir, '.sdd', 'specs', 'common', 'payment', 'plan.md');
     const content = await fs.readFile(planPath, 'utf-8');
 
     expect(content).toContain('feature: payment');
@@ -98,19 +99,41 @@ describe('sdd new', () => {
       { cwd: tempDir }
     );
 
-    // tasks 생성
+    // tasks 생성 (common/cart 형식으로 경로 지정)
     const { stdout } = await execAsync(
-      `node "${cliPath}" new tasks cart`,
+      `node "${cliPath}" new tasks common/cart`,
       { cwd: tempDir }
     );
 
     expect(stdout).toContain('작업 분해 생성');
 
-    // tasks.md 확인
-    const tasksPath = path.join(tempDir, '.sdd', 'specs', 'cart', 'tasks.md');
+    // tasks.md 확인 (common 폴더에 생성됨)
+    const tasksPath = path.join(tempDir, '.sdd', 'specs', 'common', 'cart', 'tasks.md');
     const content = await fs.readFile(tasksPath, 'utf-8');
 
     expect(content).toContain('feature: cart');
     expect(content).toContain('작업 목록');
+  });
+
+  it('도메인 지정 시 해당 폴더에 생성한다', async () => {
+    // 먼저 도메인 생성
+    await execAsync(
+      `node "${cliPath}" domain create auth --description "인증 도메인"`,
+      { cwd: tempDir }
+    );
+
+    const { stdout } = await execAsync(
+      `node "${cliPath}" new auth/login --title "로그인" --no-branch`,
+      { cwd: tempDir }
+    );
+
+    expect(stdout).toContain('spec.md 생성');
+
+    // auth 도메인 폴더에 생성됨
+    const specPath = path.join(tempDir, '.sdd', 'specs', 'auth', 'login', 'spec.md');
+    const content = await fs.readFile(specPath, 'utf-8');
+
+    expect(content).toContain('id: login');
+    expect(content).toContain('domain: auth');
   });
 });

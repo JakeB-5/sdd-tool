@@ -8,7 +8,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
-import { findSddRoot, fileExists, readFile, ensureDir, writeFile, directoryExists } from '../../utils/fs.js';
+import { findSddRoot, fileExists, readFile, ensureDir, writeFile, directoryExists, findSpecPath } from '../../utils/fs.js';
 import { generateChangeId } from '../../core/change/index.js';
 import { Result, success, failure } from '../../types/index.js';
 
@@ -88,9 +88,13 @@ export async function transitionNewToChange(
   specId: string,
   options: NewToChangeOptions
 ): Promise<Result<NewToChangeResult, Error>> {
-  const specsPath = path.join(sddPath, 'specs');
-  const specPath = path.join(specsPath, specId, 'spec.md');
+  // 도메인 기반 경로 탐색
+  const specDir = await findSpecPath(sddPath, specId);
+  if (!specDir) {
+    return failure(new Error(`스펙을 찾을 수 없습니다: ${specId}`));
+  }
 
+  const specPath = path.join(specDir, 'spec.md');
   if (!(await fileExists(specPath))) {
     return failure(new Error(`스펙을 찾을 수 없습니다: ${specId}`));
   }
@@ -147,7 +151,8 @@ export async function transitionChangeToNew(
   const featureName = options.name ||
     extractedTitle.toLowerCase().replace(/\s+/g, '-') ||
     `feature-from-${changeId}`;
-  const specsPath = path.join(sddPath, 'specs');
+  // 도메인 미지정 시 common 폴더에 생성
+  const specsPath = path.join(sddPath, 'specs', 'common');
   const newSpecPath = path.join(specsPath, featureName);
 
   if (await directoryExists(newSpecPath)) {
@@ -356,13 +361,13 @@ async function runChangeToNew(
   logger.success(`전환 완료! 새 기능 스펙이 생성되었습니다.`);
   logger.newline();
   logger.info(`기능 이름: ${featureName}`);
-  logger.info(`위치: .sdd/specs/${featureName}/`);
+  logger.info(`위치: .sdd/specs/common/${featureName}/`);
   logger.info(`원본 변경 ${originalChangeId}은 'transitioned' 상태로 변경되었습니다.`);
   logger.newline();
   logger.info('다음 단계:');
-  logger.listItem(`1. .sdd/specs/${featureName}/spec.md 편집`);
-  logger.listItem(`2. sdd new plan ${featureName}`);
-  logger.listItem(`3. sdd new tasks ${featureName}`);
+  logger.listItem(`1. .sdd/specs/common/${featureName}/spec.md 편집`);
+  logger.listItem(`2. sdd new plan common/${featureName}`);
+  logger.listItem(`3. sdd new tasks common/${featureName}`);
   logger.listItem(`4. 구현 진행`);
   logger.newline();
   logger.info('또는 슬래시 커맨드 사용:');

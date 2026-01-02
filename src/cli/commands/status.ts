@@ -124,18 +124,39 @@ export async function getProjectStatus(projectPath: string): Promise<ProjectStat
   // AGENTS.md 확인
   status.hasAgents = await fileExists(path.join(sddPath, 'AGENTS.md'));
 
-  // 기능 스펙 조회
+  // 기능 스펙 조회 (도메인 기반 구조 지원)
   const specsPath = path.join(sddPath, 'specs');
   if (await fileExists(specsPath)) {
     const specsResult = await readDir(specsPath);
     if (specsResult.success) {
       for (const entry of specsResult.data) {
-        const featurePath = path.join(specsPath, entry);
-        const stat = await fs.stat(featurePath);
+        const entryPath = path.join(specsPath, entry);
+        const stat = await fs.stat(entryPath);
 
         if (stat.isDirectory()) {
-          const featureInfo = await getFeatureInfo(entry, featurePath);
-          status.features.push(featureInfo);
+          // 직접 하위에 spec.md가 있는지 확인 (기존 구조 호환)
+          const directSpecPath = path.join(entryPath, 'spec.md');
+          if (await fileExists(directSpecPath)) {
+            const featureInfo = await getFeatureInfo(entry, entryPath);
+            status.features.push(featureInfo);
+          } else {
+            // 도메인 폴더로 간주하고 하위 디렉토리 탐색
+            const domainResult = await readDir(entryPath);
+            if (domainResult.success) {
+              for (const featureEntry of domainResult.data) {
+                const featurePath = path.join(entryPath, featureEntry);
+                const featureStat = await fs.stat(featurePath);
+                if (featureStat.isDirectory()) {
+                  const specPath = path.join(featurePath, 'spec.md');
+                  if (await fileExists(specPath)) {
+                    const featureId = `${entry}/${featureEntry}`;
+                    const featureInfo = await getFeatureInfo(featureId, featurePath);
+                    status.features.push(featureInfo);
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }

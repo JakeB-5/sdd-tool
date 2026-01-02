@@ -191,8 +191,8 @@ describe('transitionChangeToNew', () => {
     await fs.mkdir(changePath, { recursive: true });
     await fs.writeFile(path.join(changePath, 'proposal.md'), '# Test');
 
-    // 동일 이름의 스펙 생성
-    await fs.mkdir(path.join(sddPath, 'specs', 'existing-feature'), { recursive: true });
+    // 동일 이름의 스펙 생성 (도메인 기반 구조: specs/common/existing-feature)
+    await fs.mkdir(path.join(sddPath, 'specs', 'common', 'existing-feature'), { recursive: true });
 
     const result = await transitionChangeToNew(sddPath, 'CHG-001', {
       name: 'existing-feature',

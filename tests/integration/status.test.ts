@@ -72,7 +72,8 @@ describe('sdd status', () => {
     );
 
     expect(stdout).toContain('기능 목록');
-    expect(stdout).toContain('auth');
+    // 도메인 기반 구조에서 feature ID는 common/auth 형식
+    expect(stdout).toContain('common/auth');
   });
 });
 

@@ -16,7 +16,7 @@ import {
   getFeatureHistory,
 } from '../../core/new/index.js';
 import { logger } from '../../utils/index.js';
-import { ensureDir, fileExists, readFile, writeFile } from '../../utils/fs.js';
+import { ensureDir, fileExists, readFile, writeFile, findSpecPath } from '../../utils/fs.js';
 import { parseConstitution } from '../../core/constitution/index.js';
 import { Result, success, failure } from '../../types/index.js';
 import { createDomainService } from '../../core/domain/service.js';
@@ -158,6 +158,9 @@ export async function createFeature(
     }
   }
 
+  // 실제 디렉토리에 사용할 도메인 (없으면 'common')
+  const effectiveDomain = domain || 'common';
+
   // 기능 ID 생성
   let featureId: string;
   let branchName: string | undefined;
@@ -175,7 +178,7 @@ export async function createFeature(
 
   const title = options.title || effectiveName;
   const description = options.description || `${title} 기능 명세`;
-  const featurePath = path.join(sddPath, 'specs', featureId);
+  const featurePath = path.join(sddPath, 'specs', effectiveDomain, featureId);
 
   // 기능 디렉토리 생성
   const dirResult = await ensureDir(featurePath);
@@ -248,7 +251,7 @@ export async function createFeature(
     featurePath,
     branchName,
     filesCreated,
-    domain,
+    domain: effectiveDomain,
   });
 }
 
@@ -531,9 +534,20 @@ async function handlePlan(
   options: { title?: string }
 ): Promise<void> {
   const cwd = process.cwd();
-  const featurePath = path.join(cwd, '.sdd', 'specs', feature);
+  const sddPath = path.join(cwd, '.sdd');
+  const featurePath = await findSpecPath(sddPath, feature);
 
-  const result = await createPlan(featurePath, feature, options.title);
+  if (!featurePath) {
+    logger.error(`기능 '${feature}'을 찾을 수 없습니다.`);
+    logger.info('');
+    logger.info('사용법:');
+    logger.info('  sdd new plan <domain>/<feature>  도메인/기능 형식');
+    logger.info('  sdd new plan <feature>           자동 탐색');
+    process.exit(1);
+  }
+
+  const featureId = path.basename(featurePath);
+  const result = await createPlan(featurePath, featureId, options.title);
   if (!result.success) {
     logger.error(result.error.message);
     process.exit(1);
@@ -551,9 +565,20 @@ async function handlePlan(
  */
 async function handleTasks(feature: string): Promise<void> {
   const cwd = process.cwd();
-  const featurePath = path.join(cwd, '.sdd', 'specs', feature);
+  const sddPath = path.join(cwd, '.sdd');
+  const featurePath = await findSpecPath(sddPath, feature);
 
-  const result = await createTasks(featurePath, feature);
+  if (!featurePath) {
+    logger.error(`기능 '${feature}'을 찾을 수 없습니다.`);
+    logger.info('');
+    logger.info('사용법:');
+    logger.info('  sdd new tasks <domain>/<feature>  도메인/기능 형식');
+    logger.info('  sdd new tasks <feature>           자동 탐색');
+    process.exit(1);
+  }
+
+  const featureId = path.basename(featurePath);
+  const result = await createTasks(featurePath, featureId);
   if (!result.success) {
     logger.error(result.error.message);
     process.exit(1);

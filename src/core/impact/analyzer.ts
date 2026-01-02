@@ -16,7 +16,7 @@ import {
 import { buildDependencyGraph, generateMermaidGraph } from './graph.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
-import { directoryExists, fileExists, readFile } from '../../utils/fs.js';
+import { directoryExists, fileExists, readFile, findSpecPath } from '../../utils/fs.js';
 import { parseProposal } from '../change/index.js';
 
 /**
@@ -40,7 +40,22 @@ export async function analyzeImpact(
     }
 
     const graph = graphResult.data;
-    const targetNode = graph.nodes.get(targetSpec);
+    let targetNode = graph.nodes.get(targetSpec);
+    let effectiveTargetSpec = targetSpec;
+
+    // 직접 찾지 못하면 도메인 기반 경로로 재시도
+    if (!targetNode) {
+      // findSpecPath로 실제 경로 찾기
+      const specDir = await findSpecPath(sddPath, targetSpec);
+      if (specDir) {
+        // specs/ 이후의 경로를 ID로 사용
+        const relPath = path.relative(specsPath, specDir).replace(/\\/g, '/');
+        targetNode = graph.nodes.get(relPath);
+        if (targetNode) {
+          effectiveTargetSpec = relPath;
+        }
+      }
+    }
 
     if (!targetNode) {
       return failure(new ChangeError(`스펙을 찾을 수 없습니다: ${targetSpec}`));
@@ -49,7 +64,7 @@ export async function analyzeImpact(
     // 의존하는 스펙 (이 스펙이 사용하는)
     const dependsOn: AffectedSpec[] = targetNode.dependsOn.map((depId) => {
       const depNode = graph.nodes.get(depId);
-      const edge = graph.edges.find((e) => e.from === targetSpec && e.to === depId);
+      const edge = graph.edges.find((e) => e.from === effectiveTargetSpec && e.to === depId);
       return {
         id: depId,
         path: depNode?.path || depId,
@@ -63,7 +78,7 @@ export async function analyzeImpact(
     // 영향 받는 스펙 (이 스펙을 사용하는)
     const affectedBy: AffectedSpec[] = targetNode.dependedBy.map((depId) => {
       const depNode = graph.nodes.get(depId);
-      const edge = graph.edges.find((e) => e.from === depId && e.to === targetSpec);
+      const edge = graph.edges.find((e) => e.from === depId && e.to === effectiveTargetSpec);
       const level = determineImpactLevel(edge?.type);
       return {
         id: depId,
@@ -76,18 +91,18 @@ export async function analyzeImpact(
     });
 
     // 간접 영향 분석 (transitive)
-    const transitiveAffected = getTransitiveAffected(graph, targetSpec, new Set([targetSpec]));
+    const transitiveAffected = getTransitiveAffected(graph, effectiveTargetSpec, new Set([effectiveTargetSpec]));
 
     // 리스크 점수 계산
     const riskScore = calculateRiskScore(dependsOn, affectedBy, transitiveAffected);
     const riskLevel = getImpactLevel(riskScore);
 
     // 요약 및 권장사항 생성
-    const summary = generateSummary(targetSpec, dependsOn, affectedBy, transitiveAffected, riskScore);
+    const summary = generateSummary(effectiveTargetSpec, dependsOn, affectedBy, transitiveAffected, riskScore);
     const recommendations = generateRecommendations(affectedBy, transitiveAffected, riskLevel);
 
     return success({
-      targetSpec,
+      targetSpec: effectiveTargetSpec,
       dependsOn,
       affectedBy,
       transitiveAffected,

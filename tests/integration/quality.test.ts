@@ -170,8 +170,8 @@ describe('sdd quality', () => {
         { cwd: tempDir }
       );
 
-      // 생성된 스펙 내용 보완
-      const specPath = path.join(tempDir, '.sdd', 'specs', 'complete-spec', 'spec.md');
+      // 생성된 스펙 내용 보완 (common 폴더에 생성됨)
+      const specPath = path.join(tempDir, '.sdd', 'specs', 'common', 'complete-spec', 'spec.md');
       await fs.writeFile(
         specPath,
         `---

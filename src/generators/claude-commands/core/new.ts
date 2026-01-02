@@ -9,9 +9,26 @@ export const newCommand: ClaudeCommand = {
 
 ## 지시사항
 
-1. 사용자에게 기능명과 간단한 설명을 요청하세요
-2. \`sdd new <feature-id> --all\` 명령어를 실행하여 기본 구조를 생성하세요
-3. 생성된 \`.sdd/specs/<feature-id>/spec.md\` 파일을 열어 내용을 작성하세요
+1. 사용자에게 **도메인명**, 기능명, 간단한 설명을 요청하세요
+2. \`sdd new <domain>/<feature-id> --all\` 명령어를 실행하여 기본 구조를 생성하세요
+   - 도메인 미지정 시 \`common\` 폴더에 생성됩니다
+3. 생성된 \`.sdd/specs/<domain>/<feature-id>/spec.md\` 파일을 열어 내용을 작성하세요
+
+## 디렉토리 구조
+
+\`\`\`
+.sdd/specs/
+├── auth/                    # 인증 도메인
+│   ├── login/
+│   │   ├── spec.md
+│   │   ├── plan.md
+│   │   └── tasks.md
+│   └── signup/
+├── payment/                 # 결제 도메인
+│   └── checkout/
+└── common/                  # 도메인 미지정 시 기본 위치
+    └── settings/
+\`\`\`
 
 ## 명세 작성 규칙
 

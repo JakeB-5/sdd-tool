@@ -125,8 +125,8 @@ describe('sdd transition', () => {
         { cwd: tempDir }
       );
 
-      // 새 스펙 확인
-      const specsPath = path.join(tempDir, '.sdd', 'specs');
+      // 새 스펙 확인 (common 폴더에 생성됨)
+      const specsPath = path.join(tempDir, '.sdd', 'specs', 'common');
       const specs = await fs.readdir(specsPath);
       // 생성된 스펙이 있는지 확인
       expect(specs.some(s => s.includes('new-from-change') || s.startsWith('feature-'))).toBe(true);

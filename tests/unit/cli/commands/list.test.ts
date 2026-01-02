@@ -245,8 +245,17 @@ describe('getProjectSummary', () => {
 
   it('기능 수를 포함한 요약을 반환한다', async () => {
     const specsDir = path.join(sddPath, 'specs');
-    await fs.mkdir(path.join(specsDir, 'feature1'), { recursive: true });
-    await fs.mkdir(path.join(specsDir, 'feature2'), { recursive: true });
+    // 도메인 기반 구조: specs/common/feature1/spec.md
+    await fs.mkdir(path.join(specsDir, 'common', 'feature1'), { recursive: true });
+    await fs.mkdir(path.join(specsDir, 'common', 'feature2'), { recursive: true });
+    await fs.writeFile(
+      path.join(specsDir, 'common', 'feature1', 'spec.md'),
+      `---\ntitle: "Feature 1"\nstatus: draft\n---\n# Feature 1`
+    );
+    await fs.writeFile(
+      path.join(specsDir, 'common', 'feature2', 'spec.md'),
+      `---\ntitle: "Feature 2"\nstatus: draft\n---\n# Feature 2`
+    );
 
     const summary = await getProjectSummary(tempDir);
 

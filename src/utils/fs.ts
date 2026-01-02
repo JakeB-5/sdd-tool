@@ -171,3 +171,49 @@ export async function removeDir(dirPath: string): Promise<Result<void, FileSyste
     return failure(new FileSystemError(ErrorCode.FILE_WRITE_ERROR, dirPath));
   }
 }
+
+/**
+ * 스펙 경로 찾기 (도메인/<feature> 형식 또는 탐색)
+ *
+ * 검색 순서:
+ * 1. <domain>/<feature> 형식인 경우 직접 경로 확인
+ * 2. specs/<feature> 직접 경로 확인 (기존 호환성)
+ * 3. 모든 도메인 폴더에서 <feature> 탐색
+ */
+export async function findSpecPath(sddPath: string, feature: string): Promise<string | null> {
+  // 1. <domain>/<feature> 형식 지원
+  if (feature.includes('/')) {
+    const specPath = path.join(sddPath, 'specs', feature);
+    if (await fileExists(specPath)) {
+      return specPath;
+    }
+  }
+
+  // 2. 직접 경로 확인 (기존 호환성)
+  const directPath = path.join(sddPath, 'specs', feature);
+  if (await fileExists(directPath)) {
+    return directPath;
+  }
+
+  // 3. 모든 도메인 폴더에서 탐색
+  const specsDir = path.join(sddPath, 'specs');
+  if (!(await directoryExists(specsDir))) {
+    return null;
+  }
+
+  try {
+    const entries = await fs.readdir(specsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const candidatePath = path.join(specsDir, entry.name, feature);
+        if (await fileExists(candidatePath)) {
+          return candidatePath;
+        }
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
