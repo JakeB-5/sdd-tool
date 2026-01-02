@@ -95,12 +95,12 @@ describe('finalizer', () => {
       expect(result.success).toBe(true);
       if (!result.success) return;
 
-      // 새 형식: id는 feature-id만 (domain/name에서 name만 추출)
-      expect(result.data.id).toBe('login');
+      // 도메인 기반 형식: id는 domain/feature-id
+      expect(result.data.id).toBe('auth/login');
       expect(result.data.domain).toBe('auth');
 
-      // 파일이 생성되었는지 확인: .sdd/specs/<feature-id>/spec.md
-      const specPath = path.join(sddPath, 'specs', 'login', 'spec.md');
+      // 파일이 생성되었는지 확인: .sdd/specs/<domain>/<feature-id>/spec.md
+      const specPath = path.join(sddPath, 'specs', 'auth', 'login', 'spec.md');
       const exists = await fs.stat(specPath).then(() => true).catch(() => false);
       expect(exists).toBe(true);
     });
@@ -109,8 +109,8 @@ describe('finalizer', () => {
       const spec = createMockSpec();
       await finalizeSpec(sddRoot, spec);
 
-      // 새 형식: .sdd/specs/<feature-id>/spec.md
-      const specPath = path.join(sddPath, 'specs', 'login', 'spec.md');
+      // 도메인 기반 형식: .sdd/specs/<domain>/<feature-id>/spec.md
+      const specPath = path.join(sddPath, 'specs', 'auth', 'login', 'spec.md');
       const content = await fs.readFile(specPath, 'utf-8');
 
       // 주요 섹션 확인
@@ -191,8 +191,8 @@ describe('finalizer', () => {
       expect(result.success).toBe(true);
       if (!result.success) return;
 
-      // 새 형식: id는 feature-id만 (domain/name에서 name만 추출)
-      expect(result.data.id).toBe('login');
+      // 도메인 기반 형식: id는 domain/feature-id
+      expect(result.data.id).toBe('auth/login');
     });
 
     it('존재하지 않는 스펙은 실패', async () => {
@@ -206,9 +206,9 @@ describe('finalizer', () => {
       const result = {
         finalized: [
           {
-            id: 'login',
+            id: 'auth/login',
             domain: 'auth',
-            specPath: '.sdd/specs/login/spec.md',
+            specPath: '.sdd/specs/auth/login/spec.md',
             original: createMockSpec(),
             finalizedAt: new Date(),
           },
