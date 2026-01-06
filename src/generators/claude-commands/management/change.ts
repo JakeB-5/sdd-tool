@@ -7,6 +7,9 @@ export const changeCommand: ClaudeCommand = {
   name: 'sdd.change',
   content: `기존 스펙에 대한 변경을 제안합니다.
 
+> **Deprecated**: 이 커맨드는 \`/sdd.spec\`으로 대체되었습니다.
+> \`/sdd.spec\`은 새 기능/기존 수정을 자동 판단하여 적절한 워크플로우로 안내합니다.
+
 ## 지시사항
 
 1. 사용자에게 변경할 **도메인명**과 **기능명**을 요청하세요

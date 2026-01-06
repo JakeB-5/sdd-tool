@@ -60,7 +60,7 @@ claude
 │  2. /sdd.constitution → 프로젝트 원칙 정의                   │
 │     │                                                       │
 │     ▼                                                       │
-│  3. /sdd.new          → 기능 명세 작성 (spec.md)             │
+│  3. /sdd.spec         → 기능 명세 작성/수정 (spec.md)        │
 │     │                                                       │
 │     ▼                                                       │
 │  4. /sdd.plan         → 구현 계획 수립 (plan.md)             │
@@ -82,7 +82,7 @@ claude
 
 ---
 
-## 슬래시 커맨드 (29개)
+## 슬래시 커맨드 (30개)
 
 `sdd init` 실행 시 `.claude/commands/`에 자동 생성됩니다.
 
@@ -92,20 +92,28 @@ claude
 |--------|------|----------|
 | `/sdd.start` | 통합 진입점 | `/sdd.start` |
 | `/sdd.constitution` | 프로젝트 원칙 관리 | `/sdd.constitution React 기반 할일 앱` |
-| `/sdd.new` | 새 기능 명세 작성 | `/sdd.new 사용자 인증 기능` |
+| `/sdd.spec` | **기능 명세 작성/수정 (통합)** | `/sdd.spec 사용자 인증 기능` |
 | `/sdd.plan` | 구현 계획 작성 | `/sdd.plan` |
 | `/sdd.tasks` | 작업 분해 | `/sdd.tasks` |
 | `/sdd.prepare` | 서브에이전트/스킬 점검 | `/sdd.prepare` |
 | `/sdd.implement` | 순차적 구현 | `/sdd.implement` |
 | `/sdd.validate` | 스펙 검증 | `/sdd.validate` |
 
+> **Note**: `/sdd.spec`은 새 기능 작성과 기존 스펙 수정을 자동으로 판단하여 적절한 워크플로우로 안내합니다.
+
 ### 변경 관리
 
 | 커맨드 | 설명 |
 |--------|------|
-| `/sdd.change` | 기존 스펙 변경 제안 |
 | `/sdd.impact` | 변경 영향도 분석 |
 | `/sdd.transition` | new ↔ change 워크플로우 전환 |
+
+### Deprecated
+
+| 커맨드 | 대체 | 설명 |
+|--------|------|------|
+| `/sdd.new` | `/sdd.spec` | 새 기능 명세 작성 |
+| `/sdd.change` | `/sdd.spec` | 기존 스펙 변경 제안 |
 
 ### 분석 및 품질
 

@@ -14,12 +14,14 @@ Claude Code에서 사용하는 SDD 슬래시 커맨드 가이드입니다.
 |--------|------|
 | [`/sdd.start`](/commands/sdd-start) | 통합 진입점 |
 | [`/sdd.constitution`](/commands/sdd-constitution) | 프로젝트 원칙 관리 |
-| [`/sdd.new`](/commands/sdd-new) | 새 기능 명세 작성 |
+| [`/sdd.spec`](/commands/sdd-spec) | **기능 명세 작성/수정 (통합)** |
 | [`/sdd.plan`](/commands/sdd-plan) | 구현 계획 작성 |
 | [`/sdd.tasks`](/commands/sdd-tasks) | 작업 분해 |
 | [`/sdd.prepare`](/commands/sdd-prepare) | 도구 점검 |
 | [`/sdd.implement`](/commands/sdd-implement) | 순차적 구현 |
 | [`/sdd.validate`](/commands/sdd-validate) | 스펙 검증 |
+
+> **Note**: `/sdd.spec`은 새 기능 작성과 기존 스펙 수정을 자동으로 판단하여 적절한 워크플로우로 안내합니다.
 
 ### 도메인 & 역추출 (v1.2.0)
 
@@ -46,9 +48,15 @@ Claude Code에서 사용하는 SDD 슬래시 커맨드 가이드입니다.
 
 | 커맨드 | 설명 |
 |--------|------|
-| `/sdd.change` | 기존 스펙 변경 제안 |
 | `/sdd.impact` | 변경 영향도 분석 |
 | `/sdd.transition` | new ↔ change 워크플로우 전환 |
+
+### Deprecated
+
+| 커맨드 | 대체 | 설명 |
+|--------|------|------|
+| [`/sdd.new`](/commands/sdd-new) | `/sdd.spec` | 새 기능 명세 작성 |
+| `/sdd.change` | `/sdd.spec` | 기존 스펙 변경 제안 |
 
 ### 분석 및 품질
 
@@ -93,7 +101,7 @@ Claude Code에서 슬래시로 시작하는 커맨드를 입력합니다:
 인수가 필요한 경우:
 
 ```
-/sdd.new 사용자 인증 기능
+/sdd.spec 사용자 인증 기능
 ```
 
 ## v1.2.0 새 기능
