@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-01-06
+
+### Added
+
+- **`/sdd.spec` 통합 진입점 커맨드**
+  - 새 기능 작성과 기존 스펙 수정을 자동으로 판단
+  - 스펙 존재 여부 확인 후 `/sdd.new` 또는 `/sdd.change` 워크플로우로 안내
+  - `/sdd.new`, `/sdd.change`에 가드레일 추가 (잘못된 사용 시 올바른 커맨드 안내)
+
+### Changed
+
+- `/sdd.new` deprecated 처리 → `/sdd.spec` 사용 권장
+- `/sdd.change` deprecated 처리 → `/sdd.spec` 사용 권장
+- README.md 워크플로우 다이어그램 업데이트 (`/sdd.new` → `/sdd.spec`)
+
+### Fixed
+
+- `sdd reverse finalize` 스펙 포맷이 `sdd new`와 다른 문제 수정 (v1.3.1)
+  - YAML frontmatter, REQ-ID, RFC 2119 키워드(SHALL), GIVEN 시나리오 형식 통일
+- 슬래시 커맨드 프롬프트 경로가 v1.3.0 도메인 기반 구조와 불일치 문제 수정 (v1.3.2)
+  - `.sdd/specs/user-auth/spec.md` → `.sdd/specs/auth/user-auth/spec.md` 형식으로 통일
+
+### Documentation
+
+- `/sdd.spec` 커맨드 문서 추가 (`docs/commands/sdd-spec.md`)
+- Deprecated 커맨드 섹션 추가 (`/sdd.new`, `/sdd.change`)
+
+---
+
+## [1.3.2] - 2026-01-06
+
+### Fixed
+
+- 슬래시 커맨드 프롬프트의 스펙 경로가 v1.3.0 도메인 기반 구조와 불일치
+  - `/sdd.validate`, `/sdd.change` 등의 경로 형식 수정
+
+---
+
+## [1.3.1] - 2026-01-06
+
+### Fixed
+
+- `sdd reverse finalize`로 생성된 스펙이 `sdd new`와 다른 포맷이라 `sdd validate` 실패
+  - `convertToSddSpec()` 함수 전면 재작성
+  - YAML frontmatter, `## 요구사항` + REQ-ID + RFC 2119 키워드(SHALL), `- **GIVEN**` 시나리오 형식으로 통일
+
+---
+
 ## [1.3.0] - 2026-01-02
 
 ### Changed
@@ -517,6 +565,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.4.0]: https://github.com/JakeB-5/sdd-tool/compare/v1.3.2...v1.4.0
+[1.3.2]: https://github.com/JakeB-5/sdd-tool/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/JakeB-5/sdd-tool/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/JakeB-5/sdd-tool/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/JakeB-5/sdd-tool/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/JakeB-5/sdd-tool/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/JakeB-5/sdd-tool/compare/v1.0.0...v1.0.1

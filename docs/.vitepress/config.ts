@@ -138,12 +138,20 @@ export default defineConfig({
             { text: '개요', link: '/commands/' },
             { text: '/sdd.start', link: '/commands/sdd-start' },
             { text: '/sdd.constitution', link: '/commands/sdd-constitution' },
-            { text: '/sdd.new', link: '/commands/sdd-new' },
+            { text: '/sdd.spec', link: '/commands/sdd-spec' },
             { text: '/sdd.plan', link: '/commands/sdd-plan' },
             { text: '/sdd.tasks', link: '/commands/sdd-tasks' },
             { text: '/sdd.prepare', link: '/commands/sdd-prepare' },
             { text: '/sdd.implement', link: '/commands/sdd-implement' },
             { text: '/sdd.validate', link: '/commands/sdd-validate' },
+          ],
+        },
+        {
+          text: 'Deprecated',
+          collapsed: true,
+          items: [
+            { text: '/sdd.new (→ /sdd.spec)', link: '/commands/sdd-new' },
+            { text: '/sdd.change (→ /sdd.spec)', link: '/commands/sdd-change' },
           ],
         },
         {
