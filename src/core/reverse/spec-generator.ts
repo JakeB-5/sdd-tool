@@ -370,7 +370,10 @@ export function generateSpec(
 }
 
 /**
- * 스펙을 마크다운으로 포맷팅
+ * 스펙을 마크다운으로 포맷팅 (초안용)
+ *
+ * 초안 단계에서는 frontmatter 없이 간결하게 표시하되,
+ * 시나리오 형식은 최종 형식과 동일하게 `- **GIVEN**` 형식 사용
  */
 export function formatSpecAsMarkdown(spec: ExtractedSpec): string {
   const lines: string[] = [];
@@ -389,16 +392,18 @@ export function formatSpecAsMarkdown(spec: ExtractedSpec): string {
   lines.push(spec.description);
   lines.push('');
 
-  // 시나리오
+  // 시나리오 (최종 형식과 동일: - **GIVEN** 형식)
   if (spec.scenarios.length > 0) {
     lines.push('## 시나리오');
     lines.push('');
-    for (const scenario of spec.scenarios) {
-      lines.push(`### ${scenario.name}${scenario.inferred ? ' *(추론됨)*' : ''}`);
+    for (let i = 0; i < spec.scenarios.length; i++) {
+      const scenario = spec.scenarios[i];
+      const inferredTag = scenario.inferred ? ' *(추론됨)*' : '';
+      lines.push(`### Scenario ${i + 1}: ${scenario.name}${inferredTag}`);
       lines.push('');
-      lines.push(`**Given** ${scenario.given}`);
-      lines.push(`**When** ${scenario.when}`);
-      lines.push(`**Then** ${scenario.then}`);
+      lines.push(`- **GIVEN** ${scenario.given}`);
+      lines.push(`- **WHEN** ${scenario.when}`);
+      lines.push(`- **THEN** ${scenario.then}`);
       lines.push('');
     }
   }

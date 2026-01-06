@@ -103,8 +103,22 @@ sdd reverse finalize -d auth      # 특정 도메인 확정
 
 **수행 작업:**
 - \`.sdd/.reverse-drafts/\`에서 승인된 스펙 읽기
-- \`.sdd/specs/<feature-id>/spec.md\` 생성
+- \`.sdd/specs/<domain>/<feature-id>/spec.md\` 생성 (\`/sdd.new\`와 동일한 형식)
 - 초안 파일 삭제
+
+**생성되는 스펙 형식:**
+
+finalize로 생성되는 스펙은 \`/sdd.new\`와 **동일한 형식**입니다:
+
+- YAML frontmatter (id, title, status, domain, depends, ...)
+- \`## 요구사항\` + REQ-ID + RFC 2119 키워드 (SHALL)
+- \`## 시나리오\` + \`- **GIVEN/WHEN/THEN**\` 형식
+- \`## 비기능 요구사항\`, \`## 제약사항\`, \`## 용어 정의\`
+
+추가 메타데이터 (역추출 전용):
+- \`extracted_from: reverse-extraction\`
+- \`confidence: <신뢰도 점수>\`
+- \`source_files: [원본 파일 목록]\`
 
 **완료 후 안내:** "스펙 확정이 완료되었습니다. \`/sdd.validate\`로 스펙을 검증하거나 \`/sdd.new\`로 새 기능을 추가할 수 있습니다."
 

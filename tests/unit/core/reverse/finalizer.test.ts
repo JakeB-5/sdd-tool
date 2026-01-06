@@ -16,6 +16,7 @@ import {
 } from '../../../../src/core/reverse/finalizer.js';
 import { approveSpec } from '../../../../src/core/reverse/review.js';
 import type { ExtractedSpec } from '../../../../src/core/reverse/spec-generator.js';
+import { parseSpec, validateSpecFormat } from '../../../../src/core/spec/parser.js';
 
 describe('finalizer', () => {
   let sddRoot: string;
@@ -105,7 +106,7 @@ describe('finalizer', () => {
       expect(exists).toBe(true);
     });
 
-    it('SDD 형식으로 변환', async () => {
+    it('SDD 형식으로 변환 (sdd new와 동일한 형식)', async () => {
       const spec = createMockSpec();
       await finalizeSpec(sddRoot, spec);
 
@@ -113,13 +114,31 @@ describe('finalizer', () => {
       const specPath = path.join(sddPath, 'specs', 'auth', 'login', 'spec.md');
       const content = await fs.readFile(specPath, 'utf-8');
 
+      // YAML frontmatter 확인
+      expect(content).toMatch(/^---\n/);
+      expect(content).toContain('id: login');
+      expect(content).toContain('title: "Login"');
+      expect(content).toContain('status: draft');
+      expect(content).toContain('domain: auth');
+      expect(content).toContain('extracted_from: reverse-extraction');
+      expect(content).toContain('confidence: 75');
+
       // 주요 섹션 확인
       expect(content).toContain('# Login');
+      expect(content).toContain('## 요구사항');
+      expect(content).toContain('REQ-');
+      expect(content).toContain('(SHALL)');
+
+      // 시나리오 형식 확인 (- **GIVEN** 형식)
       expect(content).toContain('## 시나리오');
-      expect(content).toContain('Given');
-      expect(content).toContain('When');
-      expect(content).toContain('Then');
-      expect(content).toContain('## 계약');
+      expect(content).toContain('- **GIVEN**');
+      expect(content).toContain('- **WHEN**');
+      expect(content).toContain('- **THEN**');
+
+      // 추가 섹션 확인
+      expect(content).toContain('## 비기능 요구사항');
+      expect(content).toContain('## 제약사항');
+      expect(content).toContain('## 용어 정의');
     });
   });
 
@@ -267,6 +286,76 @@ describe('finalizer', () => {
       if (!result.success) return;
 
       expect(result.data).toEqual([]);
+    });
+  });
+
+  describe('통합 테스트: finalize → validate 호환성', () => {
+    it('확정된 스펙이 parseSpec()으로 파싱 가능', async () => {
+      const spec = createMockSpec();
+      await finalizeSpec(sddRoot, spec);
+
+      const specPath = path.join(sddPath, 'specs', 'auth', 'login', 'spec.md');
+      const content = await fs.readFile(specPath, 'utf-8');
+
+      // parseSpec()으로 파싱 시도
+      const parseResult = parseSpec(content);
+      expect(parseResult.success).toBe(true);
+      if (!parseResult.success) return;
+
+      // 메타데이터 확인
+      expect(parseResult.data.metadata.id).toBe('login');
+      expect(parseResult.data.metadata.domain).toBe('auth');
+      expect(parseResult.data.metadata.status).toBe('draft');
+
+      // 제목 확인
+      expect(parseResult.data.title).toBe('Login');
+    });
+
+    it('확정된 스펙이 validateSpecFormat() 통과', async () => {
+      const spec = createMockSpec();
+      await finalizeSpec(sddRoot, spec);
+
+      const specPath = path.join(sddPath, 'specs', 'auth', 'login', 'spec.md');
+      const content = await fs.readFile(specPath, 'utf-8');
+
+      // validateSpecFormat()으로 검증
+      const validateResult = validateSpecFormat(content);
+      expect(validateResult.success).toBe(true);
+    });
+
+    it('확정된 스펙의 요구사항에 RFC 2119 키워드 포함', async () => {
+      const spec = createMockSpec();
+      await finalizeSpec(sddRoot, spec);
+
+      const specPath = path.join(sddPath, 'specs', 'auth', 'login', 'spec.md');
+      const content = await fs.readFile(specPath, 'utf-8');
+
+      const parseResult = parseSpec(content);
+      expect(parseResult.success).toBe(true);
+      if (!parseResult.success) return;
+
+      // RFC 2119 키워드 포함 요구사항 확인
+      expect(parseResult.data.requirements.length).toBeGreaterThan(0);
+      expect(parseResult.data.requirements.some(r => r.level === 'SHALL')).toBe(true);
+    });
+
+    it('확정된 스펙의 시나리오가 GIVEN-WHEN-THEN 형식', async () => {
+      const spec = createMockSpec();
+      await finalizeSpec(sddRoot, spec);
+
+      const specPath = path.join(sddPath, 'specs', 'auth', 'login', 'spec.md');
+      const content = await fs.readFile(specPath, 'utf-8');
+
+      const parseResult = parseSpec(content);
+      expect(parseResult.success).toBe(true);
+      if (!parseResult.success) return;
+
+      // GIVEN-WHEN-THEN 시나리오 확인
+      expect(parseResult.data.scenarios.length).toBeGreaterThan(0);
+      const scenario = parseResult.data.scenarios[0];
+      expect(scenario.given.length).toBeGreaterThan(0);
+      expect(scenario.when).toBeTruthy();
+      expect(scenario.then.length).toBeGreaterThan(0);
     });
   });
 });

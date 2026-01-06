@@ -43,106 +43,157 @@ export interface FinalizeResult {
 
 /**
  * 스펙을 SDD 형식으로 변환
+ *
+ * sdd new와 동일한 형식으로 생성:
+ * - YAML frontmatter (id, title, status, created, domain, depends, ...)
+ * - ## 요구사항 + REQ-ID + RFC 2119 키워드
+ * - ## 시나리오 + - **GIVEN/WHEN/THEN** 형식
+ * - ## 비기능 요구사항, ## 제약사항, ## 용어 정의
  */
 function convertToSddSpec(spec: ExtractedSpec): string {
-  const lines: string[] = [];
+  const extractedAt =
+    spec.metadata.extractedAt instanceof Date
+      ? spec.metadata.extractedAt.toISOString().split('T')[0]
+      : String(spec.metadata.extractedAt).split('T')[0];
 
-  // 헤더
-  lines.push(`# ${spec.name}`);
-  lines.push('');
-  lines.push(`> 도메인: \`${spec.domain}\``);
-  lines.push(`> 버전: ${spec.metadata.version}`);
-  lines.push(`> 상태: ACTIVE`);
-  lines.push('');
+  // feature-id 추출 (domain/name 형식에서 name만 사용)
+  const featureId = spec.id.includes('/') ? spec.id.split('/').pop()! : spec.id;
 
-  // 개요
-  lines.push('## 개요');
-  lines.push('');
-  lines.push(spec.description);
-  lines.push('');
+  // source_files YAML 형식
+  const sourceFilesYaml =
+    spec.metadata.sourceFiles.length > 0
+      ? spec.metadata.sourceFiles.map(f => `  - ${f}`).join('\n')
+      : '  - (none)';
 
-  // 시나리오
-  lines.push('## 시나리오');
-  lines.push('');
-  for (const scenario of spec.scenarios) {
-    lines.push(`### ${scenario.name}`);
-    lines.push('');
-    lines.push('```gherkin');
-    lines.push(`Given ${scenario.given}`);
-    lines.push(`When ${scenario.when}`);
-    lines.push(`Then ${scenario.then}`);
-    lines.push('```');
-    lines.push('');
-  }
+  // 1. YAML frontmatter (sdd new와 동일)
+  let content = `---
+id: ${featureId}
+title: "${spec.name}"
+status: draft
+created: ${extractedAt}
+domain: ${spec.domain}
+depends: null
+extracted_from: reverse-extraction
+confidence: ${spec.confidence.score}
+source_files:
+${sourceFilesYaml}
+---
 
-  // 계약
+# ${spec.name}
+
+> ${spec.description}
+
+---
+
+## 개요
+
+${spec.description}
+
+---
+
+## 요구사항
+
+`;
+
+  // 2. 계약에서 요구사항 생성 + RFC 2119 키워드 추가
   if (spec.contracts.length > 0) {
-    lines.push('## 계약');
-    lines.push('');
+    let reqIndex = 1;
+    for (const contract of spec.contracts) {
+      const reqId = `REQ-${String(reqIndex++).padStart(2, '0')}`;
+      const reqTitle = contract.description.split('의')[0] || contract.description;
+      content += `### ${reqId}: ${reqTitle}
 
-    const inputContracts = spec.contracts.filter(c => c.type === 'input');
-    const outputContracts = spec.contracts.filter(c => c.type === 'output');
+시스템은 ${contract.description.toLowerCase()}을(를) 제공해야 한다(SHALL).
 
-    if (inputContracts.length > 0) {
-      lines.push('### 입력');
-      lines.push('');
-      for (const contract of inputContracts) {
-        lines.push(`- ${contract.description}`);
-        if (contract.signature) {
-          lines.push(`  \`\`\`typescript`);
-          lines.push(`  ${contract.signature}`);
-          lines.push(`  \`\`\``);
-        }
+`;
+      if (contract.signature) {
+        content += `\`\`\`typescript
+${contract.signature}
+\`\`\`
+
+`;
       }
-      lines.push('');
     }
+  } else {
+    content += `### REQ-01: [요구사항 제목]
 
-    if (outputContracts.length > 0) {
-      lines.push('### 출력');
-      lines.push('');
-      for (const contract of outputContracts) {
-        lines.push(`- ${contract.description}`);
-        if (contract.signature) {
-          lines.push(`  \`\`\`typescript`);
-          lines.push(`  ${contract.signature}`);
-          lines.push(`  \`\`\``);
-        }
-      }
-      lines.push('');
-    }
+[요구사항 상세 설명]
+- 시스템은 [기능]을 지원해야 한다(SHALL)
+
+`;
   }
 
-  // 관련 스펙
+  // 3. 시나리오를 - **GIVEN** 형식으로 변환
+  content += `---
+
+## 시나리오
+
+`;
+
+  if (spec.scenarios.length > 0) {
+    for (let i = 0; i < spec.scenarios.length; i++) {
+      const scenario = spec.scenarios[i];
+      content += `### Scenario ${i + 1}: ${scenario.name}
+
+- **GIVEN** ${scenario.given}
+- **WHEN** ${scenario.when}
+- **THEN** ${scenario.then}
+
+`;
+    }
+  } else {
+    content += `### Scenario 1: [시나리오명]
+
+- **GIVEN** [전제 조건]
+- **WHEN** [행동/트리거]
+- **THEN** [예상 결과]
+
+`;
+  }
+
+  // 4. 비기능 요구사항
+  content += `---
+
+## 비기능 요구사항
+
+### 성능
+
+- 응답 시간: [N]ms 이내 (SHOULD)
+
+### 보안
+
+- [보안 요구사항] (SHALL)
+
+---
+
+## 제약사항
+
+- 원본 파일: ${spec.metadata.sourceFiles.join(', ') || '(없음)'}
+- 역추출 신뢰도: ${spec.confidence.grade} (${spec.confidence.score}%)
+
+---
+
+## 용어 정의
+
+| 용어 | 정의 |
+|------|------|
+| [용어1] | [정의1] |
+`;
+
+  // 5. 관련 스펙 (있으면 추가)
   if (spec.relatedSpecs.length > 0) {
-    lines.push('## 관련 스펙');
-    lines.push('');
+    content += `
+---
+
+## 관련 스펙
+
+`;
     for (const related of spec.relatedSpecs) {
-      lines.push(`- [[${related}]]`);
+      content += `- [[${related}]]\n`;
     }
-    lines.push('');
   }
 
-  // 메타데이터
-  lines.push('---');
-  lines.push('');
-  lines.push('## 메타데이터');
-  lines.push('');
-  lines.push('```yaml');
-  lines.push(`id: ${spec.id}`);
-  lines.push(`domain: ${spec.domain}`);
-  lines.push(`version: ${spec.metadata.version}`);
-  lines.push(`source: reverse-extraction`);
-  lines.push(`extracted_at: ${spec.metadata.extractedAt.toISOString()}`);
-  lines.push(`finalized_at: ${new Date().toISOString()}`);
-  lines.push(`confidence: ${spec.confidence.score}`);
-  lines.push(`source_files:`);
-  for (const file of spec.metadata.sourceFiles) {
-    lines.push(`  - ${file}`);
-  }
-  lines.push('```');
-  lines.push('');
-
-  return lines.join('\n');
+  return content;
 }
 
 /**

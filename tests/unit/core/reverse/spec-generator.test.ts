@@ -243,9 +243,9 @@ describe('spec-generator', () => {
       expect(md).toContain('# ');
       expect(md).toContain('## 설명');
       expect(md).toContain('## 시나리오');
-      expect(md).toContain('**Given**');
-      expect(md).toContain('**When**');
-      expect(md).toContain('**Then**');
+      expect(md).toContain('- **GIVEN**');
+      expect(md).toContain('- **WHEN**');
+      expect(md).toContain('- **THEN**');
     });
 
     it('신뢰도 정보 포함', () => {
