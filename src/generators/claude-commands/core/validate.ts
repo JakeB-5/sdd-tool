@@ -24,8 +24,8 @@ export const validateCommand: ClaudeCommand = {
 # 전체 스펙 검증
 sdd validate
 
-# 특정 파일 검증
-sdd validate .sdd/specs/user-auth/spec.md
+# 특정 파일 검증 (도메인 기반 경로)
+sdd validate .sdd/specs/auth/user-auth/spec.md
 
 # 엄격 모드 (경고도 에러로 처리)
 sdd validate --strict

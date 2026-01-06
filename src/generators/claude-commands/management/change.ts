@@ -29,7 +29,7 @@ created: YYYY-MM-DD
 
 ## 영향 범위
 ### 영향받는 스펙
-- \`specs/user-auth/spec.md\`
+- \`.sdd/specs/auth/user-auth/spec.md\`
 
 ### 변경 유형
 - [x] 수정 (MODIFIED)
