@@ -9,9 +9,12 @@ export const changeCommand: ClaudeCommand = {
 
 ## 지시사항
 
-1. 변경이 필요한 스펙을 확인하세요
-2. \`.sdd/changes/\` 디렉토리에 변경 제안서를 작성하세요
-3. 변경 유형(ADDED, MODIFIED, REMOVED)을 명시하세요
+1. 사용자에게 변경할 **도메인명**과 **기능명**을 요청하세요
+2. **먼저 \`.sdd/specs/<domain>/<feature-id>/spec.md\` 존재 여부를 확인하세요**
+   - **존재하지 않으면**: "이 기능의 스펙이 없습니다. 새 기능이면 \`/sdd.new\`를 사용하세요." 안내
+   - **존재하면**: 아래 단계 진행
+3. \`.sdd/changes/\` 디렉토리에 변경 제안서를 작성하세요
+4. 변경 유형(ADDED, MODIFIED, REMOVED)을 명시하세요
 
 ## 변경 제안서 구조
 

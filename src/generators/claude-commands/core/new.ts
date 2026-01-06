@@ -10,9 +10,12 @@ export const newCommand: ClaudeCommand = {
 ## 지시사항
 
 1. 사용자에게 **도메인명**, 기능명, 간단한 설명을 요청하세요
-2. \`sdd new <domain>/<feature-id> --all\` 명령어를 실행하여 기본 구조를 생성하세요
+2. **먼저 \`.sdd/specs/<domain>/<feature-id>/spec.md\` 존재 여부를 확인하세요**
+   - **이미 존재하면**: "이 기능의 스펙이 이미 존재합니다. 수정을 원하시면 \`/sdd.change\`를 사용하세요." 안내
+   - **존재하지 않으면**: 아래 단계 진행
+3. \`sdd new <domain>/<feature-id> --all\` 명령어를 실행하여 기본 구조를 생성하세요
    - 도메인 미지정 시 \`common\` 폴더에 생성됩니다
-3. 생성된 \`.sdd/specs/<domain>/<feature-id>/spec.md\` 파일을 열어 내용을 작성하세요
+4. 생성된 \`.sdd/specs/<domain>/<feature-id>/spec.md\` 파일을 열어 내용을 작성하세요
 
 ## 디렉토리 구조
 

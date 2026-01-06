@@ -17,6 +17,7 @@ export type { ClaudeCommand } from './types.js';
 // 핵심 워크플로우 커맨드
 import {
   startCommand,
+  specCommand,
   newCommand,
   planCommand,
   tasksCommand,
@@ -74,6 +75,7 @@ export function generateClaudeCommands(): ClaudeCommand[] {
   return [
     // 핵심 워크플로우
     startCommand,
+    specCommand,
     newCommand,
     planCommand,
     tasksCommand,
