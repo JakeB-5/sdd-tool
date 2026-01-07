@@ -103,10 +103,17 @@ function getSymbolHash(symbol: SymbolInfo): string {
 
 /**
  * 두 스캔 결과 비교
+ *
+ * @param previous - 이전 스캔 결과
+ * @param current - 현재 스캔 결과
+ * @param previousScanId - 이전 스캔 ID (옵션, 기본값: 'previous')
+ * @param currentScanId - 현재 스캔 ID (옵션, 기본값: 'current')
  */
 export function compareScanResults(
   previous: ScanResult,
-  current: ScanResult
+  current: ScanResult,
+  previousScanId: string = 'previous',
+  currentScanId: string = 'current'
 ): ScanDiff {
   const comparedAt = new Date();
 
@@ -185,8 +192,8 @@ export function compareScanResults(
                        summary.symbolsModified > 0;
 
   return {
-    previousScanId: 'previous', // TODO: 실제 ID 사용
-    currentScanId: 'current',
+    previousScanId,
+    currentScanId,
     comparedAt,
     fileChanges,
     symbolChanges,

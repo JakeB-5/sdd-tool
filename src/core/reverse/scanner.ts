@@ -259,8 +259,9 @@ export async function scanProject(
   // 3. 도메인 추정
   const suggestedDomains = inferDomainsFromDirectories(directories, filteredFiles);
 
-  // 4. 심볼 분석 (Serena가 없는 경우 빈 배열)
-  // TODO: Serena 연결 시 실제 심볼 분석
+  // 4. 심볼 분석
+  // NOTE: Serena LSP 통합이 활성화되면 여기서 실제 심볼 분석 수행
+  // 현재는 파일 기반 분석만 수행하고, 심볼 분석은 Serena 연동 후 구현 예정
   const symbols: SymbolInfo[] = [];
 
   updateProgress({
