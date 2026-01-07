@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.2] - 2026-01-07
+
+### Improved
+
+- **코드 품질 대규모 개선**
+  - 미사용 import/변수 57개 lint 경고 제거 (40개 파일)
+  - `Map.get()!` 비-null 단언 17개 → 옵셔널 체이닝(`?.`)으로 안전하게 변경
+  - `compareScanResults()` 함수에 scan ID 파라미터 추가 (TODO 해결)
+  - scanner.ts Serena 통합 관련 주석 명확화
+
+### Documentation
+
+- **CLI 문서 11개 추가**
+  - `change.md`: 변경 관리 워크플로우
+  - `constitution.md`: 프로젝트 헌법 관리
+  - `impact.md`: 변경 영향도 분석
+  - `migrate.md`: 외부 도구 마이그레이션
+  - `prompt.md`: SDD 프롬프트 출력
+  - `quality.md`: 스펙 품질 분석
+  - `report.md`: 프로젝트 리포트
+  - `search.md`: 스펙 검색
+  - `start.md`: 워크플로우 시작
+  - `transition.md`: 워크플로우 전환
+  - `watch.md`: 실시간 감시 모드
+
+### Fixed
+
+- README.md 슬래시 커맨드 개수 정정 (30개 → 20개)
+- README.md deprecated 커맨드 `/sdd.new` → `/sdd.spec` 수정
+
+---
+
 ## [1.4.1] - 2026-01-07
 
 ### Improved
