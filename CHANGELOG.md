@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.3] - 2026-01-07
+
+### Documentation
+
+- **Deprecated 커맨드 참조 일괄 수정** (11개 파일)
+  - `/sdd.new` → `/sdd.spec` 변경
+  - `/sdd.change` → `/sdd.spec` 변경
+  - 가이드, 튜토리얼, 커맨드 문서 업데이트
+
+---
+
 ## [1.4.2] - 2026-01-07
 
 ### Improved
