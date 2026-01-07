@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] - 2026-01-07
+
+### Improved
+
+- **코드 품질 개선**
+  - 에러 핸들링 유틸리티 추가 (`getErrorMessage`, `getResultErrorMessage`)
+  - `reverse.ts` 리팩토링: `execute*` 함수 분리, Result 패턴 적용으로 테스트 가능성 향상
+  - CLI 커맨드에서 `console.error` → `logger.error` 통일
+  - `process.exit(1)` → `ExitCode` enum 사용으로 일관성 향상
+  - `scanner.ts`의 TODO 플레이스홀더 (`symbolCount: 0`) 개선
+
+### Added
+
+- **CLI 커맨드 테스트 확장** (+7개 테스트 파일, +41개 테스트)
+  - `sync.test.ts`, `git.test.ts`, `prepare.test.ts`, `reverse.test.ts`
+  - `diff.test.ts`, `export.test.ts`, `prompt.test.ts`
+
+### Fixed
+
+- `watch.test.ts` Windows 파일 락 호환성 수정 (`killProcessSafely`, `removeDirSafely` 추가)
+- `watch.test.ts` CI 환경에서 타이밍 이슈로 skip 처리
+
+---
+
 ## [1.4.0] - 2026-01-06
 
 ### Added
