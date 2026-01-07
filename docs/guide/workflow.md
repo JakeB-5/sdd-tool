@@ -15,7 +15,7 @@ SDD Tool의 전체 워크플로우를 이해합니다.
 │  2. /sdd.constitution → 프로젝트 원칙 정의                   │
 │     │                                                       │
 │     ▼                                                       │
-│  3. /sdd.new          → 기능 명세 작성 (spec.md)             │
+│  3. /sdd.spec         → 기능 명세 작성/수정 (spec.md)        │
 │     │                                                       │
 │     ▼                                                       │
 │  4. /sdd.plan         → 구현 계획 수립 (plan.md)             │
@@ -52,10 +52,11 @@ SDD Tool의 전체 워크플로우를 이해합니다.
 - 기술 원칙 (Technical Principles)
 - 금지 사항 (Forbidden)
 
-### 3. /sdd.new
+### 3. /sdd.spec
 
-기능 명세를 AI와 함께 작성합니다.
+기능 명세를 AI와 함께 작성하거나 수정합니다.
 
+- 새 기능 작성과 기존 스펙 수정을 자동 판단
 - RFC 2119 키워드 사용
 - GIVEN-WHEN-THEN 시나리오
 
@@ -105,7 +106,7 @@ TDD 방식으로 순차적 구현합니다.
 기존 기능을 수정할 때:
 
 ```
-/sdd.change   → 변경 제안 작성
+/sdd.spec     → 스펙 수정 (기존 스펙 자동 감지)
     ↓
 /sdd.impact   → 영향도 분석
     ↓

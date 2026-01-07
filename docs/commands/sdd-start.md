@@ -28,8 +28,8 @@ Constitution이 없는 경우:
 ```
 SDD 워크플로우를 선택하세요:
 
-1. 새 기능 추가 → /sdd.new
-2. 기존 기능 변경 → /sdd.change
+1. 새 기능 추가 → /sdd.spec
+2. 기존 기능 변경 → /sdd.spec
 3. 스펙 검증 → /sdd.validate
 4. 프로젝트 상태 → /sdd.status
 ```

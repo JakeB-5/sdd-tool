@@ -67,7 +67,7 @@ AI가 프로젝트 상태를 분석하고 다음 단계를 안내합니다.
     ↓
 /sdd.constitution → 프로젝트 원칙 정의
     ↓
-/sdd.new          → 기능 명세 작성
+/sdd.spec         → 기능 명세 작성/수정
     ↓
 /sdd.plan         → 구현 계획 수립
     ↓

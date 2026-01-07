@@ -197,5 +197,5 @@ Claude: 🎉 스펙 확정 완료!
 ## 관련 명령어
 
 - [`sdd reverse`](/cli/reverse) - CLI 버전
-- [`/sdd.new`](/commands/sdd-new) - 새 스펙 작성
+- [`/sdd.spec`](/commands/sdd-spec) - 스펙 작성/수정
 - [`/sdd.validate`](/commands/sdd-validate) - 스펙 검증

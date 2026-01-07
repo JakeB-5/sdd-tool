@@ -29,9 +29,9 @@ your-project/
 │   └── templates/          # 스펙 템플릿
 │
 └── .claude/
-    └── commands/           # 슬래시 커맨드 (29개)
+    └── commands/           # 슬래시 커맨드 (20개)
         ├── sdd.start.md
-        ├── sdd.new.md
+        ├── sdd.spec.md
         ├── sdd.plan.md
         └── ...
 ```

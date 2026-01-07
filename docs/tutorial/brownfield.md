@@ -456,7 +456,7 @@ login의 의존성에 user-model 추가
 다음 추천 작업:
   1. 남은 초안 검토: /sdd.reverse review
   2. 테스트 추가: "auth/login 테스트 작성해줘"
-  3. 새 기능: /sdd.new
+  3. 새 기능: /sdd.spec
 ```
 
 ## Step 9: 점진적 개선
@@ -532,7 +532,7 @@ src/auth/login.test.ts:
 새 기능은 처음부터 SDD 방식으로 개발합니다:
 
 ```
-/sdd.new 비밀번호 재설정
+/sdd.spec 비밀번호 재설정
 ```
 
 ```
