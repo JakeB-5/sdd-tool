@@ -3,7 +3,7 @@
  */
 import matter from 'gray-matter';
 import { z } from 'zod';
-import { DeltaType, DeltaItem } from './schemas.js';
+import { DeltaItem } from './schemas.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 

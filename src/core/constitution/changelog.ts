@@ -2,8 +2,8 @@
  * CHANGELOG 관리
  */
 import { ChangelogEntry, ChangeType, bumpVersion, type VersionBumpType } from './schemas.js';
-import { Result, success, failure } from '../../types/index.js';
-import { ValidationError, ErrorCode } from '../../errors/index.js';
+import { Result, success } from '../../types/index.js';
+import { ValidationError } from '../../errors/index.js';
 
 /**
  * CHANGELOG 헤더

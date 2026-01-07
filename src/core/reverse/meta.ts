@@ -8,7 +8,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { Result, success, failure } from '../../types/index.js';
 import { fileExists } from '../../utils/fs.js';
-import type { ScanResult, ScanSummary, ScanOptions } from './scan-formatter.js';
+import type { ScanResult, ScanOptions } from './scan-formatter.js';
 
 /**
  * 역추출 메타데이터

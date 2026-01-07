@@ -1,7 +1,7 @@
 /**
  * Diff 출력 포매터
  */
-import type { DiffResult, SpecDiff, RequirementDiff, ScenarioDiff, KeywordChange } from './schemas.js';
+import type { DiffResult, RequirementDiff, ScenarioDiff, KeywordChange } from './schemas.js';
 
 interface FormatterOptions {
   colors?: boolean;

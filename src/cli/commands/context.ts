@@ -5,9 +5,9 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { Result, success, failure } from '../../types/index.js';
+import { Result, failure } from '../../types/index.js';
 import { findSddRoot } from '../../utils/fs.js';
-import { ContextManager, ContextInfo, createContextManager } from '../../core/context/manager.js';
+import { ContextInfo, createContextManager } from '../../core/context/manager.js';
 import * as logger from '../../utils/logger.js';
 import { ExitCode, getResultErrorMessage } from '../../errors/index.js';
 

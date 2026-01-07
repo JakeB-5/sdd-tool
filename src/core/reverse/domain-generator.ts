@@ -5,7 +5,7 @@
  */
 
 import path from 'node:path';
-import { Result, success, failure } from '../../types/index.js';
+import { Result, success } from '../../types/index.js';
 import { DomainService } from '../domain/service.js';
 import type { SuggestedDomain } from './scan-formatter.js';
 import type { FinalizedSpec } from './finalizer.js';
@@ -180,7 +180,7 @@ export async function generateDomainsFromSpecs(
     if (!domainGroups.has(domain)) {
       domainGroups.set(domain, []);
     }
-    domainGroups.get(domain)!.push(spec);
+    domainGroups.get(domain)?.push(spec);
   }
 
   // 각 도메인 처리
@@ -263,7 +263,7 @@ function hasPathDependency(sourcePath: string, targetPath: string): boolean {
   }
 
   // 공통 조상에서 가까울수록 의존 가능성 높음
-  const sourceparts = sourcePath.split('/').filter(Boolean);
+  const _sourceparts = sourcePath.split('/').filter(Boolean);
   const targetParts = targetPath.split('/').filter(Boolean);
 
   // core, common, shared 등은 다른 도메인의 의존성일 가능성 높음

@@ -9,7 +9,7 @@ import { promises as fs } from 'node:fs';
 import { Result, success, failure } from '../../types/index.js';
 import { fileExists, ensureDir } from '../../utils/fs.js';
 import type { SymbolInfo, SymbolKind } from '../../integrations/serena/types.js';
-import { calculateConfidence, calculateAverageConfidence, type ConfidenceResult } from './confidence.js';
+import { calculateAverageConfidence, type ConfidenceResult } from './confidence.js';
 import {
   generateSpec,
   formatSpecAsMarkdown,
@@ -112,7 +112,7 @@ export function groupSymbolsByDomain(
     if (!groups.has(domain)) {
       groups.set(domain, []);
     }
-    groups.get(domain)!.push(symbol);
+    groups.get(domain)?.push(symbol);
   }
 
   return groups;
@@ -148,7 +148,7 @@ export function groupSymbolsByFunction(
     if (!functionsByFile.has(fileKey)) {
       functionsByFile.set(fileKey, []);
     }
-    functionsByFile.get(fileKey)!.push(fn);
+    functionsByFile.get(fileKey)?.push(fn);
   }
 
   for (const [file, fns] of functionsByFile) {
@@ -250,7 +250,7 @@ export async function extractSpecs(
     // 기능 단위로 그룹화
     const functionGroups = groupSymbolsByFunction(symbols);
 
-    for (const [groupName, groupSymbols] of functionGroups) {
+    for (const [_groupName, groupSymbols] of functionGroups) {
       if (groupSymbols.length === 0) continue;
 
       // 신뢰도 계산

@@ -5,7 +5,7 @@
  */
 
 import { Result, success, failure } from '../../types/index.js';
-import type { ExtractedSpec, ExtractedScenario, ExtractedContract } from './spec-generator.js';
+import type { ExtractedSpec, ExtractedScenario } from './spec-generator.js';
 
 /**
  * AI 제안 타입

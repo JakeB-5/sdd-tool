@@ -15,7 +15,6 @@ import {
   detectExternalTools,
   migrateFromOpenSpec,
   migrateFromSpecKit,
-  DetectionResult,
 } from '../../core/migrate/index.js';
 
 /**

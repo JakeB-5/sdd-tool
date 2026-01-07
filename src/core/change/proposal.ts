@@ -4,12 +4,9 @@
 import matter from 'gray-matter';
 import { z } from 'zod';
 import {
-  ProposalMetadataSchema,
-  Proposal,
   ChangeStatus,
   DeltaType,
   ImpactLevel,
-  generateChangeId,
 } from './schemas.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';

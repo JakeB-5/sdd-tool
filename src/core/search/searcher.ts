@@ -5,7 +5,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { Result, success, failure } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
-import { directoryExists, fileExists, readFile } from '../../utils/fs.js';
+import { directoryExists } from '../../utils/fs.js';
 import {
   SearchOptions,
   SearchResult,

@@ -1,7 +1,7 @@
 /**
  * 리포터 - 동기화 결과 출력
  */
-import type { SyncResult, RequirementStatus, CodeLocation } from './schemas.js';
+import type { SyncResult, RequirementStatus } from './schemas.js';
 
 /**
  * 터미널 컬러 (ANSI 코드)

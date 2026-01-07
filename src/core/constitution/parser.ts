@@ -10,7 +10,6 @@ import {
 } from './schemas.js';
 import { Result, success, failure } from '../../types/index.js';
 import { ValidationError, ErrorCode } from '../../errors/index.js';
-import { extractRfc2119Keywords } from '../spec/schemas.js';
 
 /**
  * Constitution 마크다운 파싱

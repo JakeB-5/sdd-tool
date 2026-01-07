@@ -5,8 +5,7 @@
  * 형식: feature/001-name, feature/002-name, ...
  */
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
-import { fileExists, readFile, writeFile, ensureDir } from '../../utils/fs.js';
+import { fileExists, readFile, writeFile } from '../../utils/fs.js';
 import { Result, success, failure } from '../../types/index.js';
 
 /**

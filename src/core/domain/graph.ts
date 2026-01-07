@@ -76,8 +76,8 @@ export class DomainGraph {
         for (const to of targets) {
           if (this.domains.has(to)) {
             const edge: DomainEdge = { from: info.id, to, type };
-            this.adjacencyList.get(info.id)!.push(edge);
-            this.reverseAdjacencyList.get(to)!.push(edge);
+            this.adjacencyList.get(info.id)?.push(edge);
+            this.reverseAdjacencyList.get(to)?.push(edge);
           }
         }
       };
@@ -314,7 +314,6 @@ export class DomainGraph {
 
     // 노드 정의
     for (const [id, info] of this.domains) {
-      const label = info.description ? `${id}[${id}<br/>${info.description}]` : id;
       lines.push(`  ${id}["${info.description || id}"]`);
     }
 

@@ -52,8 +52,6 @@ function parseRequirements(content: string): Map<string, { title: string; conten
   const requirements = new Map<string, { title: string; content: string }>();
 
   // ### REQ-xxx 또는 ## REQ-xxx 패턴
-  const reqPattern = /^#{2,3}\s+(REQ-\d+):?\s*(.*)$/gm;
-  let match;
 
   const lines = content.split('\n');
   let currentReqId: string | null = null;

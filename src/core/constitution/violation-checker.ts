@@ -3,9 +3,7 @@
  *
  * 스펙 내용이 Constitution 원칙을 위반하는지 검사합니다.
  */
-import { ParsedConstitution, Principle, compareVersions } from './schemas.js';
-import { Result, success, failure } from '../../types/index.js';
-import { ValidationError, ErrorCode } from '../../errors/index.js';
+import { ParsedConstitution, compareVersions } from './schemas.js';
 
 /**
  * 위반 심각도

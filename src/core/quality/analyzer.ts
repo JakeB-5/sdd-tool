@@ -9,7 +9,6 @@ import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { directoryExists, fileExists, readFile } from '../../utils/fs.js';
 import { parseSpec, ParsedSpec } from '../spec/index.js';
-import { parseConstitution } from '../constitution/index.js';
 
 /**
  * 품질 점수 항목

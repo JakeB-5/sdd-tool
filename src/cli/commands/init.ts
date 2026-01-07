@@ -11,7 +11,7 @@ import { generateAgentsMd } from '../../generators/agents-md.js';
 import { generateClaudeCommands } from '../../generators/claude-commands.js';
 import { Result, success, failure } from '../../types/index.js';
 import { analyzeProject, generateSuggestions, formatAnalysis } from '../../utils/project-analyzer.js';
-import { installHooks, installTemplate, setupGit } from './git.js';
+import { setupGit } from './git.js';
 
 /**
  * 초기화 옵션

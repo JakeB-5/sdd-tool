@@ -2,15 +2,14 @@
  * 스펙 검증기
  */
 import path from 'node:path';
-import { parseSpec, validateSpecFormat } from './parser.js';
-import { readFile, listFiles, directoryExists, fileExists } from '../../utils/fs.js';
+import { parseSpec } from './parser.js';
+import { readFile, directoryExists, fileExists } from '../../utils/fs.js';
 import { ValidationError, ErrorCode } from '../../errors/index.js';
-import { Result, success, failure, type ValidationResult, type SpecValidationError, type SpecValidationWarning } from '../../types/index.js';
+import { Result, success, failure, type SpecValidationError, type SpecValidationWarning } from '../../types/index.js';
 import {
   parseConstitution,
   checkConstitutionViolations,
   type ConstitutionCheckResult,
-  type Violation,
 } from '../constitution/index.js';
 
 /**

@@ -12,7 +12,7 @@ export { generateJson, generateSummaryJson } from './json-exporter.js';
 import { parseAllSpecs, parseSpecById } from './spec-parser.js';
 import { generateHtml } from './html-exporter.js';
 import { generateJson } from './json-exporter.js';
-import type { ExportOptions, ExportOptionsInput, ExportResult, ParsedSpec } from './schemas.js';
+import type { ExportOptionsInput, ExportResult, ParsedSpec } from './schemas.js';
 
 /**
  * 기본 출력 파일명 생성

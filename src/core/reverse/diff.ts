@@ -6,8 +6,7 @@
 
 import chalk from 'chalk';
 import type { SymbolInfo } from '../../integrations/serena/types.js';
-import type { ScanResult, ScanSummary } from './scan-formatter.js';
-import type { ScanMetaEntry } from './meta.js';
+import type { ScanResult } from './scan-formatter.js';
 
 /**
  * 심볼 변경 타입

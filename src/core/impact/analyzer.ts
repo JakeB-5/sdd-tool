@@ -2,7 +2,6 @@
  * 영향도 분석기
  */
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
 import {
   DependencyGraph,
   ImpactAnalysisResult,

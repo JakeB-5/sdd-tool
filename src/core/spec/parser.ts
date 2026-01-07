@@ -64,8 +64,6 @@ export function parseSpec(content: string): Result<ParsedSpec, ValidationError> 
  * 요구사항 파싱
  */
 function parseRequirements(content: string): Requirement[] {
-  const requirements: Requirement[] = [];
-
   // 요구사항 섹션 찾기 (## 요구사항 또는 ## Requirements)
   const reqSectionMatch = content.match(/##\s+(?:요구사항|Requirements?)\s*\n([\s\S]*?)(?=\n##\s+[^#]|\n---|\n$)/i);
   if (!reqSectionMatch) {

@@ -4,7 +4,7 @@
  */
 
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-import { z, ZodError } from 'zod';
+import { ZodError } from 'zod';
 import { Result, success, failure } from '../../types/index.js';
 import {
   DomainsConfigSchema,
@@ -293,7 +293,7 @@ export function removeDomain(
     return failure(new Error(`도메인을 찾을 수 없습니다: ${id}`));
   }
 
-  const { [id]: removed, ...remainingDomains } = config.domains;
+  const { [id]: _removed, ...remainingDomains } = config.domains;
 
   return success({
     ...config,

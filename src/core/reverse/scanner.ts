@@ -10,7 +10,6 @@ import { Result, success, failure } from '../../types/index.js';
 import { fileExists, readDir } from '../../utils/fs.js';
 import {
   analyzeLanguageDistribution,
-  detectPrimaryLanguage,
 } from '../../utils/language-detector.js';
 import type { SymbolInfo, SymbolKind } from '../../integrations/serena/types.js';
 import {
@@ -117,7 +116,7 @@ function inferDomainsFromDirectories(
         if (!domains.has(domainName)) {
           domains.set(domainName, { path: domainPath, files: [] });
         }
-        domains.get(domainName)!.files.push(file);
+        domains.get(domainName)?.files.push(file);
         break;
       }
     }

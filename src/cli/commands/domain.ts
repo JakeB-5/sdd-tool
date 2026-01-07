@@ -5,12 +5,11 @@
  */
 import { Command } from 'commander';
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
-import { DomainService, DOMAINS_FILE, DOMAINS_DIR } from '../../core/domain/service.js';
-import { DomainGraph, formatCycleWarning } from '../../core/domain/graph.js';
+import { DomainService, DOMAINS_DIR } from '../../core/domain/service.js';
+import { DomainGraph } from '../../core/domain/graph.js';
 import { validateDomains, formatValidationResult } from '../../core/validators/domain-validator.js';
-import { toDomainInfoList, DomainInfo, DomainsConfig, DependencyType } from '../../schemas/domains.schema.js';
-import { findSddRoot, fileExists, readFile, writeFile, directoryExists } from '../../utils/fs.js';
+import { DomainInfo, DependencyType } from '../../schemas/domains.schema.js';
+import { findSddRoot, writeFile } from '../../utils/fs.js';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
 import { Result, success, failure } from '../../types/index.js';

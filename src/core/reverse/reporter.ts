@@ -8,11 +8,11 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import chalk from 'chalk';
 import { Result, success, failure } from '../../types/index.js';
-import { fileExists, ensureDir } from '../../utils/fs.js';
+import { ensureDir } from '../../utils/fs.js';
 import type { ScanResult, ScanSummary } from './scan-formatter.js';
 import type { ExtractionResult } from './extractor.js';
 import type { ReviewSummary } from './review.js';
-import type { FinalizeResult, FinalizedSpec } from './finalizer.js';
+import type { FinalizeResult } from './finalizer.js';
 import type { DomainGenerationResult } from './domain-generator.js';
 
 /**
@@ -154,9 +154,9 @@ export class ReverseExtractionReporter {
 
     // 권장사항 추가
     if (complexityGrade === 'A' || complexityGrade === 'B') {
-      this.report.recommendations!.push('코드베이스 구조가 양호합니다. 자동 추출을 진행하세요.');
+      this.report.recommendations?.push('코드베이스 구조가 양호합니다. 자동 추출을 진행하세요.');
     } else if (complexityGrade === 'D') {
-      this.report.recommendations!.push('복잡한 코드베이스입니다. 단계적 추출을 권장합니다.');
+      this.report.recommendations?.push('복잡한 코드베이스입니다. 단계적 추출을 권장합니다.');
     }
   }
 
@@ -195,7 +195,7 @@ export class ReverseExtractionReporter {
 
     // 권장사항 추가
     if (byConfidence.low > byConfidence.high) {
-      this.report.recommendations!.push('낮은 신뢰도 스펙이 많습니다. 수동 검토를 권장합니다.');
+      this.report.recommendations?.push('낮은 신뢰도 스펙이 많습니다. 수동 검토를 권장합니다.');
     }
   }
 
@@ -216,7 +216,7 @@ export class ReverseExtractionReporter {
 
     // 권장사항 추가
     if (summary.pending > 0) {
-      this.report.recommendations!.push(`${summary.pending}개 스펙이 리뷰 대기 중입니다.`);
+      this.report.recommendations?.push(`${summary.pending}개 스펙이 리뷰 대기 중입니다.`);
     }
   }
 
@@ -236,7 +236,7 @@ export class ReverseExtractionReporter {
     };
 
     if (result.errors.length > 0) {
-      this.report.recommendations!.push(`${result.errors.length}개 확정 오류를 확인하세요.`);
+      this.report.recommendations?.push(`${result.errors.length}개 확정 오류를 확인하세요.`);
     }
   }
 
@@ -288,8 +288,8 @@ export class ReverseExtractionReporter {
 
     // 최종 권장사항
     if (successful > 0) {
-      this.report.recommendations!.push('sdd validate로 확정된 스펙을 검증하세요.');
-      this.report.recommendations!.push('sdd implement로 구현을 시작하세요.');
+      this.report.recommendations?.push('sdd validate로 확정된 스펙을 검증하세요.');
+      this.report.recommendations?.push('sdd implement로 구현을 시작하세요.');
     }
 
     return {

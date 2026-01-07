@@ -4,7 +4,7 @@
  * 추출된 심볼 정보를 SDD 스펙 형식으로 변환합니다.
  */
 
-import type { SymbolInfo, SymbolKind } from '../../integrations/serena/types.js';
+import type { SymbolInfo } from '../../integrations/serena/types.js';
 import { SymbolKindNames } from '../../integrations/serena/types.js';
 import type { ConfidenceResult } from './confidence.js';
 

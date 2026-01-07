@@ -432,7 +432,7 @@ function hasComplexLogic(code: string): boolean {
 /**
  * 에러 핸들링 여부
  */
-function hasErrorHandling(code: string, functionName: string): boolean {
+function hasErrorHandling(code: string, _functionName: string): boolean {
   const errorPatterns = [
     /throw\s+new\s+\w*Error/,
     /catch\s*\(/,
@@ -488,8 +488,8 @@ function calculateConfidence(
  */
 async function enhanceWithAI(
   heuristicResult: InferredIntent,
-  code: string,
-  symbols: SymbolInfo[]
+  _code: string,
+  _symbols: SymbolInfo[]
 ): Promise<InferredIntent> {
   // AI 모델 호출은 환경에 따라 구현
   // 현재는 휴리스틱 결과에 AI 마커만 추가

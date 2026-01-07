@@ -7,7 +7,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
-import { directoryExists, fileExists, readFile } from '../../utils/fs.js';
+import { fileExists, readFile } from '../../utils/fs.js';
 import { ImpactLevel, getImpactLevel } from './schemas.js';
 
 /**

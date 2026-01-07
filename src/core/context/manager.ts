@@ -4,7 +4,7 @@
  */
 
 import { Result, success, failure } from '../../types/index.js';
-import { ContextStorage, ContextData, createEmptyContext } from './storage.js';
+import { ContextStorage, ContextData } from './storage.js';
 import { DomainService } from '../domain/service.js';
 import { DomainInfo } from '../../schemas/domains.schema.js';
 

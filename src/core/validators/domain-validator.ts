@@ -3,9 +3,9 @@
  * 도메인 구조, 스펙 일관성, 의존성 규칙 검증
  */
 
-import type { DomainsConfig, DomainInfo, DomainRule } from '../../schemas/domains.schema.js';
+import type { DomainsConfig, DomainInfo } from '../../schemas/domains.schema.js';
 import { toDomainInfoList, isValidDomainId } from '../../schemas/domains.schema.js';
-import { DomainGraph, formatCyclePath, CyclePath } from '../domain/graph.js';
+import { DomainGraph, formatCyclePath } from '../domain/graph.js';
 
 /**
  * 검증 에러 심각도

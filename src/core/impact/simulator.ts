@@ -4,12 +4,8 @@
  * 변경 제안을 실제로 적용하지 않고 영향도를 미리 분석합니다.
  */
 import { promises as fs } from 'node:fs';
-import path from 'node:path';
-import matter from 'gray-matter';
 import {
   DependencyGraph,
-  DependencyNode,
-  DependencyEdge,
   ImpactLevel,
   AffectedSpec,
   getImpactLevel,
@@ -212,8 +208,8 @@ function extractSpecIdFromText(text: string): string {
  */
 function extractDependencyChanges(content: string, deltas: DeltaItem[]): void {
   // depends 추가 패턴
-  const addDepsPattern = /depends?\s*(?:에|를|:)?\s*(?:추가|add)/gi;
-  const removeDepsPattern = /depends?\s*(?:에서|를|:)?\s*(?:제거|remove)/gi;
+  const _addDepsPattern = /depends?\s*(?:에|를|:)?\s*(?:추가|add)/gi;
+  const _removeDepsPattern = /depends?\s*(?:에서|를|:)?\s*(?:제거|remove)/gi;
 
   for (const delta of deltas) {
     // 관련 텍스트에서 의존성 변경 찾기

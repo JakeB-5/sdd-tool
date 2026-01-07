@@ -10,12 +10,11 @@ import path from 'node:path';
 import chalk from 'chalk';
 import { findSddRoot, fileExists } from '../../utils/fs.js';
 import * as logger from '../../utils/logger.js';
-import { ExitCode, getErrorMessage } from '../../errors/index.js';
+import { ExitCode } from '../../errors/index.js';
 import { Result, success, failure } from '../../types/index.js';
 import {
   ensureSerenaAvailable,
   createInstallGuide,
-  getSerenaHint,
 } from '../../integrations/serena/index.js';
 import {
   scanProject,
@@ -23,8 +22,6 @@ import {
   formatScanResultJson,
   addScanToMeta,
   getLastScan,
-  compareScanResults,
-  formatScanDiff,
   extractSpecs,
   saveExtractedSpecs,
   updateExtractionStatus,
@@ -39,7 +36,6 @@ import {
   formatFinalizeResult,
   type ScanResult,
   type FinalizeResult,
-  type FinalizedSpec,
 } from '../../core/reverse/index.js';
 import { createDomainService } from '../../core/domain/service.js';
 import { promises as fs } from 'node:fs';
@@ -130,7 +126,7 @@ export interface CheckSerenaResult {
 /**
  * Serena 필수 검증 래퍼
  */
-async function withSerenaCheck<T>(
+async function _withSerenaCheck<T>(
   operation: string,
   options: ReverseCommonOptions,
   fn: () => Promise<T>
@@ -249,7 +245,7 @@ async function handleScan(
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  const { result, sddRoot, sddPath, domainsCreated, domainsSkipped } = commandResult.data;
+  const { result, sddRoot: _sddRoot, sddPath, domainsCreated, domainsSkipped } = commandResult.data;
 
   // 이전 스캔과 비교
   if (options.compare) {

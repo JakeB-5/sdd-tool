@@ -7,9 +7,8 @@
 import type {
   ConnectionStatus,
   ConnectionInfo,
-  SerenaResult,
 } from './types.js';
-import { Result, success, failure } from '../../types/index.js';
+import { Result, failure } from '../../types/index.js';
 
 /**
  * 연결 상태 저장소

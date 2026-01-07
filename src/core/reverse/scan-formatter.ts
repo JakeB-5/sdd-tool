@@ -5,7 +5,7 @@
  */
 
 import chalk from 'chalk';
-import type { SymbolInfo, SymbolKind, ProjectStructure } from '../../integrations/serena/types.js';
+import type { SymbolInfo, SymbolKind } from '../../integrations/serena/types.js';
 import { SymbolKindNames } from '../../integrations/serena/types.js';
 import { getLanguageDisplayName } from '../../utils/language-detector.js';
 

@@ -7,8 +7,6 @@ import matter from 'gray-matter';
 import {
   DependencyGraph,
   DependencyNode,
-  DependencyEdge,
-  DependencyType,
 } from './schemas.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';

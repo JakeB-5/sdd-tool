@@ -244,7 +244,7 @@ export function groupSymbolsByPath(
     if (!groups.has(domain)) {
       groups.set(domain, []);
     }
-    groups.get(domain)!.push(symbol);
+    groups.get(domain)?.push(symbol);
   }
 
   return groups;

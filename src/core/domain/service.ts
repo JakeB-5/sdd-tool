@@ -10,7 +10,6 @@ import { fileExists, ensureDir, writeFile, readFile, directoryExists } from '../
 import {
   DomainsConfig,
   DomainInfo,
-  DomainDefinition,
   toDomainInfoList,
   createDefaultDomainsConfig,
   createEmptyDomainsConfig,
@@ -24,12 +23,11 @@ import {
   removeSpecFromDomain as removeSpecFromConfig,
   addDomainDependency as addDependencyToConfig,
   removeDomainDependency as removeDependencyFromConfig,
-  getDomainIds,
   findDomainById,
 } from './parser.js';
 import { DomainGraph } from './graph.js';
 import { validateDomains, DomainValidationResult, DomainValidationOptions } from '../validators/domain-validator.js';
-import { generateDomainMd, domainInfoToTemplateOptions } from '../../templates/domain.md.js';
+import { generateDomainMd } from '../../templates/domain.md.js';
 
 /**
  * domains.yml 파일 경로
@@ -318,7 +316,7 @@ export class DomainService {
     delete newConfig.domains[oldId];
 
     // 다른 도메인의 의존성도 업데이트
-    for (const [id, def] of Object.entries(newConfig.domains)) {
+    for (const [_id, def] of Object.entries(newConfig.domains)) {
       if (def.dependencies) {
         if (def.dependencies.uses?.includes(oldId)) {
           def.dependencies.uses = def.dependencies.uses.map((d) => (d === oldId ? newId : d));
