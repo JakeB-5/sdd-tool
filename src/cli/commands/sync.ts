@@ -31,13 +31,13 @@ export async function executeSyncCommand(
     specId,
   });
 
-  if (!syncResult.success) {
+  if (!syncResult.success || !syncResult.data) {
     return failure(syncResult.error || new Error('동기화 검증 실패'));
   }
 
   return success({
-    result: syncResult.data!.result,
-    output: syncResult.data!.output,
+    result: syncResult.data.result,
+    output: syncResult.data.output,
   });
 }
 
@@ -94,7 +94,7 @@ export function registerSyncCommand(program: Command): void {
 
         // 미구현 요구사항이 있으면 종료 코드 1
         if (result.data.result.missing.length > 0 && !options.json) {
-          process.exit(1);
+          process.exit(ExitCode.VALIDATION_ERROR);
         }
 
         process.exit(ExitCode.SUCCESS);

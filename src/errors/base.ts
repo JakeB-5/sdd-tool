@@ -93,3 +93,35 @@ export class ChangeError extends SddError {
     this.name = 'ChangeError';
   }
 }
+
+/**
+ * 안전하게 에러 메시지를 추출합니다.
+ * unknown 타입의 에러를 안전하게 처리합니다.
+ *
+ * @param error - 에러 객체 (unknown 타입 가능)
+ * @param fallback - 메시지를 추출할 수 없을 때 사용할 기본 메시지
+ * @returns 에러 메시지 문자열
+ */
+export function getErrorMessage(error: unknown, fallback = '알 수 없는 오류가 발생했습니다'): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return fallback;
+}
+
+/**
+ * Result 타입의 에러에서 안전하게 메시지를 추출합니다.
+ *
+ * @param error - Result.error 객체 (Error | null | undefined)
+ * @param fallback - 에러가 없을 때 사용할 기본 메시지
+ * @returns 에러 메시지 문자열
+ */
+export function getResultErrorMessage(error: Error | null | undefined, fallback = '알 수 없는 오류가 발생했습니다'): string {
+  return error?.message ?? fallback;
+}

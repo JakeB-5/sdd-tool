@@ -4,6 +4,8 @@
 import { Command } from 'commander';
 import { executeExport, formatExportResult } from '../../core/export/index.js';
 import type { ExportFormat, Theme } from '../../core/export/schemas.js';
+import * as logger from '../../utils/logger.js';
+import { ExitCode } from '../../errors/index.js';
 
 export function registerExportCommand(program: Command): void {
   program
@@ -39,7 +41,10 @@ export function registerExportCommand(program: Command): void {
       }
 
       if (!result.success) {
-        process.exit(1);
+        if (result.error) {
+          logger.error('내보내기 실패', result.error);
+        }
+        process.exit(ExitCode.GENERAL_ERROR);
       }
     });
 }

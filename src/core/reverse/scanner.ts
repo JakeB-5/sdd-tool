@@ -135,11 +135,14 @@ function inferDomainsFromDirectories(
   const totalFiles = files.length;
 
   return sortedDomains.map(([name, info]) => {
+    // 파일 수 기반 심볼 수 추정 (파일당 평균 5개 심볼)
+    const estimatedSymbolCount = info.files.length * 5;
+    
     const domain: Omit<SuggestedDomain, 'confidence'> = {
       name,
       path: info.path,
       fileCount: info.files.length,
-      symbolCount: 0, // TODO: 심볼 분석 시 업데이트
+      symbolCount: estimatedSymbolCount,
     };
 
     return {

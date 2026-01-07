@@ -8,6 +8,8 @@ import chalk from 'chalk';
 import { Result, success, failure } from '../../types/index.js';
 import { findSddRoot } from '../../utils/fs.js';
 import { ContextManager, ContextInfo, createContextManager } from '../../core/context/manager.js';
+import * as logger from '../../utils/logger.js';
+import { ExitCode, getResultErrorMessage } from '../../errors/index.js';
 
 /**
  * sdd context set 실행
@@ -170,11 +172,11 @@ export function registerContextCommand(program: Command): void {
       const result = await executeContextSet(domains, { includeDeps: opts.includeDeps });
 
       if (!result.success) {
-        console.error(chalk.red(`오류: ${result.error.message}`));
-        process.exit(1);
+        logger.error(getResultErrorMessage(result.error));
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
-      console.log(chalk.green('컨텍스트가 설정되었습니다.'));
+      logger.success('컨텍스트가 설정되었습니다.');
       console.log('');
       console.log(formatContextInfo(result.data));
     });
@@ -188,8 +190,8 @@ export function registerContextCommand(program: Command): void {
       const result = await executeContextShow();
 
       if (!result.success) {
-        console.error(chalk.red(`오류: ${result.error.message}`));
-        process.exit(1);
+        logger.error(getResultErrorMessage(result.error));
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       if (opts.json) {
@@ -207,11 +209,11 @@ export function registerContextCommand(program: Command): void {
       const result = await executeContextClear();
 
       if (!result.success) {
-        console.error(chalk.red(`오류: ${result.error.message}`));
-        process.exit(1);
+        logger.error(getResultErrorMessage(result.error));
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
-      console.log(chalk.green('컨텍스트가 해제되었습니다.'));
+      logger.success('컨텍스트가 해제되었습니다.');
     });
 
   // sdd context add <domain>
@@ -224,11 +226,11 @@ export function registerContextCommand(program: Command): void {
       const result = await executeContextAdd(domain, { includeDeps: opts.includeDeps });
 
       if (!result.success) {
-        console.error(chalk.red(`오류: ${result.error.message}`));
-        process.exit(1);
+        logger.error(getResultErrorMessage(result.error));
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
-      console.log(chalk.green(`도메인 "${domain}"이(가) 컨텍스트에 추가되었습니다.`));
+      logger.success(`도메인 "${domain}"이(가) 컨텍스트에 추가되었습니다.`);
       console.log('');
       console.log(formatContextInfo(result.data));
     });
@@ -243,11 +245,11 @@ export function registerContextCommand(program: Command): void {
       const result = await executeContextRemove(domain);
 
       if (!result.success) {
-        console.error(chalk.red(`오류: ${result.error.message}`));
-        process.exit(1);
+        logger.error(getResultErrorMessage(result.error));
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
-      console.log(chalk.green(`도메인 "${domain}"이(가) 컨텍스트에서 제거되었습니다.`));
+      logger.success(`도메인 "${domain}"이(가) 컨텍스트에서 제거되었습니다.`);
       console.log('');
       console.log(formatContextInfo(result.data));
     });
@@ -261,8 +263,8 @@ export function registerContextCommand(program: Command): void {
       const result = await executeContextSpecs(opts);
 
       if (!result.success) {
-        console.error(chalk.red(`오류: ${result.error.message}`));
-        process.exit(1);
+        logger.error(getResultErrorMessage(result.error));
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
       if (opts.json) {
@@ -271,7 +273,7 @@ export function registerContextCommand(program: Command): void {
         const { active, readOnly } = result.data;
 
         if (active.length === 0 && readOnly.length === 0) {
-          console.log(chalk.yellow('컨텍스트에 스펙이 없습니다.'));
+          logger.warn('컨텍스트에 스펙이 없습니다.');
           return;
         }
 
@@ -300,8 +302,8 @@ export function registerContextCommand(program: Command): void {
     const result = await executeContextShow();
 
     if (!result.success) {
-      console.error(chalk.red(`오류: ${result.error.message}`));
-      process.exit(1);
+      logger.error(getResultErrorMessage(result.error));
+      process.exit(ExitCode.GENERAL_ERROR);
     }
 
     console.log(formatContextInfo(result.data));

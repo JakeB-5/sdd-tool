@@ -1,10 +1,10 @@
 /**
  * sdd watch 명령어 통합 테스트
  *
- * NOTE: Windows에서 파일 잠금 문제로 인해 skip 처리됨
+ * NOTE: Windows에서 파일 잠금 문제로 인해 조건부 skip 처리
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { spawn } from 'node:child_process';
+import { spawn, ChildProcess } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -14,7 +14,64 @@ import { promisify } from 'node:util';
 const execAsync = promisify(exec);
 
 // Windows에서 파일 잠금 문제로 인해 skip
-describe.skip('sdd watch', () => {
+const isWindows = process.platform === 'win32';
+const describeOrSkip = isWindows ? describe.skip : describe;
+
+/**
+ * 프로세스를 안전하게 종료하고 완료를 기다림
+ */
+async function killProcessSafely(proc: ChildProcess, signal: NodeJS.Signals = 'SIGTERM'): Promise<void> {
+  return new Promise((resolve) => {
+    if (proc.killed || proc.exitCode !== null) {
+      resolve();
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      // 강제 종료
+      try {
+        proc.kill('SIGKILL');
+      } catch {
+        // ignore
+      }
+      resolve();
+    }, 5000);
+
+    proc.once('close', () => {
+      clearTimeout(timeout);
+      resolve();
+    });
+
+    try {
+      proc.kill(signal);
+    } catch {
+      clearTimeout(timeout);
+      resolve();
+    }
+  });
+}
+
+/**
+ * 디렉토리를 안전하게 삭제 (재시도 로직 포함)
+ */
+async function removeDirSafely(dirPath: string, maxRetries = 3): Promise<void> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await fs.rm(dirPath, { recursive: true, force: true, maxRetries: 3 });
+      return;
+    } catch (error) {
+      if (i === maxRetries - 1) {
+        // 마지막 시도에서도 실패하면 무시 (CI 환경에서 정리됨)
+        console.warn(`Failed to remove ${dirPath}: ${error}`);
+        return;
+      }
+      // 잠시 대기 후 재시도
+      await new Promise((resolve) => setTimeout(resolve, 500 * (i + 1)));
+    }
+  }
+}
+
+describeOrSkip('sdd watch', () => {
   let tempDir: string;
   let cliPath: string;
 
@@ -27,7 +84,7 @@ describe.skip('sdd watch', () => {
   });
 
   afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+    await removeDirSafely(tempDir);
   });
 
   describe('기본 실행', () => {
@@ -44,9 +101,7 @@ describe.skip('sdd watch', () => {
 
       // 잠시 대기 후 종료
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      proc.kill('SIGTERM');
-
-      await new Promise((resolve) => proc.on('close', resolve));
+      await killProcessSafely(proc);
 
       expect(output).toMatch(/감시|watch|시작|start/i);
     });
@@ -78,9 +133,7 @@ describe.skip('sdd watch', () => {
 
       // 변경 감지 대기
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      proc.kill('SIGTERM');
-
-      await new Promise((resolve) => proc.on('close', resolve));
+      await killProcessSafely(proc);
 
       expect(output).toMatch(/감시|watch|변경|change/i);
     });
@@ -99,9 +152,7 @@ describe.skip('sdd watch', () => {
       });
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      proc.kill('SIGTERM');
-
-      await new Promise((resolve) => proc.on('close', resolve));
+      await killProcessSafely(proc);
 
       // 검증 관련 메시지가 없어야 함
       expect(output).not.toMatch(/검증 중|validating/i);
@@ -121,9 +172,7 @@ describe.skip('sdd watch', () => {
       });
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      proc.kill('SIGTERM');
-
-      await new Promise((resolve) => proc.on('close', resolve));
+      await killProcessSafely(proc);
 
       // 최소한의 출력만
       expect(output.split('\n').filter(line => line.trim()).length).toBeLessThan(5);
@@ -156,9 +205,7 @@ describe.skip('sdd watch', () => {
       await fs.writeFile(specPath, content + '\n# With Impact');
 
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      proc.kill('SIGTERM');
-
-      await new Promise((resolve) => proc.on('close', resolve));
+      await killProcessSafely(proc);
 
       expect(output).toMatch(/감시|영향|impact|watch/i);
     });
@@ -177,9 +224,7 @@ describe.skip('sdd watch', () => {
       });
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      proc.kill('SIGTERM');
-
-      await new Promise((resolve) => proc.on('close', resolve));
+      await killProcessSafely(proc);
 
       expect(output).toMatch(/감시|watch/i);
     });
@@ -204,9 +249,7 @@ describe.skip('sdd watch', () => {
 
       // watch 시작 및 약간의 활동
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      proc.kill('SIGTERM');
-
-      await new Promise((resolve) => proc.on('close', resolve));
+      await killProcessSafely(proc);
 
       // 통계 또는 종료 메시지
       expect(output).toMatch(/감시|watch|종료|stop/i);
@@ -252,9 +295,7 @@ New content(SHALL).
       );
 
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      proc.kill('SIGTERM');
-
-      await new Promise((resolve) => proc.on('close', resolve));
+      await killProcessSafely(proc);
 
       expect(output).toMatch(/감시|watch|추가|add|change/i);
     });

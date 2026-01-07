@@ -3,6 +3,8 @@
  */
 import { Command } from 'commander';
 import { executeDiff } from '../../core/diff/index.js';
+import * as logger from '../../utils/logger.js';
+import { ExitCode, getErrorMessage } from '../../errors/index.js';
 
 export function registerDiffCommand(program: Command): void {
   program
@@ -29,10 +31,12 @@ export function registerDiffCommand(program: Command): void {
       });
 
       if (!result.success) {
-        console.error(`오류: ${result.error?.message}`);
-        process.exit(1);
+        logger.error(getErrorMessage(result.error));
+        process.exit(ExitCode.GENERAL_ERROR);
       }
 
-      console.log(result.data?.output);
+      if (result.data?.output) {
+        console.log(result.data.output);
+      }
     });
 }

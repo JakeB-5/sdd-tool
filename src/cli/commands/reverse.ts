@@ -10,7 +10,8 @@ import path from 'node:path';
 import chalk from 'chalk';
 import { findSddRoot, fileExists } from '../../utils/fs.js';
 import * as logger from '../../utils/logger.js';
-import { ExitCode } from '../../errors/index.js';
+import { ExitCode, getErrorMessage } from '../../errors/index.js';
+import { Result, success, failure } from '../../types/index.js';
 import {
   ensureSerenaAvailable,
   createInstallGuide,
@@ -37,6 +38,8 @@ import {
   finalizeById,
   formatFinalizeResult,
   type ScanResult,
+  type FinalizeResult,
+  type FinalizedSpec,
 } from '../../core/reverse/index.js';
 import { createDomainService } from '../../core/domain/service.js';
 import { promises as fs } from 'node:fs';
@@ -110,6 +113,21 @@ export interface ReverseFinalizeOptions extends ReverseCommonOptions {
 }
 
 /**
+ * finalize 실행 결과
+ */
+export interface FinalizeCommandResult {
+  action: 'single' | 'domain' | 'all' | 'no_target';
+  data?: FinalizeResult;
+}
+
+/**
+ * check-serena 실행 결과
+ */
+export interface CheckSerenaResult {
+  available: boolean;
+}
+
+/**
  * Serena 필수 검증 래퍼
  */
 async function withSerenaCheck<T>(
@@ -130,25 +148,31 @@ async function withSerenaCheck<T>(
 }
 
 /**
- * sdd reverse scan 핸들러
+ * scan 실행 결과
  */
-async function handleScan(
-  targetPath: string,
-  options: ReverseScanOptions
-): Promise<void> {
-  // Serena가 없어도 기본 스캔은 가능 (폴백 모드)
-  const sddRoot = await findSddRoot();
+export interface ScanCommandResult {
+  result: ScanResult;
+  sddRoot: string;
+  sddPath: string;
+  domainsCreated: number;
+  domainsSkipped: number;
+}
+
+/**
+ * sdd reverse scan 핵심 로직 (테스트 가능)
+ */
+export async function executeScanCommand(
+  targetPath: string | undefined,
+  options: ReverseScanOptions,
+  projectRoot?: string
+): Promise<Result<ScanCommandResult, Error>> {
+  const sddRoot = projectRoot || await findSddRoot();
 
   if (!sddRoot) {
-    logger.error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.');
-    process.exit(ExitCode.GENERAL_ERROR);
+    return failure(new Error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.'));
   }
 
   const scanPath = targetPath ? path.resolve(targetPath) : sddRoot;
-
-  if (!options.quiet) {
-    logger.info(`스캔 중: ${scanPath}`);
-  }
 
   // 스캔 실행
   const scanResult = await scanProject(scanPath, {
@@ -159,18 +183,73 @@ async function handleScan(
   });
 
   if (!scanResult.success) {
-    logger.error(scanResult.error.message);
-    process.exit(ExitCode.GENERAL_ERROR);
+    return failure(scanResult.error);
   }
 
   const result = scanResult.data;
+  const sddPath = path.join(sddRoot, '.sdd');
 
   // 메타데이터 저장
-  const sddPath = path.join(sddRoot, '.sdd');
-  const metaResult = await addScanToMeta(sddPath, result);
-  if (!metaResult.success && !options.quiet) {
-    logger.warn('스캔 메타데이터 저장 실패');
+  await addScanToMeta(sddPath, result);
+
+  // 도메인 자동 생성
+  let domainsCreated = 0;
+  let domainsSkipped = 0;
+
+  const shouldCreateDomains = options.createDomains !== false;
+  if (shouldCreateDomains && result.summary.suggestedDomains.length > 0) {
+    const domainService = createDomainService(sddRoot);
+    const existingDomainsResult = await domainService.list();
+    const existingDomainIds = existingDomainsResult.success
+      ? existingDomainsResult.data.map(d => d.id)
+      : [];
+
+    for (const suggested of result.summary.suggestedDomains) {
+      if (existingDomainIds.includes(suggested.name)) {
+        domainsSkipped++;
+        continue;
+      }
+
+      const createResult = await domainService.create(suggested.name, {
+        description: `${suggested.name} 도메인 (reverse scan으로 자동 생성)`,
+        path: suggested.path,
+      });
+
+      if (createResult.success) {
+        domainsCreated++;
+      }
+    }
   }
+
+  return success({
+    result,
+    sddRoot,
+    sddPath,
+    domainsCreated,
+    domainsSkipped,
+  });
+}
+
+/**
+ * sdd reverse scan 핸들러
+ */
+async function handleScan(
+  targetPath: string,
+  options: ReverseScanOptions
+): Promise<void> {
+  if (!options.quiet) {
+    const scanPath = targetPath ? path.resolve(targetPath) : process.cwd();
+    logger.info(`스캔 중: ${scanPath}`);
+  }
+
+  const commandResult = await executeScanCommand(targetPath, options);
+
+  if (!commandResult.success) {
+    logger.error(commandResult.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const { result, sddRoot, sddPath, domainsCreated, domainsSkipped } = commandResult.data;
 
   // 이전 스캔과 비교
   if (options.compare) {
@@ -204,46 +283,17 @@ async function handleScan(
     }
   }
 
-  // 도메인 자동 생성 (기본값: true)
-  const shouldCreateDomains = options.createDomains !== false;
-  if (shouldCreateDomains && result.summary.suggestedDomains.length > 0) {
-    const domainService = createDomainService(sddRoot);
-    const existingDomainsResult = await domainService.list();
-    const existingDomainIds = existingDomainsResult.success
-      ? existingDomainsResult.data.map(d => d.id)
-      : [];
-
-    let createdCount = 0;
-    let skippedCount = 0;
-
-    for (const suggested of result.summary.suggestedDomains) {
-      // 이미 존재하는 도메인은 건너뛰기
-      if (existingDomainIds.includes(suggested.name)) {
-        skippedCount++;
-        continue;
-      }
-
-      const createResult = await domainService.create(suggested.name, {
-        description: `${suggested.name} 도메인 (reverse scan으로 자동 생성)`,
-        path: suggested.path,
-      });
-
-      if (createResult.success) {
-        createdCount++;
-      }
+  // 도메인 자동 생성 결과 출력
+  if (!options.quiet && (domainsCreated > 0 || domainsSkipped > 0)) {
+    console.log('');
+    console.log(chalk.bold('📁 도메인 자동 생성:'));
+    if (domainsCreated > 0) {
+      console.log(chalk.green(`   ✅ ${domainsCreated}개 도메인 생성됨`));
     }
-
-    if (!options.quiet && (createdCount > 0 || skippedCount > 0)) {
-      console.log('');
-      console.log(chalk.bold('📁 도메인 자동 생성:'));
-      if (createdCount > 0) {
-        console.log(chalk.green(`   ✅ ${createdCount}개 도메인 생성됨`));
-      }
-      if (skippedCount > 0) {
-        console.log(chalk.dim(`   ⏭️  ${skippedCount}개 도메인 이미 존재 (건너뜀)`));
-      }
-      console.log('');
+    if (domainsSkipped > 0) {
+      console.log(chalk.dim(`   ⏭️  ${domainsSkipped}개 도메인 이미 존재 (건너뜀)`));
     }
+    console.log('');
   }
 
   // Serena 사용 가능 시 추가 분석 안내
@@ -264,22 +314,92 @@ async function handleScan(
 }
 
 /**
+ * extract 실행 결과
+ */
+export interface ExtractCommandResult {
+  specs: Array<{ id: string; confidence: { grade: string; score: number } }>;
+  symbolCount: number;
+  skippedCount: number;
+  overallConfidence: { grade: string; score: number };
+}
+
+/**
+ * sdd reverse extract 핵심 로직 (테스트 가능)
+ */
+export async function executeExtractCommand(
+  targetPath: string | undefined,
+  options: ReverseExtractOptions,
+  onProgress?: (progress: { processedSymbols: number; totalSymbols: number; specsGenerated: number }) => void,
+  projectRoot?: string
+): Promise<Result<ExtractCommandResult, Error>> {
+  const sddRoot = projectRoot || await findSddRoot();
+
+  if (!sddRoot) {
+    return failure(new Error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.'));
+  }
+
+  const extractPath = targetPath ? path.resolve(targetPath) : sddRoot;
+
+  // 먼저 스캔 실행
+  const scanResult = await scanProject(extractPath, { depth: 5 });
+
+  if (!scanResult.success) {
+    return failure(scanResult.error);
+  }
+
+  // 스펙 추출
+  const extractResult = await extractSpecs(scanResult.data, {
+    depth: options.depth || 'medium',
+    ai: options.ai,
+    domain: options.domain,
+  }, onProgress);
+
+  if (!extractResult.success) {
+    return failure(extractResult.error);
+  }
+
+  const result = extractResult.data;
+
+  if (result.specs.length === 0) {
+    return success({
+      specs: [],
+      symbolCount: result.symbolCount,
+      skippedCount: result.skippedCount,
+      overallConfidence: result.overallConfidence,
+    });
+  }
+
+  // 스펙 저장
+  const sddPath = path.join(sddRoot, '.sdd');
+  const saveResult = await saveExtractedSpecs(sddPath, result, 'json');
+
+  if (!saveResult.success) {
+    return failure(saveResult.error);
+  }
+
+  // 메타데이터 업데이트
+  await updateExtractionStatus(sddPath, {
+    extractedCount: result.specs.length,
+    pendingReviewCount: result.specs.length,
+  });
+
+  return success({
+    specs: result.specs.map(s => ({ id: s.id, confidence: s.confidence })),
+    symbolCount: result.symbolCount,
+    skippedCount: result.skippedCount,
+    overallConfidence: result.overallConfidence,
+  });
+}
+
+/**
  * sdd reverse extract 핸들러
  */
 async function handleExtract(
   targetPath: string,
   options: ReverseExtractOptions
 ): Promise<void> {
-  const sddRoot = await findSddRoot();
-
-  if (!sddRoot) {
-    logger.error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.');
-    process.exit(ExitCode.GENERAL_ERROR);
-  }
-
-  const extractPath = targetPath ? path.resolve(targetPath) : sddRoot;
-
   if (!options.quiet) {
+    const extractPath = targetPath ? path.resolve(targetPath) : process.cwd();
     logger.info(`추출 중: ${extractPath}`);
     if (options.depth) {
       logger.info(`깊이: ${options.depth}`);
@@ -289,29 +409,14 @@ async function handleExtract(
     }
   }
 
-  // 먼저 스캔 실행
-  const scanResult = await scanProject(extractPath, {
-    depth: 5,
-  });
-
-  if (!scanResult.success) {
-    logger.error(scanResult.error.message);
-    process.exit(ExitCode.GENERAL_ERROR);
-  }
-
-  // 스펙 추출
-  const extractResult = await extractSpecs(scanResult.data, {
-    depth: options.depth || 'medium',
-    ai: options.ai,
-    domain: options.domain,
-  }, (progress) => {
+  const commandResult = await executeExtractCommand(targetPath, options, (progress) => {
     if (!options.quiet) {
       process.stdout.write(`\r   처리 중: ${progress.processedSymbols}/${progress.totalSymbols} 심볼, ${progress.specsGenerated} 스펙 생성됨`);
     }
   });
 
-  if (!extractResult.success) {
-    logger.error(extractResult.error.message);
+  if (!commandResult.success) {
+    logger.error(commandResult.error.message);
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
@@ -319,28 +424,13 @@ async function handleExtract(
     console.log(''); // 진행 줄 끝내기
   }
 
-  const result = extractResult.data;
+  const result = commandResult.data;
 
   if (result.specs.length === 0) {
     logger.warn('추출된 스펙이 없습니다. 프로젝트에 분석 가능한 심볼이 없거나 Serena MCP가 필요합니다.');
     console.log(chalk.dim('\n💡 Serena MCP를 연결하면 심볼 수준 분석이 가능합니다.'));
     return;
   }
-
-  // 스펙 저장
-  const sddPath = path.join(sddRoot, '.sdd');
-  const saveResult = await saveExtractedSpecs(sddPath, result, 'json');
-
-  if (!saveResult.success) {
-    logger.error(saveResult.error.message);
-    process.exit(ExitCode.GENERAL_ERROR);
-  }
-
-  // 메타데이터 업데이트
-  await updateExtractionStatus(sddPath, {
-    extractedCount: result.specs.length,
-    pendingReviewCount: result.specs.length,
-  });
 
   // 결과 출력
   console.log('');
@@ -365,84 +455,153 @@ async function handleExtract(
 }
 
 /**
- * sdd reverse review 핸들러
+ * review 액션 결과
  */
-async function handleReview(
+export type ReviewAction = 'list' | 'detail' | 'approved' | 'rejected' | 'empty' | 'no_drafts';
+
+/**
+ * review 실행 결과
+ */
+export interface ReviewCommandResult {
+  action: ReviewAction;
+  specId?: string;
+  sddPath?: string;
+}
+
+/**
+ * sdd reverse review 핵심 로직 (테스트 가능)
+ */
+export async function executeReviewCommand(
   specId: string | undefined,
-  options: ReverseReviewOptions
-): Promise<void> {
-  const sddRoot = await findSddRoot();
+  options: ReverseReviewOptions,
+  projectRoot?: string
+): Promise<Result<ReviewCommandResult, Error>> {
+  const sddRoot = projectRoot || await findSddRoot();
 
   if (!sddRoot) {
-    logger.error('SDD 프로젝트를 찾을 수 없습니다.');
-    process.exit(ExitCode.GENERAL_ERROR);
+    return failure(new Error('SDD 프로젝트를 찾을 수 없습니다.'));
   }
 
   const sddPath = path.join(sddRoot, '.sdd');
   const draftsPath = path.join(sddPath, '.reverse-drafts');
 
   if (!await fileExists(draftsPath)) {
-    logger.warn('추출된 스펙이 없습니다. `sdd reverse extract`를 먼저 실행하세요.');
-    return;
+    return success({ action: 'no_drafts' });
   }
 
   // 리뷰 목록 로드
   const loadResult = await loadReviewList(sddPath);
   if (!loadResult.success) {
-    logger.error(loadResult.error.message);
-    process.exit(ExitCode.GENERAL_ERROR);
+    return failure(loadResult.error);
   }
 
   const items = loadResult.data;
 
   if (items.length === 0) {
-    logger.warn('리뷰할 스펙이 없습니다.');
-    return;
+    return success({ action: 'empty' });
   }
 
   // 특정 스펙 처리
   if (specId) {
     const item = items.find(i => i.specId === specId || i.specId.endsWith(`/${specId}`));
     if (!item) {
-      logger.error(`스펙을 찾을 수 없습니다: ${specId}`);
-      process.exit(ExitCode.GENERAL_ERROR);
+      return failure(new Error(`스펙을 찾을 수 없습니다: ${specId}`));
     }
 
     // 승인 처리
     if (options.approve) {
       const result = await approveSpec(sddPath, item.specId);
-      if (result.success) {
-        logger.success(`승인됨: ${item.specId}`);
-        console.log('');
-        console.log(chalk.bold('💡 다음 단계:'));
-        console.log('   sdd reverse finalize --all    # 승인된 스펙 확정');
-      } else {
-        logger.error(result.error.message);
-        process.exit(ExitCode.GENERAL_ERROR);
+      if (!result.success) {
+        return failure(result.error);
       }
-      return;
+      return success({ action: 'approved', specId: item.specId });
     }
 
     // 거부 처리
     if (options.reject) {
       const result = await rejectSpec(sddPath, item.specId, options.reason || '사용자에 의해 거부됨');
-      if (result.success) {
-        logger.success(`거부됨: ${item.specId}`);
-      } else {
-        logger.error(result.error.message);
-        process.exit(ExitCode.GENERAL_ERROR);
+      if (!result.success) {
+        return failure(result.error);
       }
-      return;
+      return success({ action: 'rejected', specId: item.specId });
     }
 
     // 상세 보기
-    console.log(formatSpecDetail(item));
-    console.log(chalk.bold('💡 작업:'));
-    console.log(`   sdd reverse review ${specId} --approve    # 승인`);
-    console.log(`   sdd reverse review ${specId} --reject     # 거부`);
-    console.log('');
-    return;
+    return success({ action: 'detail', specId: item.specId, sddPath });
   }
+
+  // 전체 목록 반환
+  return success({ action: 'list', sddPath });
+}
+
+/**
+ * sdd reverse review 핸들러
+ */
+async function handleReview(
+  specId: string | undefined,
+  options: ReverseReviewOptions
+): Promise<void> {
+  const commandResult = await executeReviewCommand(specId, options);
+
+  if (!commandResult.success) {
+    logger.error(commandResult.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const result = commandResult.data;
+
+  switch (result.action) {
+    case 'no_drafts':
+      logger.warn('추출된 스펙이 없습니다. `sdd reverse extract`를 먼저 실행하세요.');
+      return;
+    
+    case 'empty':
+      logger.warn('리뷰할 스펙이 없습니다.');
+      return;
+    
+    case 'approved':
+      logger.success(`승인됨: ${result.specId}`);
+      console.log('');
+      console.log(chalk.bold('💡 다음 단계:'));
+      console.log('   sdd reverse finalize --all    # 승인된 스펙 확정');
+      return;
+    
+    case 'rejected':
+      logger.success(`거부됨: ${result.specId}`);
+      return;
+    
+    case 'detail':
+      if (result.sddPath && result.specId) {
+        const detailLoadResult = await loadReviewList(result.sddPath);
+        if (detailLoadResult.success) {
+          const detailItem = detailLoadResult.data.find(i => 
+            i.specId === result.specId || i.specId.endsWith(`/${result.specId}`)
+          );
+          if (detailItem) {
+            console.log(formatSpecDetail(detailItem));
+            console.log(chalk.bold('💡 작업:'));
+            console.log(`   sdd reverse review ${result.specId} --approve    # 승인`);
+            console.log(`   sdd reverse review ${result.specId} --reject     # 거부`);
+            console.log('');
+          }
+        }
+      }
+      return;
+    
+    case 'list':
+      // fall through to existing list logic
+      break;
+  }
+
+  // 기존 목록 로직을 위해 다시 로드
+  const sddRoot = await findSddRoot();
+  if (!sddRoot) return;
+  
+  const sddPath = path.join(sddRoot, '.sdd');
+  const loadResult = await loadReviewList(sddPath);
+  if (!loadResult.success) return;
+  
+  const items = loadResult.data;
 
   // 전체 목록 표시
   console.log(formatReviewList(items));
@@ -465,19 +624,70 @@ async function handleReview(
 }
 
 /**
+ * sdd reverse finalize 핵심 로직 (테스트 가능)
+ */
+export async function executeFinalizeCommand(
+  specId: string | undefined,
+  options: ReverseFinalizeOptions,
+  projectRoot?: string
+): Promise<Result<FinalizeCommandResult, Error>> {
+  const sddRoot = projectRoot || await findSddRoot();
+
+  if (!sddRoot) {
+    return failure(new Error('SDD 프로젝트를 찾을 수 없습니다.'));
+  }
+
+  // 특정 스펙 확정
+  if (specId) {
+    const finalizeResult = await finalizeById(sddRoot, specId);
+    if (!finalizeResult.success) {
+      return failure(finalizeResult.error);
+    }
+    return success({
+      action: 'single',
+      data: {
+        finalized: [finalizeResult.data],
+        skipped: [],
+        errors: [],
+      },
+    });
+  }
+
+  // 특정 도메인 확정
+  if (options.domain) {
+    const finalizeResult = await finalizeDomain(sddRoot, options.domain);
+    if (!finalizeResult.success) {
+      return failure(finalizeResult.error);
+    }
+    return success({
+      action: 'domain',
+      data: finalizeResult.data,
+    });
+  }
+
+  // 모든 승인된 스펙 확정
+  if (options.all) {
+    const finalizeResult = await finalizeAllApproved(sddRoot);
+    if (!finalizeResult.success) {
+      return failure(finalizeResult.error);
+    }
+    return success({
+      action: 'all',
+      data: finalizeResult.data,
+    });
+  }
+
+  // 옵션 없이 실행
+  return success({ action: 'no_target' });
+}
+
+/**
  * sdd reverse finalize 핸들러
  */
 async function handleFinalize(
   specId: string | undefined,
   options: ReverseFinalizeOptions
 ): Promise<void> {
-  const sddRoot = await findSddRoot();
-
-  if (!sddRoot) {
-    logger.error('SDD 프로젝트를 찾을 수 없습니다.');
-    process.exit(ExitCode.GENERAL_ERROR);
-  }
-
   if (!options.quiet) {
     if (specId) {
       logger.info(`확정 중: ${specId}`);
@@ -488,51 +698,31 @@ async function handleFinalize(
     }
   }
 
-  let result;
+  const commandResult = await executeFinalizeCommand(specId, options);
 
-  // 특정 스펙 확정
-  if (specId) {
-    const finalizeResult = await finalizeById(sddRoot, specId);
-    if (!finalizeResult.success) {
-      logger.error(finalizeResult.error.message);
-      process.exit(ExitCode.GENERAL_ERROR);
-    }
-
-    result = {
-      finalized: [finalizeResult.data],
-      skipped: [],
-      errors: [],
-    };
-  }
-  // 특정 도메인 확정
-  else if (options.domain) {
-    const finalizeResult = await finalizeDomain(sddRoot, options.domain);
-    if (!finalizeResult.success) {
-      logger.error(finalizeResult.error.message);
-      process.exit(ExitCode.GENERAL_ERROR);
-    }
-    result = finalizeResult.data;
-  }
-  // 모든 승인된 스펙 확정
-  else if (options.all) {
-    const finalizeResult = await finalizeAllApproved(sddRoot);
-    if (!finalizeResult.success) {
-      logger.error(finalizeResult.error.message);
-      process.exit(ExitCode.GENERAL_ERROR);
-    }
-    result = finalizeResult.data;
-  }
-  // 옵션 없이 실행
-  else {
-    logger.warn('확정할 대상을 지정하세요:');
-    console.log('   sdd reverse finalize <spec-id>     # 특정 스펙');
-    console.log('   sdd reverse finalize --all         # 모든 승인 스펙');
-    console.log('   sdd reverse finalize -d <domain>   # 특정 도메인');
-    return;
+  if (!commandResult.success) {
+    logger.error(commandResult.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  // 결과 출력
-  console.log(formatFinalizeResult(result));
+  const result = commandResult.data;
+
+  switch (result.action) {
+    case 'single':
+    case 'domain':
+    case 'all':
+      if (result.data) {
+        console.log(formatFinalizeResult(result.data));
+      }
+      return;
+
+    case 'no_target':
+      logger.warn('확정할 대상을 지정하세요:');
+      console.log('   sdd reverse finalize <spec-id>     # 특정 스펙');
+      console.log('   sdd reverse finalize --all         # 모든 승인 스펙');
+      console.log('   sdd reverse finalize -d <domain>   # 특정 도메인');
+      return;
+  }
 }
 
 /**
@@ -573,12 +763,32 @@ ${chalk.bold('워크플로우:')}
 }
 
 /**
+ * Serena 체크 핵심 로직 (테스트 가능)
+ */
+export async function executeCheckSerenaCommand(): Promise<Result<CheckSerenaResult, Error>> {
+  const result = await ensureSerenaAvailable('check', { quiet: true });
+
+  if (result.success) {
+    return success({ available: true });
+  }
+
+  return success({ available: false });
+}
+
+/**
  * Serena 체크 옵션만 표시
  */
 async function handleCheckSerena(): Promise<void> {
-  const result = await ensureSerenaAvailable('check', { quiet: false });
+  const commandResult = await executeCheckSerenaCommand();
 
-  if (result.success) {
+  // 타입 가드: executeCheckSerenaCommand는 항상 success를 반환
+  if (!commandResult.success) {
+    // 이론적으로 도달하지 않음
+    console.log(createInstallGuide());
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  if (commandResult.data.available) {
     console.log(chalk.green('✅ Serena MCP 사용 가능'));
   } else {
     console.log(createInstallGuide());
