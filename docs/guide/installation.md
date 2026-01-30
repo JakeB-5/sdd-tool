@@ -1,89 +1,89 @@
-# 설치
+# Installation
 
-## 요구사항
+## Requirements
 
-- **Node.js**: 20.0.0 이상
-- **Claude Code**: 최신 버전 권장
+- **Node.js**: 20.0.0 or higher
+- **Claude Code**: Latest version recommended
 
-## npm으로 설치
+## Install with npm
 
 ```bash
 npm install -g sdd-tool
 ```
 
-## pnpm으로 설치
+## Install with pnpm
 
 ```bash
 pnpm add -g sdd-tool
 ```
 
-## 설치 확인
+## Verify Installation
 
 ```bash
 sdd --version
 ```
 
-## Claude Code 설정
+## Claude Code Setup
 
-SDD Tool은 Claude Code의 슬래시 커맨드를 통해 AI와 협업합니다.
+SDD Tool collaborates with AI through Claude Code slash commands.
 
-### Claude Code 설치
+### Install Claude Code
 
 ```bash
 npm install -g @anthropic-ai/claude-code
 ```
 
-### 프로젝트에서 Claude Code 시작
+### Start Claude Code in Your Project
 
 ```bash
 claude
 ```
 
-## 프로젝트 초기화
+## Initialize Project
 
-새 프로젝트에서:
+In a new project:
 
 ```bash
 cd your-project
 sdd init
 ```
 
-초기화 후 생성되는 구조:
+Structure created after initialization:
 
 ```
 your-project/
 ├── .sdd/
-│   ├── constitution.md     # 프로젝트 헌법
-│   ├── AGENTS.md           # AI 워크플로우 가이드
-│   └── specs/              # 기능 명세
+│   ├── constitution.md     # Project constitution
+│   ├── AGENTS.md           # AI workflow guide
+│   └── specs/              # Feature specs
 └── .claude/
-    └── commands/           # 슬래시 커맨드 (29개)
+    └── commands/           # Slash commands (29 total)
 ```
 
-## 업데이트
+## Update
 
 ```bash
 npm update -g sdd-tool
 ```
 
-## 문제 해결
+## Troubleshooting
 
-### 권한 오류
+### Permission Error
 
 ```bash
 sudo npm install -g sdd-tool
 ```
 
-또는 npm 전역 설치 경로를 사용자 디렉토리로 변경:
+Or change npm global install path to user directory:
 
 ```bash
 npm config set prefix ~/.npm-global
 export PATH=~/.npm-global/bin:$PATH
 ```
 
-### Node.js 버전 오류
+### Node.js Version Error
 
-Node.js 20 이상이 필요합니다. nvm 사용 시:
+Node.js 20 or higher is required. When using nvm:
 
 ```bash
 nvm install 20

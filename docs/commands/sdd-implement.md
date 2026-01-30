@@ -1,90 +1,90 @@
 # /sdd.implement
 
-작업 목록을 기반으로 TDD 방식으로 순차적 구현합니다.
+Sequential TDD implementation based on the task list.
 
-## 사용법
+## Usage
 
 ```
 /sdd.implement [feature-id]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| feature-id | 기능 ID (생략 시 진행 중인 작업) |
+| Argument | Description |
+|----------|-------------|
+| feature-id | Feature ID (defaults to in-progress task if omitted) |
 
-## 동작
+## Behavior
 
-1. tasks.md 읽기
-2. 다음 미완료 작업 선택
-3. TDD 방식으로 구현:
-   - 테스트 작성
-   - 코드 구현
-   - 테스트 통과 확인
-4. 작업 상태 업데이트
-5. 다음 작업으로 이동
+1. Read tasks.md
+2. Select next incomplete task
+3. Implement using TDD:
+   - Write test
+   - Implement code
+   - Verify test passes
+4. Update task status
+5. Move to next task
 
-## TDD 사이클
+## TDD Cycle
 
 ```
-1. 작업 상태: "⬜ 대기" → "🔄 진행 중"
-2. 테스트 작성 (RED)
-3. 코드 구현 (GREEN)
-4. 리팩토링 (REFACTOR)
-5. 작업 상태: "🔄 진행 중" → "✅ 완료"
+1. Task status: "Pending" -> "In Progress"
+2. Write test (RED)
+3. Implement code (GREEN)
+4. Refactor (REFACTOR)
+5. Task status: "In Progress" -> "Complete"
 ```
 
-## 예시
+## Example
 
 ```
 /sdd.implement user-auth
 
-AI: user-auth 구현을 시작합니다.
+AI: Starting user-auth implementation.
 
-    현재 진행률: 2/8 (25%)
+    Current progress: 2/8 (25%)
 
-    다음 작업: T3 - 비밀번호 해싱 유틸
+    Next task: T3 - Password hashing utility
 
-    Step 1: 테스트 작성
+    Step 1: Writing test
     ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    tests/utils/password.test.ts 파일을 생성합니다...
+    Creating tests/utils/password.test.ts...
 ```
 
-## 작업 상태
+## Task Status
 
-| 표시 | 상태 |
-|------|------|
-| ⬜ | 대기 |
-| 🔄 | 진행 중 |
-| ✅ | 완료 |
-| ❌ | 실패/차단 |
+| Icon | Status |
+|------|--------|
+| Pending | Waiting |
+| In Progress | Working |
+| Complete | Done |
+| Failed | Failed/Blocked |
 
-## 중단 및 재개
+## Pause and Resume
 
-구현 중 중단:
+Pause during implementation:
 
 ```
 /sdd.implement pause
 ```
 
-재개:
+Resume:
 
 ```
 /sdd.implement
 ```
 
-## 완료 후
+## After Completion
 
-모든 작업 완료 시:
+When all tasks are complete:
 
 ```
-AI: user-auth 구현이 완료되었습니다!
+AI: user-auth implementation complete!
 
-    완료된 작업: 8/8
-    테스트 통과: 24/24
-    커버리지: 92%
+    Completed tasks: 8/8
+    Tests passed: 24/24
+    Coverage: 92%
 
-    다음 단계: /sdd.validate
+    Next step: /sdd.validate
 ```

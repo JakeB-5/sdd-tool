@@ -1,114 +1,114 @@
-# Constitution (프로젝트 헌법)
+# Constitution (Project Charter)
 
-프로젝트의 핵심 원칙을 정의하는 Constitution 작성 가이드입니다.
+A guide for writing a Constitution that defines your project's core principles.
 
-## Constitution이란?
+## What is a Constitution?
 
-Constitution은 프로젝트의 핵심 원칙, 기술 결정, 금지 사항을 정의한 문서입니다. 모든 스펙과 구현은 Constitution을 따라야 합니다.
+A Constitution is a document that defines your project's core principles, technical decisions, and forbidden practices. All specs and implementations must follow the Constitution.
 
-## 구조
-
-```markdown
-# [프로젝트명] Constitution
-
-## 메타데이터
-
-- **버전**: 1.0.0
-- **최종 수정**: 2025-12-24
-
-## 핵심 원칙 (Core Principles)
-
-프로젝트의 근본적인 가치와 방향
-
-## 기술 원칙 (Technical Principles)
-
-기술적 결정과 표준
-
-## 금지 사항 (Forbidden)
-
-절대 하면 안 되는 것들
-```
-
-## 섹션별 작성
-
-### 핵심 원칙
-
-프로젝트의 근본적인 가치:
+## Structure
 
 ```markdown
-## 핵심 원칙
+# [Project Name] Constitution
 
-1. **사용자 우선**: 사용자 경험이 모든 결정의 기준이다
-2. **데이터 보호**: 사용자 데이터의 안전이 최우선이다
-3. **단순함**: 복잡한 것보다 단순한 것이 낫다
-4. **투명성**: 시스템의 동작은 예측 가능해야 한다
+## Metadata
+
+- **Version**: 1.0.0
+- **Last Modified**: 2025-12-24
+
+## Core Principles
+
+Fundamental values and direction of the project
+
+## Technical Principles
+
+Technical decisions and standards
+
+## Forbidden
+
+Things that must never be done
 ```
 
-### 기술 원칙
+## Writing Each Section
 
-기술적 결정과 표준:
+### Core Principles
+
+The fundamental values of the project:
 
 ```markdown
-## 기술 원칙
+## Core Principles
 
-### 언어 및 프레임워크
-- TypeScript 엄격 모드 사용
-- React 18+ 사용
-- Node.js 20+ 지원
-
-### 코드 스타일
-- ESLint + Prettier 적용
-- 모든 함수에 타입 정의 필수
-- 주석은 "왜"를 설명
-
-### 테스트
-- 테스트 커버리지 80% 이상 유지
-- E2E 테스트는 핵심 흐름만
+1. **User First**: User experience is the basis of all decisions
+2. **Data Protection**: User data safety is the top priority
+3. **Simplicity**: Simple is better than complex
+4. **Transparency**: System behavior should be predictable
 ```
 
-### 금지 사항
+### Technical Principles
 
-절대 하면 안 되는 것들:
+Technical decisions and standards:
 
 ```markdown
-## 금지 사항
+## Technical Principles
 
-### 코드
-- ❌ any 타입 사용
-- ❌ console.log 프로덕션 코드
-- ❌ 하드코딩된 시크릿
+### Languages and Frameworks
+- Use TypeScript strict mode
+- Use React 18+
+- Support Node.js 20+
 
-### 의존성
-- ❌ moment.js (대안: date-fns)
-- ❌ jQuery
-- ❌ 무분별한 외부 라이브러리 추가
+### Code Style
+- Apply ESLint + Prettier
+- Type definitions required for all functions
+- Comments explain "why"
 
-### 보안
-- ❌ 평문 비밀번호 저장
-- ❌ SQL 직접 조합
-- ❌ 사용자 입력 무검증
+### Testing
+- Maintain test coverage above 80%
+- E2E tests only for core flows
 ```
 
-## 버전 관리
+### Forbidden
 
-Constitution 변경 시:
-
-1. 버전 번호 증가
-2. 변경 이력 기록
-3. 기존 스펙 호환성 검토
+Things that must never be done:
 
 ```markdown
-## 변경 이력
+## Forbidden
 
-| 버전 | 날짜 | 변경 내용 |
-|------|------|----------|
-| 1.0.0 | 2025-12-24 | 초기 버전 |
-| 1.1.0 | 2025-12-25 | 테스트 커버리지 기준 추가 |
+### Code
+- `any` type usage
+- console.log in production code
+- Hardcoded secrets
+
+### Dependencies
+- moment.js (alternative: date-fns)
+- jQuery
+- Adding external libraries without justification
+
+### Security
+- Plaintext password storage
+- Direct SQL string concatenation
+- Unvalidated user input
 ```
 
-## 스펙에서 참조
+## Version Management
 
-스펙 메타데이터에 Constitution 버전 포함:
+When changing the Constitution:
+
+1. Increment version number
+2. Record change history
+3. Review compatibility with existing specs
+
+```markdown
+## Change History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0.0 | 2025-12-24 | Initial version |
+| 1.1.0 | 2025-12-25 | Added test coverage criteria |
+```
+
+## Referencing in Specs
+
+Include Constitution version in spec metadata:
 
 ```yaml
 ---
@@ -117,11 +117,11 @@ constitution_version: 1.0.0
 ---
 ```
 
-## 검증
+## Validation
 
 ```bash
 sdd validate
 ```
 
-- constitution_version 불일치 시 경고
-- 금지 사항 위반 시 에러
+- Warns on constitution_version mismatch
+- Errors on forbidden practice violations

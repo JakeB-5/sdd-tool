@@ -1,56 +1,56 @@
 # dev-implement (Skill)
 
-스펙 기반 TDD 구현을 수행하는 개발 스킬입니다.
+A development skill for spec-based TDD implementation.
 
-> **Note**: 이것은 슬래시 커맨드가 아닌 **스킬**입니다. Claude가 작업 컨텍스트에 따라 자동으로 선택하여 사용합니다.
+> **Note**: This is a **skill**, not a slash command. Claude automatically selects and uses it based on the work context.
 
-## 개요
+## Overview
 
-`dev-implement` 스킬은 `.sdd/specs/`의 스펙 문서를 읽고 TDD 방식으로 TypeScript 코드를 구현합니다. GIVEN-WHEN-THEN 시나리오를 테스트로 변환하고 코드를 작성합니다.
+The `dev-implement` skill reads spec documents from `.sdd/specs/` and implements TypeScript code using TDD. It converts GIVEN-WHEN-THEN scenarios into tests and writes code.
 
-## 트리거 조건
+## Trigger Conditions
 
-Claude가 다음과 같은 요청을 받으면 자동으로 이 스킬을 사용합니다:
+Claude automatically uses this skill when receiving requests like:
 
-- "auth/login 스펙을 구현해줘"
-- "구현해줘", "개발해줘", "코딩해줘"
+- "Implement the auth/login spec"
+- "Implement this", "develop this", "code this"
 - "implement this spec"
 
-## 워크플로우
+## Workflow
 
-1. **스펙 로드**: 지정된 스펙 문서 읽기
-2. **테스트 생성**: GIVEN-WHEN-THEN을 Vitest 테스트로 변환
-3. **코드 구현**: 테스트를 통과하는 코드 작성
-4. **리팩토링**: 코드 품질 개선
-5. **검증**: 테스트 실행 및 확인
+1. **Load spec**: Read the specified spec document
+2. **Generate tests**: Convert GIVEN-WHEN-THEN to Vitest tests
+3. **Implement code**: Write code that passes the tests
+4. **Refactor**: Improve code quality
+5. **Verify**: Run tests and confirm
 
-## 사용 예시
+## Usage Example
 
 ```
-User: auth/login 스펙을 구현해줘
+User: Implement the auth/login spec
 
-Claude: 📋 스펙 로드: auth/login
+Claude: Spec loaded: auth/login
 
-## 사용자 로그인
+## User Login
 
-### 시나리오 1: 정상 로그인
-GIVEN 유효한 이메일과 비밀번호
-WHEN 로그인 요청
-THEN 세션 토큰 반환
+### Scenario 1: Normal Login
+GIVEN valid email and password
+WHEN login request
+THEN return session token
 
-### 시나리오 2: 잘못된 비밀번호
-GIVEN 유효한 이메일
-AND 잘못된 비밀번호
-WHEN 로그인 요청
-THEN 인증 오류 반환
+### Scenario 2: Wrong Password
+GIVEN valid email
+AND wrong password
+WHEN login request
+THEN return authentication error
 
 ---
 
-🧪 테스트 생성 중...
+Generating tests...
 
 // tests/auth/login.test.ts
-describe('로그인', () => {
-  it('유효한 자격증명으로 로그인하면 세션 토큰을 반환한다', async () => {
+describe('Login', () => {
+  it('returns session token with valid credentials', async () => {
     // Arrange
     const email = 'user@example.com';
     const password = 'ValidPass123';
@@ -66,23 +66,23 @@ describe('로그인', () => {
 
 ---
 
-💻 구현 중...
+Implementing...
 
 // src/auth/login.ts
 export async function login(
   email: string,
   password: string
 ): Promise<Result<Session, AuthError>> {
-  // 구현...
+  // Implementation...
 }
 
 ---
 
-✅ 테스트 통과: 2/2
+Tests passed: 2/2
 ```
 
-## 관련 스킬
+## Related Skills
 
-- [`dev-next`](/commands/dev-next) - 다음 구현할 스펙 추천
-- [`dev-test`](/commands/dev-test) - 테스트 실행
-- [`dev-review`](/commands/dev-review) - 코드 리뷰
+- [`dev-next`](/commands/dev-next) - Recommend next spec to implement
+- [`dev-test`](/commands/dev-test) - Run tests
+- [`dev-review`](/commands/dev-review) - Code review

@@ -1,14 +1,14 @@
-# CI/CD 설정 가이드
+# CI/CD Setup Guide
 
-SDD 프로젝트에 CI/CD를 통합하는 방법입니다.
+How to integrate CI/CD with your SDD project.
 
-## 빠른 시작
+## Quick Start
 
 ```bash
-# GitHub Actions 설정
+# GitHub Actions setup
 sdd cicd setup github
 
-# 생성되는 파일:
+# Files created:
 # .github/workflows/sdd-validate.yml
 # .github/workflows/sdd-labeler.yml
 ```
@@ -17,41 +17,41 @@ sdd cicd setup github
 
 ## GitHub Actions
 
-### 자동 설정
+### Automatic Setup
 
 ```bash
 sdd cicd setup github
 ```
 
-### 생성되는 워크플로우
+### Generated Workflows
 
 #### 1. sdd-validate.yml
 
-PR 및 푸시 시 스펙을 자동 검증합니다.
+Automatically validates specs on PR and push.
 
-**트리거**:
-- `.sdd/` 디렉토리 변경 시
-- main, master, develop 브랜치
+**Triggers**:
+- Changes to `.sdd/` directory
+- main, master, develop branches
 
-**실행 내용**:
-- 스펙 검증 (`sdd validate`)
-- Constitution 검증
-- 영향도 리포트 생성
+**Actions**:
+- Spec validation (`sdd validate`)
+- Constitution validation
+- Impact report generation
 
 #### 2. sdd-labeler.yml
 
-PR에 자동으로 라벨을 추가합니다.
+Automatically adds labels to PRs.
 
-**라벨 종류**:
-- `spec:도메인명` - 변경된 도메인
-- `constitution` - Constitution 변경 시
-- `spec:new` - 새 스펙 추가
-- `spec:update` - 스펙 수정
-- `spec:remove` - 스펙 삭제
+**Label types**:
+- `spec:domain-name` - Changed domain
+- `constitution` - Constitution changes
+- `spec:new` - New spec added
+- `spec:update` - Spec modified
+- `spec:remove` - Spec deleted
 
-### 수동 설정
+### Manual Setup
 
-워크플로우를 직접 생성하려면:
+To create workflows manually:
 
 ```yaml
 # .github/workflows/sdd-validate.yml
@@ -80,26 +80,26 @@ jobs:
         run: sdd validate --ci
 ```
 
-### 커스터마이징
+### Customization
 
-#### 엄격 모드
+#### Strict Mode
 
 ```bash
 sdd cicd setup github --strict
 ```
 
-경고도 에러로 처리합니다.
+Treats warnings as errors.
 
-#### 알림 추가
+#### Adding Notifications
 
 ```yaml
-# 실패 시 Slack 알림
+# Slack notification on failure
 - name: Notify Slack on Failure
   if: failure()
   uses: slackapi/slack-github-action@v1
   with:
     payload: |
-      {"text": "SDD 검증 실패: ${{ github.event.pull_request.html_url }}"}
+      {"text": "SDD validation failed: ${{ github.event.pull_request.html_url }}"}
   env:
     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 ```
@@ -108,17 +108,17 @@ sdd cicd setup github --strict
 
 ## GitLab CI
 
-### 자동 설정
+### Automatic Setup
 
 ```bash
 sdd cicd setup gitlab
 ```
 
-### 생성 파일
+### Generated File
 
-`.gitlab-ci-sdd.yml` 파일이 생성됩니다.
+`.gitlab-ci-sdd.yml` file is created.
 
-기존 `.gitlab-ci.yml`에 include하세요:
+Include it in your existing `.gitlab-ci.yml`:
 
 ```yaml
 # .gitlab-ci.yml
@@ -128,92 +128,92 @@ include:
 
 ---
 
-## 상태 체크 설정
+## Status Check Setup
 
-### GitHub Branch Protection에 연동
+### Connect to GitHub Branch Protection
 
-1. Settings → Branches → main 규칙 편집
-2. "Require status checks to pass" 활성화
-3. 검색창에 `Validate Specs` 입력
-4. 체크 추가
+1. Settings → Branches → Edit main rule
+2. Enable "Require status checks to pass"
+3. Search for `Validate Specs`
+4. Add check
 
-이제 스펙 검증을 통과해야만 PR 병합이 가능합니다.
+Now PR merging requires spec validation to pass.
 
-### 필수 체크 목록
+### Required Checks List
 
-| 체크 이름 | 설명 | 권장 |
-|-----------|------|------|
-| `Validate Specs` | 스펙 검증 | 필수 |
-| `Add Labels` | 라벨 추가 | 선택 |
+| Check Name | Description | Recommended |
+|------------|-------------|-------------|
+| `Validate Specs` | Spec validation | Required |
+| `Add Labels` | Label addition | Optional |
 
 ---
 
-## Git Hooks 연동
+## Git Hooks Integration
 
-로컬에서도 검증을 실행하려면:
+To run validation locally:
 
 ```bash
-# Git hooks 설치
+# Install Git hooks
 sdd git hooks install
 ```
 
-### 훅 종류
+### Hook Types
 
-| 훅 | 시점 | 검증 내용 |
-|----|------|----------|
-| `pre-commit` | 커밋 전 | 변경된 스펙만 검증 |
-| `commit-msg` | 커밋 메시지 작성 후 | 메시지 형식 검증 |
-| `pre-push` | 푸시 전 | 전체 스펙 검증 |
+| Hook | Timing | Validation |
+|------|--------|------------|
+| `pre-commit` | Before commit | Validates only changed specs |
+| `commit-msg` | After commit message | Validates message format |
+| `pre-push` | Before push | Validates all specs |
 
 ---
 
-## CI 환경 확인
+## CI Environment Check
 
-CI 환경인지 확인:
+Check if running in CI environment:
 
 ```bash
-# CI 환경에서 실행 (출력 간소화)
+# Run in CI environment (simplified output)
 sdd validate --ci
 
-# CI 체크
+# CI check
 sdd cicd check
 sdd cicd check --strict
 ```
 
 ---
 
-## 문제 해결
+## Troubleshooting
 
 ### "Status check not found"
 
-상태 체크가 보이지 않으면:
+If status check is not visible:
 
-1. 워크플로우가 최소 1번 실행되어야 함
-2. `.sdd/` 경로 변경이 포함된 PR 생성
-3. 워크플로우 파일 이름 확인
+1. Workflow must run at least once
+2. Create PR with `.sdd/` path changes
+3. Check workflow file name
 
-### 검증 실패
+### Validation Failure
 
 ```bash
-# 로컬에서 먼저 검증
+# Validate locally first
 sdd validate
 
-# 상세 출력
+# Verbose output
 sdd validate --verbose
 ```
 
-### 권한 오류
+### Permission Error
 
-GitHub Actions에서 라벨 추가 실패 시:
+If label addition fails in GitHub Actions:
 
 1. Settings → Actions → General
-2. "Workflow permissions" 섹션
-3. "Read and write permissions" 선택
+2. "Workflow permissions" section
+3. Select "Read and write permissions"
 
 ---
 
-## 관련 문서
+## Related Documentation
 
-- [커밋 컨벤션](./commit-convention.md)
-- [브랜치 전략](./branch-strategy.md)
-- [Git Hooks 설정](/cli/git)
+- [Commit Convention](./commit-convention.md)
+- [Branch Strategy](./branch-strategy.md)
+- [Git Hooks Setup](/cli/git)

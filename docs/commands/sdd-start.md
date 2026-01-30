@@ -1,48 +1,48 @@
 # /sdd.start
 
-SDD 워크플로우의 통합 진입점입니다.
+The unified entry point for the SDD workflow.
 
-## 사용법
+## Usage
 
 ```
 /sdd.start
 ```
 
-## 동작
+## Behavior
 
-프로젝트 상태를 분석하고 다음 작업을 안내합니다.
+Analyzes project status and guides you to the next action.
 
-### 신규 프로젝트
+### New Project
 
-Constitution이 없는 경우:
-
-```
-프로젝트가 초기화되었습니다.
-다음 단계: /sdd.constitution 으로 프로젝트 원칙을 정의하세요.
-```
-
-### 기존 프로젝트
-
-워크플로우 선택 메뉴 제공:
+When no Constitution exists:
 
 ```
-SDD 워크플로우를 선택하세요:
-
-1. 새 기능 추가 → /sdd.spec
-2. 기존 기능 변경 → /sdd.spec
-3. 스펙 검증 → /sdd.validate
-4. 프로젝트 상태 → /sdd.status
+Project has been initialized.
+Next step: Define project principles with /sdd.constitution
 ```
 
-## 출력 정보
+### Existing Project
 
-- 프로젝트 초기화 상태
-- Constitution 존재 여부
-- 스펙 개수
-- 진행 중인 작업
-- 권장 다음 단계
+Provides a workflow selection menu:
 
-## 예시
+```
+Select an SDD workflow:
+
+1. Add new feature -> /sdd.spec
+2. Modify existing feature -> /sdd.spec
+3. Validate specs -> /sdd.validate
+4. Project status -> /sdd.status
+```
+
+## Output Information
+
+- Project initialization status
+- Constitution existence
+- Number of specs
+- In-progress tasks
+- Recommended next steps
+
+## Example
 
 ```
 /sdd.start
@@ -51,14 +51,14 @@ SDD 워크플로우를 선택하세요:
 SDD Tool v1.0.0
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-프로젝트: my-app
+Project: my-app
 Constitution: ✓ (v1.0.0)
-스펙: 5개 (3 approved, 2 draft)
+Specs: 5 (3 approved, 2 draft)
 
-진행 중인 작업:
-- user-auth: 구현 중 (3/5 완료)
+In-progress tasks:
+- user-auth: implementing (3/5 complete)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-다음 단계: /sdd.implement user-auth
+Next step: /sdd.implement user-auth
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```

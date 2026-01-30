@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-01-30T05:36:07.711Z",
+  "system": {
+    "os": "win32",
+    "node": "v24.11.1"
+  },
+  "config": {
+    "specCount": 1000,
+    "iterations": 5
+  },
+  "results": [
+    {
+      "command": "node \"C:\\projects\\ai-kits\\sdd-tool\\bin\\sdd.js\" validate",
+      "iterations": 5,
+      "avgMs": 2013.1317000000004,
+      "minMs": 1981.222099999999,
+      "maxMs": 2091.3186000000005
+    },
+    {
+      "command": "node \"C:\\projects\\ai-kits\\sdd-tool\\bin\\sdd.js\" list",
+      "iterations": 5,
+      "avgMs": 1150.533500000001,
+      "minMs": 1112.3091000000022,
+      "maxMs": 1194.9585000000025
+    }
+  ]
+}

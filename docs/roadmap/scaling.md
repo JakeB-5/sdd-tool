@@ -1,25 +1,25 @@
-# 스케일업 로드맵
+# Scaling Roadmap
 
-SDD Tool을 중규모 SaaS (5-15명, 50-150개 스펙)로 확장하기 위한 기능 로드맵입니다.
+A feature roadmap for scaling SDD Tool to medium-scale SaaS (5-15 people, 50-150 specs).
 
-## 목표
+## Goals
 
-- 스펙 150개 이상에서도 원활한 성능
-- 멀티팀 독립 운영 + 전역 일관성
-- 체계적인 리뷰/승인 워크플로우
-- 외부 도구와의 연동
+- Smooth performance with 150+ specs
+- Multi-team independent operation + global consistency
+- Systematic review/approval workflow
+- Integration with external tools
 
 ---
 
-## Phase 0: 협업 기반 (Git 워크플로우)
+## Phase 0: Collaboration Foundation (Git Workflow)
 
-> **최우선 구현 대상**: 기술적 기능보다 선행되어야 하는 협업 기반
+> **Top Implementation Priority**: Foundation for collaboration that must precede technical features
 
-### 0.1 커밋 컨벤션
+### 0.1 Commit Conventions
 
-**목적**: 스펙 변경사항 추적 용이, 자동화된 변경 이력 생성
+**Purpose**: Easy tracking of spec changes, automated change history generation
 
-#### Conventional Commits 확장
+#### Conventional Commits Extension
 
 ```
 <type>(<scope>): <subject>
@@ -29,64 +29,64 @@ SDD Tool을 중규모 SaaS (5-15명, 50-150개 스펙)로 확장하기 위한 �
 [optional footer]
 ```
 
-**타입 정의**:
+**Type Definitions**:
 
-| 타입 | 설명 | 예시 |
-|------|------|------|
-| `spec` | 스펙 신규 생성 | `spec(auth): add user-login specification` |
-| `spec-update` | 스펙 내용 수정 | `spec-update(auth): add MFA requirements to user-login` |
-| `spec-status` | 스펙 상태 변경 | `spec-status(auth): user-login draft → review` |
-| `plan` | 구현 계획 | `plan(auth): add implementation plan for user-login` |
-| `tasks` | 작업 분해 | `tasks(auth): break down user-login into 5 tasks` |
-| `constitution` | Constitution 변경 | `constitution: add security principles (v1.1.0)` |
-| `sdd-config` | SDD 설정 변경 | `sdd-config: add billing domain` |
+| Type | Description | Example |
+|------|-------------|---------|
+| `spec` | New spec creation | `spec(auth): add user-login specification` |
+| `spec-update` | Spec content modification | `spec-update(auth): add MFA requirements to user-login` |
+| `spec-status` | Spec status change | `spec-status(auth): user-login draft -> review` |
+| `plan` | Implementation plan | `plan(auth): add implementation plan for user-login` |
+| `tasks` | Task breakdown | `tasks(auth): break down user-login into 5 tasks` |
+| `constitution` | Constitution change | `constitution: add security principles (v1.1.0)` |
+| `sdd-config` | SDD configuration change | `sdd-config: add billing domain` |
 
-**스코프 규칙**:
+**Scope Rules**:
 
 ```
-# 도메인/스펙 계층 구조
-spec(auth): ...                    # 도메인 전체
-spec(auth/user-login): ...         # 특정 스펙
-spec(auth,billing): ...            # 다중 도메인
+# Domain/spec hierarchy structure
+spec(auth): ...                    # Entire domain
+spec(auth/user-login): ...         # Specific spec
+spec(auth,billing): ...            # Multiple domains
 
-# 특수 스코프
-spec(*): ...                       # 전체 스펙 영향
-constitution: ...                  # Constitution (스코프 없음)
+# Special scopes
+spec(*): ...                       # Affects all specs
+constitution: ...                  # Constitution (no scope)
 ```
 
-**Footer 활용**:
+**Footer Usage**:
 
 ```
 spec(billing): add subscription-model specification
 
-새로운 구독 모델 스펙 추가:
-- 월간/연간 플랜 정의
-- 업그레이드/다운그레이드 규칙
-- 프로모션 코드 처리
+New subscription model spec:
+- Monthly/yearly plan definitions
+- Upgrade/downgrade rules
+- Promo code handling
 
 Refs: #123
-Breaking-Spec: payment-gateway (결제 흐름 변경 필요)
+Breaking-Spec: payment-gateway (payment flow change required)
 Depends-On: user-auth, billing/pricing
 ```
 
-#### 커밋 메시지 템플릿
+#### Commit Message Template
 
 ```bash
 # .gitmessage
 # <type>(<scope>): <subject>
-# |<---- 50자 이내 ---->|
+# |<---- within 50 chars ---->|
 
-# 본문 (선택사항)
-# |<---- 72자 이내 ---->|
+# Body (optional)
+# |<---- within 72 chars ---->|
 
-# Footer (선택사항)
-# Refs: #이슈번호
-# Breaking-Spec: 영향받는-스펙
-# Depends-On: 의존-스펙
-# Reviewed-By: @리뷰어
+# Footer (optional)
+# Refs: #issue-number
+# Breaking-Spec: affected-spec
+# Depends-On: dependency-spec
+# Reviewed-By: @reviewer
 ```
 
-**설정**:
+**Configuration**:
 
 ```bash
 git config commit.template .gitmessage
@@ -94,52 +94,52 @@ git config commit.template .gitmessage
 
 ---
 
-### 0.2 브랜치 전략
+### 0.2 Branch Strategy
 
-#### 스펙 개발용 브랜치 모델
+#### Branch Model for Spec Development
 
 ```
-main (또는 master)
-  │
-  ├── spec/auth/user-login        # 개별 스펙 작업
-  ├── spec/billing/subscription
-  │
-  ├── spec-bundle/q1-features     # 관련 스펙 묶음
-  │
-  └── constitution/v2.0           # Constitution 변경
+main (or master)
+  |
+  +-- spec/auth/user-login        # Individual spec work
+  +-- spec/billing/subscription
+  |
+  +-- spec-bundle/q1-features     # Related spec bundle
+  |
+  +-- constitution/v2.0           # Constitution changes
 ```
 
-**브랜치 명명 규칙**:
+**Branch Naming Rules**:
 
-| 패턴 | 용도 | 예시 |
-|------|------|------|
-| `spec/<domain>/<name>` | 개별 스펙 | `spec/auth/user-login` |
-| `spec-bundle/<name>` | 스펙 묶음 | `spec-bundle/payment-v2` |
+| Pattern | Purpose | Example |
+|---------|---------|---------|
+| `spec/<domain>/<name>` | Individual spec | `spec/auth/user-login` |
+| `spec-bundle/<name>` | Spec bundle | `spec-bundle/payment-v2` |
 | `constitution/<version>` | Constitution | `constitution/v2.0` |
-| `sdd-infra/<name>` | SDD 설정/구조 | `sdd-infra/add-billing-domain` |
+| `sdd-infra/<name>` | SDD config/structure | `sdd-infra/add-billing-domain` |
 
-#### 워크플로우
+#### Workflow
 
 ```
-1. 스펙 작업 시작
-   main ──→ spec/auth/user-login
+1. Start spec work
+   main --> spec/auth/user-login
 
-2. 스펙 작성 & 리뷰
-   spec/auth/user-login에서 작업
-   PR 생성 → 리뷰 → 승인
+2. Spec writing & review
+   Work on spec/auth/user-login
+   Create PR -> Review -> Approve
 
-3. 병합
-   spec/auth/user-login ──→ main
-   (squash merge 권장)
+3. Merge
+   spec/auth/user-login --> main
+   (squash merge recommended)
 
-4. 브랜치 삭제
-   spec/auth/user-login 삭제
+4. Delete branch
+   Delete spec/auth/user-login
 ```
 
-#### 보호 규칙
+#### Protection Rules
 
 ```yaml
-# GitHub Branch Protection 예시
+# GitHub Branch Protection example
 main:
   required_reviews: 2
   required_status_checks:
@@ -148,7 +148,7 @@ main:
   restrictions:
     - dismiss_stale_reviews: true
 
-# 스펙 브랜치는 자유롭게
+# Spec branches are flexible
 spec/*:
   required_reviews: 0
   allow_force_push: true
@@ -156,135 +156,135 @@ spec/*:
 
 ---
 
-### 0.3 스펙 변경 워크플로우
+### 0.3 Spec Change Workflow
 
-#### 단일 스펙 변경
+#### Single Spec Change
 
 ```bash
-# 1. 브랜치 생성
+# 1. Create branch
 git checkout -b spec/auth/user-login
 
-# 2. 스펙 작성
+# 2. Write spec
 sdd new auth/user-login
 
-# 3. 검증
+# 3. Validate
 sdd validate auth/user-login
 
-# 4. 커밋
+# 4. Commit
 git add .sdd/specs/auth/user-login/
 git commit -m "spec(auth): add user-login specification
 
-사용자 로그인 기능 명세:
-- 이메일/비밀번호 인증
+User login feature spec:
+- Email/password authentication
 - OAuth 2.0 (Google, GitHub)
-- 세션 관리 정책
+- Session management policy
 
 Depends-On: data-model/user"
 
-# 5. PR 생성
+# 5. Create PR
 gh pr create --title "spec(auth): user-login" --body "..."
 
-# 6. 리뷰 후 병합
+# 6. Merge after review
 gh pr merge --squash
 ```
 
-#### 다중 스펙 변경 (Breaking Change)
+#### Multiple Spec Change (Breaking Change)
 
 ```bash
-# 1. 번들 브랜치 생성
+# 1. Create bundle branch
 git checkout -b spec-bundle/payment-v2
 
-# 2. 관련 스펙들 수정
+# 2. Modify related specs
 sdd new billing/payment-gateway-v2
-# ... 여러 스펙 작업
+# ... work on multiple specs
 
-# 3. 영향 분석
+# 3. Impact analysis
 sdd impact billing/payment-gateway --code
 
-# 4. 변경 요약 커밋
+# 4. Summary commit
 git commit -m "spec-bundle(billing): payment system v2
 
-결제 시스템 전면 개편:
-- payment-gateway-v2: 새 PG 연동
-- refund-policy: 환불 정책 변경
-- subscription: 결제 주기 변경
+Complete payment system overhaul:
+- payment-gateway-v2: New PG integration
+- refund-policy: Refund policy change
+- subscription: Payment cycle change
 
 Breaking-Spec: billing/checkout, billing/invoice
 Migration-Guide: docs/migration/payment-v2.md"
 
-# 5. PR에 상세 설명
+# 5. PR with detailed description
 gh pr create --title "spec-bundle: Payment System v2" \
   --body "$(cat <<EOF
-## 변경 범위
-- 신규: payment-gateway-v2, refund-policy-v2
-- 수정: subscription, checkout
-- 영향: invoice, reporting
+## Scope
+- New: payment-gateway-v2, refund-policy-v2
+- Modified: subscription, checkout
+- Affected: invoice, reporting
 
 ## Breaking Changes
-checkout 스펙의 payment_method 필드 구조 변경
+checkout spec payment_method field structure changed
 
-## 마이그레이션
-docs/migration/payment-v2.md 참조
+## Migration
+See docs/migration/payment-v2.md
 EOF
 )"
 ```
 
-#### Constitution 변경
+#### Constitution Change
 
 ```bash
-# 1. Constitution 브랜치 (특별 관리)
+# 1. Constitution branch (special management)
 git checkout -b constitution/v2.0
 
-# 2. 변경 및 버전 업데이트
+# 2. Change and update version
 sdd constitution bump --minor
-# constitution.md 수정
+# Modify constitution.md
 
-# 3. 영향 분석
-sdd validate --constitution  # 위반 스펙 확인
+# 3. Impact analysis
+sdd validate --constitution  # Check violating specs
 
-# 4. 커밋 (상세 기록)
+# 4. Commit (detailed record)
 git commit -m "constitution: v2.0 - add API design principles
 
-신규 원칙:
-- API 응답 형식 표준화 (MUST)
-- 에러 코드 체계 (MUST)
-- 버전 관리 정책 (SHOULD)
+New principles:
+- API response format standardization (MUST)
+- Error code system (MUST)
+- Versioning policy (SHOULD)
 
-Breaking: 기존 API 스펙 중 12개 업데이트 필요
+Breaking: 12 existing API specs need updates
 - api/user-endpoint
 - api/product-endpoint
 ..."
 
-# 5. 전체 팀 리뷰 필수
+# 5. Requires full team review
 gh pr create --reviewer @tech-leads @architects
 ```
 
 ---
 
-### 0.4 Git Hooks 자동화
+### 0.4 Git Hooks Automation
 
-#### Pre-commit: 스펙 검증
+#### Pre-commit: Spec Validation
 
 ```bash
 #!/bin/bash
 # .husky/pre-commit
 
-# 변경된 스펙 파일 확인
+# Check changed spec files
 CHANGED_SPECS=$(git diff --cached --name-only | grep "^\.sdd/specs/")
 
 if [ -n "$CHANGED_SPECS" ]; then
-  echo "🔍 스펙 검증 중..."
+  echo "Validating specs..."
 
-  # 개별 스펙 검증
+  # Validate individual specs
   for spec in $CHANGED_SPECS; do
     sdd validate "$spec" || exit 1
   done
 
-  echo "✅ 스펙 검증 통과"
+  echo "Spec validation passed"
 fi
 ```
 
-#### Commit-msg: 컨벤션 검사
+#### Commit-msg: Convention Check
 
 ```bash
 #!/bin/bash
@@ -293,77 +293,77 @@ fi
 COMMIT_MSG_FILE=$1
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
-# 스펙 관련 커밋 패턴
+# Spec-related commit pattern
 SPEC_PATTERN="^(spec|spec-update|spec-status|plan|tasks|constitution|sdd-config)(\(.+\))?: .+"
 
-# 일반 커밋 패턴 (feat, fix, etc.)
+# General commit pattern (feat, fix, etc.)
 GENERAL_PATTERN="^(feat|fix|docs|style|refactor|test|chore)(\(.+\))?: .+"
 
 if [[ ! $COMMIT_MSG =~ $SPEC_PATTERN ]] && [[ ! $COMMIT_MSG =~ $GENERAL_PATTERN ]]; then
-  echo "❌ 커밋 메시지 형식 오류"
+  echo "Commit message format error"
   echo ""
-  echo "스펙 커밋: spec(<scope>): <message>"
-  echo "일반 커밋: feat(<scope>): <message>"
+  echo "Spec commit: spec(<scope>): <message>"
+  echo "General commit: feat(<scope>): <message>"
   echo ""
-  echo "자세한 내용: docs/guide/scaling-roadmap.md#0.1-커밋-컨벤션"
+  echo "Details: docs/guide/scaling-roadmap.md#0.1-commit-conventions"
   exit 1
 fi
 ```
 
-#### Pre-push: 전체 검증
+#### Pre-push: Full Validation
 
 ```bash
 #!/bin/bash
 # .husky/pre-push
 
-echo "🔍 푸시 전 검증..."
+echo "Pre-push validation..."
 
-# 전체 스펙 검증
+# Full spec validation
 sdd validate || exit 1
 
-# 순환 의존성 검사
+# Circular dependency check
 sdd deps check --cycles || exit 1
 
-# Constitution 정합성
+# Constitution consistency
 sdd validate --constitution || exit 1
 
-echo "✅ 검증 완료"
+echo "Validation complete"
 ```
 
-#### 설정 자동화 CLI
+#### Setup Automation CLI
 
 ```bash
-# Git hooks 설정
-sdd git hooks install         # Husky 설치 및 훅 설정
-sdd git hooks uninstall       # 훅 제거
+# Git hooks setup
+sdd git hooks install         # Install Husky and configure hooks
+sdd git hooks uninstall       # Remove hooks
 
-# 커밋 템플릿 설정
-sdd git template install      # .gitmessage 설정
+# Commit template setup
+sdd git template install      # Configure .gitmessage
 
-# 전체 Git 설정
+# Full Git setup
 sdd git setup                 # hooks + template + .gitignore
 ```
 
 ---
 
-### 0.5 .gitignore 및 Git 설정
+### 0.5 .gitignore and Git Configuration
 
-#### SDD용 .gitignore
+#### SDD .gitignore
 
 ```gitignore
 # .gitignore
 
-# SDD 캐시 (재생성 가능)
+# SDD cache (regeneratable)
 .sdd/index.json
 .sdd/.cache/
 
-# 로컬 설정
+# Local settings
 .sdd/local.yml
 
-# 생성된 리포트
+# Generated reports
 .sdd/reports/
 
-# 임시 파일
+# Temporary files
 .sdd/**/*.tmp
 .sdd/**/*.bak
 ```
@@ -373,18 +373,18 @@ sdd git setup                 # hooks + template + .gitignore
 ```gitattributes
 # .gitattributes
 
-# 스펙 파일은 항상 LF
+# Spec files always LF
 .sdd/**/*.md text eol=lf
 
-# 머지 전략: 스펙 충돌 시 수동 해결
+# Merge strategy: Manual resolution for spec conflicts
 .sdd/specs/** merge=spec-merge
 .sdd/constitution.md merge=constitution-merge
 ```
 
-#### 커스텀 머지 드라이버 (선택)
+#### Custom Merge Driver (Optional)
 
 ```bash
-# .git/config 또는 global config
+# .git/config or global config
 [merge "spec-merge"]
     name = SDD Spec Merge Driver
     driver = sdd merge %O %A %B %P
@@ -396,9 +396,9 @@ sdd git setup                 # hooks + template + .gitignore
 
 ---
 
-### 0.6 CI 연동
+### 0.6 CI Integration
 
-#### GitHub Actions: 스펙 검증
+#### GitHub Actions: Spec Validation
 
 ```yaml
 # .github/workflows/sdd-validate.yml
@@ -436,11 +436,11 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '❌ SDD 검증 실패. 상세 내용은 Actions 로그를 확인하세요.'
+              body: 'SDD validation failed. Check Actions logs for details.'
             })
 ```
 
-#### PR 라벨 자동화
+#### PR Label Automation
 
 ```yaml
 # .github/workflows/sdd-labeler.yml
@@ -489,80 +489,80 @@ jobs:
 
 ---
 
-### 구현 체크리스트
+### Implementation Checklist
 
 ```
-Phase 0 구현 순서:
+Phase 0 Implementation Order:
 
-□ 0.1 커밋 컨벤션
-  □ 컨벤션 문서화
-  □ .gitmessage 템플릿
-  □ commitlint 설정
+[ ] 0.1 Commit Conventions
+  [ ] Convention documentation
+  [ ] .gitmessage template
+  [ ] commitlint setup
 
-□ 0.2 브랜치 전략
-  □ 브랜치 명명 규칙 문서화
-  □ GitHub Branch Protection 설정
-  □ 브랜치 템플릿 스크립트
+[ ] 0.2 Branch Strategy
+  [ ] Branch naming rules documentation
+  [ ] GitHub Branch Protection setup
+  [ ] Branch template scripts
 
-□ 0.3 워크플로우
-  □ 단일 스펙 가이드
-  □ 번들 스펙 가이드
-  □ Constitution 변경 가이드
+[ ] 0.3 Workflow
+  [ ] Single spec guide
+  [ ] Bundle spec guide
+  [ ] Constitution change guide
 
-□ 0.4 Git Hooks
-  □ sdd git hooks install CLI
-  □ pre-commit 훅
-  □ commit-msg 훅
-  □ pre-push 훅
+[ ] 0.4 Git Hooks
+  [ ] sdd git hooks install CLI
+  [ ] pre-commit hook
+  [ ] commit-msg hook
+  [ ] pre-push hook
 
-□ 0.5 Git 설정
-  □ .gitignore 템플릿
-  □ .gitattributes 템플릿
-  □ sdd init에서 자동 생성
+[ ] 0.5 Git Configuration
+  [ ] .gitignore template
+  [ ] .gitattributes template
+  [ ] Auto-generate in sdd init
 
-□ 0.6 CI 연동
-  □ sdd-validate.yml 템플릿
-  □ sdd-labeler.yml 템플릿
-  □ sdd cicd setup 명령어 확장
+[ ] 0.6 CI Integration
+  [ ] sdd-validate.yml template
+  [ ] sdd-labeler.yml template
+  [ ] sdd cicd setup command extension
 ```
 
 ---
 
-## Phase 1: 성능 최적화
+## Phase 1: Performance Optimization
 
-### 1.1 인덱스 캐시 시스템
+### 1.1 Index Cache System
 
-**문제**: 매번 전체 스펙 파싱으로 인한 성능 저하
+**Problem**: Performance degradation from parsing all specs every time
 
-**해결책**: `.sdd/index.json` 캐시 도입
+**Solution**: Introduce `.sdd/index.json` cache
 
 ```typescript
 // src/core/index/schema.ts
 interface SpecIndex {
-  version: string;           // 인덱스 스키마 버전
-  generated: string;         // 생성 시각
-  checksum: string;          // 전체 무결성 해시
+  version: string;           // Index schema version
+  generated: string;         // Generation time
+  checksum: string;          // Full integrity hash
 
   specs: {
     [id: string]: {
-      path: string;          // 파일 경로
-      hash: string;          // 파일 해시 (변경 감지)
+      path: string;          // File path
+      hash: string;          // File hash (change detection)
       title: string;
       status: SpecStatus;
       phase: number;
       domain?: string;
       dependencies: string[];
-      keywords: string[];    // 전문 검색용
+      keywords: string[];    // For full-text search
       updated: string;
     }
   };
 
   graph: {
-    edges: [string, string][];  // [from, to] 의존성
-    reverse: {                   // 역방향 (영향 분석용)
+    edges: [string, string][];  // [from, to] dependencies
+    reverse: {                   // Reverse (for impact analysis)
       [id: string]: string[]
     };
-    cycles: string[][];         // 순환 의존성 캐시
+    cycles: string[][];         // Circular dependency cache
   };
 
   stats: {
@@ -574,97 +574,97 @@ interface SpecIndex {
 }
 ```
 
-**CLI 변경**:
+**CLI Changes**:
 
 ```bash
-sdd index rebuild    # 인덱스 재생성
-sdd index status     # 인덱스 상태 확인
-sdd index verify     # 무결성 검증
+sdd index rebuild    # Rebuild index
+sdd index status     # Check index status
+sdd index verify     # Verify integrity
 ```
 
-**자동 갱신 전략**:
+**Auto-update Strategy**:
 
 ```typescript
-// 변경 감지 및 부분 갱신
+// Change detection and partial update
 async function updateIndex(changedFiles: string[]) {
   const index = await loadIndex();
 
   for (const file of changedFiles) {
     const hash = await computeHash(file);
     if (index.specs[id]?.hash !== hash) {
-      // 해당 스펙만 재파싱
+      // Re-parse only this spec
       index.specs[id] = await parseSpec(file);
     }
   }
 
-  // 그래프 재계산 (변경된 부분만)
+  // Rebuild graph (only changed parts)
   rebuildAffectedGraph(index, changedFiles);
 
   await saveIndex(index);
 }
 ```
 
-**예상 효과**:
-- 검색 속도: O(n) → O(1)
-- validate 시간: 10초 → 1초 미만
-- impact 분석: 즉각적
+**Expected Effect**:
+- Search speed: O(n) -> O(1)
+- validate time: 10 sec -> under 1 sec
+- impact analysis: Instant
 
 ---
 
-### 1.2 인터랙티브 의존성 그래프
+### 1.2 Interactive Dependency Graph
 
-**현재**: 텍스트 기반 Mermaid 출력
+**Current**: Text-based Mermaid output
 
-**개선**: 브라우저 기반 인터랙티브 그래프
+**Improvement**: Browser-based interactive graph
 
 ```bash
-sdd graph                    # 브라우저에서 열기
-sdd graph --domain auth      # 도메인 필터
-sdd graph --focus user-auth  # 특정 스펙 중심
-sdd graph --export svg       # 이미지 내보내기
+sdd graph                    # Open in browser
+sdd graph --domain auth      # Domain filter
+sdd graph --focus user-auth  # Focus on specific spec
+sdd graph --export svg       # Export image
 ```
 
-**기술 스택**:
-- D3.js 또는 Cytoscape.js
-- 로컬 HTML 파일 생성 후 브라우저 오픈
-- 줌/팬/필터/검색 지원
+**Tech Stack**:
+- D3.js or Cytoscape.js
+- Generate local HTML file and open in browser
+- Support zoom/pan/filter/search
 
-**UI 기능**:
-- 노드 클릭: 스펙 상세 정보
-- 엣지 하이라이트: 의존성 경로
-- 색상 코딩: 상태별, Phase별, 도메인별
-- 검색: 실시간 노드 필터링
+**UI Features**:
+- Node click: Spec details
+- Edge highlight: Dependency path
+- Color coding: By status, phase, domain
+- Search: Real-time node filtering
 
 ---
 
-## Phase 2: 도메인 분리
+## Phase 2: Domain Separation
 
-### 2.1 멀티 Constitution 구조
+### 2.1 Multi-Constitution Structure
 
-**현재**:
+**Current**:
 ```
 .sdd/
 ├── constitution.md
 └── specs/
 ```
 
-**개선**:
+**Improved**:
 ```
 .sdd/
-├── constitution.md           # 전역 원칙 (필수 준수)
-├── config.yml                # 도메인 설정
+├── constitution.md           # Global principles (mandatory)
+├── config.yml                # Domain configuration
 └── domains/
     ├── auth/
-    │   ├── constitution.md   # 도메인 원칙 (전역 + 확장)
+    │   ├── constitution.md   # Domain principles (global + extended)
     │   └── specs/
     ├── billing/
     │   ├── constitution.md
     │   └── specs/
     └── core/
-        └── specs/            # constitution 없으면 전역만 적용
+        └── specs/            # Without constitution, only global applies
 ```
 
-**설정 파일**:
+**Configuration File**:
 
 ```yaml
 # .sdd/config.yml
@@ -672,20 +672,20 @@ version: "1.0"
 
 domains:
   auth:
-    name: "인증/인가"
+    name: "Authentication/Authorization"
     owners: ["@security-team"]
     constitution: domains/auth/constitution.md
 
   billing:
-    name: "결제/구독"
+    name: "Payment/Subscription"
     owners: ["@billing-team"]
     constitution: domains/billing/constitution.md
 
   core:
-    name: "핵심 기능"
+    name: "Core Features"
     owners: ["@core-team"]
 
-# 도메인 간 의존성 규칙
+# Inter-domain dependency rules
 dependencies:
   rules:
     - from: billing
@@ -693,103 +693,103 @@ dependencies:
       allowed: true
     - from: auth
       to: billing
-      allowed: false  # 순환 방지
+      allowed: false  # Prevent cycles
 ```
 
-**CLI 변경**:
+**CLI Changes**:
 
 ```bash
-# 도메인 지정 스펙 생성
+# Domain-specific spec creation
 sdd new auth/login-flow
 sdd new billing/subscription-model
 
-# 도메인별 작업
+# Domain-based operations
 sdd validate --domain auth
 sdd status --domain billing
 sdd list --domain core
 
-# 전체 현황
+# Full overview
 sdd status --by-domain
 ```
 
-**Constitution 상속**:
+**Constitution Inheritance**:
 
 ```markdown
 <!-- domains/auth/constitution.md -->
-# Auth 도메인 Constitution
+# Auth Domain Constitution
 
-상위: ../constitution.md (자동 상속)
+Parent: ../constitution.md (auto-inherited)
 
-## 추가 원칙
+## Additional Principles
 
-### 보안 요구사항
-- 모든 인증 스펙은 OWASP 가이드라인을 MUST 준수
-- 세션 관리 스펙은 만료 정책을 MUST 명시
+### Security Requirements
+- All auth specs MUST follow OWASP guidelines
+- Session management specs MUST specify expiration policy
 ```
 
 ---
 
-### 2.2 자동 의존성 감지
+### 2.2 Automatic Dependency Detection
 
-**현재**: 수동 `dependencies` 필드
+**Current**: Manual `dependencies` field
 
-**개선**: 내용 기반 자동 감지 + 수동 오버라이드
+**Improved**: Content-based auto-detection + manual override
 
 ```typescript
 // src/core/dependency/detector.ts
 interface DependencyDetector {
-  // 패턴 기반 감지
+  // Pattern-based detection
   patterns: [
-    // 명시적 참조
+    // Explicit references
     /depends on [`']([a-z-]+)[`']/gi,
     /requires [`']([a-z-]+)[`']/gi,
     /see [`']([a-z-]+)[`'] spec/gi,
 
-    // 요구사항 참조
+    // Requirement references
     /REQ-([A-Z]+-\d+)/g,
 
-    // 링크 참조
+    // Link references
     /\[.*?\]\(\.\.\/([a-z-]+)\//gi,
   ];
 
-  // 키워드 매칭
+  // Keyword matching
   keywords: {
-    'user-auth': ['인증', '로그인', '세션', 'JWT', 'OAuth'],
-    'billing': ['결제', '구독', '청구', 'subscription'],
+    'user-auth': ['authentication', 'login', 'session', 'JWT', 'OAuth'],
+    'billing': ['payment', 'subscription', 'invoice', 'subscription'],
   };
 }
 ```
 
-**검증 명령어**:
+**Validation Commands**:
 
 ```bash
-sdd deps check           # 의존성 일관성 검사
-sdd deps suggest         # 누락된 의존성 제안
-sdd deps auto-fix        # 자동 추가 (확인 후)
+sdd deps check           # Dependency consistency check
+sdd deps suggest         # Suggest missing dependencies
+sdd deps auto-fix        # Auto-add (after confirmation)
 ```
 
-**출력 예시**:
+**Example Output**:
 
 ```
-🔍 의존성 분석: user-profile
+Analyzing dependencies: user-profile
 
-감지된 의존성:
-  ✅ user-auth (명시됨)
-  ⚠️  data-model (감지됨, 미명시)
-      └─ "User 엔티티의 프로필 필드" 참조 발견 (line 23)
-  ⚠️  notification (감지됨, 미명시)
-      └─ "프로필 변경 시 알림" 언급 (line 45)
+Detected dependencies:
+  user-auth (explicit)
+  data-model (detected, not specified)
+      +-- "User entity profile field" reference found (line 23)
+  notification (detected, not specified)
+      +-- "Notification on profile change" mention (line 45)
 
-제안: sdd deps add user-profile data-model notification
+Suggestion: sdd deps add user-profile data-model notification
 ```
 
 ---
 
-## Phase 3: 리뷰 워크플로우
+## Phase 3: Review Workflow
 
-### 3.1 승인 게이트 시스템
+### 3.1 Approval Gate System
 
-**설정**:
+**Configuration**:
 
 ```yaml
 # .sdd/config.yml
@@ -799,19 +799,19 @@ review:
   gates:
     draft:
       next: review
-      auto: true  # 자동 전환 가능
+      auto: true  # Auto-transition possible
 
     review:
       next: approved
       requires:
         approvers: 2
-        from_teams: ["owners"]  # 도메인 owners
+        from_teams: ["owners"]  # Domain owners
 
     approved:
       next: implemented
       requires:
-        tests: true      # 테스트 존재 확인
-        sync_check: true # 코드 연결 확인
+        tests: true      # Test existence check
+        sync_check: true # Code connection check
 
   notifications:
     slack: "#sdd-reviews"
@@ -821,28 +821,28 @@ review:
     billing/*: ["@charlie"]
 ```
 
-**CLI 명령어**:
+**CLI Commands**:
 
 ```bash
-# 리뷰 요청
+# Request review
 sdd review request user-auth
 sdd review request user-auth --reviewers @alice @bob
 
-# 리뷰 작업
-sdd review list                    # 내 리뷰 목록
-sdd review list --pending          # 대기 중
-sdd review show user-auth          # 상세 보기
+# Review operations
+sdd review list                    # My review list
+sdd review list --pending          # Pending
+sdd review show user-auth          # Show details
 
-# 승인/반려
+# Approve/reject
 sdd review approve user-auth
 sdd review approve user-auth --comment "LGTM"
-sdd review reject user-auth --reason "보안 검토 필요"
+sdd review reject user-auth --reason "Security review needed"
 
-# 상태 전환 (권한 필요)
-sdd review promote user-auth       # 다음 단계로
+# Status transition (requires permission)
+sdd review promote user-auth       # Move to next stage
 ```
 
-**스펙 메타데이터 확장**:
+**Spec Metadata Extension**:
 
 ```yaml
 ---
@@ -862,9 +862,9 @@ review:
 
 ---
 
-### 3.2 변경 이력 추적
+### 3.2 Change History Tracking
 
-**새 필드**:
+**New Fields**:
 
 ```yaml
 ---
@@ -876,7 +876,7 @@ history:
   - date: 2024-01-12
     author: "@developer"
     action: modified
-    changes: ["요구사항 REQ-003 추가", "시나리오 2개 추가"]
+    changes: ["Added requirement REQ-003", "Added 2 scenarios"]
 
   - date: 2024-01-15
     author: "@developer"
@@ -891,23 +891,23 @@ history:
 **CLI**:
 
 ```bash
-sdd history user-auth              # 변경 이력
-sdd history user-auth --diff       # 버전 간 diff
-sdd blame user-auth                # 라인별 작성자
+sdd history user-auth              # Change history
+sdd history user-auth --diff       # Diff between versions
+sdd blame user-auth                # Author by line
 ```
 
 ---
 
-## Phase 4: 외부 연동
+## Phase 4: External Integration
 
-### 4.1 Issue Tracker 동기화
+### 4.1 Issue Tracker Sync
 
-**지원 대상**:
+**Supported Targets**:
 - GitHub Issues
 - Linear
-- Jira (추후)
+- Jira (future)
 
-**설정**:
+**Configuration**:
 
 ```yaml
 # .sdd/config.yml
@@ -916,8 +916,8 @@ integrations:
     enabled: true
     repo: "owner/repo"
     sync:
-      spec_to_issue: true      # 스펙 → 이슈 생성
-      issue_to_spec: false     # 이슈 → 스펙 (수동)
+      spec_to_issue: true      # Spec -> Issue creation
+      issue_to_spec: false     # Issue -> Spec (manual)
     labels:
       prefix: "spec:"
       status_mapping:
@@ -934,13 +934,13 @@ integrations:
 **CLI**:
 
 ```bash
-sdd sync github                    # GitHub 동기화
-sdd sync linear                    # Linear 동기화
-sdd link user-auth --github 123    # 수동 연결
+sdd sync github                    # GitHub sync
+sdd sync linear                    # Linear sync
+sdd link user-auth --github 123    # Manual link
 sdd link user-auth --linear ENG-456
 ```
 
-**스펙 메타데이터**:
+**Spec Metadata**:
 
 ```yaml
 ---
@@ -956,105 +956,105 @@ external:
 
 ---
 
-### 4.2 VSCode 확장
+### 4.2 VSCode Extension
 
-**기능 목록**:
+**Feature List**:
 
-| 기능 | 설명 |
-|------|------|
-| 스펙 미리보기 | 마크다운 렌더링 + 메타데이터 표시 |
-| 사이드바 | 스펙 트리 뷰, 상태별 필터 |
-| 자동완성 | `@spec REQ-xxx` 참조 자동완성 |
-| 호버 정보 | 스펙 ID 호버 시 요약 표시 |
-| Go to Definition | 스펙 참조에서 스펙 파일로 이동 |
-| Find References | 코드에서 스펙 참조 찾기 |
-| 검증 | 저장 시 자동 검증, 문제 패널 표시 |
-| 스니펫 | 스펙 템플릿 스니펫 |
+| Feature | Description |
+|---------|-------------|
+| Spec preview | Markdown rendering + metadata display |
+| Sidebar | Spec tree view, status filter |
+| Autocomplete | `@spec REQ-xxx` reference autocomplete |
+| Hover info | Summary on spec ID hover |
+| Go to Definition | Navigate from spec reference to spec file |
+| Find References | Find spec references in code |
+| Validation | Auto-validate on save, problem panel display |
+| Snippets | Spec template snippets |
 
-**구현 우선순위**:
-1. 스펙 트리 뷰 + 미리보기
-2. `@spec` 자동완성 + 호버
-3. 실시간 검증
+**Implementation Priority**:
+1. Spec tree view + preview
+2. `@spec` autocomplete + hover
+3. Real-time validation
 4. Go to Definition
 
 ---
 
-## Phase 5: 분석 및 대시보드
+## Phase 5: Analytics and Dashboard
 
-### 5.1 터미널 대시보드
+### 5.1 Terminal Dashboard
 
 ```bash
 sdd dashboard
 ```
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  SDD Dashboard - my-saas-project                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  📊 Overview          │  📈 Progress                        │
-│  ──────────────────   │  ────────────────────────────────   │
-│  Total Specs: 87      │  ████████████░░░░░░░░ 62% (54/87)   │
-│  Constitution: v2.1   │                                     │
-│                       │  By Phase:                          │
-│  By Status:           │  P1: ██████████████████ 100%        │
-│  ● Draft:      12     │  P2: ████████████░░░░░░  67%        │
-│  ● Review:      8     │  P3: ████░░░░░░░░░░░░░░  22%        │
-│  ● Approved:   13     │                                     │
-│  ● Implemented: 54    │                                     │
-│                       │                                     │
-├───────────────────────┴─────────────────────────────────────┤
-│  🔔 Pending Reviews (3)                                     │
-│  ──────────────────────────────────────────────────────────│
-│  • auth/mfa-setup        waiting: @alice (2 days)          │
-│  • billing/refund-flow   waiting: @bob, @charlie           │
-│  • core/audit-log        waiting: @security-team           │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│  ⚠️  Issues (2)                                             │
-│  ──────────────────────────────────────────────────────────│
-│  • Circular dependency: billing/invoice → billing/payment  │
-│  • Stale spec: core/legacy-api (no updates 30+ days)       │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+|  SDD Dashboard - my-saas-project                             |
++-------------------------------------------------------------+
+|                                                              |
+|  Overview               |  Progress                          |
+|  ----------------       |  --------------------------------   |
+|  Total Specs: 87        |  ============-------- 62% (54/87)  |
+|  Constitution: v2.1     |                                    |
+|                         |  By Phase:                         |
+|  By Status:             |  P1: ================== 100%       |
+|  * Draft:      12       |  P2: ============------ 67%        |
+|  * Review:      8       |  P3: ====-------------- 22%        |
+|  * Approved:   13       |                                    |
+|  * Implemented: 54      |                                    |
+|                         |                                    |
++-------------------------+------------------------------------+
+|  Pending Reviews (3)                                         |
+|  ---------------------------------------------------------   |
+|  * auth/mfa-setup        waiting: @alice (2 days)           |
+|  * billing/refund-flow   waiting: @bob, @charlie            |
+|  * core/audit-log        waiting: @security-team            |
+|                                                              |
++-------------------------------------------------------------+
+|  Issues (2)                                                  |
+|  ---------------------------------------------------------   |
+|  * Circular dependency: billing/invoice -> billing/payment   |
+|  * Stale spec: core/legacy-api (no updates 30+ days)        |
+|                                                              |
++-------------------------------------------------------------+
 ```
 
-### 5.2 HTML 리포트 강화
+### 5.2 Enhanced HTML Report
 
 ```bash
 sdd report --format html --output report.html
 ```
 
-**추가 섹션**:
-- 트렌드 차트 (주간/월간 진행률)
-- 도메인별 히트맵
-- 의존성 복잡도 지표
-- 리뷰 병목 분석
+**Additional Sections**:
+- Trend charts (weekly/monthly progress)
+- Domain heatmap
+- Dependency complexity metrics
+- Review bottleneck analysis
 
 ---
 
-## 구현 우선순위 요약
+## Implementation Priority Summary
 
-| Phase | 기능 | 난이도 | 영향도 | 예상 작업 |
-|-------|------|--------|--------|-----------|
-| **0** | 커밋 컨벤션 | 낮음 | 높음 | 문서 + 템플릿 |
-| **0** | 브랜치 전략 | 낮음 | 높음 | 문서 + 보호 규칙 |
-| **0** | Git Hooks | 중 | 높음 | CLI + 훅 스크립트 |
-| **0** | CI 연동 | 중 | 높음 | 워크플로우 템플릿 |
-| **1** | 인덱스 캐시 | 중 | 높음 | 스키마 + 빌더 + CLI |
-| **1** | 인터랙티브 그래프 | 중 | 중 | D3.js 템플릿 |
-| **2** | 도메인 분리 | 높음 | 높음 | 구조 변경 + CLI |
-| **2** | 자동 의존성 감지 | 중 | 중 | 파서 확장 |
-| **3** | 리뷰 워크플로우 | 높음 | 중 | 상태 관리 + CLI |
-| **3** | 변경 이력 | 중 | 중 | 메타데이터 확장 |
-| **4** | GitHub 연동 | 중 | 중 | API 연동 |
-| **4** | VSCode 확장 | 높음 | 높음 | 별도 프로젝트 |
-| **5** | 대시보드 | 중 | 중 | blessed/ink |
+| Phase | Feature | Difficulty | Impact | Expected Work |
+|-------|---------|------------|--------|---------------|
+| **0** | Commit conventions | Low | High | Docs + template |
+| **0** | Branch strategy | Low | High | Docs + protection rules |
+| **0** | Git Hooks | Medium | High | CLI + hook scripts |
+| **0** | CI integration | Medium | High | Workflow templates |
+| **1** | Index cache | Medium | High | Schema + builder + CLI |
+| **1** | Interactive graph | Medium | Medium | D3.js template |
+| **2** | Domain separation | High | High | Structure change + CLI |
+| **2** | Auto dependency detection | Medium | Medium | Parser extension |
+| **3** | Review workflow | High | Medium | State management + CLI |
+| **3** | Change history | Medium | Medium | Metadata extension |
+| **4** | GitHub integration | Medium | Medium | API integration |
+| **4** | VSCode extension | High | High | Separate project |
+| **5** | Dashboard | Medium | Medium | blessed/ink |
 
-> **Phase 0이 최우선**: 기술적 기능(Phase 1-5)보다 협업 기반(Phase 0)을 먼저 구축해야 팀 확장 시 혼란을 방지할 수 있습니다.
+> **Phase 0 is top priority**: Build collaboration foundation (Phase 0) before technical features (Phase 1-5) to prevent chaos when scaling teams.
 
-## 관련 문서
+## Related Documentation
 
-- [현재 한계점](./current-limits.md) - 도구의 현실적 한계
-- [로드맵 개요](./overview.md) - 전체 로드맵
-- [모범 사례](/guide/best-practices.md) - 효과적인 사용법
+- [Current Limitations](./current-limits.md) - Realistic tool limitations
+- [Roadmap Overview](./overview.md) - Complete roadmap
+- [Best Practices](/guide/best-practices.md) - Effective usage

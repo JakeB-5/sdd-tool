@@ -1,47 +1,47 @@
 # sdd list
 
-항목 목록을 조회합니다.
+Lists items.
 
-## 사용법
+## Usage
 
 ```bash
 sdd list [type]
 ```
 
-## 인자
+## Arguments
 
-| 인자 | 설명 | 기본값 |
-|------|------|--------|
-| `type` | 목록 유형 (specs, changes, all) | `specs` |
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `type` | List type (specs, changes, all) | `specs` |
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--phase <n>` | 특정 Phase만 표시 |
-| `--status <status>` | 특정 상태만 표시 |
-| `--json` | JSON 형식 출력 |
+| Option | Description |
+|--------|-------------|
+| `--phase <n>` | Show specific phase only |
+| `--status <status>` | Show specific status only |
+| `--json` | JSON format output |
 
-## 예시
+## Examples
 
 ```bash
-# 모든 스펙 목록
+# List all specs
 sdd list
 
-# 특정 Phase 스펙
+# Specs for specific phase
 sdd list --phase 1
 
-# 변경 제안 목록
+# List change proposals
 sdd list changes
 
-# JSON 출력
+# JSON output
 sdd list --json
 ```
 
-## 출력 예시
+## Output Example
 
 ```
-📋 스펙 목록 (12개)
+📋 Spec List (12 items)
 
 Phase 1:
   ✅ user-auth (implemented)
@@ -54,7 +54,7 @@ Phase 2:
   ...
 ```
 
-## 관련 명령어
+## Related Commands
 
-- [`sdd status`](/cli/status) - 프로젝트 상태
-- [`sdd validate`](/cli/validate) - 스펙 검증
+- [`sdd status`](/cli/status) - Project status
+- [`sdd validate`](/cli/validate) - Validate specs

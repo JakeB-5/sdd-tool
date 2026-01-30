@@ -1,111 +1,111 @@
 # /sdd.spec
 
-기능 명세를 작성하거나 수정합니다. (통합 진입점)
+Create or modify feature specifications. (Unified entry point)
 
-## 개요
+## Overview
 
-`/sdd.spec`은 새 기능 작성(`/sdd.new`)과 기존 기능 수정(`/sdd.change`)을 자동으로 판단하여 적절한 워크플로우로 안내합니다.
+`/sdd.spec` automatically determines whether you're writing a new feature (`/sdd.new`) or modifying an existing spec (`/sdd.change`), and guides you to the appropriate workflow.
 
-## 사용법
+## Usage
 
 ```
-/sdd.spec [기능 설명]
+/sdd.spec [feature description]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| 기능 설명 | 작성하거나 수정할 기능에 대한 설명 |
+| Argument | Description |
+|----------|-------------|
+| feature description | Description of the feature to create or modify |
 
-## 동작
+## Behavior
 
-1. 도메인명과 기능명 확인
-2. `.sdd/specs/<domain>/<feature-id>/spec.md` 존재 여부 확인
-3. **자동 분기**:
-   - 스펙이 없으면 → 새 기능 생성 워크플로우
-   - 스펙이 있으면 → 변경 규모에 따라 분기
+1. Confirm domain name and feature name
+2. Check if `.sdd/specs/<domain>/<feature-id>/spec.md` exists
+3. **Automatic branching**:
+   - If spec doesn't exist -> New feature creation workflow
+   - If spec exists -> Branch based on change scope
 
-### 새 기능 (스펙 없음)
+### New Feature (No existing spec)
 
 ```bash
 sdd new <domain>/<feature-id> --all
 ```
 
-- `.sdd/specs/<domain>/<feature-id>/` 디렉토리 생성
-- `spec.md`, `plan.md`, `tasks.md` 생성
-- RFC 2119 키워드와 GIVEN-WHEN-THEN 형식으로 명세 작성
+- Creates `.sdd/specs/<domain>/<feature-id>/` directory
+- Creates `spec.md`, `plan.md`, `tasks.md`
+- Writes specification using RFC 2119 keywords and GIVEN-WHEN-THEN format
 
-### 기존 수정 (스펙 있음)
+### Modify Existing (Spec exists)
 
-**작은 수정** (오타, 문구 수정, 요구사항 1-2개 추가):
-- 직접 `spec.md` 파일 수정
-- `sdd validate`로 검증
+**Small modifications** (typos, wording fixes, adding 1-2 requirements):
+- Directly edit the `spec.md` file
+- Validate with `sdd validate`
 
-**큰 변경** (요구사항 다수 변경, 구조 변경, 삭제):
-- `.sdd/changes/CHG-xxx.md` 변경 제안서 작성
-- 검토 → 승인 → 반영 워크플로우
+**Large changes** (multiple requirement changes, structural changes, deletions):
+- Create change proposal in `.sdd/changes/CHG-xxx.md`
+- Review -> Approve -> Apply workflow
 
-## 변경 규모 판단 기준
+## Change Scope Criteria
 
-| 규모 | 예시 | 권장 방식 |
-|------|------|----------|
-| 작음 | 오타 수정, 문구 개선 | 직접 수정 |
-| 중간 | 요구사항 1-2개 추가 | 직접 수정 |
-| 큼 | 요구사항 3개 이상 변경 | 변경 제안서 |
-| 큼 | 기존 요구사항 삭제 | 변경 제안서 |
-| 큼 | 시나리오 구조 변경 | 변경 제안서 |
+| Scope | Example | Recommended Approach |
+|-------|---------|---------------------|
+| Small | Typo fixes, wording improvements | Direct edit |
+| Medium | Adding 1-2 requirements | Direct edit |
+| Large | Changing 3+ requirements | Change proposal |
+| Large | Deleting existing requirements | Change proposal |
+| Large | Structural scenario changes | Change proposal |
 
-## 예시
+## Examples
 
-### 새 기능 작성
-
-```
-/sdd.spec 사용자 인증 기능
-
-AI: .sdd/specs/ 확인 중...
-    → auth/user-auth 스펙이 없습니다.
-    → 새 기능으로 생성합니다.
-
-    몇 가지 질문이 있습니다:
-    1. 어떤 인증 방식을 사용하시나요? (JWT, 세션, OAuth)
-    2. 소셜 로그인이 필요한가요?
-```
-
-### 기존 스펙 수정
+### Creating a New Feature
 
 ```
-/sdd.spec 로그인에 소셜 로그인 추가
+/sdd.spec user authentication feature
 
-AI: .sdd/specs/ 확인 중...
-    → auth/login/spec.md 존재합니다.
-    → 변경 규모를 확인합니다.
+AI: Checking .sdd/specs/...
+    -> auth/user-auth spec not found.
+    -> Creating as new feature.
 
-    요구사항 1개 추가이므로 직접 수정합니다.
-    spec.md에 REQ-03: 소셜 로그인 추가 중...
+    I have a few questions:
+    1. What authentication method will you use? (JWT, session, OAuth)
+    2. Do you need social login?
 ```
 
-## 생성 파일
+### Modifying an Existing Spec
 
-새 기능 시:
+```
+/sdd.spec add social login to authentication
+
+AI: Checking .sdd/specs/...
+    -> auth/login/spec.md exists.
+    -> Checking change scope.
+
+    Adding 1 requirement, so editing directly.
+    Adding REQ-03: Social Login to spec.md...
+```
+
+## Generated Files
+
+For new features:
 
 ```
 .sdd/specs/<domain>/<feature-id>/
-├── spec.md    # 기능 명세
-├── plan.md    # 구현 계획
-└── tasks.md   # 작업 분해
+├── spec.md    # Feature specification
+├── plan.md    # Implementation plan
+└── tasks.md   # Task breakdown
 ```
 
-## 다음 단계
+## Next Steps
 
-- 새 스펙 작성 후: `/sdd.plan` → `/sdd.tasks` → `/sdd.implement`
-- 스펙 수정 후: `sdd validate` → 커밋
+- After creating new spec: `/sdd.plan` -> `/sdd.tasks` -> `/sdd.implement`
+- After modifying spec: `sdd validate` -> commit
 
-## 관련 커맨드
+## Related Commands
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/sdd.plan` | 구현 계획 작성 |
-| `/sdd.tasks` | 작업 분해 |
-| `/sdd.validate` | 스펙 검증 |
-| `/sdd.impact` | 변경 영향도 분석 |
+| Command | Description |
+|---------|-------------|
+| `/sdd.plan` | Create implementation plan |
+| `/sdd.tasks` | Task breakdown |
+| `/sdd.validate` | Spec validation |
+| `/sdd.impact` | Change impact analysis |

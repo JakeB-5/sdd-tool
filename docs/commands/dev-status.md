@@ -1,75 +1,75 @@
 # dev-status (Skill)
 
-SDD CLI 구현 진행 상황을 보고하는 개발 스킬입니다.
+A development skill that reports SDD CLI implementation progress.
 
-> **Note**: 이것은 슬래시 커맨드가 아닌 **스킬**입니다. Claude가 작업 컨텍스트에 따라 자동으로 선택하여 사용합니다.
+> **Note**: This is a **skill**, not a slash command. Claude automatically selects and uses it based on the work context.
 
-## 개요
+## Overview
 
-`dev-status` 스킬은 SDD CLI 구현 진행 상황을 분석하고 Phase별 스펙 현황, 구현 완료율, 테스트 통과율을 보고합니다.
+The `dev-status` skill analyzes SDD CLI implementation progress and reports spec status by phase, implementation completion rate, and test pass rate.
 
-## 트리거 조건
+## Trigger Conditions
 
-Claude가 다음과 같은 요청을 받으면 자동으로 이 스킬을 사용합니다:
+Claude automatically uses this skill when receiving requests like:
 
-- "현황", "진행 상황", "얼마나 됐어"
+- "Status", "progress", "how far along"
 - "status", "progress"
 
-## 사용 예시
+## Usage Example
 
 ```
-User: 현황 보여줘
+User: Show me the status
 
-Claude: 📊 SDD CLI 구현 현황
+Claude: SDD CLI Implementation Status
 
-## 전체 진행률
+## Overall Progress
 
-구현: ████████░░ 80%
-테스트: ███████░░░ 70%
+Implementation: 80%
+Tests: 70%
 
-## Phase별 현황
+## Status by Phase
 
-### Phase 0: Git 워크플로우
-| 스펙 | 구현 | 테스트 |
-|------|------|--------|
-| git-branch | ✅ | ✅ |
-| git-commit | ✅ | ✅ |
-| git-pr | ✅ | ⏳ |
+### Phase 0: Git Workflow
+| Spec | Implementation | Tests |
+|------|----------------|-------|
+| git-branch | Complete | Complete |
+| git-commit | Complete | Complete |
+| git-pr | Complete | Pending |
 
-### Phase 1: 역추출
-| 스펙 | 구현 | 테스트 |
-|------|------|--------|
-| reverse-scan | ✅ | ✅ |
-| reverse-extract | ✅ | ✅ |
-| reverse-review | ✅ | ✅ |
-| reverse-finalize | ✅ | ✅ |
+### Phase 1: Reverse Engineering
+| Spec | Implementation | Tests |
+|------|----------------|-------|
+| reverse-scan | Complete | Complete |
+| reverse-extract | Complete | Complete |
+| reverse-review | Complete | Complete |
+| reverse-finalize | Complete | Complete |
 
-## 통계
+## Statistics
 
-- 총 스펙: 25개
-- 구현 완료: 20개 (80%)
-- 테스트 완료: 18개 (72%)
-- 문서화 완료: 22개 (88%)
+- Total specs: 25
+- Implementation complete: 20 (80%)
+- Tests complete: 18 (72%)
+- Documentation complete: 22 (88%)
 
-## 다음 작업 추천
+## Next Task Recommendations
 
-1. ⏳ export/json-format (테스트 미완료)
-2. ⏳ cicd/github-actions (구현 필요)
+1. Pending: export/json-format (tests incomplete)
+2. Pending: cicd/github-actions (needs implementation)
 ```
 
-## 상세 모드
+## Detailed Mode
 
 ```
-User: 상세 현황 보여줘
+User: Show me detailed status
 
-Claude: 추가 정보:
-- 각 스펙별 코드 라인 수
-- 테스트 커버리지 %
-- 최근 변경 일시
-- 의존성 상태
+Claude: Additional information:
+- Lines of code per spec
+- Test coverage %
+- Last modified date
+- Dependency status
 ```
 
-## 관련 스킬
+## Related Skills
 
-- [`dev-next`](/commands/dev-next) - 다음 구현 추천
-- [`dev-review`](/commands/dev-review) - 코드 리뷰
+- [`dev-next`](/commands/dev-next) - Recommend next implementation
+- [`dev-review`](/commands/dev-review) - Code review

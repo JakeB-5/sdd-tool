@@ -1,26 +1,26 @@
-# 다중 스펙 변경 워크플로우
+# Multiple Spec Change Workflow
 
-여러 관련 스펙을 함께 변경할 때의 워크플로우입니다.
+Workflow for changing multiple related specs together.
 
-## 언제 사용하나요?
+## When to Use
 
-- **Breaking Change**: 한 스펙 변경이 다른 스펙에 영향
-- **기능 묶음**: 관련된 여러 스펙을 함께 개발
-- **대규모 리팩토링**: 도메인 구조 변경
-
----
-
-## 개요
-
-```
-번들 브랜치 생성 → 여러 스펙 작성 → 영향 분석 → 커밋 → PR → 리뷰 → 병합
-```
+- **Breaking Changes**: One spec change affects other specs
+- **Feature Bundle**: Develop multiple related specs together
+- **Large-scale Refactoring**: Domain structure changes
 
 ---
 
-## 단계별 가이드
+## Overview
 
-### 1. 번들 브랜치 생성
+```
+Create bundle branch → Write multiple specs → Impact analysis → Commit → PR → Review → Merge
+```
+
+---
+
+## Step-by-Step Guide
+
+### 1. Create Bundle Branch
 
 ```bash
 git checkout main
@@ -28,96 +28,96 @@ git pull origin main
 git checkout -b spec-bundle/payment-v2
 ```
 
-**명명 규칙**: `spec-bundle/<설명적-이름>`
+**Naming convention**: `spec-bundle/<descriptive-name>`
 
-### 2. 관련 스펙 작성
+### 2. Write Related Specs
 
 ```bash
-# 여러 스펙 생성/수정
+# Create/modify multiple specs
 sdd new billing/payment-gateway-v2
 sdd new billing/refund-policy-v2
 
-# 기존 스펙 수정
-# .sdd/specs/billing/checkout/spec.md 편집
-# .sdd/specs/billing/subscription/spec.md 편집
+# Modify existing specs
+# Edit .sdd/specs/billing/checkout/spec.md
+# Edit .sdd/specs/billing/subscription/spec.md
 ```
 
-### 3. 영향 분석
+### 3. Impact Analysis
 
 ```bash
-# 변경된 스펙의 영향 확인
+# Check impact of changed specs
 sdd impact billing/payment-gateway-v2
 
-# 전체 의존성 확인
+# Check all dependencies
 sdd deps check
 
-# 순환 의존성 검사
+# Check for circular dependencies
 sdd deps check --cycles
 ```
 
-**출력 예시**:
+**Example output**:
 ```
-📊 영향 분석: billing/payment-gateway-v2
+📊 Impact Analysis: billing/payment-gateway-v2
 
-직접 영향:
-  ├── billing/checkout (의존)
-  ├── billing/subscription (의존)
-  └── billing/invoice (참조)
+Direct Impact:
+  ├── billing/checkout (depends)
+  ├── billing/subscription (depends)
+  └── billing/invoice (references)
 
-간접 영향:
-  └── order/order-complete (billing/checkout 통해)
+Indirect Impact:
+  └── order/order-complete (via billing/checkout)
 
-⚠️  Breaking Change 가능성: 3개 스펙
+⚠️  Potential Breaking Changes: 3 specs
 ```
 
-### 4. 스펙별 커밋
+### 4. Commit per Spec
 
-각 스펙을 별도 커밋으로 분리합니다:
+Separate each spec into individual commits:
 
 ```bash
-# 신규 스펙 커밋
+# New spec commit
 git add .sdd/specs/billing/payment-gateway-v2/
 git commit -m "spec(billing/payment-gateway-v2): add new payment gateway specification
 
-새 PG 연동 명세:
-- Stripe, Toss 지원
-- 웹훅 처리 정의
-- 에러 복구 시나리오"
+New PG integration spec:
+- Stripe, Toss support
+- Webhook handling definition
+- Error recovery scenarios"
 
-# 수정 스펙 커밋
+# Modified spec commit
 git add .sdd/specs/billing/checkout/
 git commit -m "spec-update(billing/checkout): update for payment-gateway-v2
 
-결제 흐름 변경:
-- 새 PG 인터페이스 적용
-- 결제 실패 처리 개선
+Payment flow changes:
+- Apply new PG interface
+- Improve payment failure handling
 
 Breaking-Spec: billing/invoice"
 
-# 추가 스펙 커밋
+# Additional spec commit
 git add .sdd/specs/billing/refund-policy-v2/
 git commit -m "spec(billing/refund-policy-v2): add refund policy specification
 
-환불 정책 명세:
-- 자동 환불 조건
-- 수동 검토 케이스
-- 부분 환불 처리"
+Refund policy spec:
+- Auto refund conditions
+- Manual review cases
+- Partial refund handling"
 ```
 
-### 5. 최종 검증
+### 5. Final Validation
 
 ```bash
-# 전체 검증
+# Full validation
 sdd validate
 
-# Constitution 준수 확인
+# Constitution compliance check
 sdd validate --constitution
 
-# 의존성 최종 확인
+# Final dependency check
 sdd deps check
 ```
 
-### 6. 푸시 & PR
+### 6. Push & Create PR
 
 ```bash
 git push -u origin spec-bundle/payment-v2
@@ -125,53 +125,53 @@ git push -u origin spec-bundle/payment-v2
 gh pr create \
   --title "spec-bundle: Payment System v2" \
   --body "$(cat <<EOF
-## 개요
-결제 시스템 전면 개편
+## Overview
+Complete overhaul of payment system
 
-## 변경 범위
-### 신규
-- billing/payment-gateway-v2: 새 PG 연동
-- billing/refund-policy-v2: 환불 정책
+## Change Scope
+### New
+- billing/payment-gateway-v2: New PG integration
+- billing/refund-policy-v2: Refund policy
 
-### 수정
-- billing/checkout: 결제 흐름 변경
-- billing/subscription: 결제 주기 변경
+### Modified
+- billing/checkout: Payment flow changes
+- billing/subscription: Billing cycle changes
 
-### 영향
-- billing/invoice: 인보이스 형식 변경 필요
-- order/order-complete: 결제 확인 로직 변경 필요
+### Impact
+- billing/invoice: Invoice format change needed
+- order/order-complete: Payment confirmation logic change needed
 
 ## Breaking Changes
-- checkout 스펙의 payment_method 필드 구조 변경
-- subscription 스펙의 billing_cycle 열거형 추가
+- checkout spec payment_method field structure change
+- subscription spec billing_cycle enum addition
 
-## 마이그레이션 가이드
-docs/migration/payment-v2.md 참조
+## Migration Guide
+See docs/migration/payment-v2.md
 
-## 체크리스트
-- [x] sdd validate 통과
-- [x] 영향 분석 완료
-- [x] Breaking Changes 문서화
-- [ ] 영향받는 팀 리뷰
+## Checklist
+- [x] sdd validate passed
+- [x] Impact analysis complete
+- [x] Breaking Changes documented
+- [ ] Affected team review
 EOF
 )"
 ```
 
-### 7. 리뷰
+### 7. Review
 
-번들 PR은 더 신중한 리뷰가 필요합니다:
+Bundle PRs require more careful review:
 
-- **영향받는 팀**: 각 도메인 담당자 리뷰
-- **아키텍트**: 전체 구조 검토
-- **Breaking Changes**: 마이그레이션 계획 확인
+- **Affected teams**: Review by each domain owner
+- **Architect**: Overall structure review
+- **Breaking Changes**: Migration plan confirmation
 
-### 8. 병합 & 정리
+### 8. Merge & Cleanup
 
 ```bash
-# 병합 (squash 또는 merge commit)
-gh pr merge --merge  # 커밋 이력 유지 권장
+# Merge (squash or merge commit)
+gh pr merge --merge  # Preserving commit history recommended
 
-# 정리
+# Cleanup
 git checkout main
 git pull
 git branch -d spec-bundle/payment-v2
@@ -179,84 +179,84 @@ git branch -d spec-bundle/payment-v2
 
 ---
 
-## Breaking Change 처리
+## Breaking Change Handling
 
-### 식별
+### Identification
 
 ```bash
-# 영향 분석으로 식별
+# Identify through impact analysis
 sdd impact billing/payment-gateway --code
 
-# Footer에 명시
+# Specify in footer
 Breaking-Spec: billing/checkout, billing/invoice
 ```
 
-### 문서화
+### Documentation
 
 ```markdown
-<!-- PR 본문에 포함 -->
+<!-- Include in PR body -->
 ## Breaking Changes
 
 ### billing/checkout
-- `payment_method` 필드 구조 변경
-  - 이전: `string`
-  - 이후: `{ type: string, provider: string }`
+- `payment_method` field structure change
+  - Before: `string`
+  - After: `{ type: string, provider: string }`
 
 ### billing/subscription
-- `billing_cycle` 열거형 추가
-  - 새 값: `WEEKLY`, `BIWEEKLY`
+- `billing_cycle` enum addition
+  - New values: `WEEKLY`, `BIWEEKLY`
 ```
 
-### 마이그레이션 가이드
+### Migration Guide
 
 ```bash
-# 마이그레이션 문서 생성
+# Create migration document
 mkdir -p docs/migration
 ```
 
 ```markdown
 <!-- docs/migration/payment-v2.md -->
-# Payment System v2 마이그레이션
+# Payment System v2 Migration
 
-## 변경 요약
+## Change Summary
 ...
 
-## 마이그레이션 단계
-1. payment-gateway-v2 인터페이스 구현
-2. checkout 로직 업데이트
-3. invoice 생성 로직 수정
-4. 기존 데이터 마이그레이션
+## Migration Steps
+1. Implement payment-gateway-v2 interface
+2. Update checkout logic
+3. Modify invoice generation logic
+4. Migrate existing data
 
-## 롤백 계획
+## Rollback Plan
 ...
 ```
 
 ---
 
-## 모범 사례
+## Best Practices
 
-### 번들 구성
+### Bundle Composition
 
-- **관련 스펙만**: 논리적으로 연결된 스펙만 포함
-- **적정 크기**: 3-7개 스펙 권장, 너무 크면 분리
-- **명확한 범위**: PR 설명에 변경 범위 명시
+- **Related specs only**: Include only logically connected specs
+- **Appropriate size**: 3-7 specs recommended, split if too large
+- **Clear scope**: Specify change scope in PR description
 
-### 커밋 전략
+### Commit Strategy
 
-- **스펙별 커밋**: 각 스펙 변경을 별도 커밋
-- **논리적 순서**: 의존성 순서대로 커밋
-- **상세한 메시지**: Breaking Change 명시
+- **Commit per spec**: Separate commits for each spec change
+- **Logical order**: Commit in dependency order
+- **Detailed messages**: Specify Breaking Changes
 
-### 리뷰 요청
+### Review Request
 
-- **조기 리뷰**: Draft PR로 먼저 피드백
-- **담당자 지정**: 영향받는 도메인 오너 포함
-- **충분한 시간**: 복잡한 변경은 여유 있게
+- **Early review**: Get feedback first with Draft PR
+- **Assign owners**: Include affected domain owners
+- **Sufficient time**: Allow extra time for complex changes
 
 ---
 
-## 관련 문서
+## Related Documentation
 
-- [단일 스펙 워크플로우](./workflow-single-spec.md)
-- [Constitution 변경](./workflow-constitution.md)
-- [커밋 컨벤션](./commit-convention.md)
+- [Single Spec Workflow](./workflow-single-spec.md)
+- [Constitution Changes](./workflow-constitution.md)
+- [Commit Convention](./commit-convention.md)

@@ -1,20 +1,20 @@
-# 그린필드 프로젝트 시작하기
+# Getting Started with Greenfield Projects
 
-새 프로젝트를 SDD 방식으로 시작하는 튜토리얼입니다.
+A tutorial for starting new projects with the SDD methodology.
 
-## 개요
+## Overview
 
-그린필드(Greenfield) 프로젝트는 처음부터 새로 시작하는 프로젝트입니다. SDD를 처음부터 적용하면 명세와 구현이 일치하는 고품질 코드베이스를 만들 수 있습니다.
+A greenfield project is one that starts from scratch. By applying SDD from the beginning, you can create a high-quality codebase where specifications and implementation stay aligned.
 
-> **Note**: 이 튜토리얼은 Claude Code에서 슬래시 커맨드를 사용하는 대화형 워크플로우를 기반으로 합니다.
+> **Note**: This tutorial is based on an interactive workflow using slash commands in Claude Code.
 
-## 시나리오
+## Scenario
 
-간단한 할 일 관리 API를 만들어보겠습니다.
+Let's create a simple todo management API.
 
-## Step 1: 프로젝트 초기화
+## Step 1: Project Initialization
 
-### 프로젝트 생성
+### Create Project
 
 ```bash
 mkdir todo-api
@@ -22,198 +22,198 @@ cd todo-api
 npm init -y
 ```
 
-### SDD 초기화
+### SDD Initialization
 
-터미널에서 `sdd init` 명령어를 실행합니다:
+Run the `sdd init` command in your terminal:
 
 ```bash
 sdd init
 ```
 
 ```
-✅ SDD 프로젝트가 초기화되었습니다!
+SDD project has been initialized!
 
-생성된 항목:
-  📁 .sdd/specs/
-  📁 .sdd/changes/
-  📁 .sdd/archive/
-  📁 .sdd/templates/
-  📁 .claude/commands/    ← 슬래시 커맨드
-  📁 .claude/skills/      ← 개발 스킬
-  📄 .sdd/constitution.md
-  📄 .sdd/AGENTS.md
+Created items:
+  .sdd/specs/
+  .sdd/changes/
+  .sdd/archive/
+  .sdd/templates/
+  .claude/commands/    <- Slash commands
+  .claude/skills/      <- Development skills
+  .sdd/constitution.md
+  .sdd/AGENTS.md
 
-다음 단계: Claude Code에서 /sdd.start 를 실행하세요.
+Next step: Run /sdd.start in Claude Code.
 ```
 
-생성되는 구조:
+Generated structure:
 
 ```
 todo-api/
 ├── .sdd/
-│   ├── constitution.md     # 프로젝트 원칙
-│   ├── AGENTS.md           # AI 지침
-│   ├── specs/              # 스펙 저장소
-│   ├── changes/            # 변경 제안
-│   ├── archive/            # 아카이브
-│   └── templates/          # 템플릿
+│   ├── constitution.md     # Project principles
+│   ├── AGENTS.md           # AI guidelines
+│   ├── specs/              # Spec repository
+│   ├── changes/            # Change proposals
+│   ├── archive/            # Archive
+│   └── templates/          # Templates
 ├── .claude/
-│   ├── commands/           # 슬래시 커맨드
-│   └── skills/             # 개발 스킬
+│   ├── commands/           # Slash commands
+│   └── skills/             # Development skills
 └── package.json
 ```
 
-### Claude Code에서 시작
+### Start in Claude Code
 
-이제 Claude Code에서 프로젝트를 열고 `/sdd.start`를 실행합니다:
+Now open the project in Claude Code and run `/sdd.start`:
 
 ```
 /sdd.start
 ```
 
 ```
-📂 프로젝트 상태
+Project Status
 
-✅ SDD 초기화됨
-📜 Constitution: 템플릿 (수정 필요)
-📋 스펙: 0개
+SDD Initialized
+Constitution: Template (modification needed)
+Specs: 0
 
-다음 단계: /sdd.constitution 으로 프로젝트 원칙을 정의하세요.
+Next step: Define project principles with /sdd.constitution.
 ```
 
-## Step 2: 프로젝트 헌법 정의
+## Step 2: Define Project Constitution
 
 ```
 /sdd.constitution
 ```
 
-Claude가 대화형으로 프로젝트 원칙을 수립합니다:
+Claude will interactively establish project principles:
 
 ```
-📜 Constitution 설정
+Constitution Setup
 
-프로젝트 이름: todo-api
-버전: 1.0.0
+Project name: todo-api
+Version: 1.0.0
 
-핵심 원칙을 정의해주세요:
+Define core principles:
 
-1. 기술 스택:
-   → TypeScript, Express, Prisma
+1. Tech Stack:
+   -> TypeScript, Express, Prisma
 
-2. 코드 원칙:
-   → 함수는 단일 책임 원칙을 따릅니다
-   → 에러는 명시적으로 처리합니다
-   → 모든 공개 API는 테스트가 필요합니다
+2. Code Principles:
+   -> Functions follow single responsibility principle
+   -> Errors are handled explicitly
+   -> All public APIs require tests
 
-3. 네이밍 규칙:
-   → 파일명: kebab-case
-   → 함수명: camelCase
-   → 타입명: PascalCase
+3. Naming Conventions:
+   -> Files: kebab-case
+   -> Functions: camelCase
+   -> Types: PascalCase
 
-Constitution이 저장되었습니다: .sdd/constitution.md
+Constitution saved: .sdd/constitution.md
 ```
 
-## Step 3: 도메인 설계
+## Step 3: Domain Design
 
-### 도메인 식별
+### Identify Domains
 
-할 일 API의 주요 도메인을 설계합니다:
+Design the main domains for the todo API:
 
 ```
 /sdd.domain
 ```
 
-Claude와 대화하며 도메인을 설계합니다:
+Design domains through conversation with Claude:
 
 ```
-User: 할 일 API에 필요한 도메인을 설계해줘
+User: Design the domains needed for a todo API
 
-Claude: 📁 도메인 설계
+Claude: Domain Design
 
-할 일 API에 다음 도메인을 제안합니다:
+I suggest the following domains for the todo API:
 
 1. core
-   설명: 공통 유틸리티 및 타입
-   경로: src/core/
+   Description: Common utilities and types
+   Path: src/core/
 
 2. todo
-   설명: 할 일 CRUD
-   경로: src/todo/
-   의존성: core
+   Description: Todo CRUD operations
+   Path: src/todo/
+   Dependencies: core
 
-3. user (선택)
-   설명: 사용자 관리
-   경로: src/user/
-   의존성: core
+3. user (optional)
+   Description: User management
+   Path: src/user/
+   Dependencies: core
 
-도메인을 생성하시겠습니까? [Y/n]
+Create these domains? [Y/n]
 ```
 
-승인하면 도메인이 생성됩니다:
+Once approved, domains are created:
 
 ```
-✅ 도메인 생성 완료
+Domain creation complete
 
 - core: src/core/
 - todo: src/todo/ (depends: core)
 
-domains.yml이 업데이트되었습니다.
+domains.yml has been updated.
 ```
 
-## Step 4: 첫 번째 스펙 작성
+## Step 4: Write First Spec
 
-### 새 스펙 생성
-
-```
-/sdd.spec 할 일 생성 기능
-```
-
-Claude가 대화형으로 스펙을 작성합니다:
+### Create New Spec
 
 ```
-📝 새 스펙 작성: todo/create-todo
+/sdd.spec Create todo functionality
+```
 
-기능 설명을 더 자세히 알려주세요:
-- 어떤 데이터가 필요한가요?
-- 어떤 검증이 필요한가요?
-- 에러 케이스는 무엇인가요?
+Claude will interactively write the spec:
 
-User: 제목(필수, 1-200자), 설명(선택), 마감일(선택)이 필요해.
-      제목이 없거나 200자 초과면 에러야.
+```
+Writing new spec: todo/create-todo
 
-Claude: 📋 스펙 초안
+Please provide more details about the functionality:
+- What data is needed?
+- What validations are required?
+- What are the error cases?
+
+User: Title is required (1-200 chars), description is optional, due date is optional.
+      Error if title is missing or exceeds 200 chars.
+
+Claude: Spec Draft
 
 ## todo/create-todo
 
-새로운 할 일 항목을 생성합니다.
+Creates a new todo item.
 
-### 시나리오
+### Scenarios
 
-**정상 생성**
-- GIVEN: 유효한 할 일 데이터 (제목: "테스트", 설명: "설명")
-- WHEN: 생성 요청
-- THEN: 새 할 일이 생성되고 ID가 반환됨
+**Successful creation**
+- GIVEN: Valid todo data (title: "Test", description: "Description")
+- WHEN: Create request
+- THEN: New todo is created and ID is returned
 
-**제목 누락**
-- GIVEN: 제목이 없는 데이터
-- WHEN: 생성 요청
-- THEN: 400 에러 (TITLE_REQUIRED)
+**Missing title**
+- GIVEN: Data without title
+- WHEN: Create request
+- THEN: 400 error (TITLE_REQUIRED)
 
-**제목 길이 초과**
-- GIVEN: 201자 이상 제목
-- WHEN: 생성 요청
-- THEN: 400 에러 (TITLE_TOO_LONG)
+**Title too long**
+- GIVEN: Title with 201+ characters
+- WHEN: Create request
+- THEN: 400 error (TITLE_TOO_LONG)
 
-### 계약
+### Contract
 
-입력:
+Input:
   interface CreateTodoInput {
-    title: string;        // 1-200자, 필수
-    description?: string; // 선택
-    dueDate?: Date;       // 선택
+    title: string;        // 1-200 chars, required
+    description?: string; // optional
+    dueDate?: Date;       // optional
   }
 
-출력:
+Output:
   interface Todo {
     id: string;
     title: string;
@@ -223,162 +223,162 @@ Claude: 📋 스펙 초안
     createdAt: Date;
   }
 
-스펙을 저장하시겠습니까? [Y/n]
+Save this spec? [Y/n]
 ```
 
-저장하면:
+When saved:
 
 ```
-✅ 스펙 저장 완료
+Spec saved
 
-파일: .sdd/specs/create-todo/spec.md
-상태: draft
-도메인: todo
+File: .sdd/specs/create-todo/spec.md
+Status: draft
+Domain: todo
 
-다음 단계:
-- /sdd.spec 으로 추가 스펙 작성
-- /sdd.plan 으로 구현 계획 작성
+Next steps:
+- Write additional specs with /sdd.spec
+- Create implementation plan with /sdd.plan
 ```
 
-## Step 5: 관련 스펙 추가
+## Step 5: Add Related Specs
 
-나머지 스펙도 작성합니다:
-
-```
-/sdd.spec 입력 검증 유틸리티
-```
+Write the remaining specs:
 
 ```
-/sdd.spec 할 일 조회
-/sdd.spec 할 일 수정
-/sdd.spec 할 일 삭제
-/sdd.spec 할 일 목록
+/sdd.spec Input validation utility
 ```
 
-각 스펙에 대해 Claude와 대화하며 시나리오와 계약을 정의합니다.
+```
+/sdd.spec Get todo
+/sdd.spec Update todo
+/sdd.spec Delete todo
+/sdd.spec List todos
+```
 
-## Step 6: 스펙 검증
+For each spec, define scenarios and contracts through conversation with Claude.
+
+## Step 6: Validate Specs
 
 ```
 /sdd.validate
 ```
 
 ```
-✅ 검증 완료
+Validation complete
 
-스펙: 6개
-  ✅ validation (도메인: core)
-  ✅ create-todo (도메인: todo)
-  ✅ get-todo (도메인: todo)
-  ✅ update-todo (도메인: todo)
-  ✅ delete-todo (도메인: todo)
-  ✅ list-todos (도메인: todo)
+Specs: 6
+  validation (domain: core)
+  create-todo (domain: todo)
+  get-todo (domain: todo)
+  update-todo (domain: todo)
+  delete-todo (domain: todo)
+  list-todos (domain: todo)
 
-경고: 0개
-오류: 0개
+Warnings: 0
+Errors: 0
 
-의존성 그래프:
+Dependency graph:
   validation
     └── create-todo
     └── update-todo
 ```
 
-## Step 7: 구현 계획
+## Step 7: Implementation Plan
 
 ```
 /sdd.plan create-todo
 ```
 
-Claude가 구현 계획을 작성합니다:
+Claude will write the implementation plan:
 
 ```
-📐 구현 계획: create-todo
+Implementation Plan: create-todo
 
-## 개요
-할 일 생성 기능을 TDD 방식으로 구현합니다.
+## Overview
+Implement todo creation using TDD methodology.
 
-## 의존성
-- validation (먼저 구현 필요)
+## Dependencies
+- validation (must be implemented first)
 
-## 구현 순서
+## Implementation Order
 
-1. 타입 정의
-   - CreateTodoInput 인터페이스
-   - Todo 인터페이스
+1. Type definitions
+   - CreateTodoInput interface
+   - Todo interface
 
-2. 검증 로직
-   - validateTitle() 함수
-   - core/validation 활용
+2. Validation logic
+   - validateTitle() function
+   - Utilize core/validation
 
-3. 비즈니스 로직
-   - createTodo() 함수
-   - ID 생성, 타임스탬프 추가
+3. Business logic
+   - createTodo() function
+   - ID generation, timestamp addition
 
-4. API 엔드포인트
+4. API endpoint
    - POST /todos
-   - 요청/응답 매핑
+   - Request/response mapping
 
-## 예상 파일
+## Expected Files
 - src/todo/types.ts
 - src/todo/create-todo.ts
 - src/todo/create-todo.test.ts
 - src/todo/routes.ts
 
-계획을 저장하시겠습니까? [Y/n]
+Save this plan? [Y/n]
 ```
 
-## Step 8: 작업 분해
+## Step 8: Task Breakdown
 
 ```
 /sdd.tasks create-todo
 ```
 
 ```
-📋 작업 분해: create-todo
+Task Breakdown: create-todo
 
-[ ] 1. 타입 정의
-    - CreateTodoInput 인터페이스 작성
-    - Todo 인터페이스 작성
-    - 예상 시간: 10분
+[ ] 1. Type definitions
+    - Write CreateTodoInput interface
+    - Write Todo interface
+    - Estimated time: 10 min
 
-[ ] 2. 테스트 작성 (Red)
-    - 정상 생성 테스트
-    - 제목 누락 테스트
-    - 제목 길이 초과 테스트
-    - 예상 시간: 20분
+[ ] 2. Write tests (Red)
+    - Successful creation test
+    - Missing title test
+    - Title too long test
+    - Estimated time: 20 min
 
-[ ] 3. 검증 로직 구현 (Green)
-    - validateTitle 함수
-    - core/validation 연동
-    - 예상 시간: 15분
+[ ] 3. Implement validation logic (Green)
+    - validateTitle function
+    - Integrate core/validation
+    - Estimated time: 15 min
 
-[ ] 4. 비즈니스 로직 구현 (Green)
-    - createTodo 함수
-    - 예상 시간: 20분
+[ ] 4. Implement business logic (Green)
+    - createTodo function
+    - Estimated time: 20 min
 
-[ ] 5. 리팩토링 (Refactor)
-    - 코드 정리
-    - 예상 시간: 10분
+[ ] 5. Refactoring (Refactor)
+    - Code cleanup
+    - Estimated time: 10 min
 
-[ ] 6. API 엔드포인트
-    - POST /todos 라우트
-    - 예상 시간: 15분
+[ ] 6. API endpoint
+    - POST /todos route
+    - Estimated time: 15 min
 
-총 예상 시간: 1시간 30분
+Total estimated time: 1 hour 30 minutes
 ```
 
-## Step 9: 구현
+## Step 9: Implementation
 
 ```
 /sdd.implement create-todo
 ```
 
-Claude가 TDD 방식으로 구현을 진행합니다:
+Claude will implement using TDD methodology:
 
 ```
-🔨 구현 시작: create-todo
+Starting implementation: create-todo
 
-## 작업 1/6: 타입 정의
+## Task 1/6: Type definitions
 
 src/todo/types.ts:
 
@@ -397,9 +397,9 @@ src/todo/types.ts:
     createdAt: Date;
   }
 
-✅ 타입 정의 완료
+Type definitions complete
 
-## 작업 2/6: 테스트 작성
+## Task 2/6: Write tests
 
 src/todo/create-todo.test.ts:
 
@@ -407,103 +407,103 @@ src/todo/create-todo.test.ts:
   import { createTodo } from './create-todo';
 
   describe('createTodo', () => {
-    it('유효한 데이터로 할 일을 생성한다', () => {
-      const input = { title: '테스트 할 일' };
+    it('creates a todo with valid data', () => {
+      const input = { title: 'Test todo' };
       const result = createTodo(input);
 
-      expect(result.title).toBe('테스트 할 일');
+      expect(result.title).toBe('Test todo');
       expect(result.completed).toBe(false);
       expect(result.id).toBeDefined();
     });
 
-    it('제목이 없으면 에러를 반환한다', () => {
+    it('throws error when title is missing', () => {
       expect(() => createTodo({ title: '' }))
         .toThrow('TITLE_REQUIRED');
     });
 
-    it('제목이 200자를 초과하면 에러를 반환한다', () => {
+    it('throws error when title exceeds 200 characters', () => {
       const longTitle = 'a'.repeat(201);
       expect(() => createTodo({ title: longTitle }))
         .toThrow('TITLE_TOO_LONG');
     });
   });
 
-테스트 실행 중... ❌ 3/3 실패 (예상대로)
+Running tests... 3/3 failed (as expected)
 
-## 작업 3/6: 구현...
+## Task 3/6: Implementation...
 ```
 
-구현이 완료되면:
+When implementation is complete:
 
 ```
-✅ 구현 완료: create-todo
+Implementation complete: create-todo
 
-테스트: ✅ 3/3 통과
-파일:
+Tests: 3/3 passed
+Files:
   - src/todo/types.ts
   - src/todo/create-todo.ts
   - src/todo/create-todo.test.ts
 
-스펙 상태: draft → implemented
+Spec status: draft -> implemented
 
-다음 작업:
-- /sdd.implement 으로 다른 스펙 구현
-- "다음 뭐 구현할까?" → Claude가 dev-next 스킬로 추천
+Next tasks:
+- Implement other specs with /sdd.implement
+- Ask "What should I implement next?" -> Claude will recommend using dev-next skill
 ```
 
-## Step 10: 반복
+## Step 10: Iteration
 
-남은 스펙도 같은 방식으로 구현합니다:
-
-```
-다음 뭐 구현해야 해?
-```
-
-Claude가 자동으로 `dev-next` 스킬을 사용합니다:
+Implement remaining specs the same way:
 
 ```
-📊 다음 구현 추천
-
-의존성 순서 기준:
-
-1. validation ⭐ (의존성 없음)
-   - create-todo, update-todo가 의존
-
-2. get-todo (validation 완료 후)
-   - 단순 조회, 빠른 구현 가능
-
-3. list-todos (get-todo 완료 후)
-   - 페이지네이션 포함
-
-추천: validation 먼저 구현하세요.
-"validation 구현해줘" 라고 요청하세요.
+What should I implement next?
 ```
 
-## 진행 상황 확인
+Claude automatically uses the `dev-next` skill:
+
+```
+Next Implementation Recommendation
+
+Based on dependency order:
+
+1. validation (no dependencies)
+   - create-todo, update-todo depend on it
+
+2. get-todo (after validation)
+   - Simple query, quick to implement
+
+3. list-todos (after get-todo)
+   - Includes pagination
+
+Recommendation: Implement validation first.
+Say "Implement validation" to proceed.
+```
+
+## Check Progress
 
 ```
 /sdd.status
 ```
 
 ```
-📊 프로젝트 현황: todo-api
+Project Status: todo-api
 
-스펙: 6개
-  ✅ 구현됨: 2개 (33%)
-  🔄 진행중: 1개 (17%)
-  📝 초안: 3개 (50%)
+Specs: 6
+  Implemented: 2 (33%)
+  In Progress: 1 (17%)
+  Draft: 3 (50%)
 
-도메인:
-  core: 1/1 완료 ████████████ 100%
-  todo: 1/5 완료 ██░░░░░░░░░░ 20%
+Domains:
+  core: 1/1 complete 100%
+  todo: 1/5 complete  20%
 
-테스트: 8/8 통과
+Tests: 8/8 passed
 
-다음 단계:
-  → "get-todo 구현해줘" 라고 요청하세요
+Next step:
+  -> Say "Implement get-todo"
 ```
 
-## 도메인 그래프 확인
+## Check Domain Graph
 
 ```
 /sdd.domain graph
@@ -511,36 +511,36 @@ Claude가 자동으로 `dev-next` 스킬을 사용합니다:
 
 ```mermaid
 graph LR
-    subgraph core[core 도메인]
-        validation[validation ✅]
+    subgraph core[core domain]
+        validation[validation ]
     end
 
-    subgraph todo[todo 도메인]
-        create[create-todo ✅]
-        get[get-todo 📝]
-        update[update-todo 📝]
-        delete[delete-todo 📝]
-        list[list-todos 📝]
+    subgraph todo[todo domain]
+        create[create-todo ]
+        get[get-todo ]
+        update[update-todo ]
+        delete[delete-todo ]
+        list[list-todos ]
     end
 
     validation --> create
     validation --> update
 ```
 
-## 다음 단계
+## Next Steps
 
-- [스펙 작성 가이드](/spec-writing/)
-- [워크플로우 가이드](/guide/workflow)
-- [CI/CD 설정](/guide/cicd-setup)
+- [Spec Writing Guide](/spec-writing/)
+- [Workflow Guide](/guide/workflow)
+- [CI/CD Setup](/guide/cicd-setup)
 
-## 요약
+## Summary
 
-1. `sdd init`으로 프로젝트 초기화 (CLI)
-2. `/sdd.start`로 프로젝트 상태 확인 (Claude Code)
-3. `/sdd.constitution`으로 원칙 정의
-4. `/sdd.domain`으로 도메인 설계
-5. `/sdd.spec`으로 스펙 작성
-6. `/sdd.validate`로 검증
-7. `/sdd.plan`, `/sdd.tasks`로 계획
-8. `/sdd.implement`로 TDD 구현
-9. `/sdd.status`로 진행 추적
+1. Initialize project with `sdd init` (CLI)
+2. Check project status with `/sdd.start` (Claude Code)
+3. Define principles with `/sdd.constitution`
+4. Design domains with `/sdd.domain`
+5. Write specs with `/sdd.spec`
+6. Validate with `/sdd.validate`
+7. Plan with `/sdd.plan`, `/sdd.tasks`
+8. Implement with TDD using `/sdd.implement`
+9. Track progress with `/sdd.status`

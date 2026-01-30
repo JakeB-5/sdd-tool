@@ -1,60 +1,60 @@
 # sdd prepare
 
-구현에 필요한 서브에이전트와 스킬을 점검합니다.
+Checks required subagents and skills for implementation.
 
-## 사용법
+## Usage
 
 ```bash
 sdd prepare <feature> [options]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| `feature` | 기능 이름 |
+| Argument | Description |
+|----------|-------------|
+| `feature` | Feature name |
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--dry-run` | 미리보기만 |
-| `--auto-approve` | 자동 생성 |
+| Option | Description |
+|--------|-------------|
+| `--dry-run` | Preview only |
+| `--auto-approve` | Auto-generate |
 
-## 감지 키워드
+## Detection Keywords
 
-| 키워드 | 서브에이전트 | 스킬 |
-|--------|-------------|------|
-| 테스트, test | test-runner | test |
+| Keyword | Subagent | Skill |
+|---------|----------|-------|
+| test | test-runner | test |
 | api, rest | api-scaffold | gen-api |
 | component | component-gen | gen-component |
 | database | - | db-migrate |
-| 문서, doc | - | gen-doc |
+| doc, documentation | - | gen-doc |
 | review | code-reviewer | review |
 
-## 예시
+## Examples
 
-### 대화형 점검
+### Interactive Check
 
 ```bash
 sdd prepare user-auth
 ```
 
-### 미리보기
+### Preview
 
 ```bash
 sdd prepare user-auth --dry-run
 ```
 
-### 자동 생성
+### Auto-Generate
 
 ```bash
 sdd prepare user-auth --auto-approve
 ```
 
-## 생성되는 파일
+## Generated Files
 
-### 서브에이전트
+### Subagents
 
 ```
 .claude/agents/
@@ -63,7 +63,7 @@ sdd prepare user-auth --auto-approve
 └── code-reviewer.md
 ```
 
-### 스킬
+### Skills
 
 ```
 .claude/skills/
@@ -75,19 +75,19 @@ sdd prepare user-auth --auto-approve
     └── SKILL.md
 ```
 
-## 점검 보고서
+## Check Report
 
-점검 결과는 `.sdd/specs/<feature>/prepare.md`에 저장됩니다.
+Check results are saved to `.sdd/specs/<feature>/prepare.md`.
 
 ```markdown
-# 도구 점검 결과
+# Tool Check Results
 
-## 필요한 도구
+## Required Tools
 
-- [x] test-runner (존재함)
-- [ ] api-scaffold (생성 필요)
+- [x] test-runner (exists)
+- [ ] api-scaffold (needs creation)
 
-## 권장 사항
+## Recommendations
 
-- API 스캐폴딩 서브에이전트 생성 권장
+- API scaffolding subagent creation recommended
 ```

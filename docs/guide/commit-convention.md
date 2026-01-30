@@ -1,8 +1,8 @@
-# 커밋 컨벤션
+# Commit Convention
 
-SDD 프로젝트에서 사용하는 Git 커밋 메시지 규칙입니다.
+Git commit message rules used in SDD projects.
 
-## 기본 형식
+## Basic Format
 
 ```
 <type>(<scope>): <subject>
@@ -12,111 +12,111 @@ SDD 프로젝트에서 사용하는 Git 커밋 메시지 규칙입니다.
 [optional footer]
 ```
 
-- **type**: 커밋 유형 (필수)
-- **scope**: 영향 범위 (선택, 하지만 스펙 커밋에선 권장)
-- **subject**: 간결한 설명, 50자 이내 (필수)
-- **body**: 상세 설명, 72자 줄바꿈 (선택)
-- **footer**: 참조, 영향 정보 (선택)
+- **type**: Commit type (required)
+- **scope**: Scope of impact (optional, but recommended for spec commits)
+- **subject**: Brief description, within 50 characters (required)
+- **body**: Detailed description, 72-character line wrap (optional)
+- **footer**: References, impact information (optional)
 
 ---
 
-## 스펙 커밋 타입
+## Spec Commit Types
 
-SDD 워크플로우에서 사용하는 전용 커밋 타입입니다.
+Dedicated commit types used in SDD workflow.
 
-| 타입 | 설명 | 예시 |
-|------|------|------|
-| `spec` | 스펙 신규 생성 | `spec(auth): add user-login specification` |
-| `spec-update` | 스펙 내용 수정 | `spec-update(auth): add MFA requirements` |
-| `spec-status` | 스펙 상태 변경 | `spec-status(auth): user-login draft → review` |
-| `plan` | 구현 계획 추가/수정 | `plan(auth): add implementation plan` |
-| `tasks` | 작업 분해 추가/수정 | `tasks(auth): break down into 5 tasks` |
-| `constitution` | Constitution 변경 | `constitution: add security principles (v1.1)` |
-| `sdd-config` | SDD 설정 변경 | `sdd-config: add billing domain` |
+| Type | Description | Example |
+|------|-------------|---------|
+| `spec` | New spec creation | `spec(auth): add user-login specification` |
+| `spec-update` | Spec content modification | `spec-update(auth): add MFA requirements` |
+| `spec-status` | Spec status change | `spec-status(auth): user-login draft → review` |
+| `plan` | Add/modify implementation plan | `plan(auth): add implementation plan` |
+| `tasks` | Add/modify task breakdown | `tasks(auth): break down into 5 tasks` |
+| `constitution` | Constitution change | `constitution: add security principles (v1.1)` |
+| `sdd-config` | SDD configuration change | `sdd-config: add billing domain` |
 
-### 일반 커밋 타입
+### Standard Commit Types
 
-스펙 외 코드/문서 변경에는 Conventional Commits를 따릅니다.
+For code/documentation changes outside of specs, follow Conventional Commits.
 
-| 타입 | 설명 |
-|------|------|
-| `feat` | 새 기능 |
-| `fix` | 버그 수정 |
-| `docs` | 문서 변경 |
-| `style` | 코드 포맷팅 |
-| `refactor` | 리팩토링 |
-| `test` | 테스트 |
-| `chore` | 기타 작업 |
+| Type | Description |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation change |
+| `style` | Code formatting |
+| `refactor` | Refactoring |
+| `test` | Tests |
+| `chore` | Other tasks |
 
 ---
 
-## 스코프 규칙
+## Scope Rules
 
-스코프는 영향받는 도메인/스펙을 명시합니다.
+Scope specifies the affected domain/spec.
 
-### 기본 패턴
+### Basic Patterns
 
 ```bash
-# 도메인 전체
+# Entire domain
 spec(auth): ...
 
-# 특정 스펙
+# Specific spec
 spec(auth/user-login): ...
 
-# 다중 도메인
+# Multiple domains
 spec(auth,billing): ...
 
-# 전체 영향
+# Global impact
 spec(*): ...
 ```
 
-### 예시
+### Examples
 
 ```bash
-# 새 스펙 생성
+# New spec creation
 spec(auth/user-login): add user login specification
 
-# 스펙 수정
+# Spec modification
 spec-update(auth/user-login): add OAuth requirements
 
-# 상태 변경
+# Status change
 spec-status(billing/subscription): draft → approved
 
-# 구현 계획
+# Implementation plan
 plan(auth/user-login): add implementation plan with 3 phases
 
-# 작업 분해
+# Task breakdown
 tasks(auth/user-login): break down into 8 implementation tasks
 
-# Constitution (스코프 없음)
+# Constitution (no scope)
 constitution: add API versioning principle (v1.2.0)
 ```
 
 ---
 
-## Footer 활용
+## Footer Usage
 
-Footer는 추가 메타데이터를 기록합니다.
+Footer records additional metadata.
 
-### 지원 키워드
+### Supported Keywords
 
-| 키워드 | 용도 | 예시 |
-|--------|------|------|
-| `Refs` | 이슈 참조 | `Refs: #123, #456` |
-| `Breaking-Spec` | 영향받는 스펙 | `Breaking-Spec: billing/checkout` |
-| `Depends-On` | 의존 스펙 | `Depends-On: auth/user-login` |
-| `Reviewed-By` | 리뷰어 | `Reviewed-By: @alice` |
+| Keyword | Purpose | Example |
+|---------|---------|---------|
+| `Refs` | Issue reference | `Refs: #123, #456` |
+| `Breaking-Spec` | Affected specs | `Breaking-Spec: billing/checkout` |
+| `Depends-On` | Dependent specs | `Depends-On: auth/user-login` |
+| `Reviewed-By` | Reviewer | `Reviewed-By: @alice` |
 
-### 전체 예시
+### Full Example
 
 ```
 spec(billing/subscription): add subscription management specification
 
-구독 관리 기능 명세:
-- 월간/연간 플랜 정의
-- 업그레이드/다운그레이드 규칙
-- 프로모션 코드 처리
-- 자동 갱신 정책
+Subscription management spec:
+- Monthly/annual plan definitions
+- Upgrade/downgrade rules
+- Promotion code handling
+- Auto-renewal policy
 
 Refs: #123
 Depends-On: auth/user-login, billing/payment-gateway
@@ -125,111 +125,111 @@ Breaking-Spec: billing/checkout
 
 ---
 
-## 커밋 메시지 템플릿
+## Commit Message Template
 
-프로젝트에서 `.gitmessage` 템플릿을 사용할 수 있습니다.
+You can use a `.gitmessage` template in your project.
 
-### 설정 방법
+### Setup
 
 ```bash
-# SDD CLI로 설정
+# Set up with SDD CLI
 sdd git template install
 
-# 또는 수동 설정
+# Or manual setup
 git config commit.template .gitmessage
 ```
 
-### 템플릿 내용
+### Template Content
 
 ```
 # <type>(<scope>): <subject>
-# |<---- 50자 이내 ---->|
+# |<---- Within 50 chars ---->|
 
-# 본문 (선택사항)
-# |<---- 72자 이내 ---->|
+# Body (optional)
+# |<---- Within 72 chars ---->|
 
-# Footer (선택사항)
-# Refs: #이슈번호
-# Breaking-Spec: 영향받는-스펙
-# Depends-On: 의존-스펙
-# Reviewed-By: @리뷰어
+# Footer (optional)
+# Refs: #issue-number
+# Breaking-Spec: affected-spec
+# Depends-On: dependent-spec
+# Reviewed-By: @reviewer
 ```
 
 ---
 
-## 검증
+## Validation
 
-커밋 메시지는 Git Hook을 통해 자동 검증됩니다.
+Commit messages are automatically validated through Git Hooks.
 
-### 검증 규칙
+### Validation Rules
 
-1. **타입 필수**: 유효한 타입으로 시작
-2. **제목 길이**: 50자 이내
-3. **본문 줄바꿈**: 72자 이내
-4. **스코프 형식**: 영문 소문자, 하이픈, 슬래시만 허용
+1. **Type required**: Must start with a valid type
+2. **Subject length**: Within 50 characters
+3. **Body line wrap**: Within 72 characters
+4. **Scope format**: Only lowercase letters, hyphens, and slashes allowed
 
-### 설정 방법
+### Setup
 
 ```bash
-# Git Hooks 설치
+# Install Git Hooks
 sdd git hooks install
 ```
 
-### 검증 실패 예시
+### Validation Failure Example
 
 ```
-❌ 커밋 메시지 형식 오류
+❌ Commit message format error
 
-기대: spec(<scope>): <message>
-받음: "스펙 추가"
+Expected: spec(<scope>): <message>
+Received: "added spec"
 
-자세한 내용: docs/guide/commit-convention.md
+Details: docs/guide/commit-convention.md
 ```
 
 ---
 
-## 모범 사례
+## Best Practices
 
-### 좋은 예
+### Good Examples
 
 ```bash
-# 명확한 의도
+# Clear intent
 spec(auth/mfa): add multi-factor authentication specification
 
-# 적절한 스코프
+# Appropriate scope
 spec-update(billing/subscription): add annual plan discount rules
 
-# 상세한 본문
+# Detailed body
 spec(order/checkout): add checkout flow specification
 
-주문 체크아웃 프로세스 정의:
-- 장바구니 → 배송지 → 결제 → 완료 흐름
-- 각 단계별 검증 규칙
-- 에러 처리 시나리오
+Order checkout process definition:
+- Cart → Shipping → Payment → Complete flow
+- Validation rules per step
+- Error handling scenarios
 
 Depends-On: auth/user-login, billing/payment-gateway
 ```
 
-### 피해야 할 예
+### Examples to Avoid
 
 ```bash
-# ❌ 모호한 메시지
+# ❌ Vague message
 spec: update
 
-# ❌ 스코프 누락 (스펙 커밋에서)
+# ❌ Missing scope (in spec commits)
 spec: add login feature
 
-# ❌ 너무 긴 제목
+# ❌ Subject too long
 spec(auth): add user login with email password oauth google github apple sso saml
 
-# ❌ 한글 타입 (타입은 영문)
+# ❌ Non-English type (types must be in English)
 스펙(auth): 로그인 추가
 ```
 
 ---
 
-## 관련 문서
+## Related Documentation
 
-- [브랜치 전략](./branch-strategy.md)
-- [단일 스펙 워크플로우](./workflow-single-spec.md)
-- [Git Hooks 설정](/cli/git)
+- [Branch Strategy](./branch-strategy.md)
+- [Single Spec Workflow](./workflow-single-spec.md)
+- [Git Hooks Setup](/cli/git)

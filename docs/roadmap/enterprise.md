@@ -1,21 +1,21 @@
-# 대규모 확장 로드맵
+# Enterprise Scaling Roadmap
 
-SDD Tool을 엔터프라이즈 규모 (15명+, 150개+ 스펙, 멀티팀)로 확장하기 위한 장기 로드맵입니다.
+A long-term roadmap for scaling SDD Tool to enterprise scale (15+ people, 150+ specs, multi-team).
 
-> **전제조건**: [스케일업 로드맵](./scaling.md)의 Phase 1-5 완료 후 진행
+> **Prerequisite**: Proceed after completing [Scaling Roadmap](./scaling.md) Phase 1-5
 
-## 목표
+## Goals
 
-- 스펙 500개 이상 원활한 관리
-- 지리적 분산 팀 지원
-- 엔터프라이즈 보안/감사 요구사항 충족
-- 조직 전체 거버넌스 체계
+- Smooth management with 500+ specs
+- Support for geographically distributed teams
+- Meet enterprise security/audit requirements
+- Organization-wide governance system
 
 ---
 
-## 아키텍처 진화
+## Architecture Evolution
 
-### 현재: 파일 기반 (File-based)
+### Current: File-based
 
 ```
 .sdd/
@@ -25,52 +25,52 @@ SDD Tool을 엔터프라이즈 규모 (15명+, 150개+ 스펙, 멀티팀)로 확
     └── *.md
 ```
 
-- 장점: 단순, Git 친화적
-- 한계: 성능, 동시성, 쿼리 제한
+- Advantages: Simple, Git-friendly
+- Limitations: Performance, concurrency, query limitations
 
-### Phase 6: 하이브리드 (Hybrid)
+### Phase 6: Hybrid
 
 ```
 .sdd/
-├── specs/           # 원본 (Git 버전 관리)
+├── specs/           # Source (Git version control)
 └── .cache/
-    └── sdd.db       # SQLite 캐시 (로컬)
+    └── sdd.db       # SQLite cache (local)
 ```
 
-- 파일은 여전히 진실의 원천
-- SQLite로 빠른 쿼리/검색
-- Git 충돌 없음 (캐시는 무시)
+- Files remain source of truth
+- SQLite for fast queries/search
+- No Git conflicts (cache ignored)
 
-### Phase 7+: 서버 기반 (Server-based)
+### Phase 7+: Server-based
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  CLI/IDE    │────▶│  SDD Server │────▶│  Database   │
-└─────────────┘     └─────────────┘     └─────────────┘
-                           │
-                    ┌──────┴──────┐
-                    ▼             ▼
-              ┌─────────┐   ┌─────────┐
-              │ Git Sync│   │ Webhooks│
-              └─────────┘   └─────────┘
++-------------+     +-------------+     +-------------+
+|  CLI/IDE    |---->|  SDD Server |---->|  Database   |
++-------------+     +-------------+     +-------------+
+                           |
+                    +------+------+
+                    v             v
+              +---------+   +---------+
+              | Git Sync|   | Webhooks|
+              +---------+   +---------+
 ```
 
-- 중앙 집중식 관리
-- 실시간 협업
-- 고급 분석/리포팅
+- Centralized management
+- Real-time collaboration
+- Advanced analytics/reporting
 
 ---
 
-## Phase 6: 로컬 데이터베이스
+## Phase 6: Local Database
 
-### 6.1 SQLite 캐시 레이어
+### 6.1 SQLite Cache Layer
 
-**목표**: 복잡한 쿼리 성능 개선
+**Goal**: Improve complex query performance
 
 ```typescript
 // src/core/cache/database.ts
 interface SpecDatabase {
-  // 테이블 구조
+  // Table structure
   specs: {
     id: string;
     path: string;
@@ -109,14 +109,14 @@ interface SpecDatabase {
 }
 ```
 
-**CLI 변경**:
+**CLI Changes**:
 
 ```bash
-sdd cache rebuild        # 캐시 재구축
-sdd cache status         # 캐시 상태
-sdd cache clear          # 캐시 삭제
+sdd cache rebuild        # Rebuild cache
+sdd cache status         # Cache status
+sdd cache clear          # Clear cache
 
-# 고급 쿼리 지원
+# Advanced query support
 sdd query "status:review AND phase:2"
 sdd query "depends_on:user-auth"
 sdd query "modified_after:2024-01-01"
@@ -126,19 +126,19 @@ sdd query "reviewer:@alice AND NOT approved"
 **Full-text Search**:
 
 ```bash
-sdd search "결제 실패 처리"           # 전문 검색
-sdd search "OAuth" --domain auth     # 도메인 필터
+sdd search "payment failure handling"           # Full-text search
+sdd search "OAuth" --domain auth     # Domain filter
 sdd search "MUST validate" --type requirement
 ```
 
-### 6.2 오프라인 우선 동기화
+### 6.2 Offline-first Sync
 
-**시나리오**: 분산 팀, 네트워크 불안정 환경
+**Scenario**: Distributed teams, unstable network environments
 
 ```typescript
 // src/core/sync/offline.ts
 interface OfflineSync {
-  // 로컬 변경 추적
+  // Track local changes
   pendingChanges: {
     id: string;
     type: 'create' | 'update' | 'delete';
@@ -146,12 +146,12 @@ interface OfflineSync {
     data: SpecData;
   }[];
 
-  // 충돌 해결
+  // Conflict resolution
   conflicts: {
     spec_id: string;
     local: SpecData;
     remote: SpecData;
-    base: SpecData;  // 공통 조상
+    base: SpecData;  // Common ancestor
   }[];
 }
 ```
@@ -159,62 +159,62 @@ interface OfflineSync {
 **CLI**:
 
 ```bash
-sdd sync status          # 동기화 상태
-sdd sync push            # 로컬 → 원격
-sdd sync pull            # 원격 → 로컬
-sdd sync resolve         # 충돌 해결 (인터랙티브)
+sdd sync status          # Sync status
+sdd sync push            # Local -> Remote
+sdd sync pull            # Remote -> Local
+sdd sync resolve         # Conflict resolution (interactive)
 ```
 
 ---
 
-## Phase 7: 중앙 서버
+## Phase 7: Central Server
 
 ### 7.1 SDD Server
 
-**아키텍처**:
+**Architecture**:
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                      SDD Server                          │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │
-│  │  REST API   │  │  WebSocket  │  │  GraphQL    │      │
-│  └─────────────┘  └─────────────┘  └─────────────┘      │
-│         │                │                │              │
-│  ┌──────┴────────────────┴────────────────┴──────┐      │
-│  │              Core Services                     │      │
-│  ├───────────────────────────────────────────────┤      │
-│  │  • Spec Management    • Review Workflow       │      │
-│  │  • Dependency Graph   • Impact Analysis       │      │
-│  │  • Search Engine      • Notification          │      │
-│  │  • Audit Log          • Access Control        │      │
-│  └───────────────────────────────────────────────┘      │
-│                          │                               │
-│  ┌───────────────────────┴───────────────────────┐      │
-│  │              Data Layer                        │      │
-│  ├───────────────────────────────────────────────┤      │
-│  │  PostgreSQL  │  Elasticsearch  │  Redis       │      │
-│  │  (specs)     │  (search)       │  (cache)     │      │
-│  └───────────────────────────────────────────────┘      │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
++--------------------------------------------------------------+
+|                      SDD Server                               |
++--------------------------------------------------------------+
+|                                                               |
+|  +-------------+  +-------------+  +-------------+           |
+|  |  REST API   |  |  WebSocket  |  |  GraphQL    |           |
+|  +-------------+  +-------------+  +-------------+           |
+|         |                |                |                   |
+|  +------+----------------+----------------+------+           |
+|  |              Core Services                     |           |
+|  +-----------------------------------------------+           |
+|  |  * Spec Management    * Review Workflow       |           |
+|  |  * Dependency Graph   * Impact Analysis       |           |
+|  |  * Search Engine      * Notification          |           |
+|  |  * Audit Log          * Access Control        |           |
+|  +-----------------------------------------------+           |
+|                          |                                    |
+|  +-----------------------+-----------------------+           |
+|  |              Data Layer                        |           |
+|  +-----------------------------------------------+           |
+|  |  PostgreSQL  |  Elasticsearch  |  Redis       |           |
+|  |  (specs)     |  (search)       |  (cache)     |           |
+|  +-----------------------------------------------+           |
+|                                                               |
++--------------------------------------------------------------+
 ```
 
-**기술 스택 옵션**:
+**Tech Stack Options**:
 
-| 컴포넌트 | 옵션 A (Node.js) | 옵션 B (Go) |
-|----------|------------------|-------------|
+| Component | Option A (Node.js) | Option B (Go) |
+|-----------|-------------------|---------------|
 | API Server | Fastify/NestJS | Fiber/Echo |
 | Database | PostgreSQL | PostgreSQL |
 | Search | MeiliSearch | Elasticsearch |
 | Cache | Redis | Redis |
 | Queue | BullMQ | NATS |
 
-**API 설계**:
+**API Design**:
 
 ```typescript
-// REST API 엔드포인트
+// REST API endpoints
 interface SddServerAPI {
   // Specs
   'GET    /api/specs': ListSpecs;
@@ -248,56 +248,56 @@ interface SddServerAPI {
 }
 ```
 
-### 7.2 실시간 협업
+### 7.2 Real-time Collaboration
 
-**WebSocket 이벤트**:
+**WebSocket Events**:
 
 ```typescript
 interface RealtimeEvents {
-  // 스펙 변경
+  // Spec changes
   'spec:created': { spec: Spec; by: User };
   'spec:updated': { spec: Spec; by: User; diff: Diff };
   'spec:deleted': { specId: string; by: User };
 
-  // 리뷰
+  // Reviews
   'review:requested': { spec: Spec; reviewers: User[] };
   'review:approved': { spec: Spec; by: User };
   'review:rejected': { spec: Spec; by: User; reason: string };
 
-  // 협업
+  // Collaboration
   'spec:locked': { specId: string; by: User };
   'spec:unlocked': { specId: string };
   'user:viewing': { specId: string; users: User[] };
 
-  // 시스템
+  // System
   'notification': { type: string; message: string };
 }
 ```
 
-**동시 편집 방지**:
+**Concurrent Edit Prevention**:
 
 ```bash
-sdd edit user-auth           # 락 획득 후 편집
-sdd edit user-auth --force   # 강제 락 해제 (관리자)
-sdd lock status              # 현재 락 상태
+sdd edit user-auth           # Acquire lock then edit
+sdd edit user-auth --force   # Force unlock (admin)
+sdd lock status              # Current lock status
 ```
 
-### 7.3 Git 동기화 브릿지
+### 7.3 Git Sync Bridge
 
-**양방향 동기화**:
+**Bidirectional Sync**:
 
 ```
-Git Repository  ←──────→  SDD Server
-     │                         │
-     │   push/pull hooks       │
-     │   ─────────────→        │
-     │                         │
-     │   server webhooks       │
-     │   ←─────────────        │
-     │                         │
+Git Repository  <------->  SDD Server
+     |                         |
+     |   push/pull hooks       |
+     |   ----------------->    |
+     |                         |
+     |   server webhooks       |
+     |   <-----------------    |
+     |                         |
 ```
 
-**설정**:
+**Configuration**:
 
 ```yaml
 # .sdd/server.yml
@@ -307,22 +307,22 @@ server:
 
 sync:
   mode: bidirectional    # git-primary | server-primary | bidirectional
-  auto_push: true        # 로컬 변경 시 자동 푸시
-  auto_pull: true        # 서버 변경 시 자동 풀
+  auto_push: true        # Auto push on local changes
+  auto_pull: true        # Auto pull on server changes
 
   conflict_resolution: prompt  # prompt | local | remote | merge
 ```
 
 ---
 
-## Phase 8: 엔터프라이즈 기능
+## Phase 8: Enterprise Features
 
-### 8.1 접근 제어 (RBAC)
+### 8.1 Access Control (RBAC)
 
-**역할 정의**:
+**Role Definitions**:
 
 ```yaml
-# 역할 계층
+# Role hierarchy
 roles:
   viewer:
     permissions:
@@ -346,7 +346,7 @@ roles:
 
   domain_admin:
     inherits: reviewer
-    scope: domain    # 도메인 내에서만
+    scope: domain    # Within domain only
     permissions:
       - specs:delete
       - constitution:update
@@ -354,10 +354,10 @@ roles:
 
   org_admin:
     permissions:
-      - "*"          # 모든 권한
+      - "*"          # All permissions
 ```
 
-**도메인별 권한**:
+**Domain-specific Permissions**:
 
 ```yaml
 # .sdd/access.yml
@@ -372,17 +372,17 @@ domains:
     reviewers: ["@finance-team"]
     contributors: ["@dev-team"]
 
-  # 민감 도메인
+  # Sensitive domain
   compliance:
     admins: ["@legal-team"]
     reviewers: ["@legal-team"]
-    contributors: []           # 외부 기여 불가
-    visibility: restricted     # 권한 있는 사람만 조회
+    contributors: []           # No external contributions
+    visibility: restricted     # Only authorized users can view
 ```
 
-### 8.2 감사 로그
+### 8.2 Audit Logs
 
-**추적 항목**:
+**Tracked Items**:
 
 ```typescript
 interface AuditLog {
@@ -425,22 +425,22 @@ type AuditAction =
 **CLI**:
 
 ```bash
-sdd audit logs                           # 최근 로그
-sdd audit logs --actor @alice            # 특정 사용자
-sdd audit logs --action spec.delete      # 특정 액션
-sdd audit logs --resource user-auth      # 특정 리소스
-sdd audit logs --since 2024-01-01        # 기간 필터
-sdd audit export --format csv            # 내보내기
+sdd audit logs                           # Recent logs
+sdd audit logs --actor @alice            # Specific user
+sdd audit logs --action spec.delete      # Specific action
+sdd audit logs --resource user-auth      # Specific resource
+sdd audit logs --since 2024-01-01        # Date filter
+sdd audit export --format csv            # Export
 ```
 
-**보존 정책**:
+**Retention Policy**:
 
 ```yaml
 audit:
   retention:
-    default: 2y          # 기본 2년
-    sensitive: 7y        # 민감 데이터 7년
-    compliance: 10y      # 규정 준수 10년
+    default: 2y          # Default 2 years
+    sensitive: 7y        # Sensitive data 7 years
+    compliance: 10y      # Compliance 10 years
 
   export:
     schedule: daily
@@ -448,39 +448,39 @@ audit:
     encryption: AES-256
 ```
 
-### 8.3 규정 준수 (Compliance)
+### 8.3 Compliance
 
-**지원 프레임워크**:
+**Supported Frameworks**:
 
-| 프레임워크 | 지원 기능 |
-|-----------|----------|
-| SOC 2 | 감사 로그, 접근 제어, 변경 추적 |
-| GDPR | 데이터 내보내기, 삭제권, 동의 추적 |
-| HIPAA | 암호화, 접근 로그, 최소 권한 |
-| ISO 27001 | 문서화, 위험 평가, 지속적 개선 |
+| Framework | Supported Features |
+|-----------|-------------------|
+| SOC 2 | Audit logs, access control, change tracking |
+| GDPR | Data export, right to delete, consent tracking |
+| HIPAA | Encryption, access logs, least privilege |
+| ISO 27001 | Documentation, risk assessment, continuous improvement |
 
-**컴플라이언스 대시보드**:
+**Compliance Dashboard**:
 
 ```bash
-sdd compliance status                    # 준수 현황
-sdd compliance report --framework soc2   # 프레임워크별 리포트
-sdd compliance gaps                      # 미충족 항목
+sdd compliance status                    # Compliance status
+sdd compliance report --framework soc2   # Framework-specific report
+sdd compliance gaps                      # Unmet items
 ```
 
-### 8.4 SSO/SAML 통합
+### 8.4 SSO/SAML Integration
 
-**지원 IdP**:
+**Supported IdPs**:
 
 - Okta
 - Azure AD
 - Google Workspace
 - OneLogin
-- 커스텀 SAML 2.0
+- Custom SAML 2.0
 
-**설정**:
+**Configuration**:
 
 ```yaml
-# 서버 설정
+# Server configuration
 auth:
   provider: saml
 
@@ -502,36 +502,36 @@ auth:
 
 ---
 
-## Phase 9: 분석 플랫폼
+## Phase 9: Analytics Platform
 
-### 9.1 메트릭스 수집
+### 9.1 Metrics Collection
 
-**수집 데이터**:
+**Collected Data**:
 
 ```typescript
 interface SpecMetrics {
-  // 볼륨
+  // Volume
   totalSpecs: number;
   specsByStatus: Record<Status, number>;
   specsByDomain: Record<string, number>;
   specsByPhase: Record<number, number>;
 
-  // 속도
-  avgTimeToApproval: number;      // draft → approved
-  avgTimeToImplement: number;     // approved → implemented
-  reviewCycleTime: number;        // 리뷰 사이클
+  // Velocity
+  avgTimeToApproval: number;      // draft -> approved
+  avgTimeToImplement: number;     // approved -> implemented
+  reviewCycleTime: number;        // Review cycle
 
-  // 품질
+  // Quality
   avgQualityScore: number;
   specsWithTests: number;
-  syncCoverage: number;           // 코드 연결률
+  syncCoverage: number;           // Code link rate
 
-  // 활동
+  // Activity
   createdThisWeek: number;
   updatedThisWeek: number;
   reviewsCompleted: number;
 
-  // 복잡도
+  // Complexity
   avgDependencies: number;
   maxDependencyDepth: number;
   circularDependencies: number;
@@ -547,73 +547,73 @@ interface TeamMetrics {
 }
 ```
 
-### 9.2 대시보드 UI
+### 9.2 Dashboard UI
 
-**웹 대시보드**:
+**Web Dashboard**:
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  SDD Analytics Dashboard                              🔔  👤 Admin  │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  Overview                                     Last 30 days ▼│   │
-│  ├─────────────────────────────────────────────────────────────┤   │
-│  │                                                             │   │
-│  │   247          89%           4.2 days        12             │   │
-│  │   Total       Completion    Avg Cycle      Pending         │   │
-│  │   Specs       Rate          Time           Reviews         │   │
-│  │                                                             │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│  ┌──────────────────────────┐  ┌──────────────────────────────┐   │
-│  │  Progress by Phase       │  │  Specs by Domain             │   │
-│  │  ────────────────────    │  │  ────────────────────────    │   │
-│  │                          │  │                              │   │
-│  │  P1 ████████████ 100%    │  │  auth     ████████  32       │   │
-│  │  P2 █████████░░░  78%    │  │  billing  ██████    24       │   │
-│  │  P3 ██████░░░░░░  52%    │  │  core     ████████████ 48    │   │
-│  │  P4 ███░░░░░░░░░  25%    │  │  api      ██████████  40     │   │
-│  │                          │  │  ...                         │   │
-│  └──────────────────────────┘  └──────────────────────────────┘   │
-│                                                                     │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  Activity Timeline                                          │   │
-│  │  ─────────────────────────────────────────────────────────  │   │
-│  │                                                             │   │
-│  │     ╭─╮                   ╭─╮                               │   │
-│  │    ╭╯ ╰╮      ╭──╮      ╭╯ ╰╮      ╭──╮                    │   │
-│  │  ──╯   ╰──────╯  ╰──────╯   ╰──────╯  ╰────                │   │
-│  │  Mon  Tue  Wed  Thu  Fri  Sat  Sun  Mon  Tue               │   │
-│  │                                                             │   │
-│  │  — Created  — Updated  — Approved                          │   │
-│  │                                                             │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│  ┌──────────────────────────┐  ┌──────────────────────────────┐   │
-│  │  Team Performance        │  │  Review Queue                │   │
-│  │  ────────────────────    │  │  ────────────────────────    │   │
-│  │                          │  │                              │   │
-│  │  Core Team      A  98%   │  │  • billing/refund    2d      │   │
-│  │  Auth Team      A  95%   │  │  • auth/mfa-setup    3d      │   │
-│  │  Billing Team   B  87%   │  │  • api/rate-limit    5d ⚠️  │   │
-│  │  Platform Team  B  82%   │  │  • core/migration    7d 🔴  │   │
-│  │                          │  │                              │   │
-│  └──────────────────────────┘  └──────────────────────────────┘   │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
++---------------------------------------------------------------------+
+|  SDD Analytics Dashboard                             Alerts  Admin   |
++---------------------------------------------------------------------+
+|                                                                      |
+|  +-------------------------------------------------------------+    |
+|  |  Overview                                     Last 30 days   |    |
+|  +-------------------------------------------------------------+    |
+|  |                                                              |    |
+|  |   247          89%           4.2 days        12              |    |
+|  |   Total       Completion    Avg Cycle      Pending          |    |
+|  |   Specs       Rate          Time           Reviews          |    |
+|  |                                                              |    |
+|  +-------------------------------------------------------------+    |
+|                                                                      |
+|  +--------------------------+  +------------------------------+     |
+|  |  Progress by Phase       |  |  Specs by Domain             |     |
+|  |  --------------------    |  |  ------------------------    |     |
+|  |                          |  |                              |     |
+|  |  P1 ============ 100%    |  |  auth     ========  32       |     |
+|  |  P2 =========--- 78%     |  |  billing  ======    24       |     |
+|  |  P3 ======------ 52%     |  |  core     ============ 48    |     |
+|  |  P4 ===--------- 25%     |  |  api      ==========  40     |     |
+|  |                          |  |  ...                         |     |
+|  +--------------------------+  +------------------------------+     |
+|                                                                      |
+|  +-------------------------------------------------------------+    |
+|  |  Activity Timeline                                           |    |
+|  |  ---------------------------------------------------------   |    |
+|  |                                                              |    |
+|  |     +-+                   +-+                                |    |
+|  |    +- -+      +--+      +- -+      +--+                     |    |
+|  |  --+   +------+  +------+   +------+  +----                 |    |
+|  |  Mon  Tue  Wed  Thu  Fri  Sat  Sun  Mon  Tue                |    |
+|  |                                                              |    |
+|  |  - Created  - Updated  - Approved                           |    |
+|  |                                                              |    |
+|  +-------------------------------------------------------------+    |
+|                                                                      |
+|  +--------------------------+  +------------------------------+     |
+|  |  Team Performance        |  |  Review Queue                |     |
+|  |  --------------------    |  |  ------------------------    |     |
+|  |                          |  |                              |     |
+|  |  Core Team      A  98%   |  |  * billing/refund    2d      |     |
+|  |  Auth Team      A  95%   |  |  * auth/mfa-setup    3d      |     |
+|  |  Billing Team   B  87%   |  |  * api/rate-limit    5d      |     |
+|  |  Platform Team  B  82%   |  |  * core/migration    7d      |     |
+|  |                          |  |                              |     |
+|  +--------------------------+  +------------------------------+     |
+|                                                                      |
++---------------------------------------------------------------------+
 ```
 
-### 9.3 알림 시스템
+### 9.3 Notification System
 
-**채널**:
+**Channels**:
 
 - Slack / Microsoft Teams
 - Email
 - Webhook
 - In-app notifications
 
-**알림 규칙**:
+**Notification Rules**:
 
 ```yaml
 notifications:
@@ -636,7 +636,7 @@ notifications:
       recipients: ["@author"]
 
     - name: "Daily Digest"
-      schedule: "0 9 * * 1-5"  # 평일 오전 9시
+      schedule: "0 9 * * 1-5"  # Weekdays 9 AM
       channels: [email]
       recipients: ["@all-contributors"]
       template: daily_digest
@@ -644,11 +644,11 @@ notifications:
 
 ---
 
-## Phase 10: 생태계 확장
+## Phase 10: Ecosystem Expansion
 
-### 10.1 플러그인 시스템
+### 10.1 Plugin System
 
-**플러그인 타입**:
+**Plugin Types**:
 
 ```typescript
 interface SddPlugin {
@@ -656,7 +656,7 @@ interface SddPlugin {
   version: string;
   type: 'validator' | 'exporter' | 'importer' | 'analyzer' | 'integration';
 
-  // 라이프사이클 훅
+  // Lifecycle hooks
   hooks: {
     'spec:beforeCreate'?: (spec: Spec) => Promise<Spec>;
     'spec:afterCreate'?: (spec: Spec) => Promise<void>;
@@ -666,14 +666,14 @@ interface SddPlugin {
     'export:format'?: (specs: Spec[], options: any) => Promise<Buffer>;
   };
 
-  // CLI 확장
+  // CLI extensions
   commands?: {
     name: string;
     description: string;
     handler: (args: any) => Promise<void>;
   }[];
 
-  // UI 확장 (웹)
+  // UI extensions (web)
   components?: {
     slot: 'sidebar' | 'toolbar' | 'detail-panel';
     component: React.ComponentType;
@@ -681,21 +681,21 @@ interface SddPlugin {
 }
 ```
 
-**공식 플러그인**:
+**Official Plugins**:
 
-| 플러그인 | 설명 |
-|----------|------|
-| `@sdd/plugin-jira` | Jira 이슈 동기화 |
-| `@sdd/plugin-confluence` | Confluence 문서 내보내기 |
-| `@sdd/plugin-figma` | Figma 디자인 스펙 연결 |
-| `@sdd/plugin-openapi` | OpenAPI 스펙 생성/검증 |
-| `@sdd/plugin-dbml` | 데이터 모델 시각화 |
-| `@sdd/plugin-mermaid` | 다이어그램 자동 생성 |
-| `@sdd/plugin-ai` | AI 기반 스펙 제안/검토 |
+| Plugin | Description |
+|--------|-------------|
+| `@sdd/plugin-jira` | Jira issue sync |
+| `@sdd/plugin-confluence` | Confluence document export |
+| `@sdd/plugin-figma` | Figma design spec connection |
+| `@sdd/plugin-openapi` | OpenAPI spec generation/validation |
+| `@sdd/plugin-dbml` | Data model visualization |
+| `@sdd/plugin-mermaid` | Auto diagram generation |
+| `@sdd/plugin-ai` | AI-based spec suggestions/review |
 
 ### 10.2 API SDK
 
-**언어별 SDK**:
+**Language SDKs**:
 
 ```typescript
 // TypeScript/JavaScript
@@ -706,22 +706,22 @@ const client = new SddClient({
   apiKey: process.env.SDD_API_KEY,
 });
 
-// 스펙 조회
+// Query specs
 const specs = await client.specs.list({ domain: 'auth' });
 
-// 스펙 생성
+// Create spec
 const newSpec = await client.specs.create({
   title: 'New Feature',
   domain: 'core',
   content: '...',
 });
 
-// 리뷰 요청
+// Request review
 await client.reviews.request(newSpec.id, {
   reviewers: ['@alice', '@bob'],
 });
 
-// 실시간 구독
+// Real-time subscription
 client.subscribe('spec:updated', (event) => {
   console.log(`Spec ${event.spec.id} updated by ${event.by.name}`);
 });
@@ -736,15 +736,15 @@ client = SddClient(
     api_key=os.environ["SDD_API_KEY"]
 )
 
-# 스펙 검색
-specs = client.specs.search("결제", domain="billing")
+# Search specs
+specs = client.specs.search("payment", domain="billing")
 
-# 영향 분석
+# Impact analysis
 impact = client.analysis.impact("user-auth")
 print(f"Affected specs: {impact.affected_count}")
 ```
 
-### 10.3 CI/CD 통합 강화
+### 10.3 Enhanced CI/CD Integration
 
 **GitHub Actions**:
 
@@ -777,7 +777,7 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: sdd-tool/action-impact@v2
         with:
-          comment: true     # PR에 코멘트
+          comment: true     # Comment on PR
 ```
 
 **GitLab CI**:
@@ -796,7 +796,7 @@ sdd:validate:
 
 ---
 
-## 배포 옵션
+## Deployment Options
 
 ### Self-hosted
 
@@ -856,68 +856,68 @@ sdd:
 
 ### Cloud (SaaS)
 
-- SDD Cloud (향후 제공 예정)
-- 관리형 서비스
-- SOC 2 Type II 인증
+- SDD Cloud (coming soon)
+- Managed service
+- SOC 2 Type II certified
 - 99.9% SLA
 
 ---
 
-## 구현 우선순위
+## Implementation Priority
 
-| Phase | 기능 | 복잡도 | 가치 | 의존성 |
-|-------|------|--------|------|--------|
-| **6** | SQLite 캐시 | 중 | 높음 | - |
-| **6** | 오프라인 동기화 | 중 | 중 | 6.1 |
-| **7** | SDD Server (MVP) | 높음 | 높음 | 6 |
-| **7** | 실시간 협업 | 높음 | 중 | 7.1 |
-| **7** | Git 브릿지 | 중 | 높음 | 7.1 |
-| **8** | RBAC | 중 | 높음 | 7.1 |
-| **8** | 감사 로그 | 중 | 높음 | 7.1 |
-| **8** | SSO/SAML | 중 | 중 | 8.1 |
-| **9** | 분석 대시보드 | 중 | 중 | 7.1 |
-| **9** | 알림 시스템 | 중 | 중 | 7.1 |
-| **10** | 플러그인 시스템 | 높음 | 중 | 7 |
-| **10** | SDK | 중 | 중 | 7.1 |
+| Phase | Feature | Complexity | Value | Dependencies |
+|-------|---------|------------|-------|--------------|
+| **6** | SQLite cache | Medium | High | - |
+| **6** | Offline sync | Medium | Medium | 6.1 |
+| **7** | SDD Server (MVP) | High | High | 6 |
+| **7** | Real-time collaboration | High | Medium | 7.1 |
+| **7** | Git bridge | Medium | High | 7.1 |
+| **8** | RBAC | Medium | High | 7.1 |
+| **8** | Audit logs | Medium | High | 7.1 |
+| **8** | SSO/SAML | Medium | Medium | 8.1 |
+| **9** | Analytics dashboard | Medium | Medium | 7.1 |
+| **9** | Notification system | Medium | Medium | 7.1 |
+| **10** | Plugin system | High | Medium | 7 |
+| **10** | SDK | Medium | Medium | 7.1 |
 
 ---
 
-## 마이그레이션 경로
+## Migration Path
 
-### 파일 기반 → 하이브리드
+### File-based -> Hybrid
 
 ```bash
-# 1. 캐시 초기화
+# 1. Initialize cache
 sdd cache init
 
-# 2. 기존 스펙 인덱싱
+# 2. Index existing specs
 sdd cache rebuild
 
-# 3. 검증
+# 3. Verify
 sdd cache verify
 ```
 
-### 하이브리드 → 서버 기반
+### Hybrid -> Server-based
 
 ```bash
-# 1. 서버 연결
+# 1. Connect to server
 sdd server connect https://sdd.company.com
 
-# 2. 프로젝트 마이그레이션
+# 2. Migrate project
 sdd server migrate --project my-project
 
-# 3. 팀 초대
+# 3. Invite team
 sdd server invite @team --role contributor
 
-# 4. 동기화 모드 설정
+# 4. Set sync mode
 sdd config set sync.mode bidirectional
 ```
 
 ---
 
-## 관련 문서
+## Related Documentation
 
-- [현재 한계점](./current-limits.md) - 도구의 현실적 한계
-- [스케일업 로드맵](./scaling.md) - 중규모 확장 (Phase 1-5)
-- [로드맵 개요](./overview.md) - 전체 로드맵
-- [모범 사례](/guide/best-practices.md) - 효과적인 사용법
+- [Current Limitations](./current-limits.md) - Realistic tool limitations
+- [Scaling Roadmap](./scaling.md) - Medium-scale expansion (Phase 1-5)
+- [Roadmap Overview](./overview.md) - Complete roadmap
+- [Best Practices](/guide/best-practices.md) - Effective usage

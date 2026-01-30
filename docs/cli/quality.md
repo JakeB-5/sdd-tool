@@ -1,108 +1,108 @@
 # sdd quality
 
-스펙의 품질을 분석하고 점수를 산출합니다.
+Analyzes spec quality and calculates scores.
 
-## 사용법
+## Usage
 
 ```bash
 sdd quality [spec-id] [options]
 ```
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--all` | 모든 스펙 분석 |
-| `--json` | JSON 형식으로 출력 |
-| `--threshold <n>` | 최소 품질 점수 (기본: 70) |
-| `--ci` | CI 모드 (임계값 미달 시 실패) |
+| Option | Description |
+|--------|-------------|
+| `--all` | Analyze all specs |
+| `--json` | Output in JSON format |
+| `--threshold <n>` | Minimum quality score (default: 70) |
+| `--ci` | CI mode (fail if below threshold) |
 
-## 품질 지표
+## Quality Metrics
 
-| 지표 | 설명 | 가중치 |
-|------|------|--------|
-| RFC 2119 키워드 | SHALL, MUST, SHOULD 등 사용 | 25% |
-| 시나리오 완성도 | GIVEN-WHEN-THEN 형식 준수 | 25% |
-| 메타데이터 완성도 | 필수 필드 존재 여부 | 20% |
-| 요구사항 명확성 | 요구사항 구체성 | 15% |
-| 문서 구조 | 섹션 구조화 정도 | 15% |
+| Metric | Description | Weight |
+|--------|-------------|--------|
+| RFC 2119 Keywords | Usage of SHALL, MUST, SHOULD, etc. | 25% |
+| Scenario Completeness | GIVEN-WHEN-THEN format compliance | 25% |
+| Metadata Completeness | Required field presence | 20% |
+| Requirement Clarity | Requirement specificity | 15% |
+| Document Structure | Section organization | 15% |
 
-## 예시
+## Examples
 
-### 단일 스펙 분석
+### Single Spec Analysis
 
 ```bash
 sdd quality user-auth
 ```
 
-출력:
+Output:
 ```
-=== 품질 분석: user-auth ===
+=== Quality Analysis: user-auth ===
 
-📊 종합 점수: 85/100 (우수)
+📊 Overall Score: 85/100 (Excellent)
 
-📋 세부 점수:
-  • RFC 2119 키워드: 90/100
-    - SHALL: 5개
-    - SHOULD: 3개
-    - MAY: 1개
+📋 Detailed Scores:
+  • RFC 2119 Keywords: 90/100
+    - SHALL: 5
+    - SHOULD: 3
+    - MAY: 1
 
-  • 시나리오 완성도: 85/100
-    - GIVEN-WHEN-THEN: 4개
-    - 불완전 시나리오: 1개
+  • Scenario Completeness: 85/100
+    - GIVEN-WHEN-THEN: 4
+    - Incomplete scenarios: 1
 
-  • 메타데이터: 80/100
+  • Metadata: 80/100
     - ✅ id, title, status
-    - ⚠️  depends 미정의
+    - ⚠️  depends not defined
 
-  • 요구사항 명확성: 85/100
-    - 구체적 요구사항: 8개
-    - 모호한 표현: 1개
+  • Requirement Clarity: 85/100
+    - Specific requirements: 8
+    - Ambiguous expressions: 1
 
-  • 문서 구조: 80/100
-    - ✅ 섹션 구분 양호
-    - ⚠️  예시 부족
+  • Document Structure: 80/100
+    - ✅ Good section separation
+    - ⚠️  Lacking examples
 
-💡 개선 제안:
-  1. depends 필드를 추가하세요
-  2. 시나리오 2번의 THEN 절을 구체화하세요
-  3. API 예시를 추가하면 좋겠습니다
+💡 Improvement Suggestions:
+  1. Add the depends field
+  2. Make the THEN clause in scenario 2 more specific
+  3. Adding API examples would be helpful
 ```
 
-### 전체 스펙 분석
+### Analyze All Specs
 
 ```bash
 sdd quality --all
 ```
 
-출력:
+Output:
 ```
-=== 전체 품질 분석 ===
+=== Overall Quality Analysis ===
 
-📊 평균 점수: 78/100
+📊 Average Score: 78/100
 
-스펙별 점수:
+Scores by Spec:
   🟢 user-auth: 85
   🟢 user-profile: 82
   🟡 order-checkout: 75
   🟡 payment-flow: 72
   🔴 notification: 58
 
-통계:
-  • 우수 (80+): 2개
-  • 양호 (70-79): 2개
-  • 미흡 (70 미만): 1개
+Statistics:
+  • Excellent (80+): 2
+  • Good (70-79): 2
+  • Needs Improvement (<70): 1
 ```
 
-### CI 모드
+### CI Mode
 
 ```bash
 sdd quality --all --ci --threshold 70
 ```
 
-품질 점수가 임계값 미달 시 종료 코드 1을 반환합니다.
+Returns exit code 1 if quality score is below threshold.
 
-### JSON 출력
+### JSON Output
 
 ```bash
 sdd quality user-auth --json
@@ -121,24 +121,24 @@ sdd quality user-auth --json
     "structure": 80
   },
   "suggestions": [
-    "depends 필드를 추가하세요",
-    "시나리오 2번의 THEN 절을 구체화하세요"
+    "Add the depends field",
+    "Make the THEN clause in scenario 2 more specific"
   ]
 }
 ```
 
-## 품질 등급
+## Quality Grades
 
-| 점수 | 등급 | 설명 |
-|------|------|------|
-| 90-100 | 🟢 최우수 | 프로덕션 준비 완료 |
-| 80-89 | 🟢 우수 | 약간의 개선 권장 |
-| 70-79 | 🟡 양호 | 개선 필요 |
-| 60-69 | 🟡 미흡 | 상당한 개선 필요 |
-| 60 미만 | 🔴 부적합 | 대폭 수정 필요 |
+| Score | Grade | Description |
+|-------|-------|-------------|
+| 90-100 | 🟢 Excellent | Production ready |
+| 80-89 | 🟢 Good | Minor improvements recommended |
+| 70-79 | 🟡 Acceptable | Improvement needed |
+| 60-69 | 🟡 Needs Work | Significant improvement needed |
+| <60 | 🔴 Inadequate | Major revision required |
 
-## 관련 문서
+## Related Documentation
 
-- [sdd validate](/cli/validate) - 스펙 검증
-- [sdd report](/cli/report) - 프로젝트 리포트
-- [품질 가이드](/guide/quality)
+- [sdd validate](./validate) - Spec validation
+- [sdd report](./report) - Project report
+- [CLI Reference](./) - All commands

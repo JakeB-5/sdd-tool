@@ -1,18 +1,18 @@
-# 브라운필드 프로젝트에 SDD 도입하기
+# Introducing SDD to Brownfield Projects
 
-기존 프로젝트에 SDD를 점진적으로 도입하는 튜토리얼입니다.
+A tutorial for gradually introducing SDD to existing projects.
 
-## 개요
+## Overview
 
-브라운필드(Brownfield) 프로젝트는 이미 코드가 존재하는 프로젝트입니다. 역추출(Reverse Extraction)을 통해 기존 코드에서 스펙을 추출하고, 점진적으로 SDD를 도입할 수 있습니다.
+A brownfield project is one with existing code. Through reverse extraction, you can extract specs from existing code and gradually introduce SDD.
 
-> **Note**: 이 튜토리얼은 Claude Code에서 슬래시 커맨드를 사용하는 대화형 워크플로우를 기반으로 합니다.
+> **Note**: This tutorial is based on an interactive workflow using slash commands in Claude Code.
 
-## 시나리오
+## Scenario
 
-기존 Express API 프로젝트에 SDD를 도입해보겠습니다.
+Let's introduce SDD to an existing Express API project.
 
-### 현재 구조
+### Current Structure
 
 ```
 my-api/
@@ -33,9 +33,9 @@ my-api/
 └── package.json
 ```
 
-## Step 1: SDD 초기화
+## Step 1: SDD Initialization
 
-먼저 터미널에서 `sdd init` 명령어를 실행합니다:
+First, run the `sdd init` command in your terminal:
 
 ```bash
 cd my-api
@@ -43,379 +43,379 @@ sdd init
 ```
 
 ```
-✅ SDD 프로젝트가 초기화되었습니다!
+SDD project has been initialized!
 
-생성된 항목:
-  📁 .sdd/specs/
-  📁 .sdd/changes/
-  📁 .sdd/archive/
-  📁 .sdd/templates/
-  📁 .claude/commands/    ← 슬래시 커맨드
-  📁 .claude/skills/      ← 개발 스킬
-  📄 .sdd/constitution.md
-  📄 .sdd/AGENTS.md
+Created items:
+  .sdd/specs/
+  .sdd/changes/
+  .sdd/archive/
+  .sdd/templates/
+  .claude/commands/    <- Slash commands
+  .claude/skills/      <- Development skills
+  .sdd/constitution.md
+  .sdd/AGENTS.md
 
-기존 코드는 그대로 유지됩니다.
-다음 단계: Claude Code에서 /sdd.start 를 실행하세요.
+Existing code remains unchanged.
+Next step: Run /sdd.start in Claude Code.
 ```
 
-### Claude Code에서 시작
+### Start in Claude Code
 
-이제 Claude Code에서 프로젝트를 열고 `/sdd.start`를 실행합니다:
+Now open the project in Claude Code and run `/sdd.start`:
 
 ```
 /sdd.start
 ```
 
-Claude가 기존 프로젝트를 분석합니다:
+Claude analyzes the existing project:
 
 ```
-📂 프로젝트 상태
+Project Status
 
-✅ SDD 초기화됨
-📜 Constitution: 템플릿 (수정 필요)
-📋 스펙: 0개
+SDD Initialized
+Constitution: Template (modification needed)
+Specs: 0
 
-기존 코드베이스 감지:
-- 파일: 12개
-- 언어: JavaScript
+Existing codebase detected:
+- Files: 12
+- Language: JavaScript
 
-💡 기존 코드에서 스펙을 추출하려면 /sdd.reverse 를 실행하세요.
+Tip: Run /sdd.reverse to extract specs from existing code.
 ```
 
-## Step 2: 코드베이스 분석
+## Step 2: Codebase Analysis
 
 ```
 /sdd.reverse scan
 ```
 
-Claude가 코드베이스를 분석합니다:
+Claude analyzes the codebase:
 
 ```
-🔍 코드베이스 스캔 중...
+Scanning codebase...
 
-분석 결과:
+Analysis results:
 
-파일: 12개
-언어: JavaScript (100%)
-복잡도: B (양호)
+Files: 12
+Language: JavaScript (100%)
+Complexity: B (Good)
 
-추정 도메인:
-  📁 auth (높음) - 2개 파일
+Inferred domains:
+  auth (high confidence) - 2 files
      authController.js, authService.js
-  📁 user (높음) - 2개 파일
+  user (high confidence) - 2 files
      userController.js, userService.js
-  📁 order (높음) - 2개 파일
+  order (high confidence) - 2 files
      orderController.js, orderService.js
-  📁 core (중간) - 2개 파일
+  core (medium confidence) - 2 files
      validation.js, models/
 
-스펙 후보: 12개
-  높은 신뢰도 (>80%): 8개
-  중간 신뢰도 (50-80%): 3개
-  낮은 신뢰도 (<50%): 1개
+Spec candidates: 12
+  High confidence (>80%): 8
+  Medium confidence (50-80%): 3
+  Low confidence (<50%): 1
 
-메타데이터 저장: .sdd/.reverse-meta.json
-도메인 자동 생성: 4개 (core, auth, user, order)
+Metadata saved: .sdd/.reverse-meta.json
+Auto-generated domains: 4 (core, auth, user, order)
 
-💡 다음 단계: /sdd.reverse extract
+Tip: Next step: /sdd.reverse extract
 ```
 
-## Step 3: 도메인 생성
+## Step 3: Domain Creation
 
-분석 결과를 바탕으로 도메인을 설계합니다:
+Design domains based on analysis results:
 
 ```
 /sdd.domain
 ```
 
 ```
-User: 스캔 결과를 바탕으로 도메인 구조를 만들어줘
+User: Create domain structure based on scan results
 
-Claude: 📁 도메인 구조 제안
+Claude: Domain Structure Proposal
 
-분석 결과를 기반으로 다음 도메인을 생성합니다:
+Creating the following domains based on analysis results:
 
 1. core
-   설명: 공통 유틸리티
-   경로: src/utils/
-   의존성: 없음
+   Description: Common utilities
+   Path: src/utils/
+   Dependencies: none
 
 2. auth
-   설명: 인증/인가
-   경로: src/controllers/auth*, src/services/auth*
-   의존성: core
+   Description: Authentication/authorization
+   Path: src/controllers/auth*, src/services/auth*
+   Dependencies: core
 
 3. user
-   설명: 사용자 관리
-   경로: src/controllers/user*, src/services/user*
-   의존성: core, auth
+   Description: User management
+   Path: src/controllers/user*, src/services/user*
+   Dependencies: core, auth
 
 4. order
-   설명: 주문 관리
-   경로: src/controllers/order*, src/services/order*
-   의존성: core, auth
+   Description: Order management
+   Path: src/controllers/order*, src/services/order*
+   Dependencies: core, auth
 
-생성하시겠습니까? [Y/n]
+Create these? [Y/n]
 
 > Y
 
-✅ 도메인 생성 완료
+Domains created
 
-생성된 파일:
-  .sdd/domains.yml              ← 도메인 설정 (YAML 형식)
-  .sdd/domains/core/domain.md   ← 도메인별 문서
+Created files:
+  .sdd/domains.yml              <- Domain configuration (YAML format)
+  .sdd/domains/core/domain.md   <- Per-domain documentation
   .sdd/domains/auth/domain.md
   .sdd/domains/user/domain.md
   .sdd/domains/order/domain.md
 ```
 
-## Step 4: 역추출 실행
+## Step 4: Reverse Extraction
 
-### 스펙 추출
+### Extract Specs
 
 ```
 /sdd.reverse extract
 ```
 
-Claude가 코드에서 스펙을 추출합니다:
+Claude extracts specs from code:
 
 ```
-📝 스펙 추출 중...
+Extracting specs...
 
-## auth 도메인
+## auth domain
 
-### login (신뢰도: 95%)
-코드 위치: authController.js:15-45, authService.js:10-35
-추출된 시나리오:
-  - 유효한 자격증명으로 로그인 성공
-  - 잘못된 비밀번호로 로그인 실패
-  - 존재하지 않는 사용자
-계약:
-  입력: { email: string, password: string }
-  출력: { token: string, user: User }
+### login (confidence: 95%)
+Code location: authController.js:15-45, authService.js:10-35
+Extracted scenarios:
+  - Successful login with valid credentials
+  - Failed login with wrong password
+  - Non-existent user
+Contract:
+  Input: { email: string, password: string }
+  Output: { token: string, user: User }
 
-### register (신뢰도: 92%)
-코드 위치: authController.js:47-80
-추출된 시나리오:
-  - 신규 사용자 등록 성공
-  - 이메일 중복 에러
-  - 비밀번호 형식 에러
+### register (confidence: 92%)
+Code location: authController.js:47-80
+Extracted scenarios:
+  - Successful new user registration
+  - Email duplicate error
+  - Password format error
 
-### logout (신뢰도: 88%)
+### logout (confidence: 88%)
 ...
 
-## user 도메인
+## user domain
 
-### get-user (신뢰도: 90%)
+### get-user (confidence: 90%)
 ...
 
-## order 도메인
+## order domain
 
-### create-order (신뢰도: 88%)
+### create-order (confidence: 88%)
 ...
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-총 추출된 스펙: 11개
-초안 저장: .sdd/drafts/
+Total extracted specs: 11
+Drafts saved: .sdd/drafts/
 
-리뷰를 시작하시겠습니까? [Y/n]
+Start review? [Y/n]
 ```
 
-## Step 5: 스펙 검토
+## Step 5: Review Specs
 
 ```
 /sdd.reverse review
 ```
 
-Claude와 대화형으로 추출된 스펙을 검토합니다:
+Review extracted specs interactively with Claude:
 
 ```
-📋 스펙 검토: auth/login (1/11)
+Spec Review: auth/login (1/11)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-이름: login
-설명: 사용자 로그인 처리
-신뢰도: 95%
+Name: login
+Description: User login handling
+Confidence: 95%
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-추출된 시나리오:
+Extracted scenarios:
 
-1. 정상 로그인
-   GIVEN: 유효한 이메일과 비밀번호
-   WHEN: POST /auth/login 요청
-   THEN: JWT 토큰과 사용자 정보 반환
+1. Normal login
+   GIVEN: Valid email and password
+   WHEN: POST /auth/login request
+   THEN: Return JWT token and user info
 
-2. 비밀번호 불일치
-   GIVEN: 유효한 이메일, 잘못된 비밀번호
-   WHEN: POST /auth/login 요청
-   THEN: 401 에러 (INVALID_PASSWORD)
+2. Password mismatch
+   GIVEN: Valid email, wrong password
+   WHEN: POST /auth/login request
+   THEN: 401 error (INVALID_PASSWORD)
 
-3. 사용자 없음
-   GIVEN: 존재하지 않는 이메일
-   WHEN: POST /auth/login 요청
-   THEN: 404 에러 (USER_NOT_FOUND)
+3. User not found
+   GIVEN: Non-existent email
+   WHEN: POST /auth/login request
+   THEN: 404 error (USER_NOT_FOUND)
 
-추출된 계약:
-  입력: { email: string, password: string }
-  출력: { token: string, user: User }
+Extracted contract:
+  Input: { email: string, password: string }
+  Output: { token: string, user: User }
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💡 AI 제안:
-  - 시나리오 추가: "계정 잠금 상태에서 로그인 시도"
-  - 계약 개선: refreshToken 추가 권장
+AI Suggestions:
+  - Add scenario: "Login attempt with locked account"
+  - Contract improvement: Consider adding refreshToken
 
-❓ 확인 필요:
-  - 로그인 실패 시 최대 시도 횟수 제한이 있나요?
-  - 세션 만료 시간은 어떻게 되나요?
+Needs clarification:
+  - Is there a max login attempt limit?
+  - What is the session expiration time?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-[a] 승인  [e] 편집  [s] 건너뛰기  [r] 거부
+[a] Approve  [e] Edit  [s] Skip  [r] Reject
 ```
 
-### 편집 예시
+### Edit Example
 
 ```
 > e
 
-편집 모드 진입
+Entering edit mode
 
-User: 계정 잠금 시나리오 추가해줘. 5회 실패 시 30분 잠금이야.
+User: Add account lockout scenario. Lock for 30 minutes after 5 failures.
 
-Claude: 📝 시나리오 추가
+Claude: Scenario added
 
-4. 계정 잠금
-   GIVEN: 5회 이상 로그인 실패한 계정
-   WHEN: POST /auth/login 요청
-   THEN: 423 에러 (ACCOUNT_LOCKED, 남은 시간: 30분)
+4. Account lockout
+   GIVEN: Account with 5+ failed login attempts
+   WHEN: POST /auth/login request
+   THEN: 423 error (ACCOUNT_LOCKED, remaining time: 30 min)
 
-추가하시겠습니까? [Y/n]
+Add this? [Y/n]
 
 > Y
 
-User: refreshToken도 출력에 추가해
+User: Also add refreshToken to output
 
-Claude: 📝 계약 수정
+Claude: Contract modified
 
-출력:
+Output:
   {
     token: string,
-    refreshToken: string,  // 추가됨
+    refreshToken: string,  // Added
     user: User
   }
 
-수정하시겠습니까? [Y/n]
+Apply this change? [Y/n]
 
 > Y
 
-✅ 수정 완료. [a]로 승인하세요.
+Modification complete. Press [a] to approve.
 
 > a
 
-✅ auth/login 승인됨
+auth/login approved
 
-다음 스펙: auth/register (2/11)
+Next spec: auth/register (2/11)
 ```
 
-### 일괄 승인
+### Bulk Approval
 
 ```
-User: 나머지 중 신뢰도 85% 이상은 일괄 승인해줘
+User: Bulk approve all remaining with 85%+ confidence
 
-Claude: 📋 일괄 승인 대상
+Claude: Bulk approval targets
 
-신뢰도 85% 이상:
-  ✓ auth/register (92%)
-  ✓ auth/logout (88%)
-  ✓ user/get-user (90%)
-  ✓ user/update-user (85%)
-  ✓ order/create-order (88%)
-  ✓ order/get-order (85%)
+85%+ confidence:
+  - auth/register (92%)
+  - auth/logout (88%)
+  - user/get-user (90%)
+  - user/update-user (85%)
+  - order/create-order (88%)
+  - order/get-order (85%)
 
-6개 스펙을 승인하시겠습니까? [Y/n]
+Approve 6 specs? [Y/n]
 
 > Y
 
-✅ 6개 스펙 승인됨
+6 specs approved
 
-남은 스펙: 4개 (수동 검토 필요)
+Remaining specs: 4 (manual review needed)
   - user/delete-user (82%)
   - order/list-orders (80%)
   - order/update-order (75%)
   - order/cancel-order (72%)
 ```
 
-## Step 6: 스펙 확정
+## Step 6: Finalize Specs
 
 ```
 /sdd.reverse finalize
 ```
 
 ```
-📦 스펙 확정
+Spec Finalization
 
-승인된 스펙: 8개
-수동 검토 필요: 4개
+Approved specs: 8
+Manual review needed: 4
 
-승인된 스펙을 확정하시겠습니까? [Y/n]
+Finalize approved specs? [Y/n]
 
 > Y
 
-✅ 스펙 확정 완료
+Specs finalized
 
-저장된 스펙:
-  .sdd/specs/login/spec.md (도메인: auth)
-  .sdd/specs/register/spec.md (도메인: auth)
-  .sdd/specs/logout/spec.md (도메인: auth)
-  .sdd/specs/get-user/spec.md (도메인: user)
-  .sdd/specs/update-user/spec.md (도메인: user)
-  .sdd/specs/create-order/spec.md (도메인: order)
-  .sdd/specs/get-order/spec.md (도메인: order)
-  .sdd/specs/validation/spec.md (도메인: core)
+Saved specs:
+  .sdd/specs/login/spec.md (domain: auth)
+  .sdd/specs/register/spec.md (domain: auth)
+  .sdd/specs/logout/spec.md (domain: auth)
+  .sdd/specs/get-user/spec.md (domain: user)
+  .sdd/specs/update-user/spec.md (domain: user)
+  .sdd/specs/create-order/spec.md (domain: order)
+  .sdd/specs/get-order/spec.md (domain: order)
+  .sdd/specs/validation/spec.md (domain: core)
 
-domains.yml 업데이트됨
-초안 파일 정리됨
+domains.yml updated
+Draft files cleaned up
 
-남은 초안: .sdd/drafts/ (4개)
+Remaining drafts: .sdd/drafts/ (4)
 ```
 
-## Step 7: 검증
+## Step 7: Validation
 
 ```
 /sdd.validate
 ```
 
 ```
-✅ 검증 완료
+Validation complete
 
-스펙: 8개
-도메인: 4개
-의존성: 유효
+Specs: 8
+Domains: 4
+Dependencies: Valid
 
-경고: 2개
-  ⚠ login: 출력 타입 User가 core에 정의되지 않음
-  ⚠ create-order: 의존성 payment 누락 가능성
+Warnings: 2
+  - login: Output type User not defined in core
+  - create-order: Possible missing dependency on payment
 
-오류: 0개
+Errors: 0
 ```
 
-### 경고 해결
+### Resolve Warnings
 
 ```
-User: User 타입 스펙을 추가하고 경고 해결해줘
+User: Add User type spec and resolve the warning
 
-Claude: 📝 스펙 추가
+Claude: Spec added
 
-user-model 스펙을 생성합니다 (도메인: core):
+Creating user-model spec (domain: core):
 
   ---
   id: user-model
-  name: 사용자 모델
+  name: User Model
   status: approved
   domain: core
   ---
 
-  # 사용자 모델
+  # User Model
 
   interface User {
     id: string;
@@ -425,52 +425,52 @@ user-model 스펙을 생성합니다 (도메인: core):
     updatedAt: Date;
   }
 
-login의 의존성에 user-model 추가
+Adding user-model to login's dependencies
 
-✅ 경고 해결됨
+Warning resolved
 ```
 
-## Step 8: 프로젝트 상태 확인
+## Step 8: Check Project Status
 
 ```
 /sdd.status
 ```
 
 ```
-📊 프로젝트 현황: my-api
+Project Status: my-api
 
-스펙: 9개
-  ✅ 구현됨 (레거시): 9개 (100%)
-  📋 테스트 추가 필요: 4개
-  📝 스펙 보강 필요: 2개
+Specs: 9
+  Implemented (legacy): 9 (100%)
+  Tests needed: 4
+  Spec enhancement needed: 2
 
-도메인:
-  core: 2/2 완료 ████████████ 100%
-  auth: 3/3 완료 ████████████ 100%
-  user: 2/3 완료 ████████░░░░ 67%
-  order: 2/4 완료 ██████░░░░░░ 50%
+Domains:
+  core: 2/2 complete 100%
+  auth: 3/3 complete 100%
+  user: 2/3 complete  67%
+  order: 2/4 complete  50%
 
-초안 (미확정): 4개
-  → /sdd.reverse review 로 검토 계속
+Drafts (unfinalized): 4
+  -> Continue review with /sdd.reverse review
 
-다음 추천 작업:
-  1. 남은 초안 검토: /sdd.reverse review
-  2. 테스트 추가: "auth/login 테스트 작성해줘"
-  3. 새 기능: /sdd.spec
+Recommended next actions:
+  1. Review remaining drafts: /sdd.reverse review
+  2. Add tests: "Write tests for auth/login"
+  3. New features: /sdd.spec
 ```
 
-## Step 9: 점진적 개선
+## Step 9: Gradual Improvement
 
-### 테스트 추가
+### Add Tests
 
-기존 코드에 테스트를 추가합니다:
+Add tests to existing code:
 
 ```
-User: login에 테스트가 없어. 스펙 기반으로 테스트 작성해줘
+User: login has no tests. Write tests based on the spec
 
-Claude: 🧪 테스트 생성: login (도메인: auth)
+Claude: Generating tests: login (domain: auth)
 
-스펙의 시나리오를 기반으로 테스트를 생성합니다:
+Generating tests based on spec scenarios:
 
 src/auth/login.test.ts:
 
@@ -483,7 +483,7 @@ src/auth/login.test.ts:
       vi.clearAllMocks();
     });
 
-    it('유효한 자격증명으로 로그인 성공', async () => {
+    it('successfully logs in with valid credentials', async () => {
       const result = await login({
         email: 'user@test.com',
         password: 'valid-password'
@@ -494,22 +494,22 @@ src/auth/login.test.ts:
       expect(result.user.email).toBe('user@test.com');
     });
 
-    it('잘못된 비밀번호로 401 에러', async () => {
+    it('returns 401 with wrong password', async () => {
       await expect(login({
         email: 'user@test.com',
         password: 'wrong-password'
       })).rejects.toThrow('INVALID_PASSWORD');
     });
 
-    it('존재하지 않는 사용자로 404 에러', async () => {
+    it('returns 404 for non-existent user', async () => {
       await expect(login({
         email: 'unknown@test.com',
         password: 'any-password'
       })).rejects.toThrow('USER_NOT_FOUND');
     });
 
-    it('5회 실패 후 계정 잠금', async () => {
-      // 5회 실패 시뮬레이션
+    it('locks account after 5 failures', async () => {
+      // Simulate 5 failures
       for (let i = 0; i < 5; i++) {
         await expect(login({
           email: 'user@test.com',
@@ -524,83 +524,83 @@ src/auth/login.test.ts:
     });
   });
 
-테스트 파일을 생성하시겠습니까? [Y/n]
+Create test file? [Y/n]
 ```
 
-### 새 기능 추가
+### Add New Features
 
-새 기능은 처음부터 SDD 방식으로 개발합니다:
-
-```
-/sdd.spec 비밀번호 재설정
-```
+Develop new features using SDD from the start:
 
 ```
-📝 새 스펙 작성: password-reset (도메인: auth)
+/sdd.spec Password reset
+```
 
-기능 설명을 알려주세요:
-- 이메일로 재설정 링크 발송
-- 링크 클릭 시 새 비밀번호 설정
-- 링크 유효 시간은?
+```
+Writing new spec: password-reset (domain: auth)
 
-User: 이메일로 링크 보내고, 1시간 유효해. 새 비밀번호는 8자 이상이어야 해.
+Tell me about the functionality:
+- Send reset link via email
+- Set new password when clicking link
+- What is the link validity period?
 
-Claude: 📋 스펙 초안
+User: Send link via email, valid for 1 hour. New password must be 8+ characters.
 
-## password-reset (도메인: auth)
+Claude: Spec Draft
 
-### 시나리오
+## password-reset (domain: auth)
 
-**재설정 요청**
-- GIVEN: 등록된 이메일
+### Scenarios
+
+**Reset request**
+- GIVEN: Registered email
 - WHEN: POST /auth/password-reset/request
-- THEN: 재설정 링크가 이메일로 발송됨
+- THEN: Reset link sent via email
 
-**비밀번호 변경**
-- GIVEN: 유효한 재설정 토큰, 새 비밀번호 (8자 이상)
+**Password change**
+- GIVEN: Valid reset token, new password (8+ chars)
 - WHEN: POST /auth/password-reset/confirm
-- THEN: 비밀번호가 변경됨
+- THEN: Password changed
 
-**만료된 토큰**
-- GIVEN: 1시간 초과된 토큰
+**Expired token**
+- GIVEN: Token older than 1 hour
 - WHEN: POST /auth/password-reset/confirm
-- THEN: 400 에러 (TOKEN_EXPIRED)
+- THEN: 400 error (TOKEN_EXPIRED)
 
-스펙을 저장하시겠습니까? [Y/n]
+Save this spec? [Y/n]
 ```
 
-## Step 10: 지속적인 관리
+## Step 10: Ongoing Management
 
-### 코드와 스펙 동기화 확인
+### Check Code-Spec Synchronization
 
 ```
 /sdd.sync
 ```
 
 ```
-🔄 스펙-코드 동기화 검사
+Spec-Code Sync Check
 
-✅ 동기화됨: 7개
-  - login (도메인: auth)
-  - register (도메인: auth)
-  - logout (도메인: auth)
+Synchronized: 7
+  - login (domain: auth)
+  - register (domain: auth)
+  - logout (domain: auth)
   ...
 
-⚠ 불일치: 2개
-  - update-user (도메인: user)
-    스펙: email 필드 수정 가능
-    코드: email 수정 불가 (readonly)
-    → 스펙 또는 코드 수정 필요
+Mismatch: 2
+  - update-user (domain: user)
+    Spec: email field modifiable
+    Code: email is readonly
+    -> Spec or code modification needed
 
-  - create-order (도메인: order)
-    스펙: quantity 필수
-    코드: quantity 기본값 1
-    → 스펙 업데이트 권장
+  - create-order (domain: order)
+    Spec: quantity required
+    Code: quantity defaults to 1
+    -> Spec update recommended
 
-수정하시겠습니까? [Y/n]
+Fix these? [Y/n]
 ```
 
-### 도메인 그래프
+### Domain Graph
 
 ```
 /sdd.domain graph
@@ -608,29 +608,29 @@ Claude: 📋 스펙 초안
 
 ```mermaid
 graph TB
-    subgraph core[core 도메인]
-        validation[validation ✅]
-        user-model[user-model ✅]
+    subgraph core[core domain]
+        validation[validation ]
+        user-model[user-model ]
     end
 
-    subgraph auth[auth 도메인]
-        login[login ✅]
-        register[register ✅]
-        logout[logout ✅]
-        password-reset[password-reset 📝]
+    subgraph auth[auth domain]
+        login[login ]
+        register[register ]
+        logout[logout ]
+        password-reset[password-reset ]
     end
 
-    subgraph user[user 도메인]
-        get-user[get-user ✅]
-        update-user[update-user ⚠]
-        delete-user[delete-user 📝]
+    subgraph user[user domain]
+        get-user[get-user ]
+        update-user[update-user ]
+        delete-user[delete-user ]
     end
 
-    subgraph order[order 도메인]
-        create-order[create-order ⚠]
-        get-order[get-order ✅]
-        list-orders[list-orders 📝]
-        update-order[update-order 📝]
+    subgraph order[order domain]
+        create-order[create-order ]
+        get-order[get-order ]
+        list-orders[list-orders ]
+        update-order[update-order ]
     end
 
     core --> auth
@@ -640,27 +640,27 @@ graph TB
     auth --> order
 ```
 
-## 다음 단계
+## Next Steps
 
-1. 테스트 추가로 스펙 검증
-2. 새 기능은 SDD 방식으로 개발
-3. 점진적으로 레거시 코드 리팩토링
+1. Add tests to verify specs
+2. Develop new features using SDD
+3. Gradually refactor legacy code
 
-## 관련 문서
+## Related Documentation
 
-- [역추출 가이드](/guide/reverse-extraction)
-- [도메인 시스템](/guide/domains)
-- [대규모 프로젝트](/guide/large-projects)
+- [Reverse Extraction Guide](/guide/reverse-extraction)
+- [Domain System](/guide/domains)
+- [Large-scale Projects](/guide/large-projects)
 
-## 요약
+## Summary
 
-1. `sdd init`으로 프로젝트 초기화 (CLI)
-2. `/sdd.start`로 프로젝트 상태 확인 (Claude Code)
-3. `/sdd.reverse scan`으로 코드베이스 분석
-4. `/sdd.domain`으로 도메인 구조 생성
-5. `/sdd.reverse extract`로 스펙 추출
-6. `/sdd.reverse review`로 대화형 검토
-7. `/sdd.reverse finalize`로 확정
-8. `/sdd.validate`로 검증
-9. `/sdd.sync`로 코드-스펙 동기화 관리
-10. 점진적으로 테스트 추가 및 개선
+1. Initialize project with `sdd init` (CLI)
+2. Check project status with `/sdd.start` (Claude Code)
+3. Analyze codebase with `/sdd.reverse scan`
+4. Create domain structure with `/sdd.domain`
+5. Extract specs with `/sdd.reverse extract`
+6. Interactive review with `/sdd.reverse review`
+7. Finalize with `/sdd.reverse finalize`
+8. Validate with `/sdd.validate`
+9. Manage code-spec sync with `/sdd.sync`
+10. Gradually add tests and improvements

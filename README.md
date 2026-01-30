@@ -1,6 +1,6 @@
 # SDD Tool
 
-**Spec-Driven Development CLI** - AI와 함께하는 명세 기반 개발 도구
+**Spec-Driven Development CLI** - AI-Powered Specification Workflow
 
 [![npm version](https://img.shields.io/npm/v/sdd-tool)](https://www.npmjs.com/package/sdd-tool)
 [![CI](https://github.com/JakeB-5/sdd-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/JakeB-5/sdd-tool/actions/workflows/ci.yml)
@@ -8,506 +8,515 @@
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-📚 **[문서 사이트](https://jakeb-5.github.io/sdd-tool/)** | 🚀 **[시작하기](https://jakeb-5.github.io/sdd-tool/guide/getting-started)** | 📋 **[CLI 레퍼런스](https://jakeb-5.github.io/sdd-tool/cli/)**
+> 🇰🇷 **[한국어 문서 (Korean)](README.ko.md)**
 
-## 개요
+📚 **[Documentation](https://jakeb-5.github.io/sdd-tool/)** | 🚀 **[Getting Started](https://jakeb-5.github.io/sdd-tool/guide/getting-started)** | 📋 **[CLI Reference](https://jakeb-5.github.io/sdd-tool/cli/)**
 
-SDD Tool은 **Claude Code**와 함께 사용하도록 설계된 명세 기반 개발(Spec-Driven Development) CLI입니다. **슬래시 커맨드**를 통해 AI와 대화하며 명세를 작성하고, 코드를 구현합니다.
+## Overview
 
-### 핵심 개념
+SDD Tool is a command-line interface designed to work with **Claude Code** for implementing Spec-Driven Development (SDD) methodology. Through **slash commands**, you collaborate with AI to write specifications and implement features.
 
-- **명세 우선**: 코드 작성 전 명세 작성
-- **AI 협업**: Claude Code 슬래시 커맨드로 워크플로우 자동화
-- **RFC 2119 키워드**: SHALL, MUST, SHOULD, MAY로 요구사항 명확화
-- **GIVEN-WHEN-THEN**: 시나리오 기반 요구사항 정의
-- **헌법(Constitution)**: 프로젝트 핵심 원칙 정의
+### Core Concepts
+
+- **Specifications First**: Write specifications before writing code
+- **AI Collaboration**: Automate workflow through Claude Code slash commands
+- **RFC 2119 Keywords**: Use SHALL, MUST, SHOULD, MAY to clarify requirements
+- **GIVEN-WHEN-THEN Scenarios**: Define requirements using scenario-based approach
+- **Constitution**: Define core principles of your project
 
 ---
 
-## 설치
+## Installation
 
 ```bash
 npm install -g sdd-tool
 ```
 
----
-
-## 빠른 시작
+Verify installation:
 
 ```bash
-# 1. 프로젝트 초기화 (슬래시 커맨드 + Git/CI-CD 설정)
+sdd --version
+```
+
+---
+
+## Quick Start
+
+```bash
+# 1. Initialize your project (creates slash commands + Git/CI-CD setup)
 sdd init
 
-# 2. Claude Code 실행
+# 2. Start Claude Code
 claude
 
-# 3. 슬래시 커맨드로 워크플로우 시작
+# 3. Begin workflow with slash command
 /sdd.start
 ```
 
 ---
 
-## 전체 워크플로우
+## Complete Workflow
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    SDD 슬래시 커맨드 워크플로우                  │
+│              SDD Slash Command Workflow                      │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  1. /sdd.start        → 워크플로우 시작                      │
+│  1. /sdd.start        → Start workflow                      │
 │     │                                                       │
 │     ▼                                                       │
-│  2. /sdd.constitution → 프로젝트 원칙 정의                   │
+│  2. /sdd.constitution → Define project principles           │
 │     │                                                       │
 │     ▼                                                       │
-│  3. /sdd.spec         → 기능 명세 작성/수정 (spec.md)        │
+│  3. /sdd.spec         → Write/edit spec (spec.md)           │
 │     │                                                       │
 │     ▼                                                       │
-│  4. /sdd.plan         → 구현 계획 수립 (plan.md)             │
+│  4. /sdd.plan         → Create implementation plan          │
 │     │                                                       │
 │     ▼                                                       │
-│  5. /sdd.tasks        → 작업 분해 (tasks.md)                 │
+│  5. /sdd.tasks        → Break down into tasks              │
 │     │                                                       │
 │     ▼                                                       │
-│  6. /sdd.prepare      → 서브에이전트/스킬 점검                │
+│  6. /sdd.prepare      → Verify sub-agents/skills           │
 │     │                                                       │
 │     ▼                                                       │
-│  7. /sdd.implement    → 순차적 구현                          │
+│  7. /sdd.implement    → Sequential implementation          │
 │     │                                                       │
 │     ▼                                                       │
-│  8. /sdd.validate     → 명세 검증                           │
+│  8. /sdd.validate     → Validate specifications            │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 슬래시 커맨드 (20개)
+## Slash Commands (20 Total)
 
-`sdd init` 실행 시 `.claude/commands/`에 자동 생성됩니다.
+Automatically generated in `.claude/commands/` when you run `sdd init`.
 
-### 핵심 워크플로우
+### Core Workflow
 
-| 커맨드 | 설명 | 사용 예시 |
-|--------|------|----------|
-| `/sdd.start` | 통합 진입점 | `/sdd.start` |
-| `/sdd.constitution` | 프로젝트 원칙 관리 | `/sdd.constitution React 기반 할일 앱` |
-| `/sdd.spec` | **기능 명세 작성/수정 (통합)** | `/sdd.spec 사용자 인증 기능` |
-| `/sdd.plan` | 구현 계획 작성 | `/sdd.plan` |
-| `/sdd.tasks` | 작업 분해 | `/sdd.tasks` |
-| `/sdd.prepare` | 서브에이전트/스킬 점검 | `/sdd.prepare` |
-| `/sdd.implement` | 순차적 구현 | `/sdd.implement` |
-| `/sdd.validate` | 스펙 검증 | `/sdd.validate` |
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/sdd.start` | Unified entry point | `/sdd.start` |
+| `/sdd.constitution` | Project principles | `/sdd.constitution React-based todo app` |
+| `/sdd.spec` | **Write/edit spec (unified)** | `/sdd.spec user authentication` |
+| `/sdd.plan` | Implementation planning | `/sdd.plan` |
+| `/sdd.tasks` | Break down into tasks | `/sdd.tasks` |
+| `/sdd.prepare` | Verify sub-agents/skills | `/sdd.prepare` |
+| `/sdd.implement` | Sequential implementation | `/sdd.implement` |
+| `/sdd.validate` | Spec validation | `/sdd.validate` |
 
-> **Note**: `/sdd.spec`은 새 기능 작성과 기존 스펙 수정을 자동으로 판단하여 적절한 워크플로우로 안내합니다.
+> **Note**: `/sdd.spec` automatically determines whether to create new specs or modify existing ones, guiding you through the appropriate workflow.
 
-### 변경 관리
+### Change Management
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/sdd.impact` | 변경 영향도 분석 |
-| `/sdd.transition` | new ↔ change 워크플로우 전환 |
+| Command | Description |
+|---------|-------------|
+| `/sdd.impact` | Analyze change impact |
+| `/sdd.transition` | Switch between new ↔ change workflows |
 
 ### Deprecated
 
-| 커맨드 | 대체 | 설명 |
-|--------|------|------|
-| `/sdd.new` | `/sdd.spec` | 새 기능 명세 작성 |
-| `/sdd.change` | `/sdd.spec` | 기존 스펙 변경 제안 |
+| Command | Replacement | Description |
+|---------|-------------|-------------|
+| `/sdd.new` | `/sdd.spec` | New feature spec |
+| `/sdd.change` | `/sdd.spec` | Existing spec modification |
 
-### 분석 및 품질
+### Analysis & Quality
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/sdd.analyze` | 요청 분석 및 규모 판단 |
-| `/sdd.quality` | 스펙 품질 점수 산출 |
-| `/sdd.report` | 프로젝트 리포트 생성 |
-| `/sdd.search` | 스펙 검색 |
-| `/sdd.status` | 프로젝트 상태 확인 |
-| `/sdd.list` | 항목 목록 조회 |
-| `/sdd.sync` | 스펙-코드 동기화 검증 |
-| `/sdd.diff` | 스펙 변경사항 시각화 |
-| `/sdd.export` | 스펙 내보내기 (HTML, JSON) |
+| Command | Description |
+|---------|-------------|
+| `/sdd.analyze` | Analyze requests and estimate scope |
+| `/sdd.quality` | Calculate spec quality score |
+| `/sdd.report` | Generate project report |
+| `/sdd.search` | Search specs |
+| `/sdd.status` | Check project status |
+| `/sdd.list` | View items list |
+| `/sdd.sync` | Verify spec-code synchronization |
+| `/sdd.diff` | Visualize spec changes |
+| `/sdd.export` | Export specs (HTML, JSON) |
 
-### 문서 생성
+### Documentation Generation
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/sdd.research` | 기술 리서치 문서 |
-| `/sdd.data-model` | 데이터 모델 문서 |
-| `/sdd.guide` | 워크플로우 가이드 |
+| Command | Description |
+|---------|-------------|
+| `/sdd.research` | Technical research document |
+| `/sdd.data-model` | Data model documentation |
+| `/sdd.guide` | Workflow guide |
 
-### 운영
+### Operations
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/sdd.chat` | 대화형 SDD 어시스턴트 |
-| `/sdd.watch` | 파일 감시 모드 |
-| `/sdd.migrate` | 외부 도구에서 마이그레이션 |
-| `/sdd.cicd` | CI/CD 설정 |
-| `/sdd.prompt` | 프롬프트 출력 |
+| Command | Description |
+|---------|-------------|
+| `/sdd.chat` | Interactive SDD assistant |
+| `/sdd.watch` | File watch mode |
+| `/sdd.migrate` | Migration from external tools |
+| `/sdd.cicd` | CI/CD configuration |
+| `/sdd.prompt` | Output prompt |
 
 ---
 
-## 워크플로우 상세
+## Detailed Workflow Steps
 
 ### Step 1: /sdd.start
 
-프로젝트 상태를 분석하고 다음 작업을 안내합니다:
+Entry point that analyzes project status and guides next actions:
 
 ```
 /sdd.start
 ```
 
-- 신규 프로젝트: Constitution 작성 권장
-- 기존 프로젝트: 워크플로우 선택 메뉴 제공
+- **New project**: Recommends writing Constitution
+- **Existing project**: Shows workflow menu
 
 ### Step 2: /sdd.constitution
 
-프로젝트의 핵심 원칙을 정의합니다:
+Define your project's core principles:
 
 ```
-/sdd.constitution React 기반 할일 관리 앱
+/sdd.constitution React-based todo management app
 ```
 
-AI가 `.sdd/constitution.md`를 분석하고, 프로젝트 원칙 작성을 도와줍니다:
-- 핵심 원칙 (Core Principles)
-- 기술 원칙 (Technical Principles)
-- 금지 사항 (Forbidden)
+AI analyzes `.sdd/constitution.md` and guides you through:
+- Core Principles
+- Technical Principles
+- Forbidden Practices
 
 ### Step 3: /sdd.spec
 
-기능 명세를 AI와 함께 작성합니다:
+Write feature specifications with AI:
 
 ```
-/sdd.spec 사용자 인증 기능
+/sdd.spec user authentication
 ```
 
-AI가 대화를 통해 다음을 생성합니다:
-- `spec.md` - 기능 명세 (RFC 2119 + GIVEN-WHEN-THEN)
+AI generates through conversation:
+- `spec.md` - Feature specification (RFC 2119 + GIVEN-WHEN-THEN)
 
 ### Step 4: /sdd.plan
 
-구현 계획을 수립합니다:
+Create an implementation plan:
 
 ```
 /sdd.plan
 ```
 
-- 기술 결정사항과 근거
-- 구현 단계(Phase) 정의
-- 리스크 분석 및 완화 전략
+- Technical decisions and rationale
+- Implementation phases
+- Risk analysis and mitigation
 
 ### Step 5: /sdd.tasks
 
-작업을 실행 가능한 단위로 분해합니다:
+Break requirements into executable tasks:
 
 ```
 /sdd.tasks
 ```
 
-- 각 작업은 2-4시간 내 완료 가능한 크기
-- 작업 간 의존성 표시
-- 우선순위: HIGH(🔴), MEDIUM(🟡), LOW(🟢)
+- Each task completable within 2-4 hours
+- Task dependencies marked
+- Priority levels: HIGH (🔴), MEDIUM (🟡), LOW (🟢)
 
 ### Step 6: /sdd.prepare
 
-구현에 필요한 Claude Code 도구를 점검합니다:
+Verify Claude Code tools needed for implementation:
 
 ```
 /sdd.prepare
 ```
 
-**기능:**
-- tasks.md 분석하여 필요한 도구 자동 감지
-- 서브에이전트 (`.claude/agents/`) 존재 여부 확인
-- 스킬 (`.claude/skills/`) 존재 여부 확인
-- 누락된 도구 자동 생성
+**Features:**
+- Analyzes tasks.md to auto-detect required tools
+- Checks existence of sub-agents (`.claude/agents/`)
+- Checks existence of skills (`.claude/skills/`)
+- Auto-generates missing tools
 
-**감지 대상:**
+**Detection Targets:**
 
-| 키워드 | 서브에이전트 | 스킬 |
-|--------|-------------|------|
-| 테스트, test | test-runner | test |
+| Keyword | Sub-Agent | Skill |
+|---------|-----------|-------|
+| test, testing | test-runner | test |
 | api, rest | api-scaffold | gen-api |
 | component | component-gen | gen-component |
 | database | - | db-migrate |
-| 문서, doc | - | gen-doc |
+| documentation, doc | - | gen-doc |
 | review | code-reviewer | review |
 
-**CLI에서도 사용 가능:**
+**Also available via CLI:**
 
 ```bash
-sdd prepare user-auth                 # 대화형
-sdd prepare user-auth --dry-run       # 미리보기
-sdd prepare user-auth --auto-approve  # 자동 생성
+sdd prepare user-auth                 # Interactive
+sdd prepare user-auth --dry-run       # Preview
+sdd prepare user-auth --auto-approve  # Auto-generate
 ```
 
 ### Step 7: /sdd.implement
 
-작업 목록을 기반으로 순차적 구현:
+Sequential implementation based on tasks:
 
 ```
 /sdd.implement
 ```
 
-AI가 tasks.md를 읽고, TDD 방식으로 구현을 안내합니다:
-1. 작업 상태를 "진행 중"으로 변경
-2. 테스트 작성
-3. 코드 구현
-4. 작업 상태를 "완료"로 변경
+AI reads tasks.md and guides TDD-style implementation:
+1. Change task status to "in progress"
+2. Write tests
+3. Implement code
+4. Mark task as "completed"
 
 ### Step 8: /sdd.validate
 
-명세 검증:
+Validate specifications:
 
 ```
 /sdd.validate
 ```
 
-- RFC 2119 키워드 사용 여부
-- GIVEN-WHEN-THEN 형식 준수
-- 메타데이터 필수 필드 확인
+- Check RFC 2119 keyword usage
+- Verify GIVEN-WHEN-THEN format
+- Confirm required metadata fields
 
 ---
 
-## 대화형 모드: /sdd.chat
+## Interactive Mode: /sdd.chat
 
-자연어로 SDD 작업을 수행할 수 있습니다:
+Execute SDD tasks naturally:
 
 ```
 /sdd.chat
 ```
 
-예시 대화:
+Example conversation:
+
 ```
-You: 사용자 인증 기능을 만들고 싶어
-AI: 사용자 인증 기능의 명세를 작성해 드릴게요. 먼저 몇 가지 질문이 있습니다...
-    1. 어떤 인증 방식을 사용하시나요? (JWT, 세션, OAuth)
-    2. 소셜 로그인이 필요한가요?
+You: I want to build a user authentication feature
+AI: I'll help you create a user authentication spec. Let me ask a few questions...
+    1. What authentication method? (JWT, Session, OAuth)
+    2. Social login needed?
     ...
 ```
 
 ---
 
-## 스펙 파일 형식
+## Spec File Format
 
-### spec.md 예시
+### spec.md Example
 
 ```markdown
 ---
 id: user-auth
-title: "사용자 인증"
+title: "User Authentication"
 status: draft
 created: 2025-12-24
 constitution_version: 1.0.0
 ---
 
-# 사용자 인증
+# User Authentication
 
-> JWT 기반 사용자 인증 시스템
+> JWT-based user authentication system
 
-## 요구사항
+## Requirements
 
-### REQ-01: 로그인
+### REQ-01: Login
 
-- 시스템은 이메일/비밀번호 로그인을 지원해야 한다(SHALL)
-- 로그인 실패 시 구체적인 에러 메시지를 반환해야 한다(SHOULD)
+- The system SHALL support email/password login
+- The system SHOULD return specific error messages on login failure
 
-## 시나리오
+## Scenarios
 
-### Scenario 1: 성공적인 로그인
+### Scenario 1: Successful Login
 
-- **GIVEN** 유효한 사용자 계정이 있을 때
-- **WHEN** 올바른 이메일과 비밀번호로 로그인하면
-- **THEN** JWT 토큰이 반환된다
-- **AND** 토큰 만료 시간이 설정된다
+- **GIVEN** a valid user account exists
+- **WHEN** valid email and password are entered
+- **THEN** a JWT token is returned
+- **AND** token expiration time is set
 ```
 
-### RFC 2119 키워드
+### RFC 2119 Keywords
 
-| 키워드 | 의미 |
-|--------|------|
-| **SHALL** / **MUST** | 절대 필수 |
-| **SHOULD** | 권장 (예외 허용) |
-| **MAY** | 선택적 |
-| **SHALL NOT** | 절대 금지 |
+| Keyword | Meaning |
+|---------|---------|
+| **SHALL** / **MUST** | Absolute requirement |
+| **SHOULD** | Recommended (exceptions allowed) |
+| **MAY** | Optional |
+| **SHALL NOT** | Absolutely forbidden |
 
 ---
 
-## CLI 명령어
+## CLI Commands
 
-슬래시 커맨드 외에 터미널에서 직접 사용할 수 있는 명령어들입니다.
+Terminal commands (in addition to slash commands):
 
-### 기본 명령어
+### Basic Commands
 
 ```bash
-sdd init                    # 프로젝트 초기화 (대화형 Git/CI-CD 설정 포함)
-sdd init --skip-git-setup   # Git/CI-CD 설정 건너뛰기
-sdd init --auto-approve     # 모든 설정 자동 승인
-sdd validate                # 스펙 검증
-sdd status                  # 상태 확인
-sdd list                    # 목록 조회
+sdd init                    # Project initialization (interactive Git/CI-CD setup)
+sdd init --skip-git-setup   # Skip Git/CI-CD configuration
+sdd init --auto-approve     # Auto-approve all settings
+sdd validate                # Validate specs
+sdd status                  # Check status
+sdd list                    # View list
 ```
 
-### 기능 개발
+### Feature Development
 
 ```bash
-sdd new <name>              # 새 기능 생성 (common 도메인)
-sdd new <name> -d <domain>  # 도메인 지정 생성 (v1.3.0)
-sdd new <name> --all        # spec + plan + tasks 모두 생성
-sdd prepare <name>          # 서브에이전트/스킬 점검
+sdd new <name>              # Create new feature (common domain)
+sdd new <name> -d <domain>  # Create with domain (v1.3.0)
+sdd new <name> --all        # Create spec + plan + tasks
+sdd prepare <name>          # Verify sub-agents/skills
 ```
 
-**v1.3.0 도메인 기반 구조:**
-- 도메인 미지정 시 `common` 폴더에 생성
-- 경로: `.sdd/specs/<domain>/<feature>/spec.md`
-- 예: `sdd new login -d auth` → `.sdd/specs/auth/login/spec.md`
+**v1.3.0 Domain-based Structure:**
+- Without domain: creates in `common` folder
+- Path: `.sdd/specs/<domain>/<feature>/spec.md`
+- Example: `sdd new login -d auth` → `.sdd/specs/auth/login/spec.md`
 
-### 변경 관리
+### Change Management
 
 ```bash
-sdd change                  # 변경 제안 생성
-sdd change apply <id>       # 변경 적용
-sdd impact <feature>        # 영향도 분석
+sdd change                  # Create change proposal
+sdd change apply <id>       # Apply change
+sdd impact <feature>        # Analyze impact
 ```
 
-### 품질 및 분석
+### Quality & Analysis
 
 ```bash
-sdd quality                 # 품질 분석
-sdd report                  # 리포트 생성
-sdd search <query>          # 스펙 검색
+sdd quality                 # Quality analysis
+sdd report                  # Generate report
+sdd search <query>          # Search specs
 ```
 
-### 동기화 및 변경 추적 (v0.8.0)
+### Sync & Change Tracking (v0.8.0)
 
 ```bash
-sdd sync                    # 스펙-코드 동기화 검증
-sdd sync user-auth          # 특정 스펙만 검증
-sdd sync --ci --threshold 80 # CI 모드 (동기화율 임계값)
-sdd sync --json             # JSON 출력
-sdd sync --markdown         # 마크다운 리포트
+sdd sync                    # Verify spec-code sync
+sdd sync user-auth          # Sync specific spec
+sdd sync --ci --threshold 80 # CI mode (threshold)
+sdd sync --json             # JSON output
+sdd sync --markdown         # Markdown report
 
-sdd diff                    # 스펙 변경사항 (작업 디렉토리)
-sdd diff --staged           # 스테이징된 변경
-sdd diff abc123 def456      # 커밋 간 비교
-sdd diff --stat             # 통계 요약
-sdd diff --json             # JSON 출력
+sdd diff                    # Show spec changes (working directory)
+sdd diff --staged           # Show staged changes
+sdd diff abc123 def456      # Compare commits
+sdd diff --stat             # Statistics summary
+sdd diff --json             # JSON output
 ```
 
-### 스펙 내보내기 (v0.9.0)
+### Spec Export (v0.9.0)
 
 ```bash
-sdd export user-auth        # 단일 스펙 HTML 내보내기
-sdd export --all            # 전체 스펙 내보내기
-sdd export --format json    # JSON 형식
-sdd export --format markdown # 마크다운 병합
-sdd export -o ./docs/specs.html # 출력 경로 지정
-sdd export --theme dark     # 다크 테마
-sdd export --no-toc         # 목차 제외
+sdd export user-auth        # Export single spec to HTML
+sdd export --all            # Export all specs
+sdd export --format json    # JSON format
+sdd export --format markdown # Merged markdown
+sdd export -o ./docs/specs.html # Specify output
+sdd export --theme dark     # Dark theme
+sdd export --no-toc         # Exclude table of contents
 ```
 
-### 도메인 관리 (v1.2.0)
+### Domain Management (v1.2.0)
 
 ```bash
-sdd domain create auth              # 새 도메인 생성
-sdd domain list                     # 도메인 목록
-sdd domain show auth                # 도메인 상세 정보
-sdd domain link auth user-login     # 스펙을 도메인에 연결
-sdd domain depends order --on auth  # 도메인 의존성 설정
-sdd domain graph                    # 의존성 그래프 (Mermaid)
-sdd domain graph --format dot       # DOT 형식
+sdd domain create auth              # Create new domain
+sdd domain list                     # List domains
+sdd domain show auth                # Show domain details
+sdd domain link auth user-login     # Link spec to domain
+sdd domain depends order --on auth  # Set domain dependencies
+sdd domain graph                    # Show dependency graph (Mermaid)
+sdd domain graph --format dot       # DOT format
 ```
 
-### 컨텍스트 관리 (v1.2.0)
+### Context Management (v1.2.0)
 
 ```bash
-sdd context set auth                # 컨텍스트 설정
-sdd context set auth order          # 여러 도메인
-sdd context set auth --include-deps # 의존성 포함
-sdd context show                    # 현재 컨텍스트
-sdd context specs                   # 컨텍스트 내 스펙 목록
-sdd context clear                   # 컨텍스트 해제
+sdd context set auth                # Set context
+sdd context set auth order          # Multiple domains
+sdd context set auth --include-deps # Include dependencies
+sdd context show                    # Show current context
+sdd context specs                   # List specs in context
+sdd context clear                   # Clear context
 ```
 
-### 역추출 (v1.2.0)
+### Reverse Extraction (v1.2.0)
 
 ```bash
-sdd reverse scan                    # 프로젝트 구조 스캔
-sdd reverse scan --depth deep       # 심층 분석
-sdd reverse extract                 # 스펙 초안 추출
-sdd reverse extract --ai            # AI 기반 의도 추론
-sdd reverse review                  # 추출된 스펙 리뷰
-sdd reverse finalize                # 승인된 스펙 확정
+sdd reverse scan                    # Scan project structure
+sdd reverse scan --depth deep       # Deep analysis
+sdd reverse extract                 # Extract spec drafts
+sdd reverse extract --ai            # AI-powered intent inference
+sdd reverse review                  # Review extracted specs
+sdd reverse finalize                # Finalize approved specs
 ```
 
-### Git 워크플로우 (v1.0.0)
+### Git Workflow (v1.0.0)
 
 ```bash
-# Git Hooks 설정
-sdd git hooks install       # pre-commit, commit-msg, pre-push 설치
-sdd git hooks uninstall     # hooks 제거
+# Install Git Hooks
+sdd git hooks install       # Install pre-commit, commit-msg, pre-push
+sdd git hooks uninstall     # Remove hooks
 
-# 커밋 템플릿 설정
-sdd git template install    # .gitmessage 템플릿 설치
+# Configure commit template
+sdd git template install    # Install .gitmessage template
 
-# 전체 Git 워크플로우 설정
+# Complete Git workflow setup
 sdd git setup               # hooks + template + .gitignore/.gitattributes
 
-# CI/CD 설정
-sdd cicd setup github       # GitHub Actions 워크플로우 생성
-sdd cicd setup gitlab       # GitLab CI 설정 생성
-sdd cicd check              # CI 환경 검증
+# CI/CD configuration
+sdd cicd setup github       # Create GitHub Actions workflow
+sdd cicd setup gitlab       # Create GitLab CI config
+sdd cicd check              # Validate CI environment
 ```
 
 ---
 
-## Claude Code 도구 구조
+## Claude Code Structure
 
 ```
 your-project/
 ├── .sdd/
-│   ├── constitution.md     # 프로젝트 헌법
-│   ├── AGENTS.md           # AI 워크플로우 가이드
-│   ├── domains.yml         # 도메인 정의 (v1.2.0)
-│   ├── .context.json       # 현재 컨텍스트 (v1.2.0)
-│   ├── specs/              # 기능 명세 (v1.3.0: 도메인 기반 구조)
-│   │   ├── common/         # 기본 도메인 (도메인 미지정 시)
+│   ├── constitution.md     # Project constitution
+│   ├── AGENTS.md           # AI workflow guide
+│   ├── domains.yml         # Domain definitions (v1.2.0)
+│   ├── .context.json       # Current context (v1.2.0)
+│   ├── specs/              # Feature specifications (v1.3.0: domain-based)
+│   │   ├── common/         # Default domain (no domain specified)
 │   │   │   └── feature-name/
 │   │   │       ├── spec.md
 │   │   │       ├── plan.md
 │   │   │       └── tasks.md
-│   │   └── auth/           # 도메인별 그룹
+│   │   └── auth/           # Domain-grouped specs
 │   │       └── login/
 │   │           ├── spec.md
 │   │           ├── plan.md
 │   │           └── tasks.md
-│   ├── changes/            # 변경 제안
-│   ├── archive/            # 완료된 변경
-│   └── .reverse-drafts/    # 역추출 임시 스펙 (v1.2.0)
+│   ├── changes/            # Change proposals
+│   ├── archive/            # Completed changes
+│   └── .reverse-drafts/    # Reverse extraction drafts (v1.2.0)
 │
 └── .claude/
-    ├── commands/           # 슬래시 커맨드 (20개)
+    ├── commands/           # Slash commands (20 total)
     │   ├── sdd.start.md
-    │   ├── sdd.new.md
+    │   ├── sdd.spec.md
     │   └── ...
-    ├── agents/             # 서브에이전트
+    ├── agents/             # Sub-agents
     │   ├── test-runner.md
     │   └── api-scaffold.md
-    ├── skills/             # 스킬 (v1.2.0)
+    ├── skills/             # Skills (v1.2.0)
     │   ├── dev-implement.md
     │   ├── dev-test.md
     │   ├── sdd-reverse.md
     │   ├── sdd-domain.md
     │   ├── sdd-context.md
     │   └── ...
-    └── settings.json       # 스킬 설정 (v1.2.0)
+    └── settings.json       # Skill settings (v1.2.0)
 ```
 
 ---
 
-## 개발
+## Development
 
 ```bash
 git clone https://github.com/JakeB-5/sdd-tool.git
@@ -517,34 +526,34 @@ pnpm run build
 pnpm test
 ```
 
-### 문서 개발
+### Documentation Development
 
 ```bash
-pnpm run docs:dev      # 개발 서버
-pnpm run docs:build    # 빌드
-pnpm run docs:preview  # 미리보기
+pnpm run docs:dev      # Development server
+pnpm run docs:build    # Build docs
+pnpm run docs:preview  # Preview docs
 ```
 
-### 테스트 커버리지
+### Test Coverage
 
 ```bash
-pnpm run test:coverage  # 커버리지 리포트
+pnpm run test:coverage  # Coverage report
 ```
 
 ---
 
-## 기여
+## Contributing
 
-기여를 환영합니다! [CONTRIBUTING.md](CONTRIBUTING.md)를 참고해주세요.
-
----
-
-## 변경 이력
-
-자세한 변경 이력은 [CHANGELOG.md](CHANGELOG.md)를 참고해주세요.
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-## 라이선스
+## Changelog
 
-MIT License - 자세한 내용은 [LICENSE](LICENSE) 파일을 참고해주세요.
+See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
+
+---
+
+## License
+
+MIT License - See [LICENSE](LICENSE) for details.

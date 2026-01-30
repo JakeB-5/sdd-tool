@@ -1,60 +1,60 @@
-# 대규모 프로젝트 가이드
+# Large Projects Guide
 
-대규모 프로젝트에서 SDD를 효과적으로 사용하는 방법을 설명합니다.
+How to effectively use SDD in large-scale projects.
 
-## 개요
+## Overview
 
-수백 개의 스펙과 여러 도메인이 있는 대규모 프로젝트에서는 체계적인 관리가 필요합니다. 이 가이드에서는 도메인, 컨텍스트, 의존성 관리 전략을 다룹니다.
+Large-scale projects with hundreds of specs and multiple domains require systematic management. This guide covers domain, context, and dependency management strategies.
 
-## 프로젝트 구조
+## Project Structure
 
-### 권장 구조
+### Recommended Structure
 
 ```
 .sdd/
-├── domains.yml              # 도메인 정의
-├── .context.json            # 현재 컨텍스트
+├── domains.yml              # Domain definitions
+├── .context.json            # Current context
 ├── specs/
-│   ├── core/               # 핵심 도메인
+│   ├── core/               # Core domain
 │   │   ├── data-model.md
 │   │   └── validation.md
-│   ├── auth/               # 인증 도메인
+│   ├── auth/               # Auth domain
 │   │   ├── user-login.md
 │   │   └── oauth-google.md
-│   ├── order/              # 주문 도메인
+│   ├── order/              # Order domain
 │   │   ├── create-order.md
 │   │   └── payment.md
 │   └── ...
-└── drafts/                 # 역추출 임시 파일
+└── drafts/                 # Reverse extraction temp files
 ```
 
-### 도메인 계층
+### Domain Hierarchy
 
 ```
-핵심 계층 (core)
-    └── 인프라 계층 (infra, db)
-        └── 비즈니스 계층 (auth, user)
-            └── 기능 계층 (order, payment, notification)
+Core layer (core)
+    └── Infrastructure layer (infra, db)
+        └── Business layer (auth, user)
+            └── Feature layer (order, payment, notification)
 ```
 
-## 도메인 설계
+## Domain Design
 
-### 도메인 분리 원칙
+### Domain Separation Principles
 
-1. **단일 책임**: 하나의 비즈니스 영역
-2. **낮은 결합도**: 도메인 간 의존성 최소화
-3. **높은 응집도**: 관련 스펙은 같은 도메인
+1. **Single responsibility**: One business area
+2. **Low coupling**: Minimize dependencies between domains
+3. **High cohesion**: Related specs in same domain
 
-### 도메인 크기
+### Domain Size
 
-| 크기 | 스펙 수 | 권장 여부 |
-|------|---------|----------|
-| 작음 | 1-2개 | ⚠️ 병합 고려 |
-| 적정 | 3-10개 | ✅ 권장 |
-| 큼 | 10-20개 | ⚠️ 분할 고려 |
-| 과대 | 20개+ | ❌ 분할 필요 |
+| Size | Spec Count | Recommended |
+|------|------------|-------------|
+| Small | 1-2 | Consider merging |
+| Optimal | 3-10 | Recommended |
+| Large | 10-20 | Consider splitting |
+| Oversized | 20+ | Must split |
 
-### 도메인 의존성
+### Domain Dependencies
 
 ```yaml
 # domains.yml
@@ -73,33 +73,33 @@ domains:
     specs: [create-order, payment, refund]
 ```
 
-## 컨텍스트 전략
+## Context Strategy
 
-### 기능 개발 시
+### During Feature Development
 
 ```bash
-# 작업할 도메인만 로드
+# Load only working domain
 sdd context set auth
-sdd list  # auth 스펙만 표시
+sdd list  # Shows only auth specs
 ```
 
-### 크로스 도메인 작업
+### Cross-Domain Work
 
 ```bash
-# 관련 도메인 함께 로드
+# Load related domains together
 sdd context set order payment --include-deps
 ```
 
-### 전체 검토 시
+### Full Review
 
 ```bash
 sdd context clear
 sdd list --all
 ```
 
-## 의존성 관리
+## Dependency Management
 
-### 의존성 시각화
+### Dependency Visualization
 
 ```bash
 sdd domain graph
@@ -116,19 +116,19 @@ graph TD
     order --> notification
 ```
 
-### 순환 의존성 방지
+### Circular Dependency Prevention
 
 ```bash
 sdd validate --domain
 ```
 
 ```
-❌ 순환 의존성 감지: order → payment → order
-   해결책: payment를 order의 하위 모듈로 병합하거나
-          공통 인터페이스를 core로 추출
+❌ Circular dependency detected: order → payment → order
+   Solution: Merge payment as submodule of order or
+             Extract common interface to core
 ```
 
-### 의존성 규칙
+### Dependency Rules
 
 ```yaml
 # domains.yml
@@ -140,12 +140,12 @@ rules:
   - from: "core/*"
     to: "feature/*"
     allow: false
-    message: "core는 feature에 의존할 수 없습니다"
+    message: "core cannot depend on feature"
 ```
 
-## 팀 협업
+## Team Collaboration
 
-### 도메인 소유권
+### Domain Ownership
 
 ```yaml
 # domains.yml
@@ -159,55 +159,55 @@ domains:
     reviewers: ["@finance-lead", "@security-team"]
 ```
 
-### 변경 알림
+### Change Notifications
 
 ```bash
-# 도메인 변경 시 소유자 알림
-sdd notify --domain auth --message "OAuth 스펙 추가"
+# Notify owner on domain changes
+sdd notify --domain auth --message "OAuth spec added"
 ```
 
-### 병합 충돌 방지
+### Merge Conflict Prevention
 
 ```bash
-# 작업 전 도메인 잠금
-sdd domain lock auth --reason "OAuth 리팩토링"
+# Lock domain before work
+sdd domain lock auth --reason "OAuth refactoring"
 
-# 작업 완료 후 해제
+# Release after work complete
 sdd domain unlock auth
 ```
 
-## 성능 최적화
+## Performance Optimization
 
-### 증분 검증
+### Incremental Validation
 
 ```bash
-# 변경된 스펙만 검증
+# Validate only changed specs
 sdd validate --changed
 
-# 특정 도메인만 검증
+# Validate specific domain only
 sdd validate --domain auth
 ```
 
-### 캐싱
+### Caching
 
 ```yaml
 # .sdd/config.yml
 cache:
   enabled: true
-  ttl: 3600  # 1시간
+  ttl: 3600  # 1 hour
   path: .sdd/.cache/
 ```
 
-### 병렬 처리
+### Parallel Processing
 
 ```bash
-# 도메인별 병렬 처리
+# Parallel processing by domain
 sdd validate --parallel
 ```
 
-## 버전 관리
+## Version Management
 
-### 스펙 버전
+### Spec Versions
 
 ```yaml
 # spec.md frontmatter
@@ -215,12 +215,12 @@ version: "1.2.0"
 deprecated: false
 breaking_changes:
   - version: "1.0.0"
-    description: "초기 버전"
+    description: "Initial version"
   - version: "1.2.0"
-    description: "OAuth 지원 추가"
+    description: "OAuth support added"
 ```
 
-### 도메인 버전
+### Domain Versions
 
 ```yaml
 # domains.yml
@@ -230,94 +230,94 @@ domains:
     min_compatible: "1.5"
 ```
 
-## 마이그레이션
+## Migration
 
-### 점진적 도입
+### Gradual Introduction
 
 ```bash
-# 1단계: 핵심 도메인부터
+# Step 1: Start with core domain
 sdd reverse scan src/core/
 sdd reverse extract --domain core
 sdd reverse finalize
 
-# 2단계: 의존 도메인
+# Step 2: Dependent domains
 sdd reverse scan src/auth/
 sdd reverse extract --domain auth
 ```
 
-### 레거시 통합
+### Legacy Integration
 
 ```yaml
 # domains.yml
 domains:
   legacy:
-    description: "마이그레이션 대기 코드"
+    description: "Code awaiting migration"
     path: "src/legacy/"
     specs: []
     migrating: true
 ```
 
-## 모니터링
+## Monitoring
 
-### 진행 상황 대시보드
+### Progress Dashboard
 
 ```bash
 sdd status --dashboard
 ```
 
 ```
-📊 프로젝트 현황
+📊 Project Status
 
-도메인: 8개
-스펙: 47개
-  ✅ 구현됨: 35개 (74%)
-  🔄 진행중: 8개 (17%)
-  📝 초안: 4개 (9%)
+Domains: 8
+Specs: 47
+  ✅ Implemented: 35 (74%)
+  🔄 In Progress: 8 (17%)
+  📝 Draft: 4 (9%)
 
-테스트 커버리지: 82%
-최근 변경: 3일 전
+Test Coverage: 82%
+Last Changed: 3 days ago
 ```
 
-### 품질 지표
+### Quality Metrics
 
 ```bash
 sdd metrics
 ```
 
 ```
-📈 품질 지표
+📈 Quality Metrics
 
-스펙 품질:
-  - 시나리오 평균: 4.2개/스펙
-  - 계약 정의율: 89%
-  - 문서화율: 95%
+Spec Quality:
+  - Average scenarios: 4.2/spec
+  - Contract definition rate: 89%
+  - Documentation rate: 95%
 
-도메인 건강도:
-  - auth: A (우수)
-  - order: B (양호)
-  - legacy: D (개선 필요)
+Domain Health:
+  - auth: A (Excellent)
+  - order: B (Good)
+  - legacy: D (Needs improvement)
 ```
 
-## 모범 사례 요약
+## Best Practices Summary
 
-### DO ✅
+### DO
 
-- 도메인을 작고 집중적으로 유지
-- 의존성 방향을 명확히 (core → feature)
-- 컨텍스트를 적극 활용
-- 정기적인 의존성 검토
-- 도메인 소유권 명시
+- Keep domains small and focused
+- Clear dependency direction (core → feature)
+- Actively use context
+- Regular dependency reviews
+- Specify domain ownership
 
-### DON'T ❌
+### DON'T
 
-- 20개 이상 스펙을 한 도메인에
-- 순환 의존성 허용
-- 전체 프로젝트를 한 번에 로드
-- 도메인 경계 무시
-- 소유권 없는 도메인
+- 20+ specs in one domain
+- Allow circular dependencies
+- Load entire project at once
+- Ignore domain boundaries
+- Domains without ownership
 
-## 관련 문서
+## Related Documentation
 
-- [도메인 시스템](./domains.md)
-- [컨텍스트 가이드](./context.md)
-- [역추출 가이드](./reverse-extraction.md)
+- [Domain System](./domains.md)
+- [Context Guide](./context.md)
+- [Reverse Extraction Guide](./reverse-extraction.md)

@@ -1,75 +1,75 @@
 # sdd validate
 
-스펙 문서를 검증합니다.
+Validates spec documents.
 
-## 사용법
+## Usage
 
 ```bash
 sdd validate [files...] [options]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| `files` | 검증할 파일 (생략 시 전체) |
+| Argument | Description |
+|----------|-------------|
+| `files` | Files to validate (all if omitted) |
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--strict` | 경고를 에러로 처리 |
-| `--quiet` | 요약만 출력 |
-| `--json` | JSON 형식 출력 |
-| `--check-links` | 링크 검증 |
-| `--no-constitution` | 헌법 검사 건너뛰기 |
+| Option | Description |
+|--------|-------------|
+| `--strict` | Treat warnings as errors |
+| `--quiet` | Output summary only |
+| `--json` | JSON format output |
+| `--check-links` | Validate links |
+| `--no-constitution` | Skip constitution check |
 
-## 검증 항목
+## Validation Items
 
-### 필수 검증
+### Required Validation
 
-- YAML frontmatter 형식
-- 필수 메타데이터 (id, title, status)
-- 마크다운 문법
+- YAML frontmatter format
+- Required metadata (id, title, status)
+- Markdown syntax
 
-### 경고 검증
+### Warning Validation
 
-- RFC 2119 키워드 사용
-- GIVEN-WHEN-THEN 형식
-- 요구사항 ID 형식
+- RFC 2119 keyword usage
+- GIVEN-WHEN-THEN format
+- Requirement ID format
 
-### 헌법 검증
+### Constitution Validation
 
-- constitution_version 일치
-- 금지 사항 위반 여부
+- constitution_version match
+- Forbidden rules violation
 
-## 예시
+## Examples
 
-### 전체 스펙 검증
+### Validate All Specs
 
 ```bash
 sdd validate
 ```
 
-### 특정 파일 검증
+### Validate Specific File
 
 ```bash
 sdd validate .sdd/specs/user-auth/spec.md
 ```
 
-### 엄격 모드
+### Strict Mode
 
 ```bash
 sdd validate --strict
 ```
 
-### CI/CD에서 사용
+### Use in CI/CD
 
 ```bash
 sdd validate --quiet --json
 ```
 
-## 출력 예시
+## Output Example
 
 ```
 SDD Validate
@@ -77,7 +77,7 @@ SDD Validate
   ✓ user-auth/spec.md
   ✓ profile/spec.md
   ⚠ settings/spec.md
-    - RFC 2119 키워드가 없습니다
+    - Missing RFC 2119 keywords
 
 Summary: 2 passed, 1 warning, 0 errors
 ```

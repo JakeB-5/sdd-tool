@@ -1,139 +1,139 @@
-# 슬래시 커맨드
+# Slash Commands
 
-Claude Code에서 사용하는 SDD 슬래시 커맨드 가이드입니다.
+A guide to SDD slash commands for Claude Code.
 
-## 개요
+## Overview
 
-`sdd init` 실행 시 `.claude/commands/`와 `.claude/skills/`에 슬래시 커맨드와 개발 스킬이 자동 생성됩니다.
+When you run `sdd init`, slash commands and development skills are automatically created in `.claude/commands/` and `.claude/skills/`.
 
-## 커맨드 목록
+## Command List
 
-### 핵심 워크플로우
+### Core Workflow
 
-| 커맨드 | 설명 |
-|--------|------|
-| [`/sdd.start`](/commands/sdd-start) | 통합 진입점 |
-| [`/sdd.constitution`](/commands/sdd-constitution) | 프로젝트 원칙 관리 |
-| [`/sdd.spec`](/commands/sdd-spec) | **기능 명세 작성/수정 (통합)** |
-| [`/sdd.plan`](/commands/sdd-plan) | 구현 계획 작성 |
-| [`/sdd.tasks`](/commands/sdd-tasks) | 작업 분해 |
-| [`/sdd.prepare`](/commands/sdd-prepare) | 도구 점검 |
-| [`/sdd.implement`](/commands/sdd-implement) | 순차적 구현 |
-| [`/sdd.validate`](/commands/sdd-validate) | 스펙 검증 |
+| Command | Description |
+|---------|-------------|
+| [`/sdd.start`](/commands/sdd-start) | Unified entry point |
+| [`/sdd.constitution`](/commands/sdd-constitution) | Manage project principles |
+| [`/sdd.spec`](/commands/sdd-spec) | **Create/modify feature specs (unified)** |
+| [`/sdd.plan`](/commands/sdd-plan) | Create implementation plan |
+| [`/sdd.tasks`](/commands/sdd-tasks) | Task breakdown |
+| [`/sdd.prepare`](/commands/sdd-prepare) | Tool check |
+| [`/sdd.implement`](/commands/sdd-implement) | Sequential implementation |
+| [`/sdd.validate`](/commands/sdd-validate) | Spec validation |
 
-> **Note**: `/sdd.spec`은 새 기능 작성과 기존 스펙 수정을 자동으로 판단하여 적절한 워크플로우로 안내합니다.
+> **Note**: `/sdd.spec` automatically determines whether you're writing a new feature or modifying an existing spec, and guides you to the appropriate workflow.
 
-### 도메인 & 역추출 (v1.2.0)
+### Domain & Reverse Engineering (v1.2.0)
 
-| 커맨드 | 설명 |
-|--------|------|
-| [`/sdd.reverse`](/commands/sdd-reverse) | 레거시 코드에서 스펙 역추출 |
-| [`/sdd.domain`](/commands/sdd-domain) | 도메인 관리 (생성, 연결, 그래프) |
-| [`/sdd.context`](/commands/sdd-context) | 작업 컨텍스트 설정 |
+| Command | Description |
+|---------|-------------|
+| [`/sdd.reverse`](/commands/sdd-reverse) | Reverse engineer specs from legacy code |
+| [`/sdd.domain`](/commands/sdd-domain) | Domain management (create, link, graph) |
+| [`/sdd.context`](/commands/sdd-context) | Set working context |
 
-### 개발 스킬 (v1.2.0)
+### Development Skills (v1.2.0)
 
-> **Note**: 스킬은 슬래시 커맨드와 다릅니다. Claude가 작업 컨텍스트에 따라 자동으로 선택하여 사용합니다.
+> **Note**: Skills are different from slash commands. Claude automatically selects and uses them based on the work context.
 
-| 스킬 | 설명 |
-|------|------|
-| [`dev-implement`](/commands/dev-implement) | 스펙 기반 TDD 구현 |
-| [`dev-next`](/commands/dev-next) | 다음 구현할 스펙 추천 |
-| [`dev-review`](/commands/dev-review) | 코드 리뷰 |
-| [`dev-scaffold`](/commands/dev-scaffold) | 보일러플레이트 생성 |
-| [`dev-status`](/commands/dev-status) | 구현 진행 상황 |
-| [`dev-test`](/commands/dev-test) | Vitest 테스트 실행 |
+| Skill | Description |
+|-------|-------------|
+| [`dev-implement`](/commands/dev-implement) | Spec-based TDD implementation |
+| [`dev-next`](/commands/dev-next) | Recommend next spec to implement |
+| [`dev-review`](/commands/dev-review) | Code review |
+| [`dev-scaffold`](/commands/dev-scaffold) | Boilerplate generation |
+| [`dev-status`](/commands/dev-status) | Implementation progress |
+| [`dev-test`](/commands/dev-test) | Run Vitest tests |
 
-### 변경 관리
+### Change Management
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/sdd.impact` | 변경 영향도 분석 |
-| `/sdd.transition` | new ↔ change 워크플로우 전환 |
+| Command | Description |
+|---------|-------------|
+| `/sdd.impact` | Change impact analysis |
+| `/sdd.transition` | Switch between new <-> change workflows |
 
 ### Deprecated
 
-| 커맨드 | 대체 | 설명 |
-|--------|------|------|
-| [`/sdd.new`](/commands/sdd-new) | `/sdd.spec` | 새 기능 명세 작성 |
-| `/sdd.change` | `/sdd.spec` | 기존 스펙 변경 제안 |
+| Command | Replaced By | Description |
+|---------|-------------|-------------|
+| [`/sdd.new`](/commands/sdd-new) | `/sdd.spec` | Create new feature spec |
+| `/sdd.change` | `/sdd.spec` | Propose changes to existing spec |
 
-### 분석 및 품질
+### Analysis & Quality
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/sdd.analyze` | 요청 분석 및 규모 판단 |
-| `/sdd.quality` | 스펙 품질 점수 산출 |
-| `/sdd.report` | 프로젝트 리포트 생성 |
-| `/sdd.search` | 스펙 검색 |
-| `/sdd.status` | 프로젝트 상태 확인 |
-| `/sdd.list` | 항목 목록 조회 |
-| `/sdd.sync` | 스펙-코드 동기화 검증 |
-| `/sdd.diff` | 스펙 변경사항 시각화 |
-| `/sdd.export` | 스펙 내보내기 |
+| Command | Description |
+|---------|-------------|
+| `/sdd.analyze` | Analyze request and assess scope |
+| `/sdd.quality` | Calculate spec quality score |
+| `/sdd.report` | Generate project report |
+| `/sdd.search` | Search specs |
+| `/sdd.status` | Check project status |
+| `/sdd.list` | List items |
+| `/sdd.sync` | Validate spec-code synchronization |
+| `/sdd.diff` | Visualize spec changes |
+| `/sdd.export` | Export specs |
 
-### 문서 생성
+### Documentation Generation
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/sdd.research` | 기술 리서치 문서 |
-| `/sdd.data-model` | 데이터 모델 문서 |
-| `/sdd.guide` | 워크플로우 가이드 |
+| Command | Description |
+|---------|-------------|
+| `/sdd.research` | Technical research document |
+| `/sdd.data-model` | Data model document |
+| `/sdd.guide` | Workflow guide |
 
-### 운영
+### Operations
 
-| 커맨드 | 설명 |
-|--------|------|
-| `/sdd.chat` | 대화형 SDD 어시스턴트 |
-| `/sdd.watch` | 파일 감시 모드 |
-| `/sdd.migrate` | 외부 도구에서 마이그레이션 |
-| `/sdd.cicd` | CI/CD 설정 |
-| `/sdd.prompt` | 프롬프트 출력 |
+| Command | Description |
+|---------|-------------|
+| `/sdd.chat` | Interactive SDD assistant |
+| `/sdd.watch` | File watch mode |
+| `/sdd.migrate` | Migrate from external tools |
+| `/sdd.cicd` | CI/CD configuration |
+| `/sdd.prompt` | Output prompts |
 
-## 사용법
+## Usage
 
-Claude Code에서 슬래시로 시작하는 커맨드를 입력합니다:
+Enter commands starting with a slash in Claude Code:
 
 ```
 /sdd.start
 ```
 
-인수가 필요한 경우:
+When arguments are needed:
 
 ```
-/sdd.spec 사용자 인증 기능
+/sdd.spec user authentication feature
 ```
 
-## v1.2.0 새 기능
+## v1.2.0 New Features
 
-### 역추출 워크플로우
+### Reverse Engineering Workflow
 
-레거시 코드에서 SDD 스펙을 자동 추출합니다:
-
-```
-/sdd.reverse scan              # 프로젝트 스캔
-/sdd.reverse extract           # 스펙 추출
-/sdd.reverse review            # 리뷰
-/sdd.reverse finalize          # 확정
-```
-
-### 도메인 시스템
-
-대규모 프로젝트를 논리적으로 그룹화합니다:
+Automatically extract SDD specs from legacy code:
 
 ```
-/sdd.domain create auth        # 도메인 생성
-/sdd.domain graph              # 의존성 그래프
-/sdd.context set auth payment  # 작업 컨텍스트 설정
+/sdd.reverse scan              # Scan project
+/sdd.reverse extract           # Extract specs
+/sdd.reverse review            # Review
+/sdd.reverse finalize          # Finalize
 ```
 
-### 개발 스킬
+### Domain System
 
-스펙 기반 TDD 개발을 지원합니다. 스킬은 `/` 없이 Claude가 작업에 따라 자동으로 사용합니다:
+Logically group large projects:
 
-- `dev-next` - 다음 구현할 스펙 추천
-- `dev-implement` - 스펙 기반 TDD 구현
-- `dev-test` - 테스트 실행
-- `dev-review` - 코드 리뷰
+```
+/sdd.domain create auth        # Create domain
+/sdd.domain graph              # Dependency graph
+/sdd.context set auth payment  # Set working context
+```
 
-사용 예: "auth/login 스펙을 구현해줘" → Claude가 자동으로 `dev-implement` 스킬 사용
+### Development Skills
+
+Support spec-based TDD development. Skills are automatically used by Claude based on the task (no `/` prefix):
+
+- `dev-next` - Recommend next spec to implement
+- `dev-implement` - Spec-based TDD implementation
+- `dev-test` - Run tests
+- `dev-review` - Code review
+
+Example: "Implement the auth/login spec" -> Claude automatically uses the `dev-implement` skill

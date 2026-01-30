@@ -1,64 +1,64 @@
 # /sdd.change
 
 ::: warning Deprecated
-이 커맨드는 `/sdd.spec`으로 대체되었습니다.  
-`/sdd.spec`은 새 기능 작성과 기존 스펙 수정을 자동으로 판단하여 적절한 워크플로우로 안내합니다.
+This command has been replaced by `/sdd.spec`.
+`/sdd.spec` automatically determines whether you're writing a new feature or modifying an existing spec, and guides you to the appropriate workflow.
 :::
 
-기존 스펙의 변경을 제안합니다.
+Propose changes to an existing spec.
 
-## 사용법
+## Usage
 
 ```
-/sdd.change <스펙 ID> [변경 사유]
+/sdd.change <spec-id> [reason for change]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| 스펙 ID | 변경할 스펙의 ID |
-| 변경 사유 | 변경이 필요한 이유 (선택) |
+| Argument | Description |
+|----------|-------------|
+| spec-id | ID of the spec to change |
+| reason for change | Reason for the change (optional) |
 
-## 동작
+## Behavior
 
-AI가 대화를 통해 변경 제안을 작성합니다:
+The AI writes a change proposal through conversation:
 
-1. 기존 스펙 분석
-2. 변경 범위 파악
-3. 델타(ADDED/MODIFIED/REMOVED) 생성
-4. 영향도 분석
+1. Analyze existing spec
+2. Identify change scope
+3. Generate delta (ADDED/MODIFIED/REMOVED)
+4. Impact analysis
 
-## 생성 파일
+## Generated Files
 
 ```
 .sdd/changes/<change-id>/
-├── proposal.md      # 변경 제안서
-├── delta.md         # 변경 내용 (ADDED/MODIFIED/REMOVED)
-└── impact.md        # 영향도 분석
+├── proposal.md      # Change proposal
+├── delta.md         # Changes (ADDED/MODIFIED/REMOVED)
+└── impact.md        # Impact analysis
 ```
 
-## 예시
+## Example
 
 ```
-/sdd.change user-auth OAuth 로그인 추가
+/sdd.change user-auth Add OAuth login
 
-AI: user-auth 스펙의 변경 제안을 작성합니다.
-    현재 스펙을 분석 중...
+AI: Writing change proposal for user-auth spec.
+    Analyzing current spec...
 
-    기존 요구사항:
-    - REQ-01: 이메일/비밀번호 로그인
+    Existing requirements:
+    - REQ-01: Email/password login
 
-    추가될 요구사항:
-    - REQ-02: Google OAuth 로그인
-    - REQ-03: GitHub OAuth 로그인
+    Requirements to add:
+    - REQ-02: Google OAuth login
+    - REQ-03: GitHub OAuth login
 ```
 
-## 다음 단계
+## Next Steps
 
-변경 제안 작성 후:
+After writing the change proposal:
 
 ```
-sdd change validate <change-id>  → 제안 검증
-sdd change apply <change-id>     → 변경 적용
+sdd change validate <change-id>  -> Validate proposal
+sdd change apply <change-id>     -> Apply changes
 ```
