@@ -1,120 +1,120 @@
 # sdd change
 
-기존 스펙에 대한 변경 제안을 관리합니다.
+Manages change proposals for existing specs.
 
-## 사용법
+## Usage
 
 ```bash
 sdd change [command] [options]
 ```
 
-## 서브커맨드
+## Subcommands
 
-| 커맨드 | 설명 |
-|--------|------|
-| `create` | 새 변경 제안 생성 |
-| `list` | 대기 중인 변경 목록 |
-| `show <id>` | 변경 상세 정보 |
-| `apply <id>` | 변경 적용 |
-| `archive <id>` | 완료된 변경 아카이브 |
+| Command | Description |
+|---------|-------------|
+| `create` | Create new change proposal |
+| `list` | List pending changes |
+| `show <id>` | Show change details |
+| `apply <id>` | Apply change |
+| `archive <id>` | Archive completed change |
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `-t, --title <title>` | 변경 제안 제목 |
-| `-s, --spec <spec-id>` | 영향받는 스펙 ID |
-| `--dry-run` | 실제 적용 없이 미리보기 |
+| Option | Description |
+|--------|-------------|
+| `-t, --title <title>` | Change proposal title |
+| `-s, --spec <spec-id>` | Affected spec ID |
+| `--dry-run` | Preview without applying |
 
-## 변경 워크플로우
+## Change Workflow
 
 ```
 create → review → apply → archive
 ```
 
-1. **create**: 변경 제안서(proposal.md)와 델타 파일(delta.md) 생성
-2. **review**: 팀 리뷰 및 수정
-3. **apply**: 변경 내용을 기존 스펙에 적용
-4. **archive**: 완료된 변경을 아카이브로 이동
+1. **create**: Generates proposal.md and delta.md files
+2. **review**: Team review and modifications
+3. **apply**: Apply changes to existing specs
+4. **archive**: Move completed changes to archive
 
-## 예시
+## Examples
 
-### 새 변경 제안 생성
+### Create New Change Proposal
 
 ```bash
-sdd change create --title "로그인 기능 개선" --spec user-auth
+sdd change create --title "Login Feature Enhancement" --spec user-auth
 ```
 
-출력:
+Output:
 ```
-✅ 변경 제안이 생성되었습니다.
+✅ Change proposal created.
    ID: CHG-001
-   경로: .sdd/changes/CHG-001/
+   Path: .sdd/changes/CHG-001/
 
-생성된 파일:
-  - proposal.md (변경 제안서)
-  - delta.md (변경 내용)
+Generated files:
+  - proposal.md (change proposal)
+  - delta.md (change contents)
 ```
 
-### 대기 중인 변경 목록
+### List Pending Changes
 
 ```bash
 sdd change list
 ```
 
-출력:
+Output:
 ```
-=== 대기 중인 변경 ===
+=== Pending Changes ===
 
-CHG-001: 로그인 기능 개선 [draft]
-CHG-002: API 응답 형식 변경 [review]
+CHG-001: Login Feature Enhancement [draft]
+CHG-002: API Response Format Change [review]
 
-총 2개
+Total: 2
 ```
 
-### 변경 상세 정보
+### Show Change Details
 
 ```bash
 sdd change show CHG-001
 ```
 
-### 변경 적용
+### Apply Change
 
 ```bash
 sdd change apply CHG-001
 ```
 
-### 변경 아카이브
+### Archive Change
 
 ```bash
 sdd change archive CHG-001
 ```
 
-## 생성되는 파일
+## Generated Files
 
 ### proposal.md
 
 ```markdown
 ---
 id: CHG-001
-title: "로그인 기능 개선"
+title: "Login Feature Enhancement"
 status: draft
 created: 2025-01-07
 ---
 
-# 변경 제안: 로그인 기능 개선
+# Change Proposal: Login Feature Enhancement
 
-## 변경 이유
+## Reason for Change
 
-[변경이 필요한 이유를 설명하세요]
+[Explain why this change is needed]
 
-## 영향받는 스펙
+## Affected Specs
 
 - user-auth
 
-## 변경 내용 요약
+## Change Summary
 
-[주요 변경 사항을 요약하세요]
+[Summarize the main changes]
 ```
 
 ### delta.md
@@ -124,23 +124,22 @@ created: 2025-01-07
 proposal_id: CHG-001
 ---
 
-# Delta: 로그인 기능 개선
+# Delta: Login Feature Enhancement
 
 ## ADDED
 
-- [새로 추가되는 요구사항]
+- [Newly added requirements]
 
 ## MODIFIED
 
-- [변경되는 요구사항]
+- [Modified requirements]
 
 ## REMOVED
 
-- [삭제되는 요구사항]
+- [Removed requirements]
 ```
 
-## 관련 문서
+## Related Documentation
 
-- [sdd transition](/cli/transition) - 워크플로우 전환
-- [sdd impact](/cli/impact) - 변경 영향도 분석
-- [변경 관리 가이드](/guide/change-management)
+- [sdd impact](./impact) - Change impact analysis
+- [CLI Reference](./) - All commands

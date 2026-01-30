@@ -1,34 +1,34 @@
 # sdd export
 
-스펙을 다양한 형식으로 내보냅니다.
+Exports specs to various formats.
 
-## 사용법
+## Usage
 
 ```bash
 sdd export [specId...] [options]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| `specId` | 내보낼 스펙 ID (여러 개 가능) |
+| Argument | Description |
+|----------|-------------|
+| `specId` | Spec IDs to export (multiple allowed) |
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--all` | 전체 스펙 내보내기 |
-| `-f, --format <format>` | 형식 (html, json, markdown) |
-| `-o, --output <path>` | 출력 경로 |
-| `--theme <theme>` | 테마 (light, dark) |
-| `--no-toc` | 목차 제외 |
+| Option | Description |
+|--------|-------------|
+| `--all` | Export all specs |
+| `-f, --format <format>` | Format (html, json, markdown) |
+| `-o, --output <path>` | Output path |
+| `--theme <theme>` | Theme (light, dark) |
+| `--no-toc` | Exclude table of contents |
 
-## 형식
+## Formats
 
 ### HTML
 
-반응형 스타일, 목차, RFC 2119 키워드 강조 포함:
+Responsive styling, table of contents, RFC 2119 keyword highlighting included:
 
 ```bash
 sdd export user-auth --format html
@@ -36,7 +36,7 @@ sdd export user-auth --format html
 
 ### JSON
 
-구조화된 요구사항/시나리오 데이터:
+Structured requirements/scenarios data:
 
 ```bash
 sdd export user-auth --format json
@@ -44,85 +44,85 @@ sdd export user-auth --format json
 
 ### Markdown
 
-여러 스펙을 하나의 파일로 병합:
+Merge multiple specs into a single file:
 
 ```bash
 sdd export --all --format markdown
 ```
 
-## 예시
+## Examples
 
-### 단일 스펙 HTML
+### Single Spec HTML
 
 ```bash
 sdd export user-auth
 ```
 
-### 전체 스펙 내보내기
+### Export All Specs
 
 ```bash
 sdd export --all
 ```
 
-### 다크 테마
+### Dark Theme
 
 ```bash
 sdd export user-auth --theme dark
 ```
 
-### 출력 경로 지정
+### Specify Output Path
 
 ```bash
 sdd export --all -o ./docs/specs.html
 ```
 
-### 목차 제외
+### Exclude Table of Contents
 
 ```bash
 sdd export user-auth --no-toc
 ```
 
-## 출력 예시
+## Output Examples
 
-### HTML 구조
+### HTML Structure
 
 ```html
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
-  <title>SDD 스펙: user-auth</title>
-  <style>/* 내장 스타일 */</style>
+  <title>SDD Spec: user-auth</title>
+  <style>/* embedded styles */</style>
 </head>
 <body>
-  <nav class="toc">목차</nav>
+  <nav class="toc">Table of Contents</nav>
   <main>
     <h1>user-auth</h1>
-    <section id="requirements">요구사항</section>
-    <section id="scenarios">시나리오</section>
+    <section id="requirements">Requirements</section>
+    <section id="scenarios">Scenarios</section>
   </main>
 </body>
 </html>
 ```
 
-### JSON 구조
+### JSON Structure
 
 ```json
 {
   "id": "user-auth",
-  "title": "사용자 인증",
+  "title": "User Authentication",
   "requirements": [
     {
       "id": "REQ-001",
-      "title": "로그인",
+      "title": "Login",
       "keyword": "SHALL"
     }
   ],
   "scenarios": [
     {
       "id": "scenario-1",
-      "given": ["유효한 계정"],
-      "when": ["로그인 시도"],
-      "then": ["성공"]
+      "given": ["Valid account"],
+      "when": ["Login attempt"],
+      "then": ["Success"]
     }
   ]
 }

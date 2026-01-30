@@ -1,65 +1,65 @@
-# Constitution 변경 워크플로우
+# Constitution Change Workflow
 
-프로젝트 헌법(Constitution)을 변경할 때의 워크플로우입니다.
+Workflow for changing the project constitution.
 
-## Constitution이란?
+## What is Constitution?
 
-Constitution은 프로젝트의 **핵심 원칙과 규칙**을 정의합니다:
-- 아키텍처 결정
-- 코딩 표준
-- API 설계 원칙
-- 보안 정책
+Constitution defines the **core principles and rules** of your project:
+- Architecture decisions
+- Coding standards
+- API design principles
+- Security policies
 
-모든 스펙은 Constitution을 준수해야 합니다.
-
----
-
-## 변경이 필요한 경우
-
-- **새 원칙 추가**: 팀에서 합의된 새 규칙
-- **원칙 수정**: 기존 규칙의 변경이나 명확화
-- **원칙 제거**: 더 이상 유효하지 않은 규칙
+All specs must comply with the Constitution.
 
 ---
 
-## 개요
+## When Changes Are Needed
+
+- **Add new principle**: New team-agreed rules
+- **Modify principle**: Changes or clarifications to existing rules
+- **Remove principle**: Rules no longer valid
+
+---
+
+## Overview
 
 ```
-논의 → 브랜치 → 수정 → 영향 분석 → 버전 업데이트 → PR → 전체 리뷰 → 병합
+Discussion → Branch → Modify → Impact analysis → Version update → PR → Full team review → Merge
 ```
 
-Constitution 변경은 **전체 팀의 합의**가 필요합니다.
+Constitution changes require **full team consensus**.
 
 ---
 
-## 단계별 가이드
+## Step-by-Step Guide
 
-### 1. 사전 논의
+### 1. Prior Discussion
 
-Constitution 변경 전 팀과 논의합니다:
+Discuss with the team before changing Constitution:
 
-- 슬랙/Teams에서 제안
-- 회의에서 논의
-- RFC(Request for Comments) 문서 작성
+- Propose in Slack/Teams
+- Discuss in meetings
+- Write RFC (Request for Comments) document
 
 ```markdown
-<!-- RFC 예시 -->
-## RFC: API 버전 관리 원칙 추가
+<!-- RFC Example -->
+## RFC: Add API Versioning Principle
 
-### 배경
-API 버전 관리에 대한 일관된 정책 필요
+### Background
+Need consistent policy for API version management
 
-### 제안
-- 모든 API는 버전을 명시해야 함 (MUST)
-- URL 경로에 버전 포함: /api/v1/...
-- 하위 호환성 최소 6개월 유지
+### Proposal
+- All APIs must specify version (MUST)
+- Include version in URL path: /api/v1/...
+- Maintain backward compatibility for minimum 6 months
 
-### 영향
-- 기존 API 스펙 업데이트 필요: 5개
-- 새 스펙 템플릿 수정 필요
+### Impact
+- Existing API specs need updates: 5
+- New spec template modification needed
 ```
 
-### 2. 브랜치 생성
+### 2. Create Branch
 
 ```bash
 git checkout main
@@ -67,16 +67,16 @@ git pull origin main
 git checkout -b constitution/v2.0
 ```
 
-**명명 규칙**: `constitution/<버전>`
+**Naming convention**: `constitution/<version>`
 
-### 3. Constitution 수정
+### 3. Modify Constitution
 
 ```bash
-# Constitution 파일 편집
+# Edit Constitution file
 # .sdd/constitution.md
 ```
 
-**변경 예시**:
+**Change example**:
 
 ```markdown
 <!-- .sdd/constitution.md -->
@@ -85,99 +85,99 @@ git checkout -b constitution/v2.0
 Version: 2.0.0
 Last Updated: 2024-01-20
 
-## 변경 이력
-- v2.0.0 (2024-01-20): API 버전 관리 원칙 추가
-- v1.1.0 (2024-01-10): 보안 원칙 강화
-- v1.0.0 (2024-01-01): 초기 버전
+## Change History
+- v2.0.0 (2024-01-20): Add API versioning principle
+- v1.1.0 (2024-01-10): Strengthen security principles
+- v1.0.0 (2024-01-01): Initial version
 
 ---
 
-## 1. 아키텍처 원칙
+## 1. Architecture Principles
 
-### 1.1 계층 분리
-모든 비즈니스 로직은 서비스 계층에 위치해야 한다 (MUST).
+### 1.1 Layer Separation
+All business logic must be located in the service layer (MUST).
 ...
 
-## 2. API 설계 원칙 (NEW)
+## 2. API Design Principles (NEW)
 
-### 2.1 버전 관리
-- 모든 API는 URL 경로에 버전을 포함해야 한다 (MUST)
-- 형식: `/api/v{major}/...`
-- 하위 호환성은 최소 6개월 유지해야 한다 (MUST)
+### 2.1 Version Management
+- All APIs must include version in URL path (MUST)
+- Format: `/api/v{major}/...`
+- Backward compatibility must be maintained for minimum 6 months (MUST)
 
-### 2.2 응답 형식
-- 모든 API는 일관된 응답 형식을 사용해야 한다 (MUST)
-- 성공: `{ data: ..., meta: ... }`
-- 실패: `{ error: { code, message, details } }`
+### 2.2 Response Format
+- All APIs must use consistent response format (MUST)
+- Success: `{ data: ..., meta: ... }`
+- Failure: `{ error: { code, message, details } }`
 ```
 
-### 4. 영향 분석
+### 4. Impact Analysis
 
 ```bash
-# Constitution 준수 여부 검사
+# Check Constitution compliance
 sdd validate --constitution
 
-# 위반 스펙 목록 확인
+# Check list of violating specs
 sdd validate --constitution --verbose
 ```
 
-**출력 예시**:
+**Example output**:
 ```
-❌ Constitution 위반 발견: 5개 스펙
+❌ Constitution violations found: 5 specs
 
-위반 목록:
+Violation list:
   1. api/user-endpoint
-     - 위반: "API 버전 관리" (2.1)
-     - 내용: URL에 버전 없음
+     - Violation: "API Version Management" (2.1)
+     - Content: No version in URL
 
   2. api/product-endpoint
-     - 위반: "API 버전 관리" (2.1)
-     - 내용: URL에 버전 없음
-     - 위반: "응답 형식" (2.2)
-     - 내용: 에러 응답 형식 불일치
+     - Violation: "API Version Management" (2.1)
+     - Content: No version in URL
+     - Violation: "Response Format" (2.2)
+     - Content: Error response format mismatch
 
   ...
 
-💡 이 스펙들을 업데이트하거나, Constitution 적용을 유예하세요.
+💡 Update these specs or defer Constitution enforcement.
 ```
 
-### 5. 버전 업데이트
+### 5. Version Update
 
 ```bash
-# 버전 범프 (향후 CLI 지원)
+# Version bump (future CLI support)
 # sdd constitution bump --minor
 
-# 수동으로 버전 업데이트
-# constitution.md의 Version 필드 수정
+# Manually update version
+# Modify Version field in constitution.md
 ```
 
-**시맨틱 버전**:
-- **Major** (x.0.0): Breaking Change, 대규모 원칙 변경
-- **Minor** (0.x.0): 새 원칙 추가
-- **Patch** (0.0.x): 원칙 명확화, 오타 수정
+**Semantic version**:
+- **Major** (x.0.0): Breaking Change, large-scale principle changes
+- **Minor** (0.x.0): New principle addition
+- **Patch** (0.0.x): Principle clarification, typo fixes
 
-### 6. 커밋
+### 6. Commit
 
 ```bash
 git add .sdd/constitution.md
 git commit -m "constitution: v2.0 - add API design principles
 
-신규 원칙:
-- API 응답 형식 표준화 (MUST)
-- 에러 코드 체계 (MUST)
-- 버전 관리 정책 (MUST)
+New principles:
+- API response format standardization (MUST)
+- Error code system (MUST)
+- Version management policy (MUST)
 
-Breaking: 기존 API 스펙 5개 업데이트 필요
+Breaking: 5 existing API specs need updates
 - api/user-endpoint
 - api/product-endpoint
 - api/order-endpoint
 - api/payment-endpoint
 - api/notification-endpoint
 
-Migration: 각 스펙에 버전 정보 추가 필요"
+Migration: Each spec needs version information added"
 ```
 
-### 7. PR 생성
+### 7. Create PR
 
 ```bash
 git push -u origin constitution/v2.0
@@ -185,108 +185,108 @@ git push -u origin constitution/v2.0
 gh pr create \
   --title "constitution: v2.0 - API design principles" \
   --body "$(cat <<EOF
-## 개요
-API 설계 원칙 추가
+## Overview
+Add API design principles
 
-## 변경 내용
-### 신규 원칙
-- 2.1 API 버전 관리 (MUST)
-- 2.2 API 응답 형식 (MUST)
+## Changes
+### New Principles
+- 2.1 API Version Management (MUST)
+- 2.2 API Response Format (MUST)
 
-## 영향 분석
-### 위반 스펙 (업데이트 필요)
+## Impact Analysis
+### Violating Specs (need updates)
 - [ ] api/user-endpoint
 - [ ] api/product-endpoint
 - [ ] api/order-endpoint
 - [ ] api/payment-endpoint
 - [ ] api/notification-endpoint
 
-### 마이그레이션 계획
-1. Constitution 병합
-2. 각 스펙 순차 업데이트 (별도 PR)
-3. 2주 내 완료 목표
+### Migration Plan
+1. Merge Constitution
+2. Update each spec sequentially (separate PRs)
+3. Target completion within 2 weeks
 
-## 체크리스트
-- [x] 팀 논의 완료
-- [x] 영향 분석 완료
-- [x] 마이그레이션 계획 수립
-- [ ] 기술 리드 승인
-- [ ] 아키텍트 승인
-- [ ] 전체 팀 동의
+## Checklist
+- [x] Team discussion complete
+- [x] Impact analysis complete
+- [x] Migration plan established
+- [ ] Tech lead approval
+- [ ] Architect approval
+- [ ] Full team agreement
 EOF
 )" \
   --reviewer tech-leads,architects
 ```
 
-### 8. 전체 팀 리뷰
+### 8. Full Team Review
 
-Constitution 변경은 **특별한 리뷰 프로세스**를 따릅니다:
+Constitution changes follow a **special review process**:
 
-- **리뷰어**: 기술 리드, 아키텍트 필수
-- **승인 수**: 최소 3명 (일반 PR보다 많음)
-- **기간**: 충분한 리뷰 시간 (최소 2-3일)
-- **논의**: PR 코멘트에서 논의
+- **Reviewers**: Tech leads, architects required
+- **Approval count**: Minimum 3 (more than regular PRs)
+- **Duration**: Sufficient review time (minimum 2-3 days)
+- **Discussion**: Discuss in PR comments
 
-### 9. 병합 & 후속 작업
+### 9. Merge & Follow-up
 
 ```bash
-# 병합 (merge commit 권장 - 이력 보존)
+# Merge (merge commit recommended - preserve history)
 gh pr merge --merge
 
-# 정리
+# Cleanup
 git checkout main
 git pull
 git branch -d constitution/v2.0
 ```
 
-**후속 작업**:
-1. 팀 공지
-2. 위반 스펙 업데이트 (별도 PR들)
-3. 템플릿 업데이트 (필요시)
+**Follow-up tasks**:
+1. Team announcement
+2. Update violating specs (separate PRs)
+3. Update templates (if needed)
 
 ---
 
-## 긴급 변경
+## Emergency Changes
 
-보안 이슈 등 긴급한 경우:
+For urgent cases like security issues:
 
 ```bash
-# 긴급 브랜치
+# Emergency branch
 git checkout -b constitution/hotfix-security
 
-# 빠른 리뷰 프로세스
-# - 최소 리뷰어로 진행
-# - 사후 전체 공지
+# Fast review process
+# - Proceed with minimal reviewers
+# - Full announcement afterward
 
-# 병합 후 상세 설명
+# Detailed explanation after merge
 ```
 
 ---
 
-## 모범 사례
+## Best Practices
 
-### 변경 전
+### Before Changes
 
-- **충분한 논의**: 팀 전체가 이해하고 동의
-- **영향 파악**: 위반 스펙 미리 확인
-- **마이그레이션 계획**: 업데이트 일정 수립
+- **Sufficient discussion**: Full team understanding and agreement
+- **Understand impact**: Check violating specs in advance
+- **Migration plan**: Establish update schedule
 
-### 변경 시
+### During Changes
 
-- **명확한 버전**: 시맨틱 버전 준수
-- **상세한 이력**: 변경 이력 섹션 업데이트
-- **구체적인 규칙**: MUST/SHOULD 명시
+- **Clear version**: Follow semantic versioning
+- **Detailed history**: Update change history section
+- **Specific rules**: Specify MUST/SHOULD
 
-### 변경 후
+### After Changes
 
-- **팀 공지**: 변경 사항 전파
-- **순차적 업데이트**: 위반 스펙 정리
-- **검증**: 전체 `sdd validate --constitution`
+- **Team announcement**: Communicate changes
+- **Sequential updates**: Clean up violating specs
+- **Validation**: Full `sdd validate --constitution`
 
 ---
 
-## 관련 문서
+## Related Documentation
 
-- [Constitution 작성 가이드](/spec-writing/constitution.md)
-- [커밋 컨벤션](./commit-convention.md)
-- [브랜치 전략](./branch-strategy.md)
+- [Constitution Writing Guide](/spec-writing/constitution.md)
+- [Commit Convention](./commit-convention.md)
+- [Branch Strategy](./branch-strategy.md)

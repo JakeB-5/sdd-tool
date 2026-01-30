@@ -1,71 +1,71 @@
 # dev-next (Skill)
 
-다음 구현할 스펙을 추천하는 개발 스킬입니다.
+A development skill that recommends the next spec to implement.
 
-> **Note**: 이것은 슬래시 커맨드가 아닌 **스킬**입니다. Claude가 작업 컨텍스트에 따라 자동으로 선택하여 사용합니다.
+> **Note**: This is a **skill**, not a slash command. Claude automatically selects and uses it based on the work context.
 
-## 개요
+## Overview
 
-`dev-next` 스킬은 의존성 그래프를 분석하여 다음에 구현할 스펙을 추천합니다. 의존성이 없거나 이미 충족된 스펙을 우선 제안합니다.
+The `dev-next` skill analyzes the dependency graph and recommends the next spec to implement. It prioritizes specs with no dependencies or dependencies that are already satisfied.
 
-## 트리거 조건
+## Trigger Conditions
 
-Claude가 다음과 같은 요청을 받으면 자동으로 이 스킬을 사용합니다:
+Claude automatically uses this skill when receiving requests like:
 
-- "다음 뭐 해", "다음 작업", "뭐 구현할까"
+- "What's next", "next task", "what should I implement"
 - "next", "what's next"
 
-## 사용 예시
+## Usage Example
 
 ```
-User: 다음 뭐 구현할까?
+User: What should I implement next?
 
-Claude: 📋 다음 구현 추천
+Claude: Next Implementation Recommendation
 
-## 추천 스펙: core/validation
+## Recommended Spec: core/validation
 
-이유:
-  - 의존성 없음 (독립 모듈)
-  - 다른 3개 스펙이 이 모듈에 의존
-  - 구현 난이도: 낮음
+Reasons:
+  - No dependencies (independent module)
+  - 3 other specs depend on this module
+  - Implementation difficulty: Low
 
-### 스펙 개요
-입력 데이터 검증 유틸리티
+### Spec Overview
+Input data validation utilities
 
-### 주요 기능
-- 이메일 형식 검증
-- 비밀번호 규칙 검증
-- 공통 검증 함수
+### Key Features
+- Email format validation
+- Password rule validation
+- Common validation functions
 
-### 의존 스펙 (이것을 기다리는 것)
+### Dependent Specs (waiting on this)
 - auth/login
 - auth/registration
 - user/profile
 
-구현하시겠습니까?
+Would you like to implement this?
 ```
 
-## 전체 순서 표시
+## Full Order Display
 
 ```
-User: 전체 구현 순서 알려줘
+User: Show me the full implementation order
 
-Claude: 📊 전체 구현 순서
+Claude: Full Implementation Order
 
-1. ⏳ core/validation (의존성 없음)
-2. ⏳ core/types (의존성 없음)
-3. ⏳ auth/token (← core/types)
-4. ⏳ auth/login (← core/validation, auth/token)
-5. ⏳ auth/registration (← auth/login)
-6. ⏳ payment/checkout (← auth/login)
+1. Pending: core/validation (no dependencies)
+2. Pending: core/types (no dependencies)
+3. Pending: auth/token (<- core/types)
+4. Pending: auth/login (<- core/validation, auth/token)
+5. Pending: auth/registration (<- auth/login)
+6. Pending: payment/checkout (<- auth/login)
 
-✅ 완료: 0개
-⏳ 대기: 6개
+Complete: 0
+Pending: 6
 
-추천: core/validation부터 시작
+Recommendation: Start with core/validation
 ```
 
-## 관련 스킬
+## Related Skills
 
-- [`dev-implement`](/commands/dev-implement) - 스펙 구현
-- [`dev-status`](/commands/dev-status) - 구현 현황
+- [`dev-implement`](/commands/dev-implement) - Spec implementation
+- [`dev-status`](/commands/dev-status) - Implementation status

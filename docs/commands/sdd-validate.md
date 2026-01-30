@@ -1,79 +1,79 @@
 # /sdd.validate
 
-명세가 올바르게 작성되었는지 검증합니다.
+Verify that specifications are correctly written.
 
-## 사용법
+## Usage
 
 ```
 /sdd.validate [feature-id]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| feature-id | 기능 ID (생략 시 전체) |
+| Argument | Description |
+|----------|-------------|
+| feature-id | Feature ID (validates all if omitted) |
 
-## 검증 항목
+## Validation Items
 
-### 필수 검증 (에러)
+### Required Validation (Errors)
 
-- YAML frontmatter 형식
-- 필수 메타데이터: id, title, status
-- 마크다운 문법
+- YAML frontmatter format
+- Required metadata: id, title, status
+- Markdown syntax
 
-### 권장 검증 (경고)
+### Recommended Validation (Warnings)
 
-- RFC 2119 키워드 사용
-- GIVEN-WHEN-THEN 형식
-- 요구사항 ID 형식 (REQ-XX)
+- RFC 2119 keyword usage
+- GIVEN-WHEN-THEN format
+- Requirement ID format (REQ-XX)
 
-### 헌법 검증
+### Constitution Validation
 
-- constitution_version 일치
-- 금지 사항 위반 여부
+- constitution_version match
+- Forbidden practices violations
 
-## 예시
+## Example
 
 ```
 /sdd.validate
 
-AI: 전체 스펙을 검증합니다.
+AI: Validating all specs.
 
     ✓ user-auth/spec.md
-      - 요구사항 5개
-      - 시나리오 3개
-      - RFC 2119 키워드 ✓
+      - 5 requirements
+      - 3 scenarios
+      - RFC 2119 keywords ✓
 
     ⚠ profile/spec.md
-      - RFC 2119 키워드가 없습니다
-      - GIVEN-WHEN-THEN 형식이 아닙니다
+      - RFC 2119 keywords missing
+      - Not in GIVEN-WHEN-THEN format
 
     ✗ settings/spec.md
-      - YAML frontmatter가 잘못되었습니다
-      - 필수 필드 'id'가 없습니다
+      - Invalid YAML frontmatter
+      - Required field 'id' missing
 
     ━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    결과: 1 통과, 1 경고, 1 에러
+    Result: 1 passed, 1 warning, 1 error
 ```
 
-## 자동 수정
+## Auto-fix
 
-일부 문제는 자동 수정 가능:
+Some issues can be automatically fixed:
 
 ```
 /sdd.validate --fix
 
-AI: 자동 수정 가능한 문제:
-    - profile/spec.md: SHOULD 키워드 추가
+AI: Auto-fixable issues:
+    - profile/spec.md: Add SHOULD keyword
 
-    수정할까요? [Y/n]
+    Apply fixes? [Y/n]
 ```
 
-## CI/CD 통합
+## CI/CD Integration
 
 ```bash
 sdd validate --strict --quiet
 ```
 
-에러 또는 경고 시 exit code 1 반환
+Returns exit code 1 on errors or warnings

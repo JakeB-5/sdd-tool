@@ -1,100 +1,100 @@
 # sdd search
 
-스펙을 검색합니다.
+Searches specs.
 
-## 사용법
+## Usage
 
 ```bash
 sdd search <query> [options]
 ```
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `-d, --domain <domain>` | 도메인 필터 |
-| `-s, --status <status>` | 상태 필터 |
-| `--tag <tag>` | 태그 필터 |
-| `--json` | JSON 형식으로 출력 |
-| `--limit <n>` | 결과 수 제한 (기본: 20) |
-| `--content` | 본문 내용도 검색 |
+| Option | Description |
+|--------|-------------|
+| `-d, --domain <domain>` | Filter by domain |
+| `-s, --status <status>` | Filter by status |
+| `--tag <tag>` | Filter by tag |
+| `--json` | Output in JSON format |
+| `--limit <n>` | Limit results (default: 20) |
+| `--content` | Search content as well |
 
-## 검색 대상
+## Search Targets
 
-- 스펙 ID
-- 스펙 제목
-- 요구사항 내용
-- 시나리오 내용
-- 태그
+- Spec ID
+- Spec title
+- Requirement content
+- Scenario content
+- Tags
 
-## 예시
+## Examples
 
-### 기본 검색
-
-```bash
-sdd search "로그인"
-```
-
-출력:
-```
-=== 검색 결과: "로그인" ===
-
-📄 user-auth (auth 도메인)
-   제목: 사용자 인증
-   상태: approved
-   매치: "로그인 기능을 지원해야 한다(SHALL)"
-
-📄 social-login (auth 도메인)
-   제목: 소셜 로그인
-   상태: draft
-   매치: "소셜 로그인은 OAuth 2.0을 사용해야 한다"
-
-총 2개 결과
-```
-
-### 도메인 필터
+### Basic Search
 
 ```bash
-sdd search "인증" --domain auth
+sdd search "login"
 ```
 
-### 상태 필터
+Output:
+```
+=== Search Results: "login" ===
+
+📄 user-auth (auth domain)
+   Title: User Authentication
+   Status: approved
+   Match: "The system SHALL support login functionality"
+
+📄 social-login (auth domain)
+   Title: Social Login
+   Status: draft
+   Match: "Social login SHALL use OAuth 2.0"
+
+Total: 2 results
+```
+
+### Filter by Domain
 
 ```bash
-sdd search "결제" --status approved
+sdd search "authentication" --domain auth
 ```
 
-### 태그 필터
+### Filter by Status
+
+```bash
+sdd search "payment" --status approved
+```
+
+### Filter by Tag
 
 ```bash
 sdd search --tag "critical"
 ```
 
-### 본문 검색
+### Search Content
 
 ```bash
 sdd search "JWT" --content
 ```
 
-### JSON 출력
+### JSON Output
 
 ```bash
-sdd search "인증" --json
+sdd search "authentication" --json
 ```
 
 ```json
 {
-  "query": "인증",
+  "query": "authentication",
   "results": [
     {
       "id": "user-auth",
-      "title": "사용자 인증",
+      "title": "User Authentication",
       "domain": "auth",
       "status": "approved",
       "matches": [
         {
           "type": "requirement",
-          "content": "사용자 인증 기능을 지원해야 한다(SHALL)"
+          "content": "The system SHALL support user authentication"
         }
       ]
     }
@@ -103,35 +103,35 @@ sdd search "인증" --json
 }
 ```
 
-### 복합 필터
+### Combined Filters
 
 ```bash
 sdd search "API" --domain api --status draft --limit 5
 ```
 
-## 검색 팁
+## Search Tips
 
-### 정확한 문구 검색
+### Exact Phrase Search
 
-따옴표로 감싸서 정확한 문구를 검색합니다:
+Wrap in quotes for exact phrase matching:
 
 ```bash
-sdd search "\"로그인 실패\""
+sdd search "\"login failure\""
 ```
 
-### 와일드카드 검색
+### Wildcard Search
 
 ```bash
 sdd search "user-*"
 ```
 
-### RFC 키워드 검색
+### RFC Keyword Search
 
 ```bash
 sdd search "SHALL NOT"
 ```
 
-## 관련 문서
+## Related Documentation
 
-- [sdd list](/cli/list) - 목록 조회
-- [sdd status](/cli/status) - 상태 확인
+- [sdd list](/cli/list) - List items
+- [sdd status](/cli/status) - Status check

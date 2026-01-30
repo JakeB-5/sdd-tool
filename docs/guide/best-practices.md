@@ -1,137 +1,581 @@
-# 모범 사례
+# SDD Tool Best Practices
 
-SDD Tool을 효과적으로 사용하기 위한 모범 사례입니다.
+Proven strategies for effective Spec-Driven Development with SDD Tool.
 
-## 명세 작성
+## 1. Specification Writing
 
-### 1. RFC 2119 키워드 사용
+### Start with Constitution
 
-| 키워드 | 의미 | 사용 시기 |
-|--------|------|----------|
-| **SHALL/MUST** | 절대 필수 | 핵심 기능, 보안 요구사항 |
-| **SHOULD** | 권장 (예외 허용) | 사용자 경험 개선 |
-| **MAY** | 선택적 | 부가 기능 |
-| **SHALL NOT** | 절대 금지 | 보안 위반, 안티패턴 |
+Before writing any specs, define your project constitution.
 
-### 2. GIVEN-WHEN-THEN 작성
+**Why:** Sets the foundation for all specifications and decisions.
 
-```markdown
-### Scenario 1: 성공적인 로그인
-
-- **GIVEN** 유효한 사용자 계정이 있을 때
-- **WHEN** 올바른 이메일과 비밀번호로 로그인하면
-- **THEN** JWT 토큰이 반환된다
-- **AND** 토큰 만료 시간이 설정된다
+```bash
+/sdd.constitution "Your project description"
 ```
 
-### 3. 요구사항 ID 부여
+**Constitution should include:**
+- Core principles (what matters most)
+- Technical principles (technology choices)
+- Forbidden practices (what to avoid)
 
-```markdown
-### REQ-01: 사용자 로그인
+### Write Specs Before Code
 
-시스템은 이메일/비밀번호 로그인을 지원해야 한다(SHALL).
+This is the core of SDD methodology.
+
+**Pattern:**
+```
+Spec → Plan → Tasks → Implement
 ```
 
-## Constitution 작성
+**Benefits:**
+- Clear requirements before coding
+- Easier to discuss with team
+- Early detection of gaps
+- Better test coverage
 
-### 1. 명확한 원칙 정의
+### Use Clear, Unambiguous Language
 
+**Good:**
 ```markdown
-## 핵심 원칙
-
-- 사용자 데이터 보호가 최우선이다
-- 성능보다 정확성이 중요하다
+- The API SHALL return HTTP 200 on success
+- Response time SHOULD be under 500ms
+- The system SHALL NOT expose user IDs in errors
 ```
 
-### 2. 기술 제약 명시
-
+**Avoid:**
 ```markdown
-## 기술 원칙
-
-- TypeScript 엄격 모드 사용
-- 모든 함수에 타입 정의 필수
+- The API should work fast
+- Try to return something
+- Don't leak information
 ```
 
-### 3. 금지 사항 목록
+### Include Negative Test Cases
 
+**Complete coverage:**
 ```markdown
-## 금지 사항
+### REQ-001: User Login
 
-- any 타입 사용 금지
-- 외부 의존성 무분별한 추가 금지
+- Users SHALL be able to log in (positive)
+- Invalid credentials SHALL be rejected (negative)
+- Non-existent users SHALL be handled securely (edge case)
 ```
 
-## 작업 분해
+**Benefits:**
+- Comprehensive requirements
+- Prevents security gaps
+- Better test coverage
 
-### 1. 적절한 크기
+### Keep Specs Updated
 
-- 2-4시간 내 완료 가능한 크기
-- 너무 크면 분할, 너무 작으면 병합
+Specs should evolve with code.
 
-### 2. 의존성 명시
+**Anti-pattern:** Specs written, never updated
+**Better:** Specs updated before code changes
 
+**Workflow:**
+1. Update spec
+2. Update tests
+3. Update code
+
+### Use Consistent Terminology
+
+Define terms in a glossary if complex.
+
+**Example:**
 ```markdown
-- [ ] Task 1: 데이터 모델 정의
-- [ ] Task 2: API 구현 (depends on: Task 1)
-- [ ] Task 3: UI 구현 (depends on: Task 2)
+## Glossary
+
+| Term | Definition |
+|------|-----------|
+| JWT | JSON Web Token - stateless auth token |
+| Bearer Token | Authorization header containing JWT |
 ```
 
-### 3. 우선순위 표시
+## 2. Domain Organization
 
-- 🔴 HIGH: 즉시 처리
-- 🟡 MEDIUM: 다음 처리
-- 🟢 LOW: 나중에 처리
+### Structure Specs by Domain (v1.3.0+)
 
-## 코드와 명세 동기화
+For projects with multiple features, use domains.
 
-### 1. @spec 주석 사용
+**Without domains (small projects):**
+```
+.sdd/specs/common/
+├── user-auth/
+├── password-reset/
+└── profile/
+```
+
+**With domains (large projects):**
+```
+.sdd/specs/auth/
+├── login/
+├── logout/
+└── password-reset/
+
+.sdd/specs/profile/
+├── edit-profile/
+└── avatar/
+
+.sdd/specs/payment/
+├── checkout/
+└── refund/
+```
+
+**Best practices:**
+- Create domain for each major feature area
+- Keep specs in 2-3 related domains small (< 20 specs)
+- Document domain purpose
+- Define dependencies between domains
+
+### Define Domain Dependencies
+
+```bash
+sdd domain depends payment --on auth
+sdd domain depends order --on payment
+sdd domain graph
+```
+
+**Benefits:**
+- Clear dependencies
+- Helps with prioritization
+- Identifies circular dependencies
+- Documents architecture
+
+### Use Context for Focused Work
+
+```bash
+sdd context set auth payment    # Focus on these domains
+sdd context specs               # See specs in context
+```
+
+**When to use:**
+- Large projects with many specs
+- Working on specific feature area
+- Reducing cognitive load
+
+## 3. Team Collaboration
+
+### Review Specs Before Implementation
+
+**Workflow:**
+1. Write spec
+2. Team reviews spec
+3. Approve spec
+4. Implement to spec
+5. Validate against spec
+
+**Benefits:**
+- Catches issues early
+- Team alignment
+- Shared understanding
+- Better code quality
+
+### Use Git Workflow
+
+```bash
+sdd git setup
+```
+
+**Includes:**
+- Pre-commit hooks (validate specs)
+- Commit message template
+- Pre-push validation
+
+**Benefits:**
+- Enforce spec quality
+- Audit trail of changes
+- Prevent invalid commits
+
+### Document Decisions
+
+In spec, explain **why** not just **what**.
+
+```markdown
+## Technical Decisions
+
+### Decision: Use JWT instead of Sessions
+
+**Why:** Better for distributed systems and mobile apps
+**Trade-off:** Requires token refresh mechanism
+**Alternative considered:** OAuth 2.0 (overkill for current scope)
+```
+
+### Keep Team in Sync
+
+Use `/sdd.chat` for collaborative specification.
+
+**Pattern:**
+1. One person starts spec with `/sdd.spec`
+2. Team provides feedback
+3. AI refines spec based on discussion
+4. Finalize together
+
+## 4. Quality Assurance
+
+### Validate Early and Often
+
+```bash
+sdd validate                    # Quick validation
+sdd validate --strict           # Strict mode
+sdd quality                     # Quality scoring
+```
+
+**Best practice:** Validate specs in CI/CD
+
+### Check Sync Status Regularly
+
+```bash
+sdd sync                        # All specs
+sdd sync --threshold 80         # With threshold
+sdd sync --ci                   # CI mode (fail if below)
+```
+
+**In CI/CD:**
+```bash
+sdd sync --ci --threshold 80 --json
+```
+
+### Use Quality Scoring
+
+```bash
+sdd quality --threshold 80
+```
+
+**Metrics checked:**
+- Requirement clarity
+- Scenario completeness
+- RFC 2119 usage
+- Format compliance
+
+### Track Changes
+
+```bash
+sdd diff                        # Working directory
+sdd diff --staged               # Staged changes
+sdd impact feature-name         # Change analysis
+```
+
+## 5. Implementation
+
+### Use TDD Pattern
+
+Follow Test-Driven Development.
+
+**Workflow:**
+1. Read spec requirements
+2. Write tests for requirements
+3. Implement to pass tests
+4. Validate against spec
+
+**Benefits:**
+- Code matches spec
+- Tests provide spec verification
+- Fewer bugs
+- Self-documenting tests
+
+### Leverage /sdd.prepare
+
+Auto-detects tools needed.
+
+```bash
+sdd prepare feature-name        # Interactive
+sdd prepare feature-name --auto-approve  # Auto
+```
+
+**Generates:**
+- Test runners
+- Component generators
+- API scaffolders
+- Documentation generators
+
+### Reference Specs in Code
+
+Link code to spec requirements.
 
 ```typescript
 /**
- * @spec REQ-01
- * 사용자 로그인 처리
+ * User login handler
+ * @spec REQ-001 Email/Password Login
+ * @scenario Scenario 1: Successful Login
  */
-function login(email: string, password: string) {
-  // ...
+export async function login(email: string, password: string) {
+  // Implementation
 }
 ```
 
-### 2. 정기적인 동기화 검사
+### Test Against Scenarios
+
+Each scenario should have a test.
+
+**Scenario:**
+```markdown
+### Scenario: Login Success
+- **GIVEN** user with valid credentials
+- **WHEN** they submit login
+- **THEN** they receive JWT token
+```
+
+**Test:**
+```typescript
+test('User receives JWT token on successful login', () => {
+  const token = loginUser('alice@example.com', 'Secure123!');
+  expect(isValidJWT(token)).toBe(true);
+  expect(token).toBeDefined();
+});
+```
+
+## 6. Large Projects
+
+### Progressive Spec Coverage
+
+Don't try to spec everything at once.
+
+**Phase 1: Core Features**
+- Spec 5-10 core features
+- Get team aligned
+- Establish patterns
+
+**Phase 2: Expansion**
+- Spec more features
+- Reuse patterns
+- Improve faster
+
+**Phase 3: Complete Coverage**
+- Fill remaining specs
+- Improve older specs
+- Optimize structure
+
+### Use Reverse Extraction
+
+Document existing code.
 
 ```bash
-sdd sync
+sdd reverse scan                # Analyze code
+sdd reverse extract             # Create drafts
+sdd reverse review              # Team review
+sdd reverse finalize            # Approve
 ```
 
-### 3. 변경 시 명세 먼저 수정
+**Good for:**
+- Documenting legacy features
+- Brownfield projects
+- Existing code documentation
 
-1. 명세 수정
-2. 변경 영향도 분석
-3. 코드 수정
-4. 검증
+### Manage Spec Growth
 
-## 팀 협업
+With 50+ specs:
 
-### 1. PR에 명세 링크 포함
+1. Use domains effectively
+2. Use context for focus
+3. Regular cleanup (deprecate unused)
+4. Archive completed changes
+5. Document decision rationale
+
+## 7. CI/CD Integration
+
+### Setup CI Validation
+
+```bash
+sdd cicd setup github
+```
+
+**Includes:**
+- Spec validation workflow
+- Sync verification
+- Quality checks
+- Automated reporting
+
+### Validation in Pipeline
+
+```bash
+# GitHub Actions example
+- name: Validate Specs
+  run: sdd validate --strict
+
+- name: Check Sync
+  run: sdd sync --ci --threshold 80
+
+- name: Quality Report
+  run: sdd report --format json
+```
+
+### Pre-commit Validation
+
+```bash
+sdd git setup
+```
+
+Automatically validates before commit.
+
+**Benefits:**
+- Catch issues early
+- Prevent invalid specs in repo
+- Enforce quality standards
+
+## 8. Documentation
+
+### Generate Reports
+
+```bash
+sdd report                      # Overview
+sdd export --all                # Export all specs
+sdd export --format html        # HTML version
+```
+
+**Benefits:**
+- Share with stakeholders
+- External documentation
+- Archival format
+
+### Export for Sharing
+
+**HTML Export:**
+```bash
+sdd export --all --format html --theme dark
+```
+
+**JSON Export:**
+```bash
+sdd export --format json
+```
+
+**Markdown Export:**
+```bash
+sdd export --format markdown
+```
+
+## 9. Common Patterns
+
+### Feature with Multiple Scenarios
 
 ```markdown
-## 관련 명세
+# User Authentication
 
-- [사용자 인증](/.sdd/specs/auth/spec.md)
+## REQ-001: Email/Password Login
+- Scenario 1: Valid credentials → Success
+- Scenario 2: Invalid password → Error
+- Scenario 3: Non-existent user → Error
+- Scenario 4: Account locked → Error
 ```
 
-### 2. 변경 제안 프로세스
+### Core Feature + Extensions
 
-1. `/sdd.spec`으로 스펙 수정 제안
-2. 팀 리뷰
-3. 승인 후 적용
+```markdown
+## REQ-001: Basic Search
+[MUST have]
 
-### 3. Constitution 버전 관리
+## REQ-002: Advanced Filters
+[SHOULD have]
 
-명세에 `constitution_version` 포함:
-
-```yaml
----
-id: feature-x
-constitution_version: 1.0.0
----
+## REQ-003: Search Suggestions
+[MAY have]
 ```
+
+### Security + Usability
+
+```markdown
+## REQ-001: Secure Password Hashing
+[SHALL - security]
+
+## REQ-002: Helpful Error Messages
+[SHOULD - usability]
+
+## REQ-003: Account Recovery
+[SHOULD - support]
+```
+
+## 10. Team Training
+
+### Onboarding New Team Members
+
+1. Share constitution
+2. Review existing specs
+3. Walk through one workflow
+4. Have them write a simple spec
+5. Review and provide feedback
+
+**Resources:**
+- [Getting Started Guide](./getting-started)
+- [Specification Writing](../spec-writing/)
+- [Quick Reference](./getting-started)
+
+### Regular Review Meetings
+
+**Weekly:**
+- Discuss new specs
+- Review completed features
+- Identify patterns
+- Address questions
+
+**Monthly:**
+- Quality metrics review
+- Process improvements
+- Architecture alignment
+- Team feedback
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern 1: Specs After Code
+
+**Problem:** Specifications written after implementation
+**Solution:** Write specs first
+
+### Anti-Pattern 2: Vague Requirements
+
+**Problem:** "System should be fast"
+**Solution:** "Response time SHOULD be under 500ms"
+
+### Anti-Pattern 3: Unmaintained Specs
+
+**Problem:** Specs never updated after creation
+**Solution:** Update specs when requirements change
+
+### Anti-Pattern 4: No Scenario Testing
+
+**Problem:** Specs without verifiable scenarios
+**Solution:** Every spec includes GIVEN-WHEN-THEN scenarios
+
+### Anti-Pattern 5: Mixing Domains
+
+**Problem:** Related specs scattered across domains
+**Solution:** Group related features in domains
+
+### Anti-Pattern 6: Ignoring Sync Status
+
+**Problem:** Code doesn't match specs
+**Solution:** Regular `sdd sync` checks
+
+## Continuous Improvement
+
+### Measure What Matters
+
+- Spec quality scores
+- Sync coverage percentage
+- Team velocity
+- Bug discovery rate
+
+### Collect Feedback
+
+- Team retrospectives
+- Stakeholder reviews
+- Developer experience
+- Maintenance effort
+
+### Iterate on Process
+
+1. Measure current state
+2. Identify improvements
+3. Implement changes
+4. Measure results
+5. Repeat
+
+## Conclusion
+
+SDD is a practice that improves with experience. Start simple, iterate, and build team expertise over time. The most important step is starting - begin with your next feature using SDD principles.
+
+---
+
+**Ready to practice SDD?** Start with [Getting Started Guide](./getting-started)
+
+**Need more detail?** Check [CLI Reference](../cli/)

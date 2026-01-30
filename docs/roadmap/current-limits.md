@@ -1,32 +1,32 @@
-# 현재 한계점
+# Current Limitations
 
-SDD Tool의 현실적인 한계와 적정 사용 규모를 정리합니다.
+An overview of SDD Tool's realistic limitations and appropriate usage scale.
 
-## 적정 프로젝트 규모
+## Appropriate Project Scale
 
-| 규모 | 개발자 | 스펙 수 | 적합도 | 비고 |
-|------|--------|---------|--------|------|
-| **소규모** | 1-5명 | ~50개 | 최적 | 모든 기능 원활 |
-| **중규모** | 5-15명 | 50-150개 | 관리 가능 | 규율 필요 |
-| **대규모** | 15명+ | 150개+ | 한계 도달 | 분리 권장 |
+| Scale | Developers | Specs | Suitability | Notes |
+|-------|-----------|-------|-------------|-------|
+| **Small** | 1-5 | ~50 | Optimal | All features work smoothly |
+| **Medium** | 5-15 | 50-150 | Manageable | Requires discipline |
+| **Large** | 15+ | 150+ | Reaches limits | Separation recommended |
 
-## 구조적 한계
+## Structural Limitations
 
-### 1. 파일 기반 시스템
+### 1. File-based System
 
 ```
-문제: 모든 작업이 파일 시스템 직접 접근
-영향: 스펙 100개 이상에서 성능 저하
+Problem: All operations directly access file system
+Impact: Performance degradation with 100+ specs
 ```
 
-- 매 명령어 실행 시 전체 스펙 파싱
-- 인덱싱/캐싱 메커니즘 없음
-- 대규모 검색 시 응답 지연
+- Full spec parsing on every command execution
+- No indexing/caching mechanism
+- Response delays on large-scale searches
 
-### 2. 수동 의존성 관리
+### 2. Manual Dependency Management
 
 ```yaml
-# 현재: 개발자가 직접 명시
+# Current: Developer explicitly specifies
 ---
 dependencies:
   - user-auth
@@ -34,127 +34,127 @@ dependencies:
 ---
 ```
 
-- 의존성 누락 가능성
-- 암시적 참조 자동 감지 제한적
-- 복잡한 의존성 그래프에서 관리 어려움
+- Possibility of missing dependencies
+- Limited automatic detection of implicit references
+- Difficult to manage complex dependency graphs
 
-### 3. 단일 Constitution
+### 3. Single Constitution
 
 ```
 .sdd/
-└── constitution.md  # 프로젝트 전체 단일 파일
+└── constitution.md  # Single file for entire project
 ```
 
-- 멀티팀 환경에서 도메인별 원칙 분리 불가
-- 대규모 프로젝트에서 Constitution 비대화
-- 팀별 자율성과 전역 일관성 균형 어려움
+- Cannot separate domain-specific principles in multi-team environments
+- Constitution becomes bloated in large projects
+- Difficult to balance team autonomy with global consistency
 
-### 4. 버전 관리 한계
+### 4. Version Management Limitations
 
-- Git 의존적 버전 관리
-- 스펙 자체 버전 히스토리 추적 없음
-- Breaking change 자동 감지 없음
-- 스펙 간 버전 호환성 검증 없음
+- Git-dependent version management
+- No spec-level version history tracking
+- No automatic breaking change detection
+- No version compatibility validation between specs
 
-## 워크플로우 한계
+## Workflow Limitations
 
-### 1. 협업 기능 부재
+### 1. Lack of Collaboration Features
 
-| 기능 | 현재 상태 |
-|------|-----------|
-| 동시 편집 | Git 충돌에 의존 |
-| 스펙 잠금 | 미지원 |
-| 리뷰 승인 | 미지원 |
-| 코멘트/토론 | 미지원 |
+| Feature | Current Status |
+|---------|----------------|
+| Concurrent editing | Depends on Git conflicts |
+| Spec locking | Not supported |
+| Review approval | Not supported |
+| Comments/discussion | Not supported |
 
-### 2. 외부 도구 연동 없음
+### 2. No External Tool Integration
 
-- Issue Tracker 연동 없음 (GitHub Issues, Linear, Jira)
-- IDE 플러그인 없음
-- CI/CD 연동 기본적 수준
-- 알림/웹훅 시스템 없음
+- No Issue Tracker integration (GitHub Issues, Linear, Jira)
+- No IDE plugins
+- Basic CI/CD integration only
+- No notification/webhook system
 
-### 3. 리포팅 제한
+### 3. Limited Reporting
 
-- 실시간 대시보드 없음
-- 트렌드 분석 없음
-- 팀별/도메인별 통계 제한적
+- No real-time dashboard
+- No trend analysis
+- Limited team/domain statistics
 
-## 최적의 사용 케이스
+## Optimal Use Cases
 
-### 적합한 경우
-
-```
-✅ 사이드 프로젝트 / MVP
-✅ 소규모 스타트업 초기 제품
-✅ 단일 팀이 관리하는 마이크로서비스
-✅ AI 페어 프로그래밍 집중 개발
-✅ 명확한 범위의 신규 기능 개발
-```
-
-### 주의가 필요한 경우
+### Suitable Cases
 
 ```
-⚠️ 중규모 SaaS (Phase/도메인 분리 필수)
-⚠️ 10명 이하 팀의 주력 제품
-⚠️ 여러 마이크로서비스 동시 관리
+  Side projects / MVP
+  Early-stage small startup products
+  Microservices managed by single team
+  AI pair programming focused development
+  New feature development with clear scope
 ```
 
-### 부적합한 경우
+### Cases Requiring Caution
 
 ```
-❌ 엔터프라이즈 시스템
-❌ 멀티팀 대규모 프로젝트
-❌ 레거시 시스템 전체 문서화
-❌ 규제 산업의 감사 추적 필요 프로젝트
-❌ 지리적 분산 팀
+  Medium-scale SaaS (Phase/domain separation required)
+  Main product for teams under 10 people
+  Managing multiple microservices simultaneously
 ```
 
-## 스케일 한계 징후
+### Unsuitable Cases
 
-프로젝트가 다음 징후를 보이면 한계에 도달한 것입니다:
+```
+  Enterprise systems
+  Multi-team large projects
+  Full documentation of legacy systems
+  Projects in regulated industries requiring audit trails
+  Geographically distributed teams
+```
 
-### 성능 징후
+## Signs of Scale Limitations
 
-- `sdd validate` 실행 시간 > 10초
-- `sdd search` 응답 지연 체감
-- `sdd impact` 분석 시간 증가
+When your project shows these signs, you've reached the limits:
 
-### 관리 징후
+### Performance Signs
 
-- 의존성 그래프 파악 어려움
-- 스펙 중복/충돌 빈번
-- Constitution 원칙 해석 불일치
-- 리뷰 없이 스펙 변경 발생
+- `sdd validate` execution time > 10 seconds
+- Noticeable `sdd search` response delays
+- Increasing `sdd impact` analysis time
 
-### 협업 징후
+### Management Signs
 
-- Git 충돌 빈번
-- "누가 이 스펙 수정했지?" 질문 증가
-- 스펙 상태 파악에 시간 소요
+- Difficult to understand dependency graph
+- Frequent spec duplicates/conflicts
+- Inconsistent Constitution principle interpretation
+- Specs changing without review
 
-## 한계 대응 전략
+### Collaboration Signs
 
-### 단기 대응
+- Frequent Git conflicts
+- Increasing "who modified this spec?" questions
+- Time spent figuring out spec status
 
-1. **Phase 분리 철저화**: 명확한 Phase 경계
-2. **명명 규칙 강화**: 도메인 접두사 사용 (`auth-`, `billing-`)
-3. **정기 정리**: 완료된 스펙 아카이브
+## Strategies for Handling Limitations
 
-### 중기 대응
+### Short-term Response
 
-1. **도메인별 분리**: 별도 `.sdd/` 디렉토리
-2. **자동화 스크립트**: 커스텀 검증/리포트
-3. **외부 도구 병행**: 복잡한 협업은 Notion/Linear 활용
+1. **Thorough Phase separation**: Clear Phase boundaries
+2. **Stronger naming conventions**: Use domain prefixes (`auth-`, `billing-`)
+3. **Regular cleanup**: Archive completed specs
 
-### 장기 대응
+### Medium-term Response
 
-1. **도구 확장**: [스케일업 로드맵](./scaling.md) 참조
-2. **프로젝트 분리**: 마이크로서비스별 독립 SDD
-3. **대안 도구 검토**: 엔터프라이즈급 요구사항 관리 도구
+1. **Domain separation**: Separate `.sdd/` directories
+2. **Automation scripts**: Custom validation/reporting
+3. **Use external tools**: Use Notion/Linear for complex collaboration
 
-## 관련 문서
+### Long-term Response
 
-- [로드맵 개요](./overview.md) - 전체 로드맵
-- [스케일업 로드맵](./scaling.md) - 중규모 확장 계획
-- [모범 사례](/guide/best-practices.md) - 효과적인 사용법
+1. **Tool extension**: See [Scaling Roadmap](./scaling.md)
+2. **Project separation**: Independent SDD per microservice
+3. **Alternative tool evaluation**: Enterprise-grade requirements management tools
+
+## Related Documentation
+
+- [Roadmap Overview](./overview.md) - Complete roadmap
+- [Scaling Roadmap](./scaling.md) - Medium-scale expansion plan
+- [Best Practices](/guide/best-practices.md) - Effective usage

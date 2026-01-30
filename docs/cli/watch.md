@@ -1,147 +1,147 @@
 # sdd watch
 
-스펙 파일 변경을 실시간으로 감시하고 자동 검증합니다.
+Monitors spec file changes in real-time and auto-validates.
 
-## 사용법
+## Usage
 
 ```bash
 sdd watch [options]
 ```
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--no-validate` | 자동 검증 비활성화 |
-| `--impact` | 영향도 분석 포함 |
-| `-q, --quiet` | 성공 시 출력 생략 |
-| `--debounce <ms>` | 디바운스 시간 (기본: 500ms) |
+| Option | Description |
+|--------|-------------|
+| `--no-validate` | Disable auto-validation |
+| `--impact` | Include impact analysis |
+| `-q, --quiet` | Suppress success output |
+| `--debounce <ms>` | Debounce time (default: 500ms) |
 
-## 동작
+## Behavior
 
-1. `.sdd/specs/` 디렉토리를 감시합니다
-2. 파일 변경 시 자동으로 검증을 실행합니다
-3. 검증 결과를 실시간으로 표시합니다
-4. `Ctrl+C`로 종료합니다
+1. Watches the `.sdd/specs/` directory
+2. Automatically runs validation on file changes
+3. Displays validation results in real-time
+4. Exit with `Ctrl+C`
 
-## 예시
+## Examples
 
-### 기본 실행
+### Basic Execution
 
 ```bash
 sdd watch
 ```
 
-출력:
+Output:
 ```
-👁️  Watch 모드 시작
-   경로: .sdd/specs
-   디바운스: 500ms
-   검증: 활성화
+👁️  Watch mode started
+   Path: .sdd/specs
+   Debounce: 500ms
+   Validation: enabled
 
-파일 변경을 감시 중... (Ctrl+C로 종료)
+Watching for file changes... (Ctrl+C to exit)
 
-✅ 감시 준비 완료
+✅ Watch ready
 
-[14:30:15] 변경 감지: 수정 1
+[14:30:15] Change detected: 1 modified
   ✏️ user-auth/spec.md
 
-🔍 검증 실행 중...
-✅ 검증 통과 (5개 스펙)
+🔍 Running validation...
+✅ Validation passed (5 specs)
 
-[14:32:45] 변경 감지: 추가 1
+[14:32:45] Change detected: 1 added
   ➕ new-feature/spec.md
 
-🔍 검증 실행 중...
-⚠️  검증 완료: 1개 경고
-   - new-feature: depends 필드 누락
+🔍 Running validation...
+⚠️  Validation complete: 1 warning
+   - new-feature: missing depends field
 
 ^C
-Watch 모드 종료 중...
+Stopping watch mode...
 
-📊 세션 요약:
-   검증 실행: 2회
-   에러 발생: 0회
+📊 Session Summary:
+   Validations run: 2
+   Errors occurred: 0
 ```
 
-### 검증 비활성화
+### Disable Validation
 
 ```bash
 sdd watch --no-validate
 ```
 
-변경 감지만 하고 자동 검증은 실행하지 않습니다.
+Only detects changes without running auto-validation.
 
-### 조용한 모드
+### Quiet Mode
 
 ```bash
 sdd watch --quiet
 ```
 
-검증 성공 시 출력을 생략합니다. 에러나 경고만 표시됩니다.
+Suppresses output on validation success. Only shows errors and warnings.
 
-### 영향도 분석 포함
+### Include Impact Analysis
 
 ```bash
 sdd watch --impact
 ```
 
-변경된 스펙의 영향도 분석 결과도 함께 표시합니다:
+Also displays impact analysis results for changed specs:
 
 ```
-[14:35:20] 변경 감지: 수정 1
+[14:35:20] Change detected: 1 modified
   ✏️ user-auth/spec.md
 
-🔍 검증 실행 중...
-✅ 검증 통과
+🔍 Running validation...
+✅ Validation passed
 
-📊 영향도 분석:
-  • 직접 의존: user-profile, order-checkout
-  • 간접 의존: payment-flow
+📊 Impact Analysis:
+  • Direct dependencies: user-profile, order-checkout
+  • Indirect dependencies: payment-flow
 ```
 
-### 디바운스 시간 조정
+### Adjust Debounce Time
 
 ```bash
 sdd watch --debounce 2000
 ```
 
-연속된 변경에 대해 2초 후에 검증을 실행합니다.
+Runs validation 2 seconds after consecutive changes.
 
-## 이벤트 유형
+## Event Types
 
-| 아이콘 | 유형 | 설명 |
-|--------|------|------|
-| ➕ | add | 새 파일 추가 |
-| ✏️ | change | 파일 수정 |
-| ❌ | unlink | 파일 삭제 |
+| Icon | Type | Description |
+|------|------|-------------|
+| ➕ | add | New file added |
+| ✏️ | change | File modified |
+| ❌ | unlink | File deleted |
 
-## 사용 시나리오
+## Use Cases
 
-### 개발 중 실시간 피드백
+### Real-time Feedback During Development
 
-스펙을 작성하면서 실시간으로 검증 결과를 확인:
+Get real-time validation results while writing specs:
 
 ```bash
-# 터미널 1: watch 모드
+# Terminal 1: watch mode
 sdd watch
 
-# 터미널 2: 스펙 편집
+# Terminal 2: edit specs
 code .sdd/specs/user-auth/spec.md
 ```
 
-### CI 전 사전 검증
+### Pre-CI Validation
 
-PR 생성 전 로컬에서 모든 변경사항 검증:
+Validate all changes locally before creating a PR:
 
 ```bash
 sdd watch --quiet
-# 에디터에서 스펙 수정
-# 에러 없으면 커밋
+# Edit specs in editor
+# Commit if no errors
 ```
 
-## 관련 문서
+## Related Documentation
 
-- [sdd validate](/cli/validate) - 스펙 검증
-- [sdd sync](/cli/sync) - 동기화 검증
-- [sdd impact](/cli/impact) - 영향도 분석
+- [sdd validate](/cli/validate) - Spec validation
+- [sdd sync](/cli/sync) - Sync validation
+- [sdd impact](/cli/impact) - Impact analysis

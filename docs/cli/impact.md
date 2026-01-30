@@ -1,65 +1,65 @@
 # sdd impact
 
-스펙 변경의 영향도를 분석합니다.
+Analyzes the impact of spec changes.
 
-## 사용법
+## Usage
 
 ```bash
 sdd impact [spec-id] [options]
 ```
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--json` | JSON 형식으로 출력 |
-| `--depth <n>` | 분석 깊이 (기본: 3) |
-| `--code` | 코드 영향도 포함 |
-| `--report` | 상세 리포트 생성 |
+| Option | Description |
+|--------|-------------|
+| `--json` | Output in JSON format |
+| `--depth <n>` | Analysis depth (default: 3) |
+| `--code` | Include code impact |
+| `--report` | Generate detailed report |
 
-## 분석 항목
+## Analysis Items
 
-1. **스펙 의존성**: 해당 스펙에 의존하는 다른 스펙
-2. **코드 참조**: 스펙을 참조하는 소스 코드 파일
-3. **테스트 영향**: 관련 테스트 파일
-4. **도메인 영향**: 영향받는 도메인
+1. **Spec Dependencies**: Other specs that depend on this spec
+2. **Code References**: Source code files that reference this spec
+3. **Test Impact**: Related test files
+4. **Domain Impact**: Affected domains
 
-## 예시
+## Examples
 
-### 기본 영향도 분석
+### Basic Impact Analysis
 
 ```bash
 sdd impact user-auth
 ```
 
-출력:
+Output:
 ```
-=== 영향도 분석: user-auth ===
+=== Impact Analysis: user-auth ===
 
-📊 직접 의존:
+📊 Direct Dependencies:
   • user-profile (depends: user-auth)
   • order-checkout (depends: user-auth)
 
-🔗 간접 의존 (depth 2):
+🔗 Indirect Dependencies (depth 2):
   • payment-flow → order-checkout → user-auth
 
-📁 관련 코드:
+📁 Related Code:
   • src/auth/login.ts
   • src/auth/session.ts
   • src/middleware/auth.ts
 
-🧪 관련 테스트:
+🧪 Related Tests:
   • tests/auth/login.test.ts
   • tests/integration/auth.test.ts
 
-⚠️  영향 요약:
-  - 직접 의존: 2개 스펙
-  - 간접 의존: 1개 스펙
-  - 코드 파일: 3개
-  - 테스트 파일: 2개
+⚠️  Impact Summary:
+  - Direct dependencies: 2 specs
+  - Indirect dependencies: 1 spec
+  - Code files: 3
+  - Test files: 2
 ```
 
-### JSON 출력
+### JSON Output
 
 ```bash
 sdd impact user-auth --json
@@ -86,15 +86,15 @@ sdd impact user-auth --json
 }
 ```
 
-### 코드 영향도 포함
+### Include Code Impact
 
 ```bash
 sdd impact user-auth --code
 ```
 
-출력:
+Output:
 ```
-=== 코드 영향도 분석: user-auth ===
+=== Code Impact Analysis: user-auth ===
 
 📁 src/auth/login.ts
    Line 15: implements REQ-AUTH-001
@@ -107,21 +107,21 @@ sdd impact user-auth --code
    Line 23: depends on user-auth
 ```
 
-### 상세 리포트 생성
+### Generate Detailed Report
 
 ```bash
 sdd impact user-auth --report
 ```
 
-`.sdd/reports/impact-user-auth.md` 파일이 생성됩니다.
+Creates `.sdd/reports/impact-user-auth.md` file.
 
-## 영향도 시각화
+## Impact Visualization
 
 ```bash
 sdd impact user-auth --graph
 ```
 
-Mermaid 다이어그램 출력:
+Mermaid diagram output:
 ```mermaid
 graph TD
     user-auth --> user-profile
@@ -129,8 +129,8 @@ graph TD
     order-checkout --> payment-flow
 ```
 
-## 관련 문서
+## Related Documentation
 
-- [sdd change](/cli/change) - 변경 관리
-- [sdd domain](/cli/domain) - 도메인 관리
-- [sdd sync](/cli/sync) - 스펙-코드 동기화
+- [sdd change](/cli/change) - Change management
+- [sdd domain](/cli/domain) - Domain management
+- [sdd sync](/cli/sync) - Spec-code sync

@@ -1,47 +1,47 @@
 # sdd domain
 
-도메인을 관리하고 의존성 그래프를 시각화합니다.
+Manages domains and visualizes dependency graphs.
 
-## 사용법
+## Usage
 
 ```bash
 sdd domain <command> [options]
 ```
 
-## 명령어
+## Commands
 
 ### create
 
-새 도메인을 생성합니다.
+Creates a new domain.
 
 ```bash
 sdd domain create <name> [options]
 ```
 
-**옵션:**
+**Options:**
 
-| 옵션 | 설명 | 기본값 |
-|------|------|--------|
-| `--description`, `-d` | 도메인 설명 | - |
-| `--path`, `-p` | 소스 코드 경로 | `src/<name>` |
-| `--depends-on` | 의존하는 도메인 | - |
-| `--owner` | 도메인 소유자 | - |
-| `--tags` | 태그 (쉼표 구분) | - |
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--description`, `-d` | Domain description | - |
+| `--path`, `-p` | Source code path | `src/<name>` |
+| `--depends-on` | Dependent domain | - |
+| `--owner` | Domain owner | - |
+| `--tags` | Tags (comma-separated) | - |
 
-**예시:**
+**Examples:**
 
 ```bash
-# 기본 생성
+# Basic creation
 sdd domain create auth
 
-# 상세 옵션
+# With detailed options
 sdd domain create auth \
-  --description "인증 및 인가" \
+  --description "Authentication and authorization" \
   --path "src/auth" \
   --depends-on core \
   --owner "@security-team"
 
-# 여러 의존성
+# Multiple dependencies
 sdd domain create order \
   --depends-on core \
   --depends-on auth
@@ -49,21 +49,21 @@ sdd domain create order \
 
 ### list
 
-도메인 목록을 조회합니다.
+Lists domains.
 
 ```bash
 sdd domain list [options]
 ```
 
-**옵션:**
+**Options:**
 
-| 옵션 | 설명 |
-|------|------|
-| `--tree` | 의존성 트리로 표시 |
-| `--json` | JSON 형식 출력 |
-| `--verbose`, `-v` | 상세 정보 표시 |
+| Option | Description |
+|--------|-------------|
+| `--tree` | Display as dependency tree |
+| `--json` | JSON format output |
+| `--verbose`, `-v` | Show detailed information |
 
-**예시:**
+**Examples:**
 
 ```bash
 sdd domain list
@@ -71,57 +71,57 @@ sdd domain list --tree
 sdd domain list --json
 ```
 
-**출력 예시:**
+**Output example:**
 
 ```
-📁 도메인 목록 (5개)
+📁 Domain List (5 items)
 
-  core       핵심 기능 및 공통 유틸리티     3 스펙
-  auth       인증 및 인가                   4 스펙  → core
-  user       사용자 관리                    2 스펙  → core, auth
-  order      주문 및 결제                   5 스펙  → core, auth
-  payment    결제 처리                      3 스펙  → core, order
+  core       Core features and common utilities     3 specs
+  auth       Authentication and authorization       4 specs  → core
+  user       User management                        2 specs  → core, auth
+  order      Orders and payments                    5 specs  → core, auth
+  payment    Payment processing                     3 specs  → core, order
 ```
 
 ### show
 
-도메인 상세 정보를 표시합니다.
+Displays domain details.
 
 ```bash
 sdd domain show <name>
 ```
 
-**출력 예시:**
+**Output example:**
 
 ```
-📁 도메인: auth
+📁 Domain: auth
 
-설명: 인증 및 인가
-경로: src/auth
-소유자: @security-team
+Description: Authentication and authorization
+Path: src/auth
+Owner: @security-team
 
-스펙 (4개):
+Specs (4):
   ✅ user-login
   ✅ oauth-google
   🔄 session-management
   📝 mfa-setup
 
-의존성:
-  사용: core
-  사용됨: user, order
+Dependencies:
+  Uses: core
+  Used by: user, order
 
-태그: security, authentication
+Tags: security, authentication
 ```
 
 ### link
 
-스펙을 도메인에 연결합니다.
+Links specs to a domain.
 
 ```bash
 sdd domain link <domain> <spec>
 ```
 
-**예시:**
+**Examples:**
 
 ```bash
 sdd domain link auth user-login
@@ -130,13 +130,13 @@ sdd domain link auth oauth-google oauth-apple
 
 ### unlink
 
-스펙을 도메인에서 연결 해제합니다.
+Unlinks specs from a domain.
 
 ```bash
 sdd domain unlink <domain> <spec>
 ```
 
-**예시:**
+**Examples:**
 
 ```bash
 sdd domain unlink auth legacy-login
@@ -144,46 +144,46 @@ sdd domain unlink auth legacy-login
 
 ### depends
 
-도메인 의존성을 관리합니다.
+Manages domain dependencies.
 
 ```bash
 sdd domain depends <domain> --on <target> [options]
 ```
 
-**옵션:**
+**Options:**
 
-| 옵션 | 설명 |
-|------|------|
-| `--on` | 의존 대상 도메인 |
-| `--remove` | 의존성 제거 |
+| Option | Description |
+|--------|-------------|
+| `--on` | Target domain |
+| `--remove` | Remove dependency |
 
-**예시:**
+**Examples:**
 
 ```bash
-# 의존성 추가
+# Add dependency
 sdd domain depends order --on auth
 
-# 의존성 제거
+# Remove dependency
 sdd domain depends order --on legacy --remove
 ```
 
 ### graph
 
-의존성 그래프를 생성합니다.
+Generates dependency graph.
 
 ```bash
 sdd domain graph [options]
 ```
 
-**옵션:**
+**Options:**
 
-| 옵션 | 설명 | 기본값 |
-|------|------|--------|
-| `--format` | 출력 형식 (mermaid, dot, json) | mermaid |
-| `--output`, `-o` | 파일로 저장 | - |
-| `--direction` | 방향 (TD, LR, BT, RL) | LR |
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--format` | Output format (mermaid, dot, json) | mermaid |
+| `--output`, `-o` | Save to file | - |
+| `--direction` | Direction (TD, LR, BT, RL) | LR |
 
-**예시:**
+**Examples:**
 
 ```bash
 sdd domain graph
@@ -192,7 +192,7 @@ sdd domain graph --output graph.md
 sdd domain graph --direction TD
 ```
 
-**Mermaid 출력:**
+**Mermaid output:**
 
 ```mermaid
 graph LR
@@ -205,20 +205,20 @@ graph LR
 
 ### delete
 
-도메인을 삭제합니다.
+Deletes a domain.
 
 ```bash
 sdd domain delete <name> [options]
 ```
 
-**옵션:**
+**Options:**
 
-| 옵션 | 설명 |
-|------|------|
-| `--force` | 확인 없이 삭제 |
-| `--keep-specs` | 스펙은 유지 (도메인 연결만 해제) |
+| Option | Description |
+|--------|-------------|
+| `--force` | Delete without confirmation |
+| `--keep-specs` | Keep specs (unlink domain only) |
 
-**예시:**
+**Examples:**
 
 ```bash
 sdd domain delete legacy
@@ -228,13 +228,13 @@ sdd domain delete legacy --keep-specs
 
 ### rename
 
-도메인 이름을 변경합니다.
+Renames a domain.
 
 ```bash
 sdd domain rename <old-name> <new-name>
 ```
 
-**예시:**
+**Examples:**
 
 ```bash
 sdd domain rename auth authentication
@@ -242,51 +242,51 @@ sdd domain rename auth authentication
 
 ### lock / unlock
 
-도메인 잠금을 관리합니다.
+Manages domain locking.
 
 ```bash
 sdd domain lock <name> [options]
 sdd domain unlock <name>
 ```
 
-**옵션:**
+**Options:**
 
-| 옵션 | 설명 |
-|------|------|
-| `--reason` | 잠금 사유 |
-| `--until` | 잠금 기한 |
+| Option | Description |
+|--------|-------------|
+| `--reason` | Lock reason |
+| `--until` | Lock expiration |
 
-**예시:**
+**Examples:**
 
 ```bash
-sdd domain lock auth --reason "OAuth 리팩토링 진행 중"
+sdd domain lock auth --reason "OAuth refactoring in progress"
 sdd domain unlock auth
 ```
 
-## 전역 옵션
+## Global Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--help`, `-h` | 도움말 표시 |
-| `--quiet`, `-q` | 최소 출력 |
-| `--json` | JSON 형식 출력 |
+| Option | Description |
+|--------|-------------|
+| `--help`, `-h` | Show help |
+| `--quiet`, `-q` | Minimal output |
+| `--json` | JSON format output |
 
-## 설정 파일
+## Configuration File
 
-도메인은 `.sdd/domains.yml`에 저장됩니다:
+Domains are stored in `.sdd/domains.yml`:
 
 ```yaml
 version: "1.0"
 domains:
   core:
-    description: "핵심 기능"
+    description: "Core features"
     path: "src/core"
     specs:
       - data-model
       - validation
 
   auth:
-    description: "인증 및 인가"
+    description: "Authentication and authorization"
     path: "src/auth"
     specs:
       - user-login
@@ -296,8 +296,8 @@ domains:
     owner: "@security-team"
 ```
 
-## 관련 문서
+## Related Documentation
 
-- [도메인 시스템 가이드](../guide/domains.md)
+- [Domain System Guide](../guide/domains.md)
 - [sdd context](./context.md)
 - [sdd validate](./validate.md)

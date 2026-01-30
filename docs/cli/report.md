@@ -1,81 +1,81 @@
 # sdd report
 
-프로젝트 전체 리포트를 생성합니다.
+Generates a comprehensive project report.
 
-## 사용법
+## Usage
 
 ```bash
 sdd report [options]
 ```
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--json` | JSON 형식으로 출력 |
-| `--markdown` | 마크다운 파일로 저장 |
-| `-o, --output <file>` | 출력 파일 경로 |
-| `--include <sections>` | 포함할 섹션 (쉼표 구분) |
+| Option | Description |
+|--------|-------------|
+| `--json` | Output in JSON format |
+| `--markdown` | Save as markdown file |
+| `-o, --output <file>` | Output file path |
+| `--include <sections>` | Include specific sections (comma-separated) |
 
-## 리포트 섹션
+## Report Sections
 
-| 섹션 | 설명 |
-|------|------|
-| `summary` | 프로젝트 요약 |
-| `specs` | 스펙 현황 |
-| `domains` | 도메인 현황 |
-| `quality` | 품질 분석 |
-| `changes` | 변경 현황 |
-| `sync` | 동기화 상태 |
+| Section | Description |
+|---------|-------------|
+| `summary` | Project summary |
+| `specs` | Specs overview |
+| `domains` | Domains overview |
+| `quality` | Quality analysis |
+| `changes` | Changes overview |
+| `sync` | Sync status |
 
-## 예시
+## Examples
 
-### 기본 리포트
+### Basic Report
 
 ```bash
 sdd report
 ```
 
-출력:
+Output:
 ```
-=== SDD 프로젝트 리포트 ===
+=== SDD Project Report ===
 
-📅 생성일: 2025-01-07
+📅 Generated: 2025-01-07
 
-📊 프로젝트 요약:
-  • 총 스펙: 12개
-  • 도메인: 4개
-  • 평균 품질: 78/100
+📊 Project Summary:
+  • Total Specs: 12
+  • Domains: 4
+  • Average Quality: 78/100
 
-📋 스펙 상태:
-  • draft: 3개
-  • review: 2개
-  • approved: 5개
-  • implemented: 2개
+📋 Spec Status:
+  • draft: 3
+  • review: 2
+  • approved: 5
+  • implemented: 2
 
-🏷️ 도메인 분포:
-  • auth: 4개 스펙
-  • user: 3개 스펙
-  • order: 3개 스펙
-  • payment: 2개 스펙
+🏷️ Domain Distribution:
+  • auth: 4 specs
+  • user: 3 specs
+  • order: 3 specs
+  • payment: 2 specs
 
-🔄 변경 현황:
-  • 대기 중: 2개
-  • 이번 주 적용: 3개
+🔄 Changes Overview:
+  • Pending: 2
+  • Applied this week: 3
 
-🔗 동기화 상태:
-  • 동기화됨: 8개
-  • 불일치: 2개
-  • 미연결: 2개
+🔗 Sync Status:
+  • Synced: 8
+  • Out of sync: 2
+  • Unlinked: 2
 ```
 
-### 마크다운 파일로 저장
+### Save as Markdown
 
 ```bash
 sdd report --markdown -o ./reports/weekly.md
 ```
 
-### JSON 출력
+### JSON Output
 
 ```bash
 sdd report --json
@@ -113,16 +113,16 @@ sdd report --json
 }
 ```
 
-### 특정 섹션만 포함
+### Include Specific Sections Only
 
 ```bash
 sdd report --include summary,quality,sync
 ```
 
-## CI/CD 통합
+## CI/CD Integration
 
 ```yaml
-# GitHub Actions 예시
+# GitHub Actions example
 - name: Generate SDD Report
   run: |
     sdd report --json > sdd-report.json
@@ -134,8 +134,8 @@ sdd report --include summary,quality,sync
     path: sdd-report.json
 ```
 
-## 관련 문서
+## Related Documentation
 
-- [sdd quality](/cli/quality) - 품질 분석
-- [sdd status](/cli/status) - 상태 확인
-- [sdd sync](/cli/sync) - 동기화 검증
+- [sdd quality](/cli/quality) - Quality analysis
+- [sdd status](/cli/status) - Status check
+- [sdd sync](/cli/sync) - Sync validation

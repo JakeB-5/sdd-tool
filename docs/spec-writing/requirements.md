@@ -1,57 +1,57 @@
-# 요구사항 작성
+# Writing Requirements
 
-효과적인 요구사항 작성 방법을 안내합니다.
+A guide for writing effective requirements.
 
-## 요구사항 구조
+## Requirement Structure
 
 ```markdown
-### REQ-01: 요구사항 제목
+### REQ-01: Requirement Title
 
-- 시스템은 [동작]을 [조건]에서 [결과]해야 한다(SHALL)
+- The system SHALL [action] [result] under [condition]
 ```
 
-## ID 형식
+## ID Format
 
 ```
 REQ-XX
 ```
 
-- REQ: 요구사항 접두사
-- XX: 2자리 숫자 (01, 02, ...)
+- REQ: Requirement prefix
+- XX: 2-digit number (01, 02, ...)
 
-## 좋은 요구사항의 특성
+## Characteristics of Good Requirements
 
-### 1. 명확함 (Clear)
+### 1. Clear
 
-❌ 나쁜 예:
+Bad example:
 ```markdown
-시스템은 빠르게 응답해야 한다
+The system should respond quickly
 ```
 
-✅ 좋은 예:
+Good example:
 ```markdown
-시스템은 95%의 요청에 200ms 이내로 응답해야 한다(SHALL)
+The system SHALL respond within 200ms for 95% of requests
 ```
 
-### 2. 검증 가능 (Verifiable)
+### 2. Verifiable
 
-❌ 나쁜 예:
+Bad example:
 ```markdown
-시스템은 사용하기 쉬워야 한다
+The system should be easy to use
 ```
 
-✅ 좋은 예:
+Good example:
 ```markdown
-시스템은 3단계 이내로 주요 기능에 접근할 수 있어야 한다(SHALL)
+The system SHALL allow access to main features within 3 steps
 ```
 
-### 3. 독립적 (Independent)
+### 3. Independent
 
-각 요구사항은 독립적으로 구현/테스트 가능해야 합니다.
+Each requirement should be implementable/testable independently.
 
-### 4. 추적 가능 (Traceable)
+### 4. Traceable
 
-코드와 테스트에서 요구사항 ID를 참조합니다:
+Reference requirement IDs in code and tests:
 
 ```typescript
 /**
@@ -60,65 +60,65 @@ REQ-XX
 function login() {}
 ```
 
-## 카테고리별 요구사항
+## Requirements by Category
 
-### 기능 요구사항
-
-```markdown
-### REQ-01: 사용자 로그인
-
-- 시스템은 이메일/비밀번호 로그인을 지원해야 한다(SHALL)
-```
-
-### 보안 요구사항
+### Functional Requirements
 
 ```markdown
-### REQ-02: 비밀번호 저장
+### REQ-01: User Login
 
-- 시스템은 비밀번호를 bcrypt로 해시하여 저장해야 한다(SHALL)
-- 시스템은 평문 비밀번호를 로그에 기록해서는 안 된다(SHALL NOT)
+- The system SHALL support email/password login
 ```
 
-### 성능 요구사항
+### Security Requirements
 
 ```markdown
-### REQ-03: 응답 시간
+### REQ-02: Password Storage
 
-- 시스템은 API 응답을 500ms 이내로 반환해야 한다(SHALL)
-- 시스템은 1000 동시 사용자를 지원해야 한다(SHOULD)
+- The system SHALL hash passwords using bcrypt before storing
+- The system SHALL NOT log plaintext passwords
 ```
 
-### 접근성 요구사항
+### Performance Requirements
 
 ```markdown
-### REQ-04: 키보드 접근성
+### REQ-03: Response Time
 
-- 시스템은 모든 기능을 키보드로 사용할 수 있어야 한다(SHALL)
+- The system SHALL return API responses within 500ms
+- The system SHOULD support 1000 concurrent users
 ```
 
-## 우선순위 표시
+### Accessibility Requirements
 
 ```markdown
-### REQ-01: 로그인 [HIGH]
+### REQ-04: Keyboard Accessibility
 
-### REQ-02: 소셜 로그인 [MEDIUM]
-
-### REQ-03: 생체 인증 [LOW]
+- The system SHALL make all features accessible via keyboard
 ```
 
-## 의존성 표시
+## Priority Notation
 
 ```markdown
-### REQ-03: 비밀번호 재설정
+### REQ-01: Login [HIGH]
 
-- 시스템은 이메일로 재설정 링크를 발송해야 한다(SHALL)
-- **의존성**: REQ-01 (로그인)
+### REQ-02: Social Login [MEDIUM]
+
+### REQ-03: Biometric Auth [LOW]
 ```
 
-## 검증 체크리스트
+## Dependency Notation
 
-- [ ] RFC 2119 키워드 사용?
-- [ ] 검증 가능한 조건?
-- [ ] 구체적인 수치/기준?
-- [ ] 명확한 주어와 동사?
-- [ ] ID 형식 준수?
+```markdown
+### REQ-03: Password Reset
+
+- The system SHALL send reset link via email
+- **Dependency**: REQ-01 (Login)
+```
+
+## Validation Checklist
+
+- [ ] RFC 2119 keywords used?
+- [ ] Verifiable conditions?
+- [ ] Specific numbers/criteria?
+- [ ] Clear subject and verb?
+- [ ] ID format followed?

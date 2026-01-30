@@ -1,94 +1,94 @@
-# 컨텍스트 가이드
+# Context Guide
 
-대규모 프로젝트에서 작업 범위를 설정하는 컨텍스트 시스템 가이드입니다.
+A guide to the context system for setting work scope in large-scale projects.
 
-## 개요
+## Overview
 
-컨텍스트는 현재 작업 중인 도메인 범위를 정의합니다. 대규모 프로젝트에서 특정 영역에 집중하여 작업 효율을 높일 수 있습니다.
+Context defines the domain scope you're currently working on. It helps improve work efficiency by focusing on specific areas in large-scale projects.
 
-## 컨텍스트란?
+## What is Context?
 
-컨텍스트가 설정되면:
+When context is set:
 
-- 해당 도메인의 스펙만 표시됩니다
-- 의존 도메인은 읽기 전용으로 포함됩니다
-- AI 어시스턴트가 도메인 경계를 인식합니다
-- 새 스펙 생성 시 도메인이 자동 감지됩니다
+- Only specs from that domain are displayed
+- Dependent domains are included as read-only
+- AI assistant recognizes domain boundaries
+- Domain is auto-detected when creating new specs
 
-## 컨텍스트 설정
+## Setting Context
 
-### 단일 도메인
+### Single Domain
 
 ```bash
 sdd context set auth
 ```
 
-### 여러 도메인
+### Multiple Domains
 
 ```bash
 sdd context set auth order payment
 ```
 
-### 의존성 포함
+### Include Dependencies
 
 ```bash
 sdd context set auth --include-deps
 ```
 
-`auth`가 `core`에 의존하면 `core`도 읽기 전용으로 포함됩니다.
+If `auth` depends on `core`, `core` is also included as read-only.
 
-## 컨텍스트 조회
+## Viewing Context
 
-### 현재 상태
+### Current State
 
 ```bash
 sdd context show
 ```
 
-출력 예시:
+Example output:
 ```
-📍 현재 컨텍스트
+📍 Current Context
 
-활성 도메인:
-  ✏️  auth (수정 가능)
-  ✏️  order (수정 가능)
+Active Domains:
+  ✏️  auth (editable)
+  ✏️  order (editable)
 
-읽기 전용:
+Read-only:
   📖 core
 
-스펙 수: 12
+Spec count: 12
 ```
 
-### 스펙 목록
+### Spec List
 
 ```bash
 sdd context specs
 sdd context specs --status draft
 ```
 
-## 컨텍스트 관리
+## Context Management
 
-### 도메인 추가
+### Add Domain
 
 ```bash
 sdd context add payment
 ```
 
-### 도메인 제거
+### Remove Domain
 
 ```bash
 sdd context remove order
 ```
 
-### 컨텍스트 해제
+### Clear Context
 
 ```bash
 sdd context clear
 ```
 
-## 컨텍스트 파일
+## Context File
 
-상태는 `.sdd/.context.json`에 저장됩니다:
+State is saved in `.sdd/.context.json`:
 
 ```json
 {
@@ -98,109 +98,109 @@ sdd context clear
 }
 ```
 
-## 사용 사례
+## Use Cases
 
-### 1. 기능 개발 집중
+### 1. Focus on Feature Development
 
 ```bash
-# 인증 관련 작업
+# Auth-related work
 sdd context set auth
-sdd list                    # auth 스펙만 표시
-sdd new mfa-setup          # auth/mfa-setup으로 자동 생성
+sdd list                    # Shows only auth specs
+sdd new mfa-setup          # Auto-created as auth/mfa-setup
 ```
 
-### 2. 관련 도메인 통합 작업
+### 2. Cross-Domain Work
 
 ```bash
-# 결제 플로우 전체 작업
+# Work on entire payment flow
 sdd context set order payment --include-deps
 ```
 
-### 3. 리뷰 모드
+### 3. Review Mode
 
 ```bash
-# 특정 도메인 리뷰
+# Review specific domain
 sdd context set auth
-sdd validate                # auth 관련만 검증
+sdd validate                # Validates auth-related only
 ```
 
-## 컨텍스트와 다른 명령어
+## Context with Other Commands
 
 ### sdd new
 
-컨텍스트가 설정된 상태에서:
+With context set:
 
 ```bash
 sdd context set auth
-sdd new user-login          # → auth/user-login 생성
+sdd new user-login          # → Creates auth/user-login
 ```
 
 ### sdd list
 
 ```bash
 sdd context set auth
-sdd list                    # auth 도메인 스펙만 표시
-sdd list --all              # 전체 스펙 표시
+sdd list                    # Shows only auth domain specs
+sdd list --all              # Shows all specs
 ```
 
 ### sdd validate
 
 ```bash
 sdd context set auth
-sdd validate                # auth 관련 스펙만 검증
-sdd validate --all          # 전체 검증
+sdd validate                # Validates auth-related specs only
+sdd validate --all          # Full validation
 ```
 
-## 경고 시스템
+## Warning System
 
-컨텍스트 외부 도메인 수정 시:
+When modifying domains outside context:
 
 ```
-⚠️ 경고: payment 도메인은 현재 컨텍스트에 없습니다.
-계속하시겠습니까? [y/N]
+⚠️ Warning: payment domain is not in current context.
+Continue? [y/N]
 ```
 
-`--force` 옵션으로 우회:
+Bypass with `--force` option:
 
 ```bash
 sdd new payment/refund --force
 ```
 
-## 모범 사례
+## Best Practices
 
-### 작업 시작 시
+### At Work Start
 
 ```bash
-# 1. 작업할 도메인 설정
+# 1. Set domain to work on
 sdd context set auth
 
-# 2. 현재 상태 확인
+# 2. Check current state
 sdd context specs
 
-# 3. 작업 진행
+# 3. Proceed with work
 sdd new oauth-google
 ```
 
-### 작업 전환 시
+### When Switching Tasks
 
 ```bash
-# 1. 현재 컨텍스트 해제
+# 1. Clear current context
 sdd context clear
 
-# 2. 새 컨텍스트 설정
+# 2. Set new context
 sdd context set payment
 ```
 
-### 대규모 변경 시
+### For Large-Scale Changes
 
 ```bash
-# 의존성 포함하여 전체 파악
+# Include dependencies for full picture
 sdd context set order --include-deps
-sdd context specs           # 영향 범위 확인
+sdd context specs           # Check impact scope
 ```
 
-## 관련 문서
+## Related Documentation
 
-- [도메인 시스템](./domains.md)
-- [대규모 프로젝트](./large-projects.md)
+- [Domain System](./domains.md)
+- [Large Projects](./large-projects.md)
 - [CLI: context](../cli/context.md)

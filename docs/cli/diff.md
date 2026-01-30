@@ -1,72 +1,72 @@
 # sdd diff
 
-스펙 변경사항을 시각적으로 표시합니다.
+Displays spec changes visually.
 
-## 사용법
+## Usage
 
 ```bash
 sdd diff [commit1] [commit2] [options]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| `commit1` | 시작 커밋 (생략 시 HEAD) |
-| `commit2` | 끝 커밋 |
+| Argument | Description |
+|----------|-------------|
+| `commit1` | Start commit (HEAD if omitted) |
+| `commit2` | End commit |
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--staged` | 스테이징된 변경만 |
-| `--stat` | 통계 요약 |
-| `--json` | JSON 형식 출력 |
+| Option | Description |
+|--------|-------------|
+| `--staged` | Staged changes only |
+| `--stat` | Statistics summary |
+| `--json` | JSON format output |
 
-## 예시
+## Examples
 
-### 작업 디렉토리 변경
+### Working Directory Changes
 
 ```bash
 sdd diff
 ```
 
-### 스테이징된 변경
+### Staged Changes
 
 ```bash
 sdd diff --staged
 ```
 
-### 커밋 간 비교
+### Compare Between Commits
 
 ```bash
 sdd diff abc123 def456
 ```
 
-### 통계 요약
+### Statistics Summary
 
 ```bash
 sdd diff --stat
 ```
 
-## 출력 예시
+## Output Examples
 
-### 상세 출력
+### Detailed Output
 
 ```
 SDD Diff
 
 .sdd/specs/user-auth/spec.md
 
-  요구사항 변경:
-  + REQ-03: 비밀번호 재설정 (새로 추가)
-  ~ REQ-01: 로그인 (키워드 변경: SHOULD → SHALL)
+  Requirement Changes:
+  + REQ-03: Password Reset (newly added)
+  ~ REQ-01: Login (keyword changed: SHOULD → SHALL)
 
-  시나리오 변경:
-  + Scenario 3: 비밀번호 재설정 성공
+  Scenario Changes:
+  + Scenario 3: Password Reset Success
 ```
 
-### 통계 요약
+### Statistics Summary
 
 ```
 SDD Diff --stat
@@ -78,19 +78,19 @@ SDD Diff --stat
   + 2 scenarios added
 ```
 
-## 변경 유형
+## Change Types
 
-| 기호 | 의미 |
-|------|------|
-| `+` | 추가 |
-| `-` | 삭제 |
-| `~` | 수정 |
+| Symbol | Meaning |
+|--------|---------|
+| `+` | Added |
+| `-` | Removed |
+| `~` | Modified |
 
-## 키워드 변경 감지
+## Keyword Change Detection
 
-RFC 2119 키워드 변경을 특별히 강조합니다:
+RFC 2119 keyword changes are specially highlighted:
 
 ```
-REQ-01: 로그인
-  키워드: SHOULD → SHALL (강화됨)
+REQ-01: Login
+  Keyword: SHOULD → SHALL (strengthened)
 ```

@@ -1,88 +1,88 @@
 # /sdd.new
 
 ::: warning Deprecated
-이 커맨드는 `/sdd.spec`으로 대체되었습니다.  
-`/sdd.spec`은 새 기능 작성과 기존 스펙 수정을 자동으로 판단하여 적절한 워크플로우로 안내합니다.
+This command has been replaced by `/sdd.spec`.
+`/sdd.spec` automatically determines whether you're writing a new feature or modifying an existing spec, and guides you to the appropriate workflow.
 :::
 
-새 기능의 명세를 AI와 함께 작성합니다.
+Write specifications for a new feature with AI assistance.
 
-## 사용법
+## Usage
 
 ```
-/sdd.new [기능 설명]
+/sdd.new [feature description]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| 기능 설명 | 구현할 기능에 대한 설명 |
+| Argument | Description |
+|----------|-------------|
+| feature description | Description of the feature to implement |
 
-## 동작
+## Behavior
 
-AI가 대화를 통해 명세를 작성합니다:
+The AI writes the specification through conversation:
 
-1. 기능 목적 파악
-2. 요구사항 도출
-3. 시나리오 작성
-4. RFC 2119 키워드 적용
+1. Understand feature purpose
+2. Derive requirements
+3. Write scenarios
+4. Apply RFC 2119 keywords
 
-## 생성 파일
+## Generated File
 
 ```
 .sdd/specs/<feature-id>/spec.md
 ```
 
-## 예시
+## Example
 
 ```
-/sdd.new 사용자 인증 기능
+/sdd.new user authentication feature
 
-AI: 사용자 인증 기능의 명세를 작성해 드릴게요.
-    몇 가지 질문이 있습니다:
+AI: I'll write the specification for the user authentication feature.
+    I have a few questions:
 
-    1. 어떤 인증 방식을 사용하시나요? (JWT, 세션, OAuth)
-    2. 소셜 로그인이 필요한가요?
-    3. 비밀번호 정책은 어떻게 되나요?
+    1. What authentication method will you use? (JWT, session, OAuth)
+    2. Do you need social login?
+    3. What is your password policy?
 ```
 
-## 생성되는 spec.md
+## Generated spec.md
 
 ```markdown
 ---
 id: user-auth
-title: "사용자 인증"
+title: "User Authentication"
 status: draft
 created: 2025-12-24
 constitution_version: 1.0.0
 ---
 
-# 사용자 인증
+# User Authentication
 
-> JWT 기반 사용자 인증 시스템
+> JWT-based user authentication system
 
-## 요구사항
+## Requirements
 
-### REQ-01: 로그인
+### REQ-01: Login
 
-- 시스템은 이메일/비밀번호 로그인을 지원해야 한다(SHALL)
-- 로그인 실패 시 에러 메시지를 반환해야 한다(SHOULD)
+- The system SHALL support email/password login
+- The system SHOULD return an error message on login failure
 
-## 시나리오
+## Scenarios
 
-### Scenario 1: 성공적인 로그인
+### Scenario 1: Successful Login
 
-- **GIVEN** 유효한 사용자 계정이 있을 때
-- **WHEN** 올바른 이메일과 비밀번호로 로그인하면
-- **THEN** JWT 토큰이 반환된다
-- **AND** 토큰 만료 시간이 설정된다
+- **GIVEN** a valid user account exists
+- **WHEN** logging in with correct email and password
+- **THEN** a JWT token is returned
+- **AND** a token expiration time is set
 ```
 
-## 다음 단계
+## Next Steps
 
-명세 작성 후:
+After writing the spec:
 
 ```
-/sdd.plan  → 구현 계획 수립
+/sdd.plan  -> Create implementation plan
 ```

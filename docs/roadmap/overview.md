@@ -1,177 +1,177 @@
-# SDD Tool 로드맵 v2 (고도화)
+# SDD Tool Roadmap v2 (Enhancement)
 
-> **문서 버전**: v2.0
-> **작성일**: 2024-12-24
-> **기존 문서**: scaling-roadmap.md, enterprise-roadmap.md 통합 및 재구성
-
----
-
-## 도구의 본질 재정의
-
-### sdd-tool이 **아닌** 것
-
-```
-❌ CI/CD 도구
-❌ 코드 분석 엔진
-❌ 프로젝트 관리 도구
-❌ 엔터프라이즈 개발 플랫폼
-```
-
-### sdd-tool이 **맞는** 것
-
-```
-✅ Claude에게 "어떻게 생각하고, 어떤 순서로 개발하라"고 강제하는 프레임
-✅ 바이브 코딩 방지용 사고 구조화 툴
-✅ 사양 → 설계 → 태스크 → 코드 생성 파이프라인
-✅ AI와 인간의 합의점을 문서화하는 도구
-```
-
-### 핵심 강점 (유지해야 할 것)
-
-```
-• 설계 품질 상승
-• 초기 구조 안정화
-• 생각 누락 방지
-• 문서와 코드 동시 생성
-• 개인/소규모 생산성 향상
-```
+> **Document Version**: v2.0
+> **Created**: 2024-12-24
+> **Previous Documents**: scaling-roadmap.md, enterprise-roadmap.md merged and reorganized
 
 ---
 
-## 현실적 목표 재설정
+## Redefining the Tool's Essence
 
-### 기존 목표 (과도함)
-
-```
-Phase 0-5: 중규모 (5-15명)
-Phase 6-10: 엔터프라이즈 (15명+, 500개+ 스펙)
-```
-
-### 수정된 목표 (현실적)
+### What sdd-tool is **NOT**
 
 ```
-Phase 0-2: 소규모 최적화 (1-5명) ← 현재 최강 영역 강화
-Phase 3-5: 중규모 도달 (2-10명) ← 실질적 천장
-Phase 6+: 선택적 확장 (조건부) ← 필요시에만
+  CI/CD tool
+  Code analysis engine
+  Project management tool
+  Enterprise development platform
 ```
 
-### 규모별 적합성 (냉정한 평가)
-
-| 규모 | 적합도 | 전략 |
-|------|--------|------|
-| **1인 / 사이드** | ⭐⭐⭐⭐⭐ | 최강 영역, 더 강화 |
-| **소규모 (2-5명)** | ⭐⭐⭐⭐⭐ | 핵심 타겟 |
-| **중규모 (5-10명)** | ⭐⭐⭐⭐ | 도달 가능 목표 |
-| **중대규모 (10-20명)** | ⭐⭐⭐ | 기능 단위로만 |
-| **대규모 (20명+)** | ⭐⭐ | 보조 도구로만 |
-| **엔터프라이즈** | ⭐ | 주력 도입 불가 |
-
----
-
-## Phase 재구성
-
-### 개요
+### What sdd-tool **IS**
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Phase 0: 협업 기반 (Git 워크플로우)          [기존 유지]   │
-├─────────────────────────────────────────────────────────────┤
-│  Phase 1: 스펙 스코프 분리 ⭐⭐⭐                           │
-│    ├─ 1-G: Greenfield (수동 도메인 설정)      [신규]       │
-│    └─ 1-R: Reverse Extraction (레거시)        [신규]       │
-├─────────────────────────────────────────────────────────────┤
-│  Phase 2: 코드 컨텍스트 연결                   [신규]       │
-├─────────────────────────────────────────────────────────────┤
-│  Phase 3: 태스크 그래프 (DAG)                  [신규]       │
-├─────────────────────────────────────────────────────────────┤
-│  Phase 4: 변경 기반 작업 유도                  [신규]       │
-├─────────────────────────────────────────────────────────────┤
-│  Phase 5: 성능 최적화                          [기존 조정]  │
-├─────────────────────────────────────────────────────────────┤
-│  Phase 6+: 선택적 확장                         [기존 축소]  │
-└─────────────────────────────────────────────────────────────┘
+  A frame that forces Claude to "think in a certain way and develop in a certain order"
+  Anti-vibe coding thought structuring tool
+  Specification -> Design -> Task -> Code generation pipeline
+  A tool for documenting agreement points between AI and humans
 ```
 
-### 프로젝트 유형별 경로
+### Core Strengths (What to Maintain)
 
 ```
-Greenfield (신규 프로젝트):
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-│ Phase 0 │───▶│Phase 1-G│───▶│ Phase 2 │───▶│Phase 3-4│
-│   Git   │    │ 수동설정 │    │코드연결 │    │태스크DAG│
-└─────────┘    └─────────┘    └─────────┘    └─────────┘
-
-Brownfield (레거시 프로젝트):
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-│ Phase 0 │───▶│Phase 1-R│───▶│ Phase 2 │───▶│Phase 3-4│
-│   Git   │    │ 역추출  │    │코드연결 │    │태스크DAG│
-└─────────┘    └─────────┘    └─────────┘    └─────────┘
-                    │
-                    ▼
-              Serena MCP 활용
-              (30+ 언어 지원)
-```
-
-**핵심 인사이트**:
-- Phase 1-G와 1-R은 **동일한 출력물**을 생성 (domains.yml, domain.md, spec.md)
-- Phase 1-R은 코드에서 **자동 추출**하여 초안 생성
-- Phase 2부터는 경로가 **합류** (동일한 프로세스)
-
----
-
-## Phase 0: 협업 기반 (Git 워크플로우)
-
-> **상태**: 기존 유지, 내용 동일
-> **문서**: [scaling.md#phase-0](./scaling.md#phase-0-협업-기반-git-워크플로우)
-
-### 요약
-
-- 0.1 커밋 컨벤션 (spec, spec-update, constitution 타입)
-- 0.2 브랜치 전략 (spec/domain/name 패턴)
-- 0.3 스펙 변경 워크플로우
-- 0.4 Git Hooks 자동화
-- 0.5 .gitignore 및 Git 설정
-- 0.6 CI 연동
-
-### 우선순위
-
-```
-난이도: 낮음
-영향도: 높음 (협업의 기반)
-선행조건: 없음
+- Improved design quality
+- Early structure stabilization
+- Prevention of missed considerations
+- Simultaneous documentation and code generation
+- Individual/small team productivity improvement
 ```
 
 ---
 
-## Phase 1: 스펙 스코프 분리 ⭐⭐⭐
+## Realistic Goal Reset
 
-> **중규모 성공의 50%를 결정하는 핵심**
-> **두 가지 경로**: Greenfield(수동) vs Brownfield(역추출)
-
-### 문제 정의
+### Original Goals (Excessive)
 
 ```
-현재:
-- 스펙 하나가 프로젝트 전체를 덮음
-- 컨텍스트 폭발 (Claude가 전체를 기억 못함)
-- 수정 시 영향 범위 불명확
-- 레거시 프로젝트는 스펙 도입 장벽 높음
-
-결과:
-- Claude가 "다 만들었다"고 하지만 빠진 게 있음
-- 기존 코드 컨텍스트를 자동으로 이해 못함
-- 사람이 "컨텍스트 큐레이터" 역할 강제
-- 레거시 프로젝트 SDD 도입 포기
+Phase 0-5: Medium-scale (5-15 people)
+Phase 6-10: Enterprise (15+ people, 500+ specs)
 ```
 
-### 공통 출력물 (1-G, 1-R 동일)
-
-Phase 1의 두 경로 모두 **동일한 구조**를 생성합니다:
-
-**디렉토리 구조**:
+### Revised Goals (Realistic)
 
 ```
-현재:
+Phase 0-2: Small-scale optimization (1-5 people) <- Strengthen current best area
+Phase 3-5: Reach medium-scale (2-10 people) <- Practical ceiling
+Phase 6+: Optional expansion (conditional) <- Only when needed
+```
+
+### Suitability by Scale (Honest Assessment)
+
+| Scale | Suitability | Strategy |
+|-------|-------------|----------|
+| **1 person / Side project** | 5/5 | Best area, strengthen further |
+| **Small (2-5 people)** | 5/5 | Core target |
+| **Medium (5-10 people)** | 4/5 | Achievable goal |
+| **Medium-large (10-20 people)** | 3/5 | Feature units only |
+| **Large (20+ people)** | 2/5 | Supplementary tool only |
+| **Enterprise** | 1/5 | Not viable as primary tool |
+
+---
+
+## Phase Reorganization
+
+### Overview
+
+```
++-------------------------------------------------------------+
+|  Phase 0: Collaboration Foundation (Git Workflow)  [Existing] |
++-------------------------------------------------------------+
+|  Phase 1: Spec Scope Separation ***                          |
+|    +-- 1-G: Greenfield (Manual domain setup)      [New]      |
+|    +-- 1-R: Reverse Extraction (Legacy)           [New]      |
++-------------------------------------------------------------+
+|  Phase 2: Code Context Connection                  [New]      |
++-------------------------------------------------------------+
+|  Phase 3: Task Graph (DAG)                         [New]      |
++-------------------------------------------------------------+
+|  Phase 4: Change-based Work Guidance               [New]      |
++-------------------------------------------------------------+
+|  Phase 5: Performance Optimization          [Existing adj.]   |
++-------------------------------------------------------------+
+|  Phase 6+: Optional Expansion              [Existing reduced] |
++-------------------------------------------------------------+
+```
+
+### Paths by Project Type
+
+```
+Greenfield (New Projects):
++---------+    +---------+    +---------+    +---------+
+| Phase 0 |--->|Phase 1-G|--->| Phase 2 |--->|Phase 3-4|
+|   Git   |    | Manual  |    |Code Link|    |Task DAG |
++---------+    +---------+    +---------+    +---------+
+
+Brownfield (Legacy Projects):
++---------+    +---------+    +---------+    +---------+
+| Phase 0 |--->|Phase 1-R|--->| Phase 2 |--->|Phase 3-4|
+|   Git   |    | Reverse |    |Code Link|    |Task DAG |
++---------+    +---------+    +---------+    +---------+
+                    |
+                    v
+              Serena MCP Usage
+              (30+ language support)
+```
+
+**Key Insight**:
+- Phase 1-G and 1-R produce the **same output** (domains.yml, domain.md, spec.md)
+- Phase 1-R **auto-extracts** from code to generate drafts
+- Paths **converge** from Phase 2 (same process)
+
+---
+
+## Phase 0: Collaboration Foundation (Git Workflow)
+
+> **Status**: Existing, content unchanged
+> **Document**: [scaling.md#phase-0](./scaling.md#phase-0-collaboration-based-git-workflow)
+
+### Summary
+
+- 0.1 Commit conventions (spec, spec-update, constitution types)
+- 0.2 Branch strategy (spec/domain/name pattern)
+- 0.3 Spec change workflow
+- 0.4 Git Hooks automation
+- 0.5 .gitignore and Git configuration
+- 0.6 CI integration
+
+### Priority
+
+```
+Difficulty: Low
+Impact: High (foundation for collaboration)
+Prerequisites: None
+```
+
+---
+
+## Phase 1: Spec Scope Separation ***
+
+> **Determines 50% of medium-scale success**
+> **Two paths**: Greenfield (manual) vs Brownfield (reverse extraction)
+
+### Problem Definition
+
+```
+Current:
+- Single spec covers entire project
+- Context explosion (Claude can't remember everything)
+- Unclear impact scope on modifications
+- High barrier to SDD adoption for legacy projects
+
+Result:
+- Claude says "all done" but things are missing
+- Can't automatically understand existing code context
+- Humans forced to be "context curators"
+- Legacy projects abandon SDD adoption
+```
+
+### Common Output (Same for 1-G and 1-R)
+
+Both Phase 1 paths produce the **same structure**:
+
+**Directory Structure**:
+
+```
+Current:
 .sdd/
 ├── constitution.md
 └── specs/
@@ -180,78 +180,78 @@ Phase 1의 두 경로 모두 **동일한 구조**를 생성합니다:
         ├── plan.md
         └── tasks.md
 
-변경 후:
+After change:
 .sdd/
 ├── constitution.md
-├── domains.yml              # 도메인 정의
+├── domains.yml              # Domain definitions
 └── specs/
-    ├── core/                # 도메인
-    │   ├── domain.md        # 도메인 개요
-    │   └── data-model/      # 기능
+    ├── core/                # Domain
+    │   ├── domain.md        # Domain overview
+    │   └── data-model/      # Feature
     │       ├── spec.md
     │       └── ...
-    ├── auth/                # 도메인
+    ├── auth/                # Domain
     │   ├── domain.md
     │   ├── user-login/
     │   ├── oauth/
     │   └── session/
-    └── order/               # 도메인
+    └── order/               # Domain
         ├── domain.md
         ├── checkout/
         └── payment/
 ```
 
-**도메인 정의 파일**:
+**Domain Definition File**:
 
 ```yaml
 # .sdd/domains.yml
 domains:
   core:
-    name: "핵심 기능"
-    description: "데이터 모델, 공통 유틸리티"
+    name: "Core Features"
+    description: "Data models, common utilities"
     owners: ["@core-team"]
 
   auth:
-    name: "인증/인가"
-    description: "사용자 인증, 권한 관리"
+    name: "Authentication/Authorization"
+    description: "User authentication, permission management"
     owners: ["@security-team"]
     dependencies: [core]
 
   order:
-    name: "주문/결제"
-    description: "주문 처리, 결제 연동"
+    name: "Order/Payment"
+    description: "Order processing, payment integration"
     owners: ["@commerce-team"]
     dependencies: [core, auth]
 
-# 도메인 간 의존성 규칙
+# Inter-domain dependency rules
 rules:
   - from: order
     to: auth
     allowed: true
   - from: auth
     to: order
-    allowed: false  # 순환 방지
+    allowed: false  # Prevent cycles
 ```
 
-**도메인 개요 파일**:
+**Domain Overview File**:
 
 ```markdown
 <!-- .sdd/specs/auth/domain.md -->
-# Auth 도메인
+# Auth Domain
 
-## 개요
-사용자 인증 및 권한 관리를 담당하는 도메인
+## Overview
+Domain responsible for user authentication and permission management
 
-## 범위
-- 사용자 로그인/로그아웃
-- OAuth 2.0 연동
-- 세션 관리
-- 권한 검증
+## Scope
+- User login/logout
+- OAuth 2.0 integration
+- Session management
+- Permission verification
 
-## 의존성
-- core: User 엔티티, 공통 유틸리티
+## Dependencies
+- core: User entity, common utilities
 
-## 공개 인터페이스
+## Public Interface
 - AuthService.login()
 - AuthService.logout()
 - AuthService.verify()
@@ -259,278 +259,278 @@ rules:
 - SessionManager.validate()
 ```
 
-### CLI 변경
+### CLI Changes
 
 ```bash
-# 도메인 관리
-sdd domain list                    # 도메인 목록
-sdd domain show auth               # 도메인 상세
-sdd domain create billing          # 새 도메인
+# Domain management
+sdd domain list                    # List domains
+sdd domain show auth               # Domain details
+sdd domain create billing          # New domain
 
-# 도메인 기반 스펙 생성
-sdd new auth/mfa-setup             # auth 도메인에 mfa-setup 스펙
-sdd new order/refund               # order 도메인에 refund 스펙
+# Domain-based spec creation
+sdd new auth/mfa-setup             # mfa-setup spec in auth domain
+sdd new order/refund               # refund spec in order domain
 
-# 도메인 기반 작업
-sdd validate --domain auth         # auth 도메인만 검증
-sdd status --domain order          # order 도메인 상태
-sdd impact auth/user-login         # 도메인 내 영향도
+# Domain-based operations
+sdd validate --domain auth         # Validate auth domain only
+sdd status --domain order          # order domain status
+sdd impact auth/user-login         # Impact within domain
 
-# 컨텍스트 제한 (핵심!)
-sdd context auth                   # Claude에 auth 도메인만 로드
-sdd context auth order             # 복수 도메인 로드
-sdd context --current              # 현재 로드된 컨텍스트 확인
+# Context limiting (key!)
+sdd context auth                   # Load only auth domain for Claude
+sdd context auth order             # Load multiple domains
+sdd context --current              # Check currently loaded context
 ```
 
-### Claude 프롬프트 생성 변경
+### Claude Prompt Generation Change
 
 ```markdown
-현재:
-"전체 스펙을 읽고 구현하세요"
+Current:
+"Read all specs and implement"
 
-변경 후:
-"현재 컨텍스트: auth 도메인
-- 도메인 개요: auth/domain.md
-- 작업 대상: auth/user-login/spec.md
-- 의존성: core 도메인 (읽기 전용)
+After change:
+"Current context: auth domain
+- Domain overview: auth/domain.md
+- Work target: auth/user-login/spec.md
+- Dependencies: core domain (read-only)
 
-다른 도메인은 무시하세요. auth 범위 내에서만 작업하세요."
+Ignore other domains. Work only within auth scope."
 ```
 
-### 효과
+### Effects
 
 ```
-✅ Claude 컨텍스트 크기 제어 가능
-✅ "현재 작업 범위" 명확화
-✅ 팀별 독립 작업 가능
-✅ 영향 범위 추적 용이
-✅ 누락 가능성 대폭 감소
-✅ 레거시 프로젝트 SDD 도입 가능 (1-R)
+  Claude context size controllable
+  Clear "current work scope"
+  Teams can work independently
+  Easy to track impact scope
+  Greatly reduced chance of omissions
+  Legacy projects can adopt SDD (1-R)
 ```
 
 ---
 
-### Phase 1-G: Greenfield (수동 도메인 설정)
+### Phase 1-G: Greenfield (Manual Domain Setup)
 
-> **신규 프로젝트용 - 수동으로 도메인 구조 설계**
+> **For new projects - Manual domain structure design**
 
-**대상**:
-- 새로 시작하는 프로젝트
-- 기존 코드 없음 또는 리팩토링
+**Target**:
+- Projects starting fresh
+- No existing code or refactoring
 
-**워크플로우**:
+**Workflow**:
 
 ```bash
-# 1. 도메인 설계
-sdd domain create core          # 핵심 도메인
-sdd domain create auth          # 인증 도메인
-sdd domain create order         # 주문 도메인
+# 1. Domain design
+sdd domain create core          # Core domain
+sdd domain create auth          # Auth domain
+sdd domain create order         # Order domain
 
-# 2. 도메인 의존성 설정
+# 2. Set domain dependencies
 sdd domain link order --depends-on auth
 sdd domain link auth --depends-on core
 
-# 3. 스펙 작성
-sdd new auth/user-login         # 수동 스펙 작성
+# 3. Write specs
+sdd new auth/user-login         # Manual spec writing
 sdd new auth/oauth-google
 sdd new order/checkout
 ```
 
-**구현 체크리스트 (1-G)**:
+**Implementation Checklist (1-G)**:
 
 ```
-□ sdd domain create <name>
-□ sdd domain link --depends-on
-□ sdd new <domain>/<feature>
-□ domains.yml 수동 편집 지원
-□ domain.md 템플릿
+[ ] sdd domain create <name>
+[ ] sdd domain link --depends-on
+[ ] sdd new <domain>/<feature>
+[ ] domains.yml manual editing support
+[ ] domain.md template
 ```
 
-**우선순위 (1-G)**:
+**Priority (1-G)**:
 
 ```
-난이도: 낮음
-영향도: 높음
-선행조건: Phase 0
+Difficulty: Low
+Impact: High
+Prerequisites: Phase 0
 ```
 
 ---
 
-### Phase 1-R: Reverse Extraction (역방향 스펙 추출)
+### Phase 1-R: Reverse Extraction (Reverse Spec Extraction)
 
-> **레거시/브라운필드용 - 코드에서 스펙 자동 생성**
-> **핵심 전략: Serena MCP 활용**
+> **For legacy/brownfield - Auto-generate specs from code**
+> **Core Strategy: Serena MCP Usage**
 
-**대상**:
-- 기존 코드베이스가 있는 프로젝트
-- 스펙 문서 없이 운영 중인 레거시
-- SDD 도입 장벽을 낮추고 싶은 팀
+**Target**:
+- Projects with existing codebase
+- Legacy operating without spec documents
+- Teams wanting to lower SDD adoption barrier
 
-**Serena MCP 활용**:
+**Serena MCP Usage**:
 
-[Serena](https://github.com/oraios/serena)는 코드 분석 MCP 서버로:
+[Serena](https://github.com/oraios/serena) is an MCP server for code analysis:
 
 ```
-✅ 30개+ 언어 지원 (TS, Python, Java, Go, Rust, C++ 등)
-✅ 심볼 수준 코드 추출 (클래스, 함수, 변수)
-✅ 참조/의존성 관계 분석
-✅ IDE 수준의 시맨틱 분석
-✅ Claude Code/Desktop 네이티브 통합
+  30+ language support (Python, TS, Java, Go, Rust, C++ etc.)
+  Symbol-level code extraction (classes, functions, variables)
+  Reference/dependency relationship analysis
+  IDE-level semantic analysis
+  Native Claude Code/Desktop integration
 ```
 
-**직접 구현 vs Serena 활용**:
+**Direct Implementation vs Serena Usage**:
 
-| 항목 | 직접 구현 | Serena 활용 |
-|------|----------|-------------|
-| 개발 기간 | 16-23주 | **4-7주** |
-| 지원 언어 | TS/JS만 | **30개+** |
-| AST 파싱 | 직접 구현 | 불필요 |
-| 유지보수 | 언어별 업데이트 | Serena 담당 |
+| Item | Direct Implementation | Serena Usage |
+|------|----------------------|--------------|
+| Development period | 16-23 weeks | **4-7 weeks** |
+| Supported languages | TS/JS only | **30+** |
+| AST parsing | Implement directly | Not needed |
+| Maintenance | Language-specific updates | Serena handles |
 
-**워크플로우**:
+**Workflow**:
 
 ```bash
-# 1. 코드베이스 스캔
+# 1. Scan codebase
 sdd reverse scan
 
-# 출력:
-# 📁 src/
-# ├── 📁 auth/ (3 files, 450 LOC)
-# ├── 📁 order/ (5 files, 890 LOC)
-# └── 📁 core/ (8 files, 1200 LOC)
-# 💡 추천 도메인: auth, order, core
+# Output:
+# src/
+# +-- auth/ (3 files, 450 LOC)
+# +-- order/ (5 files, 890 LOC)
+# +-- core/ (8 files, 1200 LOC)
+# Suggested domains: auth, order, core
 
-# 2. 스펙 추출 (Serena MCP 활용)
+# 2. Extract specs (using Serena MCP)
 sdd reverse extract --depth deep --ai
 
-# 출력:
+# Output:
 # .sdd/
-# ├── domains.yml (자동 생성)
-# └── specs/
-#     ├── auth/
-#     │   ├── domain.md
-#     │   └── user-authentication/
-#     │       └── spec.md (신뢰도: 72%)
-#     └── order/
-#         └── ...
+# +-- domains.yml (auto-generated)
+# +-- specs/
+#     +-- auth/
+#     |   +-- domain.md
+#     |   +-- user-authentication/
+#     |       +-- spec.md (confidence: 72%)
+#     +-- order/
+#         +-- ...
 
-# 3. 검토 및 확정
-sdd reverse review              # 인터랙티브 검토
-sdd reverse finalize            # 확정
+# 3. Review and finalize
+sdd reverse review              # Interactive review
+sdd reverse finalize            # Finalize
 ```
 
-**추출 레벨**:
+**Extraction Levels**:
 
-| 레벨 | 추출 대상 | 자동화 | 신뢰도 |
-|------|----------|--------|--------|
-| 구조 | 디렉토리 → 도메인 | 100% | 높음 |
-| 인터페이스 | 함수 시그니처, 타입 | 90% | 높음 |
-| 동작 | 비즈니스 로직, 규칙 | 70% | 중간 |
-| 의도 | "왜 이렇게 구현?" | 50% | 낮음 (AI 필수) |
+| Level | Target | Automation | Confidence |
+|-------|--------|------------|------------|
+| Structure | Directory -> Domain | 100% | High |
+| Interface | Function signatures, types | 90% | High |
+| Behavior | Business logic, rules | 70% | Medium |
+| Intent | "Why implemented this way?" | 50% | Low (AI required) |
 
-**아키텍처**:
+**Architecture**:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                 sdd reverse extract                  │
-├─────────────────────────────────────────────────────┤
-│  SDD Tool        Serena MCP           SDD Tool      │
-│  ┌─────────┐     ┌─────────────┐     ┌───────────┐ │
-│  │ Scanner │────▶│ 심볼/참조   │────▶│ Generator │ │
-│  │(파일목록)│     │ 추출 (30+)  │     │(스펙 생성)│ │
-│  └─────────┘     └─────────────┘     └───────────┘ │
-│                        │                            │
-│                        ▼                            │
-│              Claude (의도 추론)                     │
-└─────────────────────────────────────────────────────┘
++-----------------------------------------------------+
+|                 sdd reverse extract                   |
++-----------------------------------------------------+
+|  SDD Tool        Serena MCP           SDD Tool       |
+|  +---------+     +-------------+     +-----------+   |
+|  | Scanner |--->| Symbol/Ref  |--->| Generator |   |
+|  |(file    |     | Extract(30+)|     |(Spec gen) |   |
+|  | list)   |     +-------------+     +-----------+   |
+|  +---------+           |                             |
+|                        v                             |
+|              Claude (Intent inference)               |
++-----------------------------------------------------+
 ```
 
-**리스크 완화**:
+**Risk Mitigation**:
 
 ```typescript
-// 추상화 레이어로 Serena 의존성 관리
+// Abstraction layer to manage Serena dependency
 interface CodeAnalyzer {
   findSymbols(query: string): Promise<Symbol[]>;
   findReferences(symbol: string): Promise<Reference[]>;
 }
 
 class SerenaAnalyzer implements CodeAnalyzer { ... }
-class FallbackAnalyzer implements CodeAnalyzer { ... }  // TS만
+class FallbackAnalyzer implements CodeAnalyzer { ... }  // TS only
 ```
 
-**구현 체크리스트 (1-R)**:
+**Implementation Checklist (1-R)**:
 
 ```
-□ Serena MCP 클라이언트 통합
-□ sdd reverse scan 명령어
-□ sdd reverse extract 명령어
-  □ --depth (shallow/medium/deep)
-  □ --ai (Claude 의도 추론)
-□ sdd reverse review (인터랙티브)
-□ sdd reverse finalize
-□ 신뢰도 표시 시스템
-□ .reverse-meta.json 생성
-□ 추상화 레이어 (Serena 폴백)
+[ ] Serena MCP client integration
+[ ] sdd reverse scan command
+[ ] sdd reverse extract command
+  [ ] --depth (shallow/medium/deep)
+  [ ] --ai (Claude intent inference)
+[ ] sdd reverse review (interactive)
+[ ] sdd reverse finalize
+[ ] Confidence display system
+[ ] .reverse-meta.json generation
+[ ] Abstraction layer (Serena fallback)
 ```
 
-**우선순위 (1-R)**:
+**Priority (1-R)**:
 
 ```
-난이도: 중 (Serena 덕분에 낮아짐)
-영향도: ⭐⭐⭐ 최상 (레거시 도입 장벽 해소)
-선행조건: Phase 0, Serena MCP 설치
+Difficulty: Medium (reduced thanks to Serena)
+Impact: *** Highest (removes legacy adoption barrier)
+Prerequisites: Phase 0, Serena MCP installation
 ```
 
-**상세 계획**: [역방향 스펙 추출 계획](./reverse-extraction.md)
+**Detailed Plan**: [Reverse Spec Extraction Plan](./reverse-extraction.md)
 
 ---
 
-### Phase 1 공통 구현
+### Phase 1 Common Implementation
 
 ```
-□ domains.yml 스키마 정의
-□ domain.md 템플릿
-□ sdd domain list/show 명령어
-□ sdd context 명령어 (컨텍스트 제한)
-□ 도메인 간 의존성 검증
-□ 슬래시 커맨드 업데이트
+[ ] domains.yml schema definition
+[ ] domain.md template
+[ ] sdd domain list/show commands
+[ ] sdd context command (context limiting)
+[ ] Inter-domain dependency validation
+[ ] Slash command updates
 ```
 
-### Phase 1 우선순위 요약
+### Phase 1 Priority Summary
 
-| 경로 | 대상 | 난이도 | 영향도 | 선행조건 |
-|------|------|--------|--------|----------|
-| **1-G** | Greenfield | 낮음 | 높음 | Phase 0 |
-| **1-R** | Brownfield | 중 | ⭐최상 | Phase 0 + Serena |
+| Path | Target | Difficulty | Impact | Prerequisites |
+|------|--------|------------|--------|---------------|
+| **1-G** | Greenfield | Low | High | Phase 0 |
+| **1-R** | Brownfield | Medium | *** Highest | Phase 0 + Serena |
 
-**권장 구현 순서**:
-1. Phase 1 공통 (domains.yml, domain.md) - **먼저**
-2. Phase 1-G (수동 도메인 설정) - **그다음** (간단)
-3. Phase 1-R (역추출) - **마지막** (Serena 통합 필요)
+**Recommended Implementation Order**:
+1. Phase 1 Common (domains.yml, domain.md) - **First**
+2. Phase 1-G (manual domain setup) - **Next** (simple)
+3. Phase 1-R (reverse extraction) - **Last** (requires Serena integration)
 
 ---
 
-## Phase 2: 코드 컨텍스트 연결
+## Phase 2: Code Context Connection
 
-> **신규 추가 - 기존 코드 누락 문제 해결**
+> **New addition - Solve existing code omission problem**
 
-### 문제 정의
+### Problem Definition
 
 ```
-현재:
-- 스펙만 있고 기존 코드와의 연결 없음
-- Claude가 "어떤 파일을 수정해야 하는지" 모름
-- 유지보수 시 변경 대상 누락
+Current:
+- Only specs exist, no connection to existing code
+- Claude doesn't know "which files to modify"
+- Missing change targets during maintenance
 
-결과:
-- "기존 코드에 이미 있는데 새로 만듦"
-- "수정해야 할 파일을 빠뜨림"
-- 사람이 직접 파일 목록을 알려줘야 함
+Result:
+- "Already exists in code but creates new one"
+- "Missed files that should be modified"
+- Humans must manually provide file lists
 ```
 
-### 해결책: 스펙 ↔ 코드 링크 메타데이터
+### Solution: Spec <-> Code Link Metadata
 
-**스펙 파일에 코드 링크 추가**:
+**Add code links to spec files**:
 
 ```yaml
 # spec.md frontmatter
@@ -549,10 +549,10 @@ code_links:
 ---
 ```
 
-**코드 컨텍스트 인덱스** (가벼운 수준):
+**Code Context Index** (lightweight):
 
 ```json
-// .sdd/code-index.json (자동 생성)
+// .sdd/code-index.json (auto-generated)
 {
   "files": {
     "src/auth/AuthService.ts": {
@@ -573,223 +573,223 @@ code_links:
 }
 ```
 
-### CLI 변경
+### CLI Changes
 
 ```bash
-# 코드 인덱스 관리
-sdd code index                     # 코드 인덱스 생성/갱신
-sdd code index --watch             # 변경 감지 자동 갱신
-sdd code show auth/user-login      # 스펙의 연결된 코드 표시
+# Code index management
+sdd code index                     # Create/update code index
+sdd code index --watch             # Auto-update on change detection
+sdd code show auth/user-login      # Show linked code for spec
 
-# 링크 관리
+# Link management
 sdd link auth/user-login src/auth/AuthService.ts
 sdd unlink auth/user-login src/old/OldAuth.ts
 
-# 영향도 분석 (코드 포함)
-sdd impact auth/user-login --code  # 코드 파일까지 영향도 분석
+# Impact analysis (including code)
+sdd impact auth/user-login --code  # Impact analysis including code files
 ```
 
-**Claude 프롬프트에 코드 컨텍스트 포함**:
+**Include code context in Claude prompts**:
 
 ```markdown
-## 현재 작업: auth/user-login 수정
+## Current Task: auth/user-login modification
 
-### 수정 대상 파일
+### Files to Modify
 - src/auth/AuthService.ts (implements)
 - src/auth/LoginController.ts (implements)
 
-### 관련 파일 (참조만)
+### Related Files (reference only)
 - src/core/User.ts
 - src/session/SessionManager.ts
 
-### 기존 코드 시그니처
+### Existing Code Signatures
 AuthService:
 - login(email: string, password: string): Promise<Session>
 - logout(sessionId: string): Promise<void>
 - verify(token: string): Promise<User>
 
-이 파일들을 수정하세요. 다른 파일은 건드리지 마세요.
+Modify these files. Do not touch other files.
 ```
 
-### 구현 체크리스트
+### Implementation Checklist
 
 ```
-□ code_links frontmatter 스키마
-□ sdd code index 명령어
-□ 코드 인덱스 자동 생성 (AST 파싱)
-□ sdd link/unlink 명령어
-□ sdd impact --code 확장
-□ Claude 프롬프트에 코드 컨텍스트 삽입
-□ 주석 기반 역방향 링크 (@spec auth/user-login)
+[ ] code_links frontmatter schema
+[ ] sdd code index command
+[ ] Auto-generate code index (AST parsing)
+[ ] sdd link/unlink commands
+[ ] sdd impact --code extension
+[ ] Insert code context into Claude prompts
+[ ] Comment-based reverse link (@spec auth/user-login)
 ```
 
-### 우선순위
+### Priority
 
 ```
-난이도: 중
-영향도: 높음 (유지보수 현실화)
-선행조건: Phase 1
+Difficulty: Medium
+Impact: High (makes maintenance realistic)
+Prerequisites: Phase 1
 ```
 
 ---
 
-## Phase 3: 태스크 그래프 (DAG)
+## Phase 3: Task Graph (DAG)
 
-> **신규 추가 - 선형 태스크 → 의존성 그래프**
+> **New addition - Linear tasks -> Dependency graph**
 
-### 문제 정의
+### Problem Definition
 
 ```
-현재:
-- tasks.md가 선형 체크리스트
-- "1번 끝나면 2번, 2번 끝나면 3번"
+Current:
+- tasks.md is a linear checklist
+- "When 1 is done, do 2, when 2 is done, do 3"
 
-문제:
-- 병렬 작업 불가능
-- 팀원 간 작업 분배 어려움
-- Claude에게 "지금 뭐부터 할지" 불명확
+Problem:
+- Parallel work not possible
+- Difficult to distribute work among team members
+- Unclear to Claude "what to do first now"
 ```
 
-### 해결책: DAG 기반 태스크 관리
+### Solution: DAG-based Task Management
 
-**tasks.md 형식 변경**:
+**tasks.md format change**:
 
 ```yaml
 # tasks.md
 tasks:
   - id: AUTH-01
-    title: "User 엔티티 정의"
+    title: "Define User entity"
     depends_on: []
     assignee: "@alice"
     status: done
 
   - id: AUTH-02
-    title: "AuthService 인터페이스"
+    title: "AuthService interface"
     depends_on: [AUTH-01]
     assignee: "@bob"
     status: in_progress
 
   - id: AUTH-03
-    title: "LoginController 구현"
+    title: "LoginController implementation"
     depends_on: [AUTH-02]
     status: pending
 
   - id: AUTH-04
-    title: "OAuth 연동"
-    depends_on: [AUTH-02]  # AUTH-03과 병렬 가능!
+    title: "OAuth integration"
+    depends_on: [AUTH-02]  # Can run parallel with AUTH-03!
     status: pending
 
   - id: AUTH-05
-    title: "통합 테스트"
-    depends_on: [AUTH-03, AUTH-04]  # 둘 다 끝나야 시작
+    title: "Integration tests"
+    depends_on: [AUTH-03, AUTH-04]  # Both must finish to start
     status: blocked
 ```
 
-**시각화**:
+**Visualization**:
 
 ```
-AUTH-01 (User 엔티티)
-    │
-    ▼
+AUTH-01 (User entity)
+    |
+    v
 AUTH-02 (AuthService)
-    │
-    ├────────────┐
-    ▼            ▼
+    |
+    +------------+
+    v            v
 AUTH-03       AUTH-04
 (Controller)  (OAuth)
-    │            │
-    └─────┬──────┘
-          ▼
+    |            |
+    +-----+------+
+          v
       AUTH-05
-    (통합 테스트)
+    (Integration tests)
 ```
 
-### CLI 변경
+### CLI Changes
 
 ```bash
-# 태스크 상태
-sdd tasks auth/user-login          # 태스크 목록 (그래프 표시)
-sdd tasks auth/user-login --ready  # 지금 시작 가능한 태스크
-sdd tasks auth/user-login --blocked # 블록된 태스크
+# Task status
+sdd tasks auth/user-login          # Task list (graph display)
+sdd tasks auth/user-login --ready  # Tasks ready to start now
+sdd tasks auth/user-login --blocked # Blocked tasks
 
-# 태스크 진행
-sdd task start AUTH-03             # 태스크 시작
-sdd task done AUTH-03              # 태스크 완료
-sdd task block AUTH-05 "AUTH-04 대기 중"
+# Task progress
+sdd task start AUTH-03             # Start task
+sdd task done AUTH-03              # Complete task
+sdd task block AUTH-05 "Waiting for AUTH-04"
 
-# 그래프 시각화
-sdd tasks auth/user-login --graph  # Mermaid 출력
-sdd tasks auth/user-login --visual # 브라우저에서 보기
+# Graph visualization
+sdd tasks auth/user-login --graph  # Mermaid output
+sdd tasks auth/user-login --visual # View in browser
 ```
 
-**Claude 프롬프트 개선**:
+**Claude prompt improvement**:
 
 ```markdown
-## 현재 실행 가능한 태스크
+## Currently Executable Tasks
 
-다음 태스크 중 하나를 선택하여 구현하세요:
+Choose one of the following tasks to implement:
 
-1. AUTH-03: LoginController 구현
-   - 선행 완료: AUTH-02 ✅
-   - 예상 파일: src/auth/LoginController.ts
+1. AUTH-03: LoginController implementation
+   - Prerequisite complete: AUTH-02
+   - Expected file: src/auth/LoginController.ts
 
-2. AUTH-04: OAuth 연동
-   - 선행 완료: AUTH-02 ✅
-   - 예상 파일: src/auth/OAuthProvider.ts
+2. AUTH-04: OAuth integration
+   - Prerequisite complete: AUTH-02
+   - Expected file: src/auth/OAuthProvider.ts
 
-## 블록된 태스크 (아직 안 됨)
-- AUTH-05: 통합 테스트 (AUTH-03, AUTH-04 완료 필요)
+## Blocked Tasks (not yet)
+- AUTH-05: Integration tests (needs AUTH-03, AUTH-04 complete)
 ```
 
-### 구현 체크리스트
+### Implementation Checklist
 
 ```
-□ tasks.yaml 스키마 (DAG 구조)
-□ 의존성 검증 (순환 감지)
-□ sdd tasks --ready 명령어
-□ sdd task start/done/block
-□ Mermaid 그래프 출력
-□ 브라우저 시각화
-□ Claude 프롬프트에 실행 가능 태스크 강조
+[ ] tasks.yaml schema (DAG structure)
+[ ] Dependency validation (cycle detection)
+[ ] sdd tasks --ready command
+[ ] sdd task start/done/block
+[ ] Mermaid graph output
+[ ] Browser visualization
+[ ] Highlight executable tasks in Claude prompts
 ```
 
-### 우선순위
+### Priority
 
 ```
-난이도: 중
-영향도: 높음 (팀 병렬 작업)
-선행조건: Phase 1
+Difficulty: Medium
+Impact: High (team parallel work)
+Prerequisites: Phase 1
 ```
 
 ---
 
-## Phase 4: 변경 기반 작업 유도
+## Phase 4: Change-based Work Guidance
 
-> **신규 추가 - 전체 재생성 ❌, 변경분만 처리 ⭕**
+> **New addition - Full regeneration NO, process only changes YES**
 
-### 문제 정의
+### Problem Definition
 
 ```
-현재:
-- 스펙 변경 시 "전체 다시 검토"
-- Claude가 변경되지 않은 부분도 재생성 시도
+Current:
+- When spec changes, "review everything again"
+- Claude tries to regenerate unchanged parts too
 
-문제:
-- 불필요한 토큰 소비
-- 기존 코드 덮어쓰기 위험
-- "뭐가 바뀌었는지" 파악 어려움
+Problem:
+- Unnecessary token consumption
+- Risk of overwriting existing code
+- Hard to understand "what changed"
 ```
 
-### 해결책: Spec Diff 기반 작업 유도
+### Solution: Spec Diff-based Work Guidance
 
-**스펙 변경 감지**:
+**Spec change detection**:
 
 ```bash
-sdd diff auth/user-login           # 마지막 커밋 대비 변경
-sdd diff auth/user-login --staged  # 스테이징 대비 변경
+sdd diff auth/user-login           # Changes from last commit
+sdd diff auth/user-login --staged  # Changes from staging
 ```
 
-**변경분 출력 예시**:
+**Change output example**:
 
 ```diff
 ## Requirements
@@ -802,325 +802,326 @@ sdd diff auth/user-login --staged  # 스테이징 대비 변경
 - REQ-003: Remember me checkbox (REMOVED)
 ```
 
-**자동 태스크 생성**:
+**Auto task generation**:
 
 ```bash
-sdd diff auth/user-login --tasks   # 변경분 기반 태스크 생성
+sdd diff auth/user-login --tasks   # Generate tasks based on changes
 ```
 
 ```yaml
-# 자동 생성된 태스크
+# Auto-generated tasks
 tasks:
   - id: CHANGE-01
     type: modify
     target: REQ-001
-    description: "비밀번호 길이 8 → 12로 변경"
+    description: "Change password length 8 -> 12"
     affected_code:
       - src/auth/validators/password.ts
 
   - id: CHANGE-02
     type: add
     target: REQ-004
-    description: "생체 인증 로그인 추가"
+    description: "Add biometric login"
 
   - id: CHANGE-03
     type: remove
     target: REQ-003
-    description: "Remember me 기능 제거"
+    description: "Remove Remember me feature"
     affected_code:
       - src/auth/LoginController.ts
       - src/auth/components/RememberMe.tsx
 ```
 
-**Claude 프롬프트**:
+**Claude prompt**:
 
 ```markdown
-## 스펙 변경 사항 (이것만 처리하세요)
+## Spec Changes (process only these)
 
-### 수정됨: REQ-001
-변경 전: Password must be 8 chars
-변경 후: Password must be 12 chars
+### Modified: REQ-001
+Before: Password must be 8 chars
+After: Password must be 12 chars
 
-영향 파일: src/auth/validators/password.ts
-→ 이 파일의 PASSWORD_MIN_LENGTH를 12로 변경하세요.
+Affected file: src/auth/validators/password.ts
+-> Change PASSWORD_MIN_LENGTH to 12 in this file.
 
-### 추가됨: REQ-004
-새 요구사항: Support biometric login
-→ 새 파일 생성이 필요합니다.
+### Added: REQ-004
+New requirement: Support biometric login
+-> New file creation needed.
 
-### 제거됨: REQ-003
-제거: Remember me checkbox
-영향 파일: src/auth/LoginController.ts
-→ rememberMe 관련 코드를 제거하세요.
+### Removed: REQ-003
+Removed: Remember me checkbox
+Affected file: src/auth/LoginController.ts
+-> Remove rememberMe related code.
 
-⚠️ 위 변경 사항 외에는 기존 코드를 수정하지 마세요.
+Do not modify existing code beyond the changes above.
 ```
 
-### 구현 체크리스트
+### Implementation Checklist
 
 ```
-□ sdd diff 명령어 (스펙 diff)
-□ 변경 타입 분류 (ADDED/MODIFIED/REMOVED)
-□ sdd diff --tasks (자동 태스크 생성)
-□ 영향받는 코드 자동 연결 (Phase 2 연동)
-□ Claude 프롬프트에 변경분만 강조
-□ "변경 없는 부분 건드리지 마" 강제
+[ ] sdd diff command (spec diff)
+[ ] Change type classification (ADDED/MODIFIED/REMOVED)
+[ ] sdd diff --tasks (auto task generation)
+[ ] Auto-link affected code (Phase 2 integration)
+[ ] Highlight only changes in Claude prompts
+[ ] Enforce "don't touch unchanged parts"
 ```
 
-### 우선순위
+### Priority
 
 ```
-난이도: 중
-영향도: 높음 (유지보수 핵심)
-선행조건: Phase 2
+Difficulty: Medium
+Impact: High (maintenance core)
+Prerequisites: Phase 2
 ```
 
 ---
 
-## Phase 5: 성능 최적화
+## Phase 5: Performance Optimization
 
-> **기존 Phase 1 조정 - 우선순위 하향**
+> **Existing Phase 1 adjusted - Priority lowered**
 
-### 변경 사항
-
-```
-기존: Phase 1 (최우선)
-변경: Phase 5 (Phase 1-4 이후)
-
-이유:
-- 스펙 100개 미만에서는 성능 문제 미미
-- 스코프 분리(Phase 1)가 성능보다 중요
-- 중규모에서도 인덱싱 없이 충분히 동작
-```
-
-### 포함 내용 (축소)
+### Changes
 
 ```
-5.1 인덱스 캐시 (선택적)
+Original: Phase 1 (top priority)
+Changed: Phase 5 (after Phase 1-4)
+
+Reason:
+- Performance issues minimal with under 100 specs
+- Scope separation (Phase 1) more important than performance
+- Works fine without indexing at medium scale
+```
+
+### Content (Reduced)
+
+```
+5.1 Index Cache (optional)
     - .sdd/index.json
-    - 스펙 100개+ 시에만 필요
+    - Only needed for 100+ specs
 
-5.2 검색 최적화 (선택적)
-    - 전문 검색
-    - 쿼리 DSL
+5.2 Search Optimization (optional)
+    - Full-text search
+    - Query DSL
 ```
 
-### 우선순위
+### Priority
 
 ```
-난이도: 중
-영향도: 중 (100개+ 스펙에서만 유의미)
-선행조건: Phase 1-4
-```
-
----
-
-## Phase 6+: 선택적 확장 (대폭 축소)
-
-> **기존 Phase 2-10 재평가**
-
-### 현실적 판단
-
-```
-기존 계획:
-- 도메인 분리 → Phase 1로 이동 (필수)
-- 리뷰 워크플로우 → 삭제 (Git PR로 충분)
-- 외부 연동 → 축소 (GitHub만)
-- 대시보드 → 삭제 (오버엔지니어링)
-- 서버 기반 → 삭제 (범위 초과)
-- RBAC → 삭제 (범위 초과)
-- 감사 로그 → 삭제 (범위 초과)
-```
-
-### 남는 것 (선택적)
-
-```
-6.1 GitHub Issues 연동 (선택)
-    - 스펙 → 이슈 동기화
-    - 간단한 수준만
-
-6.2 VSCode 확장 (선택)
-    - 스펙 미리보기
-    - @spec 자동완성
-
-6.3 멀티 에이전트 (미래)
-    - Spec Agent, Architect Agent 분리
-    - 대규모 필수지만, 현재 범위 초과
-```
-
-### 삭제/보류된 것
-
-```
-❌ SDD Server (플랫폼화 필요 = 새 제품)
-❌ PostgreSQL/Elasticsearch (오버엔지니어링)
-❌ RBAC/감사 로그 (엔터프라이즈 = 범위 초과)
-❌ 실시간 협업 (Git으로 충분)
-❌ 웹 대시보드 (터미널로 충분)
+Difficulty: Medium
+Impact: Medium (meaningful only at 100+ specs)
+Prerequisites: Phase 1-4
 ```
 
 ---
 
-## 우선순위 최종 정리
+## Phase 6+: Optional Expansion (Significantly Reduced)
 
-| Phase | 기능 | 난이도 | 영향도 | 필수 여부 |
-|-------|------|--------|--------|-----------|
-| **0** | Git 워크플로우 | 낮음 | 높음 | ✅ 필수 |
-| **1 공통** | 도메인 스키마 | 낮음 | 높음 | ✅ 필수 |
-| **1-G** | Greenfield (수동) | 낮음 | 높음 | ✅ 필수 |
-| **1-R** | Brownfield (역추출) | 중 | ⭐최상 | ⚠️ 조건부 |
-| **2** | 코드 컨텍스트 연결 | 중 | 높음 | ✅ 필수 |
-| **3** | 태스크 그래프 (DAG) | 중 | 높음 | ✅ 필수 |
-| **4** | 변경 기반 작업 유도 | 중 | 높음 | ✅ 필수 |
-| **5** | 성능 최적화 | 중 | 중 | ⚠️ 조건부 |
-| **6** | GitHub 연동 | 중 | 중 | ❌ 선택 |
-| **6** | VSCode 확장 | 높음 | 높음 | ❌ 선택 |
+> **Re-evaluation of existing Phase 2-10**
 
-### 의존성 그래프
+### Realistic Assessment
+
+```
+Original plan:
+- Domain separation -> Moved to Phase 1 (essential)
+- Review workflow -> Deleted (Git PR sufficient)
+- External integration -> Reduced (GitHub only)
+- Dashboard -> Deleted (over-engineering)
+- Server-based -> Deleted (out of scope)
+- RBAC -> Deleted (out of scope)
+- Audit logs -> Deleted (out of scope)
+```
+
+### What Remains (Optional)
+
+```
+6.1 GitHub Issues Integration (optional)
+    - Spec -> Issue sync
+    - Simple level only
+
+6.2 VSCode Extension (optional)
+    - Spec preview
+    - @spec autocomplete
+
+6.3 Multi-agent (future)
+    - Separate Spec Agent, Architect Agent
+    - Essential for large-scale but currently out of scope
+```
+
+### Deleted/Deferred Items
+
+```
+  SDD Server (platformization needed = new product)
+  PostgreSQL/Elasticsearch (over-engineering)
+  RBAC/Audit logs (enterprise = out of scope)
+  Real-time collaboration (Git sufficient)
+  Web dashboard (terminal sufficient)
+```
+
+---
+
+## Final Priority Summary
+
+| Phase | Feature | Difficulty | Impact | Required |
+|-------|---------|------------|--------|----------|
+| **0** | Git Workflow | Low | High | Required |
+| **1 Common** | Domain Schema | Low | High | Required |
+| **1-G** | Greenfield (manual) | Low | High | Required |
+| **1-R** | Brownfield (reverse) | Medium | *** Highest | Conditional |
+| **2** | Code Context Connection | Medium | High | Required |
+| **3** | Task Graph (DAG) | Medium | High | Required |
+| **4** | Change-based Work Guidance | Medium | High | Required |
+| **5** | Performance Optimization | Medium | Medium | Conditional |
+| **6** | GitHub Integration | Medium | Medium | Optional |
+| **6** | VSCode Extension | High | High | Optional |
+
+### Dependency Graph
 
 ```
 Phase 0 (Git)
-    │
-    ├───────────────────────┐
-    ▼                       ▼
-Phase 1 공통 ◄───────────────┘
+    |
+    +------------------------+
+    v                        v
+Phase 1 Common <-------------+
 (domains.yml, domain.md)
-    │
-    ├──────────────────┐
-    ▼                  ▼
+    |
+    +------------------+
+    v                  v
 Phase 1-G          Phase 1-R
-(수동 설정)        (역추출, Serena)
-    │                  │
-    └────────┬─────────┘
-             ▼
-         Phase 2 ◄──────── (합류 지점)
-    (코드 컨텍스트 연결)
-             │
-             ▼
+(manual setup)     (reverse, Serena)
+    |                  |
+    +--------+---------+
+             v
+         Phase 2 <-------- (convergence point)
+    (Code context connection)
+             |
+             v
          Phase 3
-      (태스크 DAG)
-             │
-             ▼
+      (Task DAG)
+             |
+             v
          Phase 4
-    (변경 기반 작업)
-             │
-    ┌────────┴────────┐
-    ▼                 ▼
+    (Change-based work)
+             |
+    +--------+--------+
+    v                 v
 Phase 5            Phase 6
-(성능, 조건부)     (확장, 선택)
+(Performance,      (Expansion,
+ conditional)       optional)
 ```
 
 ---
 
-## 마일스톤
+## Milestones
 
-### v1.x: 소규모 최적화 (현재)
-
-```
-✅ 기본 CLI
-✅ 스펙 검증 (RFC 2119, GIVEN-WHEN-THEN)
-✅ Constitution 시스템
-✅ 영향도 분석 (기본)
-✅ 내보내기 (HTML/JSON/MD)
-```
-
-### v2.0: 중규모 기반 (Phase 0 + 1)
+### v1.x: Small-scale Optimization (Current)
 
 ```
-□ Phase 0: Git 워크플로우
-□ Phase 1 공통: domains.yml, domain.md 스키마
-□ Phase 1-G: Greenfield 도메인 설정
+  Basic CLI
+  Spec validation (RFC 2119, GIVEN-WHEN-THEN)
+  Constitution system
+  Impact analysis (basic)
+  Export (HTML/JSON/MD)
 ```
 
-**목표**: 신규 프로젝트에서 도메인 단위 스펙 관리
-
-### v2.1: 레거시 도입 경로 (Phase 1-R)
+### v2.0: Medium-scale Foundation (Phase 0 + 1)
 
 ```
-□ Serena MCP 통합
-□ Phase 1-R: 역방향 스펙 추출
-  □ sdd reverse scan/extract/review/finalize
-  □ 신뢰도 시스템
-  □ 검토 워크플로우
+[ ] Phase 0: Git Workflow
+[ ] Phase 1 Common: domains.yml, domain.md schema
+[ ] Phase 1-G: Greenfield domain setup
 ```
 
-**목표**: 레거시 프로젝트 SDD 도입 장벽 해소
+**Goal**: Domain-based spec management in new projects
 
-### v2.5: 유지보수 강화 (Phase 2 + 3)
-
-```
-□ Phase 2: 코드 컨텍스트 연결
-  □ spec ↔ code 링크
-  □ sdd code index
-□ Phase 3: 태스크 그래프 (DAG)
-  □ 의존성 기반 태스크
-  □ 병렬 작업 지원
-```
-
-**목표**: 2-5명 팀 안정적 운영
-
-### v3.0: 중규모 완성 (Phase 4)
+### v2.1: Legacy Adoption Path (Phase 1-R)
 
 ```
-□ Phase 4: 변경 기반 작업 유도
-  □ sdd diff (스펙 변경 감지)
-  □ 변경분 → 자동 태스크
+[ ] Serena MCP integration
+[ ] Phase 1-R: Reverse spec extraction
+  [ ] sdd reverse scan/extract/review/finalize
+  [ ] Confidence system
+  [ ] Review workflow
 ```
 
-**목표**: 5-10명 팀까지 확장
+**Goal**: Remove legacy project SDD adoption barrier
 
-### v3.5: 선택적 확장 (Phase 5-6)
+### v2.5: Maintenance Enhancement (Phase 2 + 3)
 
 ```
-□ Phase 5: 성능 최적화 (조건부)
-□ Phase 6: GitHub 연동, VSCode 확장 (선택)
+[ ] Phase 2: Code context connection
+  [ ] spec <-> code link
+  [ ] sdd code index
+[ ] Phase 3: Task graph (DAG)
+  [ ] Dependency-based tasks
+  [ ] Parallel work support
 ```
 
-**목표**: 사용성 개선 및 생태계 확장
+**Goal**: Stable operation for 2-5 person teams
+
+### v3.0: Medium-scale Completion (Phase 4)
+
+```
+[ ] Phase 4: Change-based work guidance
+  [ ] sdd diff (spec change detection)
+  [ ] Change -> auto task
+```
+
+**Goal**: Scale to 5-10 person teams
+
+### v3.5: Optional Expansion (Phase 5-6)
+
+```
+[ ] Phase 5: Performance optimization (conditional)
+[ ] Phase 6: GitHub integration, VSCode extension (optional)
+```
+
+**Goal**: Usability improvement and ecosystem expansion
 
 ---
 
-## 기존 문서와의 관계
+## Relationship with Existing Documents
 
-| 기존 문서 | 상태 | 비고 |
-|-----------|------|------|
-| scaling-roadmap.md | 유지 | Phase 0 상세 내용 참조 |
-| enterprise-roadmap.md | 보류 | 범위 초과, 참고용으로만 |
-| limitations.md | 유지 | 현실적 한계 명시 |
-| reverse-spec-plan.md | 신규 | Phase 1-R 상세 계획 |
-| roadmap-v2.md (본 문서) | 신규 | 고도화된 로드맵 (통합) |
-
----
-
-## 핵심 메시지
-
-### 이 도구의 올바른 위치
-
-```
-"작지만 똑똑한 메스"
-"엔터프라이즈를 베는 전기톱은 아님"
-```
-
-### 현실적 목표
-
-```
-소규모~중규모 신규 개발용으로 최강의 도구
-범용 대형 프로젝트 프레임으로는 한계
-```
-
-### 집중할 것
-
-```
-✅ Phase 1-G: 도메인 분리 (Greenfield 기반)
-✅ Phase 1-R: 역방향 추출 (Brownfield 도입 장벽 해소)
-✅ Phase 2-4: 기존 코드 연결 + 변경 관리
-❌ 엔터프라이즈 기능 욕심 버리기
-```
+| Existing Document | Status | Notes |
+|-------------------|--------|-------|
+| scaling-roadmap.md | Maintained | Reference for Phase 0 details |
+| enterprise-roadmap.md | Deferred | Out of scope, reference only |
+| limitations.md | Maintained | Explicitly state realistic limits |
+| reverse-spec-plan.md | New | Phase 1-R detailed plan |
+| roadmap-v2.md (this document) | New | Enhanced roadmap (integrated) |
 
 ---
 
-## 관련 문서
+## Core Message
 
-- [현재 한계점](./current-limits.md)
-- [스케일업 로드맵 (Phase 0 상세)](./scaling.md)
-- [역방향 스펙 추출 계획 (Phase 1-R 상세)](./reverse-extraction.md)
-- [엔터프라이즈 로드맵 (참고용)](./enterprise.md)
+### This Tool's Proper Position
+
+```
+"A small but smart scalpel"
+"Not a chainsaw for cutting enterprise"
+```
+
+### Realistic Goals
+
+```
+The best tool for small to medium new development
+Limited as a general-purpose large project framework
+```
+
+### What to Focus On
+
+```
+  Phase 1-G: Domain separation (Greenfield foundation)
+  Phase 1-R: Reverse extraction (Remove brownfield adoption barrier)
+  Phase 2-4: Existing code connection + change management
+  Give up enterprise feature ambitions
+```
+
+---
+
+## Related Documentation
+
+- [Current Limitations](./current-limits.md)
+- [Scaling Roadmap (Phase 0 details)](./scaling.md)
+- [Reverse Spec Extraction Plan (Phase 1-R details)](./reverse-extraction.md)
+- [Enterprise Roadmap (reference)](./enterprise.md)

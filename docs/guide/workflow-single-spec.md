@@ -1,128 +1,128 @@
-# 단일 스펙 변경 워크플로우
+# Single Spec Change Workflow
 
-하나의 스펙을 생성하거나 수정할 때의 워크플로우입니다.
+Workflow for creating or modifying a single spec.
 
-## 개요
+## Overview
 
 ```
-브랜치 생성 → 스펙 작성 → 검증 → 커밋 → PR → 리뷰 → 병합
+Create branch → Write spec → Validate → Commit → PR → Review → Merge
 ```
 
 ---
 
-## 단계별 가이드
+## Step-by-Step Guide
 
-### 1. 브랜치 생성
+### 1. Create Branch
 
 ```bash
-# main에서 새 브랜치 생성
+# Create new branch from main
 git checkout main
 git pull origin main
 git checkout -b spec/auth/user-login
 ```
 
-### 2. 스펙 작성
+### 2. Write Spec
 
 ```bash
-# 새 스펙 생성
+# Create new spec
 sdd new auth/user-login
 
-# 또는 기존 스펙 수정
-# .sdd/specs/auth/user-login/spec.md 편집
+# Or modify existing spec
+# Edit .sdd/specs/auth/user-login/spec.md
 ```
 
-### 3. 로컬 검증
+### 3. Local Validation
 
 ```bash
-# 스펙 검증
+# Validate spec
 sdd validate auth/user-login
 
-# 전체 검증 (의존성 포함)
+# Full validation (including dependencies)
 sdd validate
 
-# Constitution 준수 확인
+# Constitution compliance check
 sdd validate --constitution
 ```
 
-### 4. 커밋
+### 4. Commit
 
 ```bash
-# 변경 파일 확인
+# Check changed files
 git status
 
-# 스테이징
+# Stage
 git add .sdd/specs/auth/user-login/
 
-# 커밋 (컨벤션 준수)
+# Commit (follow convention)
 git commit -m "spec(auth/user-login): add user login specification
 
-이메일/비밀번호 기반 로그인 명세:
-- 입력 검증 규칙
-- 세션 생성 정책
-- 실패 시나리오 정의
+Email/password based login spec:
+- Input validation rules
+- Session creation policy
+- Failure scenarios defined
 
 Depends-On: core/user-model"
 ```
 
-### 5. 푸시
+### 5. Push
 
 ```bash
 git push -u origin spec/auth/user-login
 ```
 
-### 6. PR 생성
+### 6. Create PR
 
 ```bash
-# GitHub CLI 사용
+# Using GitHub CLI
 gh pr create \
   --title "spec(auth): user-login specification" \
-  --body "## 개요
-사용자 로그인 기능 명세
+  --body "## Overview
+User login feature specification
 
-## 변경 내용
-- 새 스펙: auth/user-login
+## Changes
+- New spec: auth/user-login
 
-## 체크리스트
-- [x] sdd validate 통과
-- [x] 의존성 명시
-- [ ] 리뷰어 승인"
+## Checklist
+- [x] sdd validate passed
+- [x] Dependencies specified
+- [ ] Reviewer approval"
 ```
 
-### 7. 리뷰 & 수정
+### 7. Review & Revise
 
-리뷰 피드백 반영:
+Reflect review feedback:
 
 ```bash
-# 수정
-# spec.md 편집
+# Make modifications
+# Edit spec.md
 
-# 재검증
+# Re-validate
 sdd validate auth/user-login
 
-# 추가 커밋
+# Additional commit
 git add .
 git commit -m "spec-update(auth/user-login): address review feedback
 
-- REQ-003 명확화
-- 시나리오 2 수정"
+- Clarified REQ-003
+- Modified scenario 2"
 
 git push
 ```
 
-### 8. 병합
+### 8. Merge
 
-PR 승인 후:
+After PR approval:
 
 ```bash
-# GitHub에서 Squash and merge
-# 또는 CLI로
+# Squash and merge on GitHub
+# Or via CLI
 gh pr merge --squash
 ```
 
-### 9. 정리
+### 9. Cleanup
 
 ```bash
-# 로컬 브랜치 삭제
+# Delete local branch
 git checkout main
 git pull
 git branch -d spec/auth/user-login
@@ -130,28 +130,28 @@ git branch -d spec/auth/user-login
 
 ---
 
-## 전체 명령어 요약
+## Command Summary
 
 ```bash
-# 1. 브랜치 생성
+# 1. Create branch
 git checkout main && git pull
 git checkout -b spec/auth/user-login
 
-# 2. 스펙 작성
+# 2. Write spec
 sdd new auth/user-login
 
-# 3. 검증
+# 3. Validate
 sdd validate auth/user-login
 
-# 4. 커밋 & 푸시
+# 4. Commit & push
 git add .sdd/specs/auth/user-login/
 git commit -m "spec(auth/user-login): add user login specification"
 git push -u origin spec/auth/user-login
 
-# 5. PR
+# 5. Create PR
 gh pr create --title "spec(auth): user-login"
 
-# 6. 병합 후 정리
+# 6. After merge, cleanup
 gh pr merge --squash
 git checkout main && git pull
 git branch -d spec/auth/user-login
@@ -159,60 +159,60 @@ git branch -d spec/auth/user-login
 
 ---
 
-## 모범 사례
+## Best Practices
 
-### 스펙 작성
+### Writing Specs
 
-- **한 스펙 = 한 기능**: 범위를 명확하게
-- **의존성 명시**: `depends_on` 필드 사용
-- **GIVEN-WHEN-THEN**: 시나리오는 구체적으로
+- **One spec = One feature**: Keep scope clear
+- **Specify dependencies**: Use `depends_on` field
+- **GIVEN-WHEN-THEN**: Be specific with scenarios
 
-### 커밋
+### Commits
 
-- **작은 단위**: 논리적 변경 단위로
-- **컨벤션 준수**: `spec(scope): message` 형식
-- **본문 활용**: 변경 이유 설명
+- **Small units**: Logical change units
+- **Follow convention**: `spec(scope): message` format
+- **Use body**: Explain reasons for changes
 
-### 리뷰
+### Review
 
-- **자가 검증**: PR 전 `sdd validate`
-- **설명 포함**: PR 본문에 맥락 제공
-- **빠른 반응**: 피드백에 신속하게 대응
+- **Self-validate**: Run `sdd validate` before PR
+- **Include explanation**: Provide context in PR body
+- **Quick response**: Respond promptly to feedback
 
 ---
 
-## 문제 해결
+## Troubleshooting
 
-### 검증 실패
+### Validation Failure
 
 ```bash
-# 오류 확인
+# Check errors
 sdd validate auth/user-login --verbose
 
-# 일반적인 원인:
-# - MUST/SHOULD 키워드 누락
-# - GIVEN-WHEN-THEN 형식 오류
-# - 의존성 스펙 미존재
+# Common causes:
+# - Missing MUST/SHOULD keywords
+# - GIVEN-WHEN-THEN format errors
+# - Dependency spec doesn't exist
 ```
 
-### 커밋 훅 실패
+### Commit Hook Failure
 
 ```bash
-# 커밋 메시지 형식 확인
-# 올바른 형식: spec(auth/user-login): message
+# Check commit message format
+# Correct format: spec(auth/user-login): message
 
-# 훅 우회 (권장하지 않음)
+# Bypass hook (not recommended)
 git commit --no-verify
 ```
 
-### 충돌 발생
+### Conflict Occurred
 
 ```bash
-# main 최신화
+# Update main
 git fetch origin
 git rebase origin/main
 
-# 충돌 해결 후
+# After resolving conflicts
 sdd validate auth/user-login
 git add .
 git rebase --continue
@@ -220,8 +220,8 @@ git rebase --continue
 
 ---
 
-## 관련 문서
+## Related Documentation
 
-- [커밋 컨벤션](./commit-convention.md)
-- [브랜치 전략](./branch-strategy.md)
-- [다중 스펙 워크플로우](./workflow-bundle-spec.md)
+- [Commit Convention](./commit-convention.md)
+- [Branch Strategy](./branch-strategy.md)
+- [Multiple Spec Workflow](./workflow-bundle-spec.md)

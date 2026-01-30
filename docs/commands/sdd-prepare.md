@@ -1,92 +1,92 @@
 # /sdd.prepare
 
-구현에 필요한 서브에이전트와 스킬을 점검합니다.
+Check the subagents and skills needed for implementation.
 
-## 사용법
+## Usage
 
 ```
 /sdd.prepare [feature-id]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| feature-id | 기능 ID (생략 시 최근 작성한 스펙) |
+| Argument | Description |
+|----------|-------------|
+| feature-id | Feature ID (defaults to most recently written spec if omitted) |
 
-## 동작
+## Behavior
 
-1. tasks.md 분석
-2. 필요한 도구 감지
-3. 존재 여부 확인
-4. 누락된 도구 생성 제안
+1. Analyze tasks.md
+2. Detect required tools
+3. Check existence
+4. Suggest creating missing tools
 
-## 감지 키워드
+## Detection Keywords
 
-| 키워드 | 서브에이전트 | 스킬 |
-|--------|-------------|------|
-| 테스트, test | test-runner | test |
+| Keyword | Subagent | Skill |
+|---------|----------|-------|
+| test | test-runner | test |
 | api, rest | api-scaffold | gen-api |
 | component | component-gen | gen-component |
 | database | - | db-migrate |
-| 문서, doc | - | gen-doc |
+| doc | - | gen-doc |
 | review | code-reviewer | review |
 
-## 예시
+## Example
 
 ```
 /sdd.prepare user-auth
 
-AI: user-auth 작업을 분석하여 필요한 도구를 점검합니다.
+AI: Analyzing user-auth tasks to check required tools.
 
-    필요한 도구:
-    ✓ test-runner (존재함)
-    ✗ api-scaffold (누락)
+    Required tools:
+    ✓ test-runner (exists)
+    ✗ api-scaffold (missing)
 
-    api-scaffold 서브에이전트를 생성할까요? [Y/n]
+    Create api-scaffold subagent? [Y/n]
 ```
 
-## 생성되는 도구
+## Generated Tools
 
-### 서브에이전트
+### Subagents
 
 ```
 .claude/agents/api-scaffold.md
 ```
 
-### 스킬
+### Skills
 
 ```
 .claude/skills/gen-api/SKILL.md
 ```
 
-## 점검 보고서
+## Check Report
 
 ```
 .sdd/specs/<feature-id>/prepare.md
 ```
 
 ```markdown
-# 도구 점검 결과
+# Tool Check Results
 
-## 분석된 작업
-- T3: 비밀번호 해싱 유틸 → test 필요
-- T4: JWT 서비스 → test 필요
-- T5: 로그인 서비스 → api, test 필요
+## Analyzed Tasks
+- T3: Password hashing utility -> test needed
+- T4: JWT service -> test needed
+- T5: Login service -> api, test needed
 
-## 필요한 도구
+## Required Tools
 
-| 도구 | 유형 | 상태 |
-|------|------|------|
-| test-runner | agent | ✓ 존재 |
-| api-scaffold | agent | ✗ 생성됨 |
-| test | skill | ✓ 존재 |
+| Tool | Type | Status |
+|------|------|--------|
+| test-runner | agent | ✓ exists |
+| api-scaffold | agent | ✗ created |
+| test | skill | ✓ exists |
 ```
 
-## 다음 단계
+## Next Steps
 
-도구 점검 후:
+After tool check:
 
 ```
-/sdd.implement  → 구현 시작
+/sdd.implement  -> Start implementation
 ```

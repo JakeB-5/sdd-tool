@@ -1,136 +1,136 @@
 # sdd start
 
-SDD 워크플로우를 시작합니다.
+Starts the SDD workflow.
 
-## 사용법
+## Usage
 
 ```bash
 sdd start [options]
 ```
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--new` | 새 기능 워크플로우 시작 |
-| `--change` | 변경 워크플로우 시작 |
-| `--continue` | 진행 중인 작업 계속 |
+| Option | Description |
+|--------|-------------|
+| `--new` | Start new feature workflow |
+| `--change` | Start change workflow |
+| `--continue` | Continue in-progress work |
 
-## 동작
+## Behavior
 
-`sdd start`는 프로젝트 상태를 분석하고 적절한 다음 단계를 안내합니다:
+`sdd start` analyzes project status and guides you to the appropriate next step:
 
-1. **신규 프로젝트**: Constitution 작성 안내
-2. **Constitution 없음**: Constitution 생성 권장
-3. **진행 중인 작업**: 계속 진행 옵션 제공
-4. **기존 프로젝트**: 워크플로우 선택 메뉴
+1. **New project**: Guide to constitution writing
+2. **No constitution**: Recommend constitution creation
+3. **Work in progress**: Offer continue option
+4. **Existing project**: Workflow selection menu
 
-## 예시
+## Examples
 
-### 기본 시작
+### Basic Start
 
 ```bash
 sdd start
 ```
 
-출력 (신규 프로젝트):
+Output (new project):
 ```
-=== SDD 워크플로우 시작 ===
+=== SDD Workflow Start ===
 
-🔍 프로젝트 상태 분석 중...
+🔍 Analyzing project status...
 
-📋 프로젝트 현황:
-  • Constitution: ❌ 없음
-  • 스펙: 0개
-  • 도메인: 0개
+📋 Project Status:
+  • Constitution: ❌ None
+  • Specs: 0
+  • Domains: 0
 
-💡 권장 다음 단계:
-  1. Constitution 작성: sdd constitution
+💡 Recommended Next Step:
+  1. Write Constitution: sdd constitution
 
-Constitution을 작성하시겠습니까? (y/n): 
+Would you like to write a constitution? (y/n):
 ```
 
-출력 (기존 프로젝트):
+Output (existing project):
 ```
-=== SDD 워크플로우 시작 ===
+=== SDD Workflow Start ===
 
-🔍 프로젝트 상태 분석 중...
+🔍 Analyzing project status...
 
-📋 프로젝트 현황:
+📋 Project Status:
   • Constitution: ✅ v1.2.0
-  • 스펙: 12개 (draft: 3, approved: 9)
-  • 도메인: 4개
-  • 진행 중인 작업: 없음
+  • Specs: 12 (draft: 3, approved: 9)
+  • Domains: 4
+  • Work in progress: None
 
-🚀 워크플로우 선택:
-  1. 새 기능 명세 작성 (/sdd.spec)
-  2. 기존 스펙 변경 (/sdd.spec)
-  3. 프로젝트 상태 확인 (sdd status)
-  4. 품질 분석 (sdd quality)
+🚀 Select Workflow:
+  1. Write new feature spec (/sdd.spec)
+  2. Change existing spec (/sdd.spec)
+  3. Check project status (sdd status)
+  4. Quality analysis (sdd quality)
 
-선택 (1-4): 
+Select (1-4):
 ```
 
-출력 (진행 중인 작업):
+Output (work in progress):
 ```
-=== SDD 워크플로우 시작 ===
+=== SDD Workflow Start ===
 
-🔍 프로젝트 상태 분석 중...
+🔍 Analyzing project status...
 
-⚠️  진행 중인 작업이 있습니다:
+⚠️  You have work in progress:
 
-📄 user-auth (auth 도메인)
-   상태: draft
-   마지막 수정: 2시간 전
-   진행 단계: plan 작성 완료, tasks 대기
+📄 user-auth (auth domain)
+   Status: draft
+   Last modified: 2 hours ago
+   Progress: plan complete, tasks pending
 
-계속 진행하시겠습니까? (y/n): 
+Would you like to continue? (y/n):
 ```
 
-### 새 기능 워크플로우 바로 시작
+### Start New Feature Workflow Directly
 
 ```bash
 sdd start --new
 ```
 
-### 변경 워크플로우 바로 시작
+### Start Change Workflow Directly
 
 ```bash
 sdd start --change
 ```
 
-### 진행 중인 작업 계속
+### Continue In-Progress Work
 
 ```bash
 sdd start --continue
 ```
 
-## 워크플로우 흐름
+## Workflow Flow
 
 ```
 sdd start
     │
-    ├── Constitution 없음
+    ├── No Constitution
     │   └── sdd constitution
     │
-    ├── 새 기능
+    ├── New Feature
     │   └── sdd new → sdd plan → sdd tasks → sdd implement
     │
-    └── 변경
+    └── Change
         └── sdd change → sdd impact → sdd apply
 ```
 
-## 슬래시 커맨드
+## Slash Command
 
-Claude Code에서는 `/sdd.start` 슬래시 커맨드를 사용합니다:
+In Claude Code, use the `/sdd.start` slash command:
 
 ```
 /sdd.start
 ```
 
-## 관련 문서
+## Related Documentation
 
-- [sdd constitution](/cli/constitution) - 헌법 관리
-- [sdd new](/cli/new) - 새 기능 생성
-- [sdd change](/cli/change) - 변경 관리
-- [시작하기 가이드](/guide/getting-started)
+- [sdd constitution](/cli/constitution) - Constitution management
+- [sdd new](/cli/new) - Create new feature
+- [sdd change](/cli/change) - Change management
+- [Getting Started Guide](/guide/getting-started)

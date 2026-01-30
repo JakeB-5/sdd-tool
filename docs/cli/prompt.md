@@ -1,102 +1,102 @@
 # sdd prompt
 
-SDD 프롬프트를 출력합니다.
+Outputs SDD prompts.
 
-## 사용법
+## Usage
 
 ```bash
 sdd prompt [type] [options]
 ```
 
-## 프롬프트 타입
+## Prompt Types
 
-| 타입 | 설명 |
-|------|------|
-| `system` | 시스템 프롬프트 (기본) |
-| `spec` | 스펙 작성 프롬프트 |
-| `plan` | 계획 작성 프롬프트 |
-| `tasks` | 작업 분해 프롬프트 |
-| `review` | 리뷰 프롬프트 |
+| Type | Description |
+|------|-------------|
+| `system` | System prompt (default) |
+| `spec` | Spec writing prompt |
+| `plan` | Plan writing prompt |
+| `tasks` | Task breakdown prompt |
+| `review` | Review prompt |
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--raw` | 마크다운 없이 원본 텍스트 출력 |
-| `--copy` | 클립보드에 복사 |
-| `-o, --output <file>` | 파일로 저장 |
+| Option | Description |
+|--------|-------------|
+| `--raw` | Output raw text without markdown |
+| `--copy` | Copy to clipboard |
+| `-o, --output <file>` | Save to file |
 
-## 예시
+## Examples
 
-### 시스템 프롬프트 출력
+### Output System Prompt
 
 ```bash
 sdd prompt
 ```
 
-출력:
+Output:
 ```
 === SDD System Prompt ===
 
-당신은 Spec-Driven Development(SDD) 전문가입니다.
+You are a Spec-Driven Development (SDD) expert.
 
-## 핵심 원칙
+## Core Principles
 
-1. 명세 우선: 코드보다 명세가 먼저입니다
-2. RFC 2119: SHALL, MUST, SHOULD, MAY 키워드 사용
-3. GIVEN-WHEN-THEN: 시나리오 기반 요구사항 정의
+1. Spec First: Specs before code
+2. RFC 2119: Use SHALL, MUST, SHOULD, MAY keywords
+3. GIVEN-WHEN-THEN: Scenario-based requirement definitions
 
-## 워크플로우
+## Workflow
 
 ...
 ```
 
-### 스펙 작성 프롬프트
+### Spec Writing Prompt
 
 ```bash
 sdd prompt spec
 ```
 
-### 파일로 저장
+### Save to File
 
 ```bash
 sdd prompt system -o ./prompts/sdd-system.md
 ```
 
-### 클립보드에 복사
+### Copy to Clipboard
 
 ```bash
 sdd prompt spec --copy
 ```
 
-출력:
+Output:
 ```
-✅ 프롬프트가 클립보드에 복사되었습니다.
+✅ Prompt copied to clipboard.
 ```
 
-## 사용 시나리오
+## Use Cases
 
-### 외부 AI 도구에서 사용
+### Using with External AI Tools
 
-SDD 프롬프트를 다른 AI 도구(ChatGPT, Gemini 등)에서 사용할 때:
+When using SDD prompts with other AI tools (ChatGPT, Gemini, etc.):
 
 ```bash
-# 프롬프트를 클립보드에 복사
+# Copy prompt to clipboard
 sdd prompt system --copy
 
-# 외부 AI 도구에 붙여넣기
+# Paste into external AI tool
 ```
 
-### 커스텀 워크플로우
+### Custom Workflows
 
 ```bash
-# 프롬프트를 파일로 저장
+# Save prompt to file
 sdd prompt spec -o ./custom-prompts/spec.md
 
-# 필요에 따라 수정 후 사용
+# Modify as needed and use
 ```
 
-## 관련 문서
+## Related Documentation
 
-- [sdd chat](/cli/chat) - 대화형 어시스턴트
-- [프롬프트 커스터마이징](/guide/prompts)
+- [CLI Reference](./) - All commands
+- [Best Practices](../guide/best-practices) - Usage patterns

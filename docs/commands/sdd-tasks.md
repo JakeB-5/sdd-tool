@@ -1,49 +1,49 @@
 # /sdd.tasks
 
-작업을 실행 가능한 단위로 분해합니다.
+Break down work into executable units.
 
-## 사용법
+## Usage
 
 ```
 /sdd.tasks [feature-id]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| feature-id | 기능 ID (생략 시 최근 작성한 스펙) |
+| Argument | Description |
+|----------|-------------|
+| feature-id | Feature ID (defaults to most recently written spec if omitted) |
 
-## 동작
+## Behavior
 
-AI가 구현 계획을 작업 단위로 분해합니다:
+The AI breaks down the implementation plan into work units:
 
-1. 계획 분석
-2. 작업 정의
-3. 의존성 설정
-4. 우선순위 부여
+1. Analyze the plan
+2. Define tasks
+3. Set dependencies
+4. Assign priorities
 
-## 생성 파일
+## Generated File
 
 ```
 .sdd/specs/<feature-id>/tasks.md
 ```
 
-## 작업 크기 기준
+## Task Size Criteria
 
-- 2-4시간 내 완료 가능한 크기
-- 명확한 완료 조건
-- 테스트 가능
+- Completable within 2-4 hours
+- Clear completion criteria
+- Testable
 
-## 예시
+## Example
 
 ```
 /sdd.tasks user-auth
 
-AI: user-auth 계획을 작업 단위로 분해합니다.
+AI: Breaking down user-auth plan into work units.
 ```
 
-## 생성되는 tasks.md
+## Generated tasks.md
 
 ```markdown
 ---
@@ -52,46 +52,46 @@ total_tasks: 8
 completed: 0
 ---
 
-# 작업 목록: user-auth
+# Task List: user-auth
 
-## Phase 1: 데이터 모델
+## Phase 1: Data Model
 
-- [ ] 🔴 T1: User 스키마 정의
-  - 파일: src/models/user.ts
-  - 의존성: 없음
+- [ ] T1: Define User schema
+  - File: src/models/user.ts
+  - Dependencies: none
 
-- [ ] 🔴 T2: 마이그레이션 작성
-  - 파일: migrations/001_users.sql
-  - 의존성: T1
+- [ ] T2: Write migration
+  - File: migrations/001_users.sql
+  - Dependencies: T1
 
-## Phase 2: 인증 서비스
+## Phase 2: Authentication Service
 
-- [ ] 🔴 T3: 비밀번호 해싱 유틸
-  - 파일: src/utils/password.ts
-  - 의존성: 없음
+- [ ] T3: Password hashing utility
+  - File: src/utils/password.ts
+  - Dependencies: none
 
-- [ ] 🔴 T4: JWT 서비스
-  - 파일: src/services/jwt.ts
-  - 의존성: 없음
+- [ ] T4: JWT service
+  - File: src/services/jwt.ts
+  - Dependencies: none
 
-- [ ] 🟡 T5: 로그인 서비스
-  - 파일: src/services/auth.ts
-  - 의존성: T1, T3, T4
+- [ ] T5: Login service
+  - File: src/services/auth.ts
+  - Dependencies: T1, T3, T4
 ```
 
-## 우선순위
+## Priority
 
-| 표시 | 우선순위 | 설명 |
-|------|----------|------|
-| 🔴 | HIGH | 즉시 처리 |
-| 🟡 | MEDIUM | 다음 처리 |
-| 🟢 | LOW | 나중에 처리 |
+| Icon | Priority | Description |
+|------|----------|-------------|
+| HIGH | Immediate | Process immediately |
+| MEDIUM | Next | Process next |
+| LOW | Later | Process later |
 
-## 다음 단계
+## Next Steps
 
-작업 분해 후:
+After task breakdown:
 
 ```
-/sdd.prepare    → 도구 점검
-/sdd.implement  → 구현 시작
+/sdd.prepare    -> Tool check
+/sdd.implement  -> Start implementation
 ```

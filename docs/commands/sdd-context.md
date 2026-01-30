@@ -1,56 +1,56 @@
 # /sdd.context
 
-작업 컨텍스트를 관리하는 슬래시 커맨드입니다.
+A slash command for managing working context.
 
-## 개요
+## Overview
 
-`/sdd.context`는 현재 작업 중인 도메인 범위를 설정합니다. 대규모 프로젝트에서 관련 스펙만 집중하여 작업할 때 사용합니다.
+`/sdd.context` sets the scope of domains you're currently working with. Use it to focus on related specs in large projects.
 
-## 사용법
+## Usage
 
 ```
-/sdd.context set <domain...>  # 컨텍스트 설정
-/sdd.context show             # 현재 컨텍스트
-/sdd.context clear            # 컨텍스트 해제
-/sdd.context specs            # 컨텍스트 내 스펙 목록
-/sdd.context export           # 프롬프트 내보내기
+/sdd.context set <domain...>  # Set context
+/sdd.context show             # Show current context
+/sdd.context clear            # Clear context
+/sdd.context specs            # List specs in context
+/sdd.context export           # Export prompt
 ```
 
-## 하위 명령어
+## Subcommands
 
 ### set
 
-작업 컨텍스트를 설정합니다.
+Set the working context.
 
 ```
 /sdd.context set auth
 /sdd.context set auth payment order
-/sdd.context set auth --include-deps  # 의존 도메인 포함
+/sdd.context set auth --include-deps  # Include dependent domains
 ```
 
 ### show
 
-현재 설정된 컨텍스트를 표시합니다.
+Display the currently set context.
 
 ```
 /sdd.context show
 ```
 
-**출력:**
+**Output:**
 ```
-🎯 현재 컨텍스트: auth, payment
+Current context: auth, payment
 
-포함된 도메인:
+Included domains:
   - auth (5 specs)
   - payment (3 specs)
 
-의존 도메인:
-  - core (자동 포함)
+Dependent domains:
+  - core (auto-included)
 ```
 
 ### add / remove
 
-컨텍스트에 도메인을 추가하거나 제거합니다.
+Add or remove domains from the context.
 
 ```
 /sdd.context add order
@@ -59,7 +59,7 @@
 
 ### clear
 
-컨텍스트를 해제합니다.
+Clear the context.
 
 ```
 /sdd.context clear
@@ -67,15 +67,15 @@
 
 ### specs
 
-컨텍스트 내 스펙 목록을 표시합니다.
+Display list of specs within the context.
 
 ```
 /sdd.context specs
 ```
 
-**출력:**
+**Output:**
 ```
-📋 컨텍스트 스펙 (8개):
+Context specs (8):
 
 auth/
   - user-login
@@ -89,34 +89,34 @@ payment/
 
 ### export
 
-컨텍스트 기반 프롬프트를 내보냅니다.
+Export a context-based prompt.
 
 ```
 /sdd.context export
 /sdd.context export --format markdown
 ```
 
-AI에게 제공할 컨텍스트 정보를 생성합니다.
+Generates context information to provide to AI.
 
-## 컨텍스트 효과
+## Context Effects
 
-컨텍스트가 설정되면:
+When context is set:
 
-1. **스펙 생성**: `/sdd.spec`에서 도메인 자동 감지
-2. **검증**: `/sdd.validate`에서 해당 도메인만 검증
-3. **목록**: `/sdd.list`에서 컨텍스트 스펙만 표시
-4. **구현**: `/dev-implement`에서 관련 스펙 참조
+1. **Spec creation**: `/sdd.spec` auto-detects domain
+2. **Validation**: `/sdd.validate` validates only those domains
+3. **Listing**: `/sdd.list` shows only context specs
+4. **Implementation**: `/dev-implement` references related specs
 
-## 예시
+## Example
 
 ```
 User: /sdd.context set auth payment
 
-Claude: 🎯 컨텍스트 설정 완료!
+Claude: Context set successfully!
 
-현재 컨텍스트: auth, payment
+Current context: auth, payment
 
-포함된 스펙:
+Included specs:
   auth/
     - user-login
     - user-registration
@@ -124,47 +124,47 @@ Claude: 🎯 컨텍스트 설정 완료!
     - checkout
     - payment-methods
 
-이제 이 도메인들을 중심으로 작업합니다.
+Now working with these domains.
 
 ---
 
 User: /sdd.context specs
 
-Claude: 📋 컨텍스트 스펙 목록:
+Claude: Context spec list:
 
 auth/ (3 specs)
-  ✅ user-login [완료]
-  🔄 user-registration [진행중]
-  ⏳ password-reset [대기]
+  Complete: user-login
+  In progress: user-registration
+  Pending: password-reset
 
 payment/ (2 specs)
-  ✅ checkout [완료]
-  ⏳ refund [대기]
+  Complete: checkout
+  Pending: refund
 
 ---
 
 User: /sdd.context export
 
-Claude: 📤 컨텍스트 프롬프트 내보내기:
+Claude: Context prompt export:
 
-## 현재 작업 컨텍스트
+## Current Working Context
 
-### 도메인: auth
-사용자 인증 관련 기능
+### Domain: auth
+User authentication related features
 
-### 도메인: payment
-결제 처리 기능
+### Domain: payment
+Payment processing features
 
-### 관련 스펙
-- auth/user-login: 이메일/비밀번호 로그인
-- auth/user-registration: 회원가입
-- payment/checkout: 결제 처리
+### Related Specs
+- auth/user-login: Email/password login
+- auth/user-registration: User registration
+- payment/checkout: Payment processing
 
-[클립보드에 복사됨]
+[Copied to clipboard]
 ```
 
-## 관련 명령어
+## Related Commands
 
-- [`sdd context`](/cli/context) - CLI 버전
-- [`/sdd.domain`](/commands/sdd-domain) - 도메인 관리
-- [컨텍스트 가이드](/guide/context)
+- [`sdd context`](/cli/context) - CLI version
+- [`/sdd.domain`](/commands/sdd-domain) - Domain management
+- [Context Guide](/guide/context)

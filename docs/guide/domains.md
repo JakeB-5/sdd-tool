@@ -1,46 +1,46 @@
-# 도메인 시스템
+# Domain System
 
-도메인 기반 스펙 관리에 대한 가이드입니다.
+A guide to domain-based spec management.
 
-## 개요
+## Overview
 
-도메인은 관련 스펙을 논리적으로 그룹화하는 단위입니다. 대규모 프로젝트에서 스펙을 체계적으로 관리할 수 있습니다.
+Domains are logical units for grouping related specs. They help systematically manage specs in large-scale projects.
 
-## 도메인이란?
+## What is a Domain?
 
 ```
-프로젝트
-├── auth/          # 인증 도메인
+Project
+├── auth/          # Authentication domain
 │   ├── user-login
 │   ├── oauth-google
 │   └── session-management
-├── order/         # 주문 도메인
+├── order/         # Order domain
 │   ├── create-order
 │   ├── payment
 │   └── refund
-└── core/          # 핵심 도메인
+└── core/          # Core domain
     ├── data-model
     └── validation
 ```
 
-## 도메인 설정
+## Domain Configuration
 
 ### domains.yml
 
-도메인은 `.sdd/domains.yml` 파일로 정의합니다:
+Domains are defined in the `.sdd/domains.yml` file:
 
 ```yaml
 version: "1.0"
 domains:
   core:
-    description: "핵심 기능 및 공통 유틸리티"
+    description: "Core functionality and common utilities"
     path: "src/core"
     specs:
       - data-model
       - common-utils
 
   auth:
-    description: "인증 및 인가"
+    description: "Authentication and authorization"
     path: "src/auth"
     specs:
       - user-login
@@ -49,7 +49,7 @@ domains:
       uses: [core]
 
   order:
-    description: "주문 및 결제"
+    description: "Orders and payments"
     path: "src/order"
     specs:
       - create-order
@@ -58,81 +58,81 @@ domains:
       uses: [core, auth]
 ```
 
-### 도메인 속성
+### Domain Properties
 
-| 속성 | 설명 |
-|------|------|
-| `description` | 도메인 설명 |
-| `path` | 소스 코드 경로 |
-| `specs` | 연결된 스펙 목록 |
-| `dependencies` | 의존하는 도메인 |
-| `owner` | 담당자 (선택) |
-| `tags` | 태그 (선택) |
+| Property | Description |
+|----------|-------------|
+| `description` | Domain description |
+| `path` | Source code path |
+| `specs` | Connected specs list |
+| `dependencies` | Dependent domains |
+| `owner` | Owner (optional) |
+| `tags` | Tags (optional) |
 
-## 도메인 관리
+## Domain Management
 
-### 도메인 생성
+### Create Domain
 
 ```bash
-# 기본 생성
+# Basic creation
 sdd domain create auth
 
-# 옵션 포함
+# With options
 sdd domain create auth \
-  --description "인증/인가" \
+  --description "Auth/Authz" \
   --path "src/auth" \
   --depends-on core
 ```
 
-### 도메인 조회
+### Query Domains
 
 ```bash
-# 목록 조회
+# List domains
 sdd domain list
 
-# 상세 정보
+# Detailed info
 sdd domain show auth
 
-# 의존성 트리
+# Dependency tree
 sdd domain list --tree
 ```
 
-### 스펙 연결
+### Link Specs
 
 ```bash
-# 스펙을 도메인에 연결
+# Link spec to domain
 sdd domain link auth user-login
 
-# 연결 해제
+# Unlink
 sdd domain unlink auth user-login
 ```
 
-### 의존성 설정
+### Set Dependencies
 
 ```bash
-# 의존성 추가
+# Add dependency
 sdd domain depends order --on auth
 
-# 의존성 제거
+# Remove dependency
 sdd domain depends order --on auth --remove
 ```
 
-## 의존성 그래프
+## Dependency Graph
 
-### 시각화
+### Visualization
 
 ```bash
-# Mermaid 형식
+# Mermaid format
 sdd domain graph
 
-# DOT 형식
+# DOT format
 sdd domain graph --format dot
 
-# 파일로 저장
+# Save to file
 sdd domain graph --output graph.md
 ```
 
-### 출력 예시
+### Output Example
 
 ```mermaid
 graph LR
@@ -141,99 +141,99 @@ graph LR
     auth --> order
 ```
 
-### 순환 의존성 감지
+### Circular Dependency Detection
 
-순환 의존성은 자동으로 감지됩니다:
+Circular dependencies are automatically detected:
 
 ```
-❌ 순환 의존성 감지: auth → order → payment → auth
+❌ Circular dependency detected: auth → order → payment → auth
 ```
 
-## 도메인 검증
+## Domain Validation
 
 ```bash
-# 모든 도메인 검증
+# Validate all domains
 sdd validate --domain
 
-# 특정 도메인만
+# Specific domain only
 sdd validate --domain auth
 
-# 고아 스펙 확인
+# Check orphan specs
 sdd validate --orphan-specs
 ```
 
-### 검증 항목
+### Validation Items
 
-- 도메인 존재 여부
-- 스펙-도메인 일관성
-- 의존성 규칙 준수
-- 순환 의존성 없음
+- Domain existence
+- Spec-domain consistency
+- Dependency rule compliance
+- No circular dependencies
 
-## 스펙 생성과 도메인
+## Spec Creation and Domains
 
-### 도메인/스펙 형식
+### Domain/Spec Format
 
 ```bash
 sdd new mfa-setup -d auth
 # → .sdd/specs/auth/mfa-setup/spec.md (v1.3.0)
 ```
 
-이 명령은:
-1. `auth` 도메인 존재 확인
-2. `.sdd/specs/auth/mfa-setup/` 디렉토리에 스펙 생성
-3. domains.yml 자동 업데이트
+This command:
+1. Verifies `auth` domain exists
+2. Creates spec in `.sdd/specs/auth/mfa-setup/` directory
+3. Auto-updates domains.yml
 
-::: tip v1.3.0 구조
-스펙은 항상 `specs/<domain>/<feature>/spec.md` 형식으로 생성됩니다.
-도메인 미지정 시 `common` 도메인에 생성됩니다.
+::: tip v1.3.0 Structure
+Specs are always created in `specs/<domain>/<feature>/spec.md` format.
+If no domain is specified, it's created in the `common` domain.
 :::
 
-### 도메인 자동 감지
+### Domain Auto-Detection
 
-컨텍스트가 설정된 경우 도메인을 자동 감지합니다:
+When context is set, domain is auto-detected:
 
 ```bash
 sdd context set auth
-sdd new mfa-setup  # auth/mfa-setup으로 생성
+sdd new mfa-setup  # Created as auth/mfa-setup
 ```
 
-## 도메인별 템플릿
+## Domain-Specific Templates
 
-각 도메인에 커스텀 템플릿을 정의할 수 있습니다:
+Custom templates can be defined for each domain:
 
 ```
 .sdd/domains/auth/templates/
-├── spec.md        # 스펙 템플릿
-└── scenario.md    # 시나리오 템플릿
+├── spec.md        # Spec template
+└── scenario.md    # Scenario template
 ```
 
-## 모범 사례
+## Best Practices
 
-### 도메인 설계 원칙
+### Domain Design Principles
 
-1. **단일 책임**: 하나의 도메인은 하나의 비즈니스 영역
-2. **낮은 결합도**: 도메인 간 의존성 최소화
-3. **높은 응집도**: 관련 스펙은 같은 도메인에
+1. **Single responsibility**: One domain for one business area
+2. **Low coupling**: Minimize dependencies between domains
+3. **High cohesion**: Related specs in the same domain
 
-### 권장 구조
+### Recommended Structure
 
 ```
-├── core/           # 공통 기능
-├── auth/           # 인증
-├── user/           # 사용자 관리
-├── order/          # 주문
-└── payment/        # 결제
+├── core/           # Common functionality
+├── auth/           # Authentication
+├── user/           # User management
+├── order/          # Orders
+└── payment/        # Payments
 ```
 
-### 피해야 할 패턴
+### Patterns to Avoid
 
-- 너무 큰 도메인 (10+ 스펙)
-- 너무 작은 도메인 (1-2 스펙)
-- 양방향 의존성
-- 순환 의존성
+- Domains too large (10+ specs)
+- Domains too small (1-2 specs)
+- Bidirectional dependencies
+- Circular dependencies
 
-## 관련 문서
+## Related Documentation
 
-- [컨텍스트 가이드](./context.md)
+- [Context Guide](./context.md)
 - [CLI: domain](../cli/domain.md)
-- [역추출 가이드](./reverse-extraction.md)
+- [Reverse Extraction Guide](./reverse-extraction.md)

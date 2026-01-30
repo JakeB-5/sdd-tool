@@ -1,90 +1,90 @@
 # sdd sync
 
-스펙과 코드의 동기화 상태를 검증합니다.
+Validates synchronization between specs and code.
 
-## 사용법
+## Usage
 
 ```bash
 sdd sync [specId] [options]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| `specId` | 특정 스펙 ID (생략 시 전체) |
+| Argument | Description |
+|----------|-------------|
+| `specId` | Specific spec ID (all if omitted) |
 
-## 옵션
+## Options
 
-| 옵션 | 설명 |
-|------|------|
-| `--ci` | CI 모드 (exit code 반환) |
-| `--threshold <n>` | 동기화율 임계값 (기본: 80) |
-| `--json` | JSON 형식 출력 |
-| `--markdown` | 마크다운 리포트 |
+| Option | Description |
+|--------|-------------|
+| `--ci` | CI mode (returns exit code) |
+| `--threshold <n>` | Sync rate threshold (default: 80) |
+| `--json` | JSON format output |
+| `--markdown` | Markdown report |
 
-## 동기화 방식
+## Sync Methods
 
-### 코드에서 스펙 참조
+### Referencing Specs in Code
 
 ```typescript
 /**
  * @spec REQ-01
- * 사용자 로그인 처리
+ * User login handling
  */
 function login() {}
 ```
 
-### 테스트에서 스펙 참조
+### Referencing Specs in Tests
 
 ```typescript
-describe('REQ-01: 로그인', () => {
+describe('REQ-01: Login', () => {
   it('should authenticate user', () => {});
 });
 ```
 
-## 예시
+## Examples
 
-### 전체 동기화 검사
+### Check All Synchronization
 
 ```bash
 sdd sync
 ```
 
-### 특정 스펙만 검사
+### Check Specific Spec Only
 
 ```bash
 sdd sync user-auth
 ```
 
-### CI에서 사용
+### Use in CI
 
 ```bash
 sdd sync --ci --threshold 80
 ```
 
-### JSON 출력
+### JSON Output
 
 ```bash
 sdd sync --json
 ```
 
-## 출력 예시
+## Output Example
 
 ```
 SDD Sync
 
 ┌──────────┬─────────────┬──────────┬──────────┐
-│ 스펙 ID  │ 요구사항    │ 코드     │ 테스트   │
+│ Spec ID  │ Requirements│ Code     │ Tests    │
 ├──────────┼─────────────┼──────────┼──────────┤
 │ auth     │ 5           │ 4 (80%)  │ 5 (100%) │
 │ profile  │ 3           │ 3 (100%) │ 2 (67%)  │
 └──────────┴─────────────┴──────────┴──────────┘
 
-전체 동기화율: 85%
+Overall sync rate: 85%
 ```
 
-## CI/CD 통합
+## CI/CD Integration
 
 ```yaml
 - name: Check spec sync

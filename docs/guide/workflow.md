@@ -1,128 +1,128 @@
-# 워크플로우
+# Workflow
 
-SDD Tool의 전체 워크플로우를 이해합니다.
+Understand the complete SDD Tool workflow.
 
-## 워크플로우 다이어그램
+## Workflow Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    SDD 워크플로우                             │
+│                      SDD Workflow                           │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  1. /sdd.start        → 워크플로우 시작                      │
+│  1. /sdd.start        → Start workflow                      │
 │     │                                                       │
 │     ▼                                                       │
-│  2. /sdd.constitution → 프로젝트 원칙 정의                   │
+│  2. /sdd.constitution → Define project principles           │
 │     │                                                       │
 │     ▼                                                       │
-│  3. /sdd.spec         → 기능 명세 작성/수정 (spec.md)        │
+│  3. /sdd.spec         → Write/modify feature spec (spec.md) │
 │     │                                                       │
 │     ▼                                                       │
-│  4. /sdd.plan         → 구현 계획 수립 (plan.md)             │
+│  4. /sdd.plan         → Create implementation plan (plan.md)│
 │     │                                                       │
 │     ▼                                                       │
-│  5. /sdd.tasks        → 작업 분해 (tasks.md)                 │
+│  5. /sdd.tasks        → Task breakdown (tasks.md)           │
 │     │                                                       │
 │     ▼                                                       │
-│  6. /sdd.prepare      → 서브에이전트/스킬 점검                │
+│  6. /sdd.prepare      → Check subagents/skills              │
 │     │                                                       │
 │     ▼                                                       │
-│  7. /sdd.implement    → 순차적 구현                          │
+│  7. /sdd.implement    → Sequential implementation           │
 │     │                                                       │
 │     ▼                                                       │
-│  8. /sdd.validate     → 명세 검증                            │
+│  8. /sdd.validate     → Spec validation                     │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 각 단계 상세
+## Step Details
 
 ### 1. /sdd.start
 
-프로젝트 상태를 분석하고 다음 작업을 안내합니다.
+Analyzes project status and guides the next action.
 
-- **신규 프로젝트**: Constitution 작성 권장
-- **기존 프로젝트**: 워크플로우 선택 메뉴 제공
+- **New project**: Recommends Constitution creation
+- **Existing project**: Provides workflow selection menu
 
 ### 2. /sdd.constitution
 
-프로젝트의 핵심 원칙을 정의합니다.
+Defines the core principles of your project.
 
-- 핵심 원칙 (Core Principles)
-- 기술 원칙 (Technical Principles)
-- 금지 사항 (Forbidden)
+- Core Principles
+- Technical Principles
+- Forbidden
 
 ### 3. /sdd.spec
 
-기능 명세를 AI와 함께 작성하거나 수정합니다.
+Write or modify feature specs with AI assistance.
 
-- 새 기능 작성과 기존 스펙 수정을 자동 판단
-- RFC 2119 키워드 사용
-- GIVEN-WHEN-THEN 시나리오
+- Automatically detects new feature vs existing spec modification
+- Uses RFC 2119 keywords
+- GIVEN-WHEN-THEN scenarios
 
 ### 4. /sdd.plan
 
-구현 계획을 수립합니다.
+Create an implementation plan.
 
-- 기술 결정사항과 근거
-- 구현 단계(Phase) 정의
-- 리스크 분석
+- Technical decisions and rationale
+- Implementation phases definition
+- Risk analysis
 
 ### 5. /sdd.tasks
 
-작업을 실행 가능한 단위로 분해합니다.
+Break down work into executable units.
 
-- 2-4시간 내 완료 가능한 크기
-- 작업 간 의존성 표시
-- 우선순위 설정
+- 2-4 hour completion size
+- Task dependencies indicated
+- Priority settings
 
 ### 6. /sdd.prepare
 
-구현에 필요한 도구를 점검합니다.
+Check required implementation tools.
 
-- 서브에이전트 확인
-- 스킬 확인
-- 누락된 도구 자동 생성
+- Verify subagents
+- Verify skills
+- Auto-generate missing tools
 
 ### 7. /sdd.implement
 
-TDD 방식으로 순차적 구현합니다.
+TDD-style sequential implementation.
 
-1. 작업 상태를 "진행 중"으로 변경
-2. 테스트 작성
-3. 코드 구현
-4. 작업 상태를 "완료"로 변경
+1. Change task status to "in progress"
+2. Write tests
+3. Implement code
+4. Change task status to "complete"
 
 ### 8. /sdd.validate
 
-명세 검증을 수행합니다.
+Perform spec validation.
 
-- RFC 2119 키워드 사용 여부
-- GIVEN-WHEN-THEN 형식 준수
-- 메타데이터 필수 필드 확인
+- RFC 2119 keyword usage
+- GIVEN-WHEN-THEN format compliance
+- Metadata required fields check
 
-## 변경 관리 워크플로우
+## Change Management Workflow
 
-기존 기능을 수정할 때:
+When modifying existing features:
 
 ```
-/sdd.spec     → 스펙 수정 (기존 스펙 자동 감지)
+/sdd.spec     → Modify spec (auto-detects existing spec)
     ↓
-/sdd.impact   → 영향도 분석
+/sdd.impact   → Impact analysis
     ↓
-/sdd.apply    → 변경 적용
+/sdd.apply    → Apply changes
 ```
 
-## 파일 구조
+## File Structure
 
 ```
 .sdd/
-├── constitution.md     # 프로젝트 헌법
-├── specs/              # 기능 명세
+├── constitution.md     # Project constitution
+├── specs/              # Feature specs
 │   └── feature-name/
-│       ├── spec.md     # 명세
-│       ├── plan.md     # 구현 계획
-│       └── tasks.md    # 작업 분해
-├── changes/            # 변경 제안
-└── archive/            # 완료된 변경
+│       ├── spec.md     # Specification
+│       ├── plan.md     # Implementation plan
+│       └── tasks.md    # Task breakdown
+├── changes/            # Change proposals
+└── archive/            # Completed changes
 ```

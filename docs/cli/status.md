@@ -1,42 +1,42 @@
 # sdd status
 
-프로젝트 상태를 조회합니다.
+Displays project status.
 
-## 사용법
+## Usage
 
 ```bash
 sdd status
 ```
 
-## 설명
+## Description
 
-현재 SDD 프로젝트의 상태를 표시합니다:
+Displays the current SDD project status:
 
-- 스펙 파일 수
-- Phase별 분포
-- 상태별 분포 (draft, review, approved, implemented)
-- Constitution 버전
+- Number of spec files
+- Distribution by phase
+- Distribution by status (draft, review, approved, implemented)
+- Constitution version
 
-## 출력 예시
+## Output Example
 
 ```
-📊 프로젝트 상태
+📊 Project Status
 
-스펙: 12개
-├── Phase 1: 4개
-├── Phase 2: 5개
-└── Phase 3: 3개
+Specs: 12
+├── Phase 1: 4
+├── Phase 2: 5
+└── Phase 3: 3
 
-상태:
-├── draft: 3개
-├── review: 2개
-├── approved: 4개
-└── implemented: 3개
+Status:
+├── draft: 3
+├── review: 2
+├── approved: 4
+└── implemented: 3
 
 Constitution: v1.0.0
 ```
 
-## 관련 명령어
+## Related Commands
 
-- [`sdd list`](/cli/list) - 항목 목록 조회
-- [`sdd validate`](/cli/validate) - 스펙 검증
+- [`sdd list`](/cli/list) - List items
+- [`sdd validate`](/cli/validate) - Validate specs

@@ -1,66 +1,67 @@
-# 역방향 스펙 추출 (Reverse Spec Extraction)
+# Reverse Spec Extraction
 
-> **문서 상태**: ✅ 구현 완료 (v1.2.0)
-> **작성일**: 2024-12-24
-> **업데이트**: 2025-12-29
-> **목적**: 레거시/기존 프로젝트에 SDD 도입을 위한 코드 → 스펙 역추출 기능
-> **핵심 전략**: Serena MCP 활용으로 개발 난이도 대폭 감소
-> **관련 문서**: [CLI 레퍼런스](/cli/reverse), [슬래시 커맨드](/commands/sdd-reverse), [역추출 가이드](/guide/reverse-extraction)
+> **Document Status**: Implemented (v1.2.0)
+> **Created**: 2024-12-24
+> **Updated**: 2025-12-29
+> **Purpose**: Code -> Spec reverse extraction for SDD adoption in legacy/existing projects
+> **Core Strategy**: Leveraging Serena MCP significantly reduces development difficulty
+> **Related Docs**: [CLI Reference](/cli/reverse), [Slash Commands](/commands/sdd-reverse), [Reverse Extraction Guide](/guide/reverse-extraction)
 
 ---
 
-## 핵심 전략: Serena MCP 활용
+## Core Strategy: Leveraging Serena MCP
 
-### Serena란?
+### What is Serena?
 
-[Serena](https://github.com/oraios/serena)는 코드 분석을 위한 MCP 서버로:
-
-```
-✅ 30개+ 언어 지원 (Python, TS, Java, Go, Rust, C++ 등)
-✅ 심볼 수준 코드 추출 (클래스, 함수, 변수)
-✅ 참조/의존성 관계 분석
-✅ IDE 수준의 시맨틱 분석
-✅ Claude Code/Desktop 네이티브 통합
-```
-
-### 왜 Serena인가?
-
-**직접 구현 vs Serena 활용 비교**:
-
-| 항목 | 직접 구현 | Serena 활용 |
-|------|----------|-------------|
-| **AST 파서 개발** | 언어별 개별 구현 필요 | ❌ 불필요 |
-| **지원 언어** | TS/JS만 (초기) | 30개+ 즉시 |
-| **심볼 추출** | ts-morph 등 직접 | `find_symbol` API |
-| **참조 분석** | 직접 구현 | `find_referencing_symbols` |
-| **개발 기간** | 수개월 | 수주 |
-| **유지보수** | 언어별 업데이트 필요 | Serena가 담당 |
-
-**결론**: 직접 파서 구현 대신 Serena MCP에 위임
-
-### 아키텍처 변경
+[Serena](https://github.com/oraios/serena) is an MCP server for code analysis:
 
 ```
-기존 계획:
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Scanner    │────▶│  AST Parser │────▶│  Analyzer   │
-│  (직접구현) │     │  (직접구현) │     │  (직접구현) │
-└─────────────┘     └─────────────┘     └─────────────┘
-        ↓                 ↓                   ↓
-     개발 난이도: 높음, 언어별 구현 필요
-
-변경된 계획:
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Scanner    │────▶│ Serena MCP  │────▶│  Analyzer   │
-│  (간단)     │     │  (외부)     │     │  (집중)     │
-└─────────────┘     └─────────────┘     └─────────────┘
-        ↓                 ↓                   ↓
-     파일목록만        심볼/참조 추출      스펙 생성에 집중
+  30+ language support (Python, TS, Java, Go, Rust, C++ etc.)
+  Symbol-level code extraction (classes, functions, variables)
+  Reference/dependency relationship analysis
+  IDE-level semantic analysis
+  Native Claude Code/Desktop integration
 ```
 
-### Serena MCP 활용 방식
+### Why Serena?
 
-**1. MCP 클라이언트로 통합**:
+**Direct Implementation vs Serena Usage Comparison**:
+
+| Item | Direct Implementation | Serena Usage |
+|------|----------------------|--------------|
+| **AST parser development** | Implement per language | Not needed |
+| **Supported languages** | TS/JS only (initial) | 30+ immediately |
+| **Symbol extraction** | Direct with ts-morph etc. | `find_symbol` API |
+| **Reference analysis** | Implement directly | `find_referencing_symbols` |
+| **Development period** | Several months | A few weeks |
+| **Maintenance** | Language-specific updates needed | Serena handles |
+
+**Conclusion**: Delegate to Serena MCP instead of direct parser implementation
+
+### Architecture Change
+
+```
+Original Plan:
++-----------+     +-----------+     +-----------+
+|  Scanner  |---->| AST Parser|---->|  Analyzer |
+| (direct)  |     |  (direct) |     |  (direct) |
++-----------+     +-----------+     +-----------+
+        |               |                 |
+     Development difficulty: High, per-language implementation needed
+
+Changed Plan:
++-----------+     +-----------+     +-----------+
+|  Scanner  |---->|Serena MCP |---->|  Analyzer |
+|  (simple) |     | (external)|     |  (focus)  |
++-----------+     +-----------+     +-----------+
+        |               |                 |
+     File list     Symbol/ref       Focus on
+       only        extraction       spec generation
+```
+
+### Serena MCP Usage Methods
+
+**1. Integrate as MCP Client**:
 
 ```typescript
 // src/core/reverse/serena-client.ts
@@ -83,129 +84,129 @@ class SerenaClient {
 }
 ```
 
-**2. 또는 Claude Code 세션에서 직접 활용**:
+**2. Or use directly in Claude Code session**:
 
 ```bash
-# Claude Code에서 Serena MCP 설정 후
+# After configuring Serena MCP in Claude Code
 sdd reverse extract --use-mcp serena
 ```
 
-Claude가 Serena 도구를 직접 호출하여 분석 수행.
+Claude directly calls Serena tools for analysis.
 
-### 역할 분담
+### Role Distribution
 
-| 역할 | 담당 | 비고 |
-|------|------|------|
-| **파일 스캔** | SDD Tool | 디렉토리 트리, 파일 목록 |
-| **심볼 추출** | Serena | find_symbol |
-| **참조 분석** | Serena | find_referencing_symbols |
-| **의존성 그래프** | Serena + SDD | Serena 데이터 가공 |
-| **스펙 생성** | SDD Tool | 템플릿, 포맷팅 |
-| **AI 의도 추론** | Claude | 프롬프트 기반 |
-| **검토 워크플로우** | SDD Tool | CLI 인터랙션 |
-
----
-
-## 배경 및 동기
-
-### 현재 문제
-
-```
-SDD 도입의 가장 큰 장벽:
-"이미 코드가 있는데, 스펙을 처음부터 다 작성해야 하나요?"
-
-현실:
-- 레거시 프로젝트에 스펙 문서 없음
-- 수동으로 스펙 작성 = 막대한 초기 비용
-- 비용 때문에 SDD 도입 포기
-```
-
-### 해결 방향
-
-```
-코드 → 스펙 역추출 자동화
-"기존 코드를 분석해서 스펙 초안을 자동 생성"
-
-효과:
-- SDD 도입 장벽 대폭 감소
-- 레거시 프로젝트도 점진적 SDD 전환 가능
-- "문서화 부채" 해소
-```
+| Role | Owner | Notes |
+|------|-------|-------|
+| **File scanning** | SDD Tool | Directory tree, file list |
+| **Symbol extraction** | Serena | find_symbol |
+| **Reference analysis** | Serena | find_referencing_symbols |
+| **Dependency graph** | Serena + SDD | Process Serena data |
+| **Spec generation** | SDD Tool | Templates, formatting |
+| **AI intent inference** | Claude | Prompt-based |
+| **Review workflow** | SDD Tool | CLI interaction |
 
 ---
 
-## 기능 개요
+## Background and Motivation
 
-### 명령어 구조
+### Current Problem
+
+```
+Biggest barrier to SDD adoption:
+"We already have code, do we need to write specs from scratch?"
+
+Reality:
+- Legacy projects have no spec documents
+- Manual spec writing = huge initial cost
+- Teams abandon SDD adoption due to cost
+```
+
+### Solution Direction
+
+```
+Code -> Spec reverse extraction automation
+"Automatically generate spec drafts by analyzing existing code"
+
+Effects:
+- Greatly reduced SDD adoption barrier
+- Legacy projects can gradually transition to SDD
+- Resolve "documentation debt"
+```
+
+---
+
+## Feature Overview
+
+### Command Structure
 
 ```bash
-# 전체 프로젝트 분석
-sdd reverse scan                    # 코드베이스 스캔
-sdd reverse extract                 # 스펙 초안 생성
-sdd reverse review                  # 생성된 스펙 검토/수정
+# Full project analysis
+sdd reverse scan                    # Scan codebase
+sdd reverse extract                 # Generate spec drafts
+sdd reverse review                  # Review/modify generated specs
 
-# 특정 모듈/파일 대상
-sdd reverse extract src/auth/       # 디렉토리 단위
-sdd reverse extract src/auth/AuthService.ts  # 파일 단위
+# Target specific module/file
+sdd reverse extract src/auth/       # Directory unit
+sdd reverse extract src/auth/AuthService.ts  # File unit
 
-# 옵션
-sdd reverse extract --depth shallow # 얕은 분석 (빠름)
-sdd reverse extract --depth deep    # 깊은 분석 (정확)
-sdd reverse extract --ai            # AI 보조 분석
-sdd reverse extract --dry-run       # 미리보기만
+# Options
+sdd reverse extract --depth shallow # Shallow analysis (fast)
+sdd reverse extract --depth deep    # Deep analysis (accurate)
+sdd reverse extract --ai            # AI-assisted analysis
+sdd reverse extract --dry-run       # Preview only
 ```
 
-### 출력물
+### Output
 
 ```
-입력: 기존 코드베이스
+Input: Existing codebase
       src/
-      ├── auth/
-      │   ├── AuthService.ts
-      │   ├── LoginController.ts
-      │   └── TokenRepository.ts
-      └── order/
-          ├── OrderService.ts
-          └── PaymentAdapter.ts
+      +-- auth/
+      |   +-- AuthService.ts
+      |   +-- LoginController.ts
+      |   +-- TokenRepository.ts
+      +-- order/
+          +-- OrderService.ts
+          +-- PaymentAdapter.ts
 
-출력: 스펙 초안 (검토 필요)
+Output: Spec drafts (review needed)
       .sdd/
-      ├── domains.yml
-      └── specs/
-          ├── auth/
-          │   ├── domain.md
-          │   ├── user-authentication/
-          │   │   ├── spec.md (초안)
-          │   │   └── .reverse-meta.json
-          │   └── token-management/
-          │       └── spec.md (초안)
-          └── order/
-              ├── domain.md
-              └── order-processing/
-                  └── spec.md (초안)
+      +-- domains.yml
+      +-- specs/
+          +-- auth/
+          |   +-- domain.md
+          |   +-- user-authentication/
+          |   |   +-- spec.md (draft)
+          |   |   +-- .reverse-meta.json
+          |   +-- token-management/
+          |       +-- spec.md (draft)
+          +-- order/
+              +-- domain.md
+              +-- order-processing/
+                  +-- spec.md (draft)
 ```
 
 ---
 
-## 추출 레벨 정의
+## Extraction Level Definitions
 
-### Level 1: 구조 추출 (Structure)
+### Level 1: Structure Extraction
 
 ```
-추출 대상:
-- 디렉토리 구조 → 도메인 구조
-- 파일/클래스 → 기능 단위
-- public API → 인터페이스 정의
+Target:
+- Directory structure -> Domain structure
+- File/class -> Feature unit
+- Public API -> Interface definition
 
-난이도: 낮음
-정확도: 높음
-자동화: 100% 가능
+Difficulty: Low
+Accuracy: High
+Automation: 100% possible
 ```
 
-**예시 출력**:
+**Example Output**:
 
 ```yaml
-# .sdd/domains.yml (자동 생성)
+# .sdd/domains.yml (auto-generated)
 domains:
   auth:
     name: "auth"
@@ -225,211 +226,211 @@ domains:
       - PaymentAdapter
 ```
 
-### Level 2: 인터페이스 추출 (Interface)
+### Level 2: Interface Extraction
 
 ```
-추출 대상:
-- 클래스/함수 시그니처
-- 입출력 타입
-- 의존성 관계
-- 에러 타입
+Target:
+- Class/function signatures
+- Input/output types
+- Dependency relationships
+- Error types
 
-난이도: 중간
-정확도: 높음
-자동화: 90% 가능 (타입 정보 있을 경우)
+Difficulty: Medium
+Accuracy: High
+Automation: 90% possible (when type info available)
 ```
 
-**예시 출력**:
+**Example Output**:
 
 ```markdown
-<!-- spec.md 초안 -->
+<!-- spec.md draft -->
 # User Authentication
 
-## 추출된 인터페이스
+## Extracted Interface
 
 ### AuthService
 
-| 메서드 | 입력 | 출력 | 설명 |
-|--------|------|------|------|
-| `login` | `email: string, password: string` | `Promise<Session>` | (추론 필요) |
-| `logout` | `sessionId: string` | `Promise<void>` | (추론 필요) |
-| `verify` | `token: string` | `Promise<User \| null>` | (추론 필요) |
+| Method | Input | Output | Description |
+|--------|-------|--------|-------------|
+| `login` | `email: string, password: string` | `Promise<Session>` | (inference needed) |
+| `logout` | `sessionId: string` | `Promise<void>` | (inference needed) |
+| `verify` | `token: string` | `Promise<User \| null>` | (inference needed) |
 
-### 의존성
-- `TokenRepository` (직접)
-- `UserRepository` (직접)
-- `bcrypt` (외부)
+### Dependencies
+- `TokenRepository` (direct)
+- `UserRepository` (direct)
+- `bcrypt` (external)
 ```
 
-### Level 3: 동작 추출 (Behavior)
+### Level 3: Behavior Extraction
 
 ```
-추출 대상:
-- 비즈니스 로직 패턴
-- 조건문/분기 → 규칙
-- 에러 처리 → 예외 케이스
-- 테스트 케이스 → 시나리오
+Target:
+- Business logic patterns
+- Conditionals/branches -> Rules
+- Error handling -> Exception cases
+- Test cases -> Scenarios
 
-난이도: 높음
-정확도: 중간 (AI 보조 필요)
-자동화: 60-70%
+Difficulty: High
+Accuracy: Medium (AI assistance needed)
+Automation: 60-70%
 ```
 
-**예시 출력**:
+**Example Output**:
 
 ```markdown
-## 추론된 요구사항
+## Inferred Requirements
 
-### REQ-001: 로그인 (추론됨)
-- 이메일과 비밀번호로 인증
-- 비밀번호는 bcrypt로 검증 (코드에서 확인)
-- 성공 시 Session 반환
-- 실패 시 AuthenticationError throw
+### REQ-001: Login (inferred)
+- Authenticate with email and password
+- Password verified with bcrypt (confirmed in code)
+- Return Session on success
+- Throw AuthenticationError on failure
 
-### REQ-002: 세션 검증 (추론됨)
-- JWT 토큰 검증
-- 만료된 토큰은 null 반환
-- 유효한 토큰은 User 객체 반환
+### REQ-002: Session Verification (inferred)
+- Verify JWT token
+- Return null for expired token
+- Return User object for valid token
 
-## 추론된 시나리오
+## Inferred Scenarios
 
-### SCENARIO-001: 정상 로그인 (테스트에서 추출)
+### SCENARIO-001: Normal login (extracted from tests)
 ```gherkin
-GIVEN 유효한 이메일 "user@example.com"
-AND 올바른 비밀번호 "password123"
-WHEN login() 호출
-THEN Session 객체 반환
-AND Session.userId가 해당 사용자 ID
+GIVEN valid email "user@example.com"
+AND correct password "password123"
+WHEN login() called
+THEN Session object returned
+AND Session.userId is the user's ID
 ```
 
-### SCENARIO-002: 잘못된 비밀번호 (테스트에서 추출)
+### SCENARIO-002: Wrong password (extracted from tests)
 ```gherkin
-GIVEN 유효한 이메일 "user@example.com"
-AND 잘못된 비밀번호 "wrong"
-WHEN login() 호출
-THEN AuthenticationError throw
+GIVEN valid email "user@example.com"
+AND wrong password "wrong"
+WHEN login() called
+THEN AuthenticationError thrown
 ```
 ```
 
-### Level 4: 의도 추출 (Intent) - AI 필수
+### Level 4: Intent Extraction - AI Required
 
 ```
-추출 대상:
-- "왜 이렇게 구현했는가"
-- 비즈니스 컨텍스트
-- 암묵적 규칙
-- 주석/문서에서 힌트
+Target:
+- "Why was it implemented this way"
+- Business context
+- Implicit rules
+- Hints from comments/documentation
 
-난이도: 매우 높음
-정확도: 낮음-중간 (반드시 검토 필요)
-자동화: 40-50% (AI 보조)
+Difficulty: Very high
+Accuracy: Low-Medium (review mandatory)
+Automation: 40-50% (AI assisted)
 ```
 
-**예시 출력**:
+**Example Output**:
 
 ```markdown
-## 추론된 비즈니스 컨텍스트 (검토 필요)
+## Inferred Business Context (Review Needed)
 
-### 인증 정책 (AI 추론)
-> ⚠️ AI가 코드와 주석에서 추론한 내용입니다. 반드시 검토하세요.
+### Authentication Policy (AI inference)
+> AI inferred this from code and comments. Please review.
 
-- 세션 만료: 24시간 (코드에서 `24 * 60 * 60 * 1000` 발견)
-- Remember Me: 30일 연장 (주석 "extend to 30 days if remember" 발견)
-- 동시 세션: 제한 없음 (관련 로직 미발견)
+- Session expiry: 24 hours (found `24 * 60 * 60 * 1000` in code)
+- Remember Me: 30 day extension (found comment "extend to 30 days if remember")
+- Concurrent sessions: No limit (no related logic found)
 
-### 보안 요구사항 (AI 추론)
-- 비밀번호 해싱: bcrypt, rounds=10
-- 토큰 알고리즘: HS256 (jsonwebtoken 설정)
-- Rate limiting: 미구현 (관련 코드 없음)
+### Security Requirements (AI inference)
+- Password hashing: bcrypt, rounds=10
+- Token algorithm: HS256 (jsonwebtoken config)
+- Rate limiting: Not implemented (no related code)
 ```
 
 ---
 
-## 기술 구현 (Serena MCP 기반)
+## Technical Implementation (Serena MCP Based)
 
-### 아키텍처
+### Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    sdd reverse extract                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │                   SDD Tool (우리가 구현)              │   │
-│  │  ┌──────────────┐  ┌──────────────┐                  │   │
-│  │  │  File Scanner│  │  Test Parser │  ← 간단한 파싱   │   │
-│  │  └──────┬───────┘  └──────┬───────┘                  │   │
-│  │         └────────┬────────┘                          │   │
-│  └──────────────────┼───────────────────────────────────┘   │
-│                     ▼                                        │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │              Serena MCP (외부 - 핵심 분석)            │   │
-│  │                                                       │   │
-│  │  • find_symbol          → 심볼 추출                  │   │
-│  │  • find_referencing_symbols → 참조 분석             │   │
-│  │  • get_symbol_definition → 정의 조회                │   │
-│  │  • 30개+ 언어 자동 지원                              │   │
-│  │                                                       │   │
-│  └──────────────────┬───────────────────────────────────┘   │
-│                     ▼                                        │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │              SDD Tool (우리가 구현)                   │   │
-│  │  ┌────────────────────────────────────────────────┐  │   │
-│  │  │              Spec Generator                     │  │   │
-│  │  │  • Serena 결과 → 도메인 구조 변환              │  │   │
-│  │  │  • 스펙 템플릿 적용                            │  │   │
-│  │  │  • 신뢰도 계산                                 │  │   │
-│  │  └────────────────────────────────────────────────┘  │   │
-│  │  ┌────────────────────────────────────────────────┐  │   │
-│  │  │              AI Analyzer (Claude)              │  │   │
-│  │  │  • 의도 추론                                   │  │   │
-│  │  │  • 비즈니스 규칙 추출                          │  │   │
-│  │  └────────────────────────────────────────────────┘  │   │
-│  │  ┌────────────────────────────────────────────────┐  │   │
-│  │  │              Review Workflow                   │  │   │
-│  │  │  • 검토 CLI                                    │  │   │
-│  │  │  • 확정 프로세스                               │  │   │
-│  │  └────────────────────────────────────────────────┘  │   │
-│  └──────────────────────────────────────────────────────┘   │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+|                    sdd reverse extract                        |
++-------------------------------------------------------------+
+|                                                               |
+|  +------------------------------------------------------+    |
+|  |               SDD Tool (we implement)                 |    |
+|  |  +--------------+  +--------------+                   |    |
+|  |  | File Scanner |  | Test Parser  |  <- Simple parsing|    |
+|  |  +------+-------+  +------+-------+                   |    |
+|  |         +--------+--------+                           |    |
+|  +------------------+----------------------------------------+
+|                     v                                         |
+|  +------------------------------------------------------+    |
+|  |            Serena MCP (external - core analysis)      |    |
+|  |                                                        |    |
+|  |  * find_symbol          -> Symbol extraction          |    |
+|  |  * find_referencing_symbols -> Reference analysis     |    |
+|  |  * get_symbol_definition -> Definition lookup         |    |
+|  |  * 30+ languages auto support                         |    |
+|  |                                                        |    |
+|  +------------------+------------------------------------+    |
+|                     v                                         |
+|  +------------------------------------------------------+    |
+|  |              SDD Tool (we implement)                  |    |
+|  |  +------------------------------------------------+   |    |
+|  |  |              Spec Generator                     |   |    |
+|  |  |  * Serena result -> Domain structure conversion |   |    |
+|  |  |  * Spec template application                    |   |    |
+|  |  |  * Confidence calculation                       |   |    |
+|  |  +------------------------------------------------+   |    |
+|  |  +------------------------------------------------+   |    |
+|  |  |              AI Analyzer (Claude)              |   |    |
+|  |  |  * Intent inference                            |   |    |
+|  |  |  * Business rule extraction                    |   |    |
+|  |  +------------------------------------------------+   |    |
+|  |  +------------------------------------------------+   |    |
+|  |  |              Review Workflow                   |   |    |
+|  |  |  * Review CLI                                  |   |    |
+|  |  |  * Finalization process                        |   |    |
+|  |  +------------------------------------------------+   |    |
+|  +------------------------------------------------------+    |
+|                                                               |
++-------------------------------------------------------------+
 ```
 
-### 개발 범위 변경
+### Development Scope Change
 
-**직접 구현 (최소화)**:
+**Direct Implementation (Minimized)**:
 ```
-□ File Scanner - 디렉토리/파일 목록 (간단)
-□ Test Parser - describe/it 구조만 (간단)
-□ Serena Client - MCP 호출 래퍼 (간단)
-□ Spec Generator - 템플릿 적용 (핵심)
-□ Review Workflow - CLI 인터랙션 (핵심)
-```
-
-**Serena에 위임 (복잡한 부분)**:
-```
-✅ AST 파싱 - 30개+ 언어
-✅ 심볼 추출 - 클래스, 함수, 변수
-✅ 참조 분석 - 의존성 그래프
-✅ 타입 정보 - 시그니처, 파라미터
+[ ] File Scanner - Directory/file list (simple)
+[ ] Test Parser - describe/it structure only (simple)
+[ ] Serena Client - MCP call wrapper (simple)
+[ ] Spec Generator - Template application (core)
+[ ] Review Workflow - CLI interaction (core)
 ```
 
-### 지원 언어
+**Delegated to Serena (Complex Parts)**:
+```
+  AST parsing - 30+ languages
+  Symbol extraction - Classes, functions, variables
+  Reference analysis - Dependency graph
+  Type info - Signatures, parameters
+```
 
-| 언어 | Serena 지원 | 추가 구현 | 비고 |
-|------|-------------|-----------|------|
-| TypeScript | ✅ | 없음 | 즉시 사용 |
-| JavaScript | ✅ | 없음 | 즉시 사용 |
-| Python | ✅ | 없음 | 즉시 사용 |
-| Go | ✅ | 없음 | 즉시 사용 |
-| Java | ✅ | 없음 | 즉시 사용 |
-| Rust | ✅ | 없음 | 즉시 사용 |
-| C/C++ | ✅ | 없음 | 즉시 사용 |
-| ... | ✅ | 없음 | 30개+ 언어 |
+### Supported Languages
 
-**결론**: 언어별 파서 구현 불필요
+| Language | Serena Support | Additional Implementation | Notes |
+|----------|---------------|--------------------------|-------|
+| TypeScript | Yes | None | Ready |
+| JavaScript | Yes | None | Ready |
+| Python | Yes | None | Ready |
+| Go | Yes | None | Ready |
+| Java | Yes | None | Ready |
+| Rust | Yes | None | Ready |
+| C/C++ | Yes | None | Ready |
+| ... | Yes | None | 30+ languages |
 
-### 핵심 모듈
+**Conclusion**: No per-language parser implementation needed
+
+### Core Modules
 
 #### 1. File Scanner
 
@@ -452,7 +453,7 @@ interface FileInfo {
 }
 ```
 
-#### 2. AST Parser (TypeScript 예시)
+#### 2. AST Parser (TypeScript example)
 
 ```typescript
 // src/core/reverse/parsers/typescript.ts
@@ -482,7 +483,7 @@ interface MethodInfo {
   parameters: ParameterInfo[];
   returnType: string;
   jsdoc?: string;
-  body?: string;  // AI 분석용
+  body?: string;  // For AI analysis
 }
 ```
 
@@ -505,7 +506,7 @@ interface TestCase {
   name: string;
   type: 'unit' | 'integration' | 'e2e';
   assertions: Assertion[];
-  // GIVEN-WHEN-THEN 추론
+  // GIVEN-WHEN-THEN inference
   given?: string;
   when?: string;
   then?: string;
@@ -530,7 +531,7 @@ interface AIAnalysisRequest {
 interface AIAnalysisResult {
   content: string;
   confidence: number;  // 0-100
-  sources: string[];   // 추론 근거
+  sources: string[];   // Inference basis
   needsReview: boolean;
 }
 ```
@@ -543,7 +544,7 @@ interface GeneratorOptions {
   depth: 'shallow' | 'medium' | 'deep';
   includeAI: boolean;
   outputFormat: 'markdown' | 'yaml';
-  reviewMode: boolean;  // 검토 필요 표시
+  reviewMode: boolean;  // Show review needed markers
 }
 
 interface GeneratedSpec {
@@ -573,9 +574,9 @@ interface ReviewItem {
 
 ---
 
-## 출력 형식
+## Output Format
 
-### 스펙 초안 템플릿
+### Spec Draft Template
 
 ```markdown
 <!-- .sdd/specs/auth/user-authentication/spec.md -->
@@ -593,113 +594,113 @@ needs_review: true
 
 # User Authentication
 
-> ⚠️ **자동 추출된 스펙**: 이 문서는 코드에서 자동 추출되었습니다.
-> 반드시 검토하고 누락된 내용을 보완하세요.
+> **Auto-extracted spec**: This document was auto-extracted from code.
+> Please review and supplement missing content.
 
-## 개요
+## Overview
 
-<!-- AI 추론 또는 주석에서 추출 -->
-사용자 인증을 처리하는 기능입니다.
+<!-- AI inference or extracted from comments -->
+Functionality that handles user authentication.
 
-**추출 신뢰도**: 72% (검토 필요)
+**Extraction confidence**: 72% (review needed)
 
-## 추출된 인터페이스
+## Extracted Interface
 
 ### AuthService
 
-| 메서드 | 시그니처 | 신뢰도 |
-|--------|----------|--------|
+| Method | Signature | Confidence |
+|--------|-----------|------------|
 | login | `(email: string, password: string) => Promise<Session>` | 100% |
 | logout | `(sessionId: string) => Promise<void>` | 100% |
 | verify | `(token: string) => Promise<User \| null>` | 100% |
 
-### 의존성
+### Dependencies
 
-- ✅ `TokenRepository` - 확인됨
-- ✅ `UserRepository` - 확인됨
-- ⚠️ `EmailService` - 추론됨 (검토 필요)
+- `TokenRepository` - Confirmed
+- `UserRepository` - Confirmed
+- `EmailService` - Inferred (review needed)
 
-## 요구사항 (추론됨)
+## Requirements (Inferred)
 
-> ⚠️ 코드에서 추론한 요구사항입니다. 비즈니스 의도와 맞는지 확인하세요.
+> Requirements inferred from code. Verify if they match business intent.
 
-### REQ-001: 이메일/비밀번호 로그인 [신뢰도: 85%]
+### REQ-001: Email/Password Login [Confidence: 85%]
 
-사용자는 이메일과 비밀번호로 로그인할 수 있어야 한다.
+Users should be able to log in with email and password.
 
-**근거**:
-- `AuthService.login(email, password)` 시그니처
-- bcrypt 비밀번호 검증 로직 존재
+**Basis**:
+- `AuthService.login(email, password)` signature
+- bcrypt password verification logic exists
 
-**검토 필요**:
-- [ ] 이메일 형식 검증 규칙 확인
-- [ ] 비밀번호 복잡도 규칙 확인
+**Review Needed**:
+- [ ] Confirm email format validation rules
+- [ ] Confirm password complexity rules
 
-### REQ-002: JWT 토큰 발급 [신뢰도: 90%]
+### REQ-002: JWT Token Issuance [Confidence: 90%]
 
-로그인 성공 시 JWT 토큰을 발급해야 한다.
+JWT token should be issued on successful login.
 
-**근거**:
-- jsonwebtoken 패키지 사용
-- `TokenRepository.create()` 호출
+**Basis**:
+- jsonwebtoken package used
+- `TokenRepository.create()` called
 
-### REQ-003: 세션 만료 [신뢰도: 70%]
+### REQ-003: Session Expiration [Confidence: 70%]
 
-세션은 24시간 후 만료되어야 한다.
+Session should expire after 24 hours.
 
-**근거**:
-- 코드: `expiresIn: 24 * 60 * 60 * 1000`
+**Basis**:
+- Code: `expiresIn: 24 * 60 * 60 * 1000`
 
-**검토 필요**:
-- [ ] 24시간이 비즈니스 요구사항과 일치하는지 확인
-- [ ] Remember Me 기능 여부 확인
+**Review Needed**:
+- [ ] Confirm 24 hours matches business requirement
+- [ ] Confirm Remember Me feature existence
 
-## 시나리오 (테스트에서 추출)
+## Scenarios (Extracted from Tests)
 
-### SCENARIO-001: 정상 로그인 [신뢰도: 95%]
+### SCENARIO-001: Normal Login [Confidence: 95%]
 
-**출처**: `tests/auth/login.test.ts:15`
-
-```gherkin
-GIVEN 등록된 사용자 "user@example.com"
-AND 올바른 비밀번호 "ValidPass123"
-WHEN 로그인 시도
-THEN 세션 토큰 반환
-AND 세션 만료 시간 설정됨
-```
-
-### SCENARIO-002: 잘못된 비밀번호 [신뢰도: 95%]
-
-**출처**: `tests/auth/login.test.ts:28`
+**Source**: `tests/auth/login.test.ts:15`
 
 ```gherkin
-GIVEN 등록된 사용자 "user@example.com"
-AND 잘못된 비밀번호 "wrong"
-WHEN 로그인 시도
-THEN AuthenticationError 발생
-AND 에러 메시지 "Invalid credentials"
+GIVEN registered user "user@example.com"
+AND correct password "ValidPass123"
+WHEN login attempt
+THEN session token returned
+AND session expiration time set
 ```
 
-### SCENARIO-003: 미등록 사용자 [신뢰도: 90%]
+### SCENARIO-002: Wrong Password [Confidence: 95%]
 
-**출처**: `tests/auth/login.test.ts:41`
+**Source**: `tests/auth/login.test.ts:28`
 
 ```gherkin
-GIVEN 미등록 이메일 "unknown@example.com"
-WHEN 로그인 시도
-THEN UserNotFoundError 발생
+GIVEN registered user "user@example.com"
+AND wrong password "wrong"
+WHEN login attempt
+THEN AuthenticationError thrown
+AND error message "Invalid credentials"
 ```
 
-## 누락 가능성 (검토 필요)
+### SCENARIO-003: Unregistered User [Confidence: 90%]
 
-> 다음 항목들은 코드에서 명확히 확인되지 않았습니다.
+**Source**: `tests/auth/login.test.ts:41`
 
-- [ ] **Rate Limiting**: 로그인 시도 제한 로직 미발견
-- [ ] **Account Lockout**: 연속 실패 시 계정 잠금 미발견
-- [ ] **Password Reset**: 비밀번호 재설정 플로우 미발견
-- [ ] **2FA/MFA**: 다중 인증 로직 미발견
+```gherkin
+GIVEN unregistered email "unknown@example.com"
+WHEN login attempt
+THEN UserNotFoundError thrown
+```
 
-## 코드 링크
+## Possible Omissions (Review Needed)
+
+> The following items were not clearly confirmed in code.
+
+- [ ] **Rate Limiting**: No login attempt limiting logic found
+- [ ] **Account Lockout**: No account lockout after consecutive failures found
+- [ ] **Password Reset**: No password reset flow found
+- [ ] **2FA/MFA**: No multi-factor authentication logic found
+
+## Code Links
 
 ```yaml
 code_links:
@@ -716,7 +717,7 @@ code_links:
 
 ---
 
-## 추출 메타데이터
+## Extraction Metadata
 
 ```json
 // .reverse-meta.json
@@ -747,211 +748,211 @@ code_links:
 
 ---
 
-## 워크플로우
+## Workflow
 
-### 1단계: 스캔
+### Step 1: Scan
 
 ```bash
 $ sdd reverse scan
 
-🔍 코드베이스 스캔 중...
+Scanning codebase...
 
-발견된 구조:
-  📁 src/
-  ├── 📁 auth/ (3 files, 450 LOC)
-  │   ├── AuthService.ts
-  │   ├── LoginController.ts
-  │   └── TokenRepository.ts
-  ├── 📁 order/ (5 files, 890 LOC)
-  │   └── ...
-  └── 📁 core/ (8 files, 1200 LOC)
-      └── ...
+Discovered structure:
+  src/
+  +-- auth/ (3 files, 450 LOC)
+  |   +-- AuthService.ts
+  |   +-- LoginController.ts
+  |   +-- TokenRepository.ts
+  +-- order/ (5 files, 890 LOC)
+  |   +-- ...
+  +-- core/ (8 files, 1200 LOC)
+      +-- ...
 
-📊 요약:
-  - 언어: TypeScript (100%)
-  - 파일: 16개
+Summary:
+  - Language: TypeScript (100%)
+  - Files: 16
   - LOC: 2,540
-  - 테스트: 12개 파일
+  - Tests: 12 files
 
-💡 추천 도메인:
-  1. auth (3 files) - 인증 관련 추정
-  2. order (5 files) - 주문 관련 추정
-  3. core (8 files) - 공통 모듈 추정
+Suggested domains:
+  1. auth (3 files) - Authentication related
+  2. order (5 files) - Order related
+  3. core (8 files) - Common modules
 
-계속하려면 'sdd reverse extract' 실행
+Run 'sdd reverse extract' to continue
 ```
 
-### 2단계: 추출
+### Step 2: Extract
 
 ```bash
 $ sdd reverse extract --depth deep --ai
 
-🔄 스펙 추출 중...
+Extracting specs...
 
-[1/3] auth 도메인 분석...
-  ├── 구조 분석... ✅
-  ├── 인터페이스 추출... ✅
-  ├── 테스트 분석... ✅ (8 scenarios)
-  └── AI 의도 추론... ✅
+[1/3] Analyzing auth domain...
+  +-- Structure analysis... done
+  +-- Interface extraction... done
+  +-- Test analysis... done (8 scenarios)
+  +-- AI intent inference... done
 
-[2/3] order 도메인 분석...
-  └── ...
+[2/3] Analyzing order domain...
+  +-- ...
 
-[3/3] core 도메인 분석...
-  └── ...
+[3/3] Analyzing core domain...
+  +-- ...
 
-📝 생성된 스펙:
+Generated specs:
   .sdd/
-  ├── domains.yml
-  └── specs/
-      ├── auth/
-      │   ├── domain.md
-      │   └── user-authentication/
-      │       └── spec.md (신뢰도: 72%)
-      ├── order/
-      │   └── ...
-      └── core/
-          └── ...
+  +-- domains.yml
+  +-- specs/
+      +-- auth/
+      |   +-- domain.md
+      |   +-- user-authentication/
+      |       +-- spec.md (confidence: 72%)
+      +-- order/
+      |   +-- ...
+      +-- core/
+          +-- ...
 
-⚠️ 검토 필요 항목: 12개
-  - auth/user-authentication: 5개
-  - order/checkout: 4개
-  - core/user-model: 3개
+Review items: 12
+  - auth/user-authentication: 5
+  - order/checkout: 4
+  - core/user-model: 3
 
-다음 단계: 'sdd reverse review' 로 검토 시작
+Next step: 'sdd reverse review' to start review
 ```
 
-### 3단계: 검토
+### Step 3: Review
 
 ```bash
 $ sdd reverse review
 
-📋 검토 대기 스펙: 6개
+Specs pending review: 6
 
-[1/6] auth/user-authentication (신뢰도: 72%)
+[1/6] auth/user-authentication (confidence: 72%)
 
-검토 항목:
-  1. REQ-003: 세션 만료 24시간 - 맞습니까? (y/n/edit)
+Review items:
+  1. REQ-003: Session expiration 24 hours - Is this correct? (y/n/edit)
   > y
 
-  2. Rate Limiting 미발견 - 의도적 누락입니까? (y/n/add)
+  2. Rate Limiting not found - Intentionally omitted? (y/n/add)
   > add
-  > 설명 입력: 로그인 5회 실패 시 10분 잠금
+  > Enter description: Lock for 10 minutes after 5 failed login attempts
 
-  3. 2FA 미발견 - 의도적 누락입니까? (y/n/add)
-  > y (현재 미지원)
+  3. 2FA not found - Intentionally omitted? (y/n/add)
+  > y (not supported currently)
 
-✅ auth/user-authentication 검토 완료
-   신뢰도: 72% → 95% (검토됨)
+auth/user-authentication review complete
+   Confidence: 72% -> 95% (reviewed)
 
-[2/6] 다음 스펙...
+[2/6] Next spec...
 ```
 
-### 4단계: 확정
+### Step 4: Finalize
 
 ```bash
 $ sdd reverse finalize
 
-✅ 검토 완료된 스펙:
+Reviewed specs:
   - auth/user-authentication (95%)
   - auth/token-management (88%)
   - order/checkout (91%)
 
-⚠️ 검토 미완료:
-  - order/payment (검토 필요)
-  - core/user-model (검토 필요)
+Not reviewed:
+  - order/payment (needs review)
+  - core/user-model (needs review)
 
-확정된 스펙을 적용하시겠습니까? (y/n)
+Apply finalized specs? (y/n)
 > y
 
-📁 스펙 확정 완료
-  - status: draft → extracted
-  - needs_review: true → false
+Specs finalized
+  - status: draft -> extracted
+  - needs_review: true -> false
 
-다음 단계:
-  1. 'sdd validate' 로 스펙 검증
-  2. 필요시 수동 보완
-  3. 'sdd status' 로 진행 상황 확인
+Next steps:
+  1. 'sdd validate' to validate specs
+  2. Manual supplementation if needed
+  3. 'sdd status' to check progress
 ```
 
 ---
 
-## AI 연동 전략
+## AI Integration Strategy
 
-### 프롬프트 설계
+### Prompt Design
 
-#### 의도 추론 프롬프트
+#### Intent Inference Prompt
 
 ```markdown
-다음 TypeScript 코드를 분석하여 비즈니스 의도를 추론하세요.
+Analyze the following TypeScript code and infer business intent.
 
-## 코드
+## Code
 ```typescript
 {code}
 ```
 
-## 컨텍스트
-- 파일: {file_path}
-- 클래스: {class_name}
-- 관련 코드: {related_files}
+## Context
+- File: {file_path}
+- Class: {class_name}
+- Related code: {related_files}
 
-## 요청
-1. 이 코드의 비즈니스 목적은 무엇입니까?
-2. 어떤 요구사항을 구현한 것입니까?
-3. 암묵적으로 가정하는 규칙이 있습니까?
+## Request
+1. What is the business purpose of this code?
+2. What requirements does it implement?
+3. Are there any implicit rules?
 
-## 출력 형식
-- 요구사항을 RFC 2119 키워드(MUST, SHOULD, MAY)로 작성
-- 확신 수준을 0-100으로 표시
-- 추론 근거를 명시
+## Output Format
+- Write requirements with RFC 2119 keywords (MUST, SHOULD, MAY)
+- Show confidence level 0-100
+- State inference basis
 ```
 
-#### 시나리오 생성 프롬프트
+#### Scenario Generation Prompt
 
 ```markdown
-다음 테스트 코드를 GIVEN-WHEN-THEN 시나리오로 변환하세요.
+Convert the following test code to GIVEN-WHEN-THEN scenarios.
 
-## 테스트 코드
+## Test Code
 ```typescript
 {test_code}
 ```
 
-## 출력 형식
+## Output Format
 ```gherkin
-GIVEN [사전 조건]
-AND [추가 조건]
-WHEN [동작]
-THEN [결과]
-AND [추가 검증]
+GIVEN [precondition]
+AND [additional condition]
+WHEN [action]
+THEN [result]
+AND [additional verification]
 ```
 
-## 규칙
-- 기술 용어보다 비즈니스 용어 사용
-- 구체적인 값보다 의미 있는 설명 사용
-- 테스트가 검증하는 핵심 동작에 집중
+## Rules
+- Use business terms over technical terms
+- Use meaningful descriptions over concrete values
+- Focus on core behavior being tested
 ```
 
-### 비용 최적화
+### Cost Optimization
 
 ```yaml
 ai_strategy:
-  # 무조건 AI 사용
+  # Always use AI
   always_ai:
     - intent_inference
     - business_rule_extraction
 
-  # 휴리스틱 실패 시에만 AI
+  # Use AI only when heuristics fail
   fallback_ai:
     - requirement_extraction
     - scenario_enhancement
 
-  # AI 사용 안 함
+  # Never use AI
   no_ai:
     - structure_analysis
     - interface_extraction
     - test_parsing
 
-  # 토큰 제한
+  # Token limits
   limits:
     max_tokens_per_file: 4000
     max_files_per_batch: 10
@@ -960,133 +961,133 @@ ai_strategy:
 
 ---
 
-## 구현 우선순위 (Serena 기반 - 대폭 간소화)
+## Implementation Priority (Serena Based - Significantly Simplified)
 
-### 개발 기간 비교
+### Development Period Comparison
 
-| 항목 | 직접 구현 | Serena 활용 |
-|------|----------|-------------|
-| Phase 1 (구조) | 4-6주 | 1-2주 |
-| Phase 2 (인터페이스) | 4-6주 | 1-2주 |
-| Phase 3 (AI 분석) | 2-3주 | 2-3주 (동일) |
-| Phase 4 (추가 언어) | 6-8주 | 0주 (불필요) |
-| **총합** | **16-23주** | **4-7주** |
+| Item | Direct Implementation | Serena Usage |
+|------|----------------------|--------------|
+| Phase 1 (Structure) | 4-6 weeks | 1-2 weeks |
+| Phase 2 (Interface) | 4-6 weeks | 1-2 weeks |
+| Phase 3 (AI Analysis) | 2-3 weeks | 2-3 weeks (same) |
+| Phase 4 (Additional languages) | 6-8 weeks | 0 weeks (not needed) |
+| **Total** | **16-23 weeks** | **4-7 weeks** |
 
-### Phase 1: Serena 통합 + 구조 추출 (MVP) ✅ 완료
-
-```
-✅ Serena MCP 통합
-  ✅ MCP 클라이언트 설정
-  ✅ find_symbol 래핑
-  ✅ find_referencing_symbols 래핑
-  ✅ 연결 테스트
-
-✅ File Scanner (간단)
-  ✅ 디렉토리 트리 생성
-  ✅ 파일 목록 (언어 감지는 Serena)
-
-✅ Spec Generator (기본)
-  ✅ Serena 결과 → domains.yml 변환
-  ✅ domain.md 템플릿
-  ✅ 기본 spec.md 생성
-
-✅ CLI
-  ✅ sdd reverse scan
-  ✅ sdd reverse extract --shallow
-```
-
-**완료**: v1.2.0
-**구현 파일**: `src/core/reverse/scanner.ts`, `src/core/reverse/extractor.ts`
-
-### Phase 2: 상세 추출 + 테스트 연동 ✅ 완료
+### Phase 1: Serena Integration + Structure Extraction (MVP) - Complete
 
 ```
-✅ Serena 심화 활용
-  ✅ 메서드 시그니처 상세 추출
-  ✅ 참조 관계 → 의존성 그래프
-  ✅ 에러 타입 추출
+  Serena MCP integration
+    MCP client setup
+    find_symbol wrapping
+    find_referencing_symbols wrapping
+    Connection test
 
-✅ 테스트 파서 (간단 - 구조만)
-  ✅ describe/it 블록 파싱
-  ✅ 테스트명 → 시나리오 힌트
-  ✅ GIVEN-WHEN-THEN 추론 (AI)
+  File Scanner (simple)
+    Directory tree generation
+    File list (language detection via Serena)
 
-✅ 코드 링크 자동화
-  ✅ spec ↔ code 자동 연결
-  ✅ .reverse-meta.json 생성
+  Spec Generator (basic)
+    Serena result -> domains.yml conversion
+    domain.md template
+    Basic spec.md generation
+
+  CLI
+    sdd reverse scan
+    sdd reverse extract --shallow
 ```
 
-**완료**: v1.2.0
-**구현 파일**: `src/core/reverse/spec-generator.ts`, `src/core/reverse/meta.ts`
+**Complete**: v1.2.0
+**Implementation files**: `src/core/reverse/scanner.ts`, `src/core/reverse/extractor.ts`
 
-### Phase 3: AI 분석 + 검토 워크플로우 ✅ 완료
-
-```
-✅ Claude 연동 분석
-  ✅ 의도 추론 프롬프트
-  ✅ 요구사항 생성 프롬프트
-  ✅ 시나리오 보강 프롬프트
-
-✅ 신뢰도 시스템
-  ✅ 섹션별 신뢰도 계산
-  ✅ 검토 필요 항목 자동 표시
-
-✅ 검토 워크플로우
-  ✅ sdd reverse review (인터랙티브)
-  ✅ sdd reverse finalize
-  ✅ 상태 전환 (extracted → draft)
-```
-
-**완료**: v1.2.0
-**구현 파일**: `src/core/reverse/review.ts`, `src/core/reverse/finalizer.ts`, `src/core/reverse/intent-inferrer.ts`
-
-### Phase 4: ~~추가 언어 지원~~ → 삭제
+### Phase 2: Detailed Extraction + Test Integration - Complete
 
 ```
-✅ Serena가 30개+ 언어 지원
-✅ 추가 구현 불필요
-✅ Phase 4 삭제됨
+  Serena deep usage
+    Detailed method signature extraction
+    Reference relationship -> Dependency graph
+    Error type extraction
+
+  Test parser (simple - structure only)
+    describe/it block parsing
+    Test name -> Scenario hint
+    GIVEN-WHEN-THEN inference (AI)
+
+  Code link automation
+    spec <-> code auto-linking
+    .reverse-meta.json generation
 ```
 
-**예상 기간**: 0주
-**이유**: Serena가 이미 처리
+**Complete**: v1.2.0
+**Implementation files**: `src/core/reverse/spec-generator.ts`, `src/core/reverse/meta.ts`
+
+### Phase 3: AI Analysis + Review Workflow - Complete
+
+```
+  Claude integration analysis
+    Intent inference prompt
+    Requirement generation prompt
+    Scenario enhancement prompt
+
+  Confidence system
+    Per-section confidence calculation
+    Auto-mark review items
+
+  Review workflow
+    sdd reverse review (interactive)
+    sdd reverse finalize
+    Status transition (extracted -> draft)
+```
+
+**Complete**: v1.2.0
+**Implementation files**: `src/core/reverse/review.ts`, `src/core/reverse/finalizer.ts`, `src/core/reverse/intent-inferrer.ts`
+
+### Phase 4: ~~Additional Language Support~~ -> Deleted
+
+```
+  Serena supports 30+ languages
+  No additional implementation needed
+  Phase 4 deleted
+```
+
+**Expected period**: 0 weeks
+**Reason**: Serena handles it
 
 ---
 
-## 성공 지표
+## Success Metrics
 
-### 정량 지표
-
-```
-- 구조 추출 정확도: > 95%
-- 인터페이스 추출 정확도: > 90%
-- 테스트 → 시나리오 변환율: > 80%
-- AI 요구사항 추론 정확도: > 70%
-- 검토 후 최종 정확도: > 95%
-```
-
-### 정성 지표
+### Quantitative Metrics
 
 ```
-- "스펙 작성 시간 50% 이상 단축"
-- "레거시 프로젝트 SDD 도입 가능"
-- "기존 코드 이해도 향상"
+- Structure extraction accuracy: > 95%
+- Interface extraction accuracy: > 90%
+- Test -> Scenario conversion rate: > 80%
+- AI requirement inference accuracy: > 70%
+- Post-review final accuracy: > 95%
+```
+
+### Qualitative Metrics
+
+```
+- "Spec writing time reduced by 50%+"
+- "Legacy projects can now adopt SDD"
+- "Improved understanding of existing code"
 ```
 
 ---
 
-## 리스크 및 완화
+## Risks and Mitigation
 
-### Serena 관련 리스크
+### Serena-related Risks
 
-| 리스크 | 영향 | 완화 방안 |
-|--------|------|-----------|
-| Serena 프로젝트 중단 | 높음 | 추상화 레이어로 교체 가능하게 설계 |
-| Serena API 변경 | 중간 | 버전 고정 + 래퍼 레이어 |
-| MCP 연결 실패 | 중간 | 폴백 모드 (기본 파서) 제공 |
-| Serena 미설치 환경 | 중간 | 설치 가이드 + 자동 감지 |
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Serena project discontinued | High | Design abstraction layer for replaceable |
+| Serena API changes | Medium | Version pinning + wrapper layer |
+| MCP connection failure | Medium | Provide fallback mode (basic parser) |
+| Environment without Serena | Medium | Installation guide + auto-detection |
 
-**완화 전략: 추상화 레이어**
+**Mitigation Strategy: Abstraction Layer**
 
 ```typescript
 // src/core/reverse/analyzer.ts
@@ -1096,46 +1097,46 @@ interface CodeAnalyzer {
   getDefinition(symbol: string): Promise<Definition>;
 }
 
-// Serena 구현
+// Serena implementation
 class SerenaAnalyzer implements CodeAnalyzer { ... }
 
-// 폴백: 기본 TS 파서 (Serena 없을 때)
+// Fallback: Basic TS parser (without Serena)
 class FallbackAnalyzer implements CodeAnalyzer { ... }
 ```
 
-### 기타 리스크
+### Other Risks
 
-| 리스크 | 영향 | 완화 방안 |
-|--------|------|-----------|
-| AI 추론 오류 | 높음 | 신뢰도 표시 + 필수 검토 |
-| 복잡한 코드 패턴 | 중간 | Serena가 대부분 처리 |
-| 대용량 코드베이스 | 중간 | 청크 처리 + 캐싱 |
-| 다양한 코딩 스타일 | 중간 | Serena가 대부분 처리 |
-| 테스트 없는 코드 | 높음 | 시나리오 수동 추가 유도 |
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| AI inference errors | High | Confidence display + mandatory review |
+| Complex code patterns | Medium | Serena handles most |
+| Large codebases | Medium | Chunk processing + caching |
+| Various coding styles | Medium | Serena handles most |
+| Code without tests | High | Guide manual scenario addition |
 
-### Serena 의존성 평가
+### Serena Dependency Assessment
 
 ```
-장점:
-✅ 개발 기간 70% 단축 (16-23주 → 4-7주)
-✅ 30개+ 언어 즉시 지원
-✅ IDE 수준 정확도
-✅ 유지보수 부담 없음
+Advantages:
+  70% development period reduction (16-23 weeks -> 4-7 weeks)
+  30+ languages immediately
+  IDE-level accuracy
+  No maintenance burden
 
-단점:
-⚠️ 외부 의존성 추가
-⚠️ MCP 설정 필요
-⚠️ Serena 프로젝트 의존
+Disadvantages:
+  External dependency added
+  MCP setup required
+  Depends on Serena project
 
-결론:
-→ 장점이 압도적으로 큼
-→ 추상화 레이어로 리스크 완화 가능
-→ Serena 활용 권장
+Conclusion:
+-> Advantages are overwhelmingly greater
+-> Risks mitigated through abstraction layer
+-> Serena usage recommended
 ```
 
 ---
 
-## 관련 문서
+## Related Documentation
 
-- [로드맵 개요](./overview.md) - Phase 2 코드 컨텍스트 연결과 연계
-- [현재 한계점](./current-limits.md) - 브라운필드 지원 강화
+- [Roadmap Overview](./overview.md) - Links with Phase 2 Code Context Connection
+- [Current Limitations](./current-limits.md) - Brownfield support enhancement

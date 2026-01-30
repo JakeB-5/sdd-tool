@@ -10,77 +10,75 @@ SDD Tool is a command-line interface for implementing Spec-Driven Development (S
 
 Start here if you're new to SDD Tool:
 
-1. **[Main README](../../README.en.md)** - Overview, features, and complete command reference
-2. **[Getting Started](./getting-started-en.md)** - Step-by-step setup and first project guide
-3. **[Quick Reference](../../QUICK_REFERENCE.md)** - Cheat sheet for common commands
+1. **[Getting Started](./getting-started)** - Step-by-step setup and first project guide
+2. **[Best Practices](./best-practices)** - Proven strategies for SDD success
 
 ### For Learning Spec Writing
 
 Learn how to write effective specifications:
 
-1. **[Specification Writing Guide](../spec-writing/index-en.md)** - Complete guide to writing specs
-2. **[RFC 2119 Keywords](../spec-writing/rfc2119-en.md)** - Understanding requirement levels
-3. **[GIVEN-WHEN-THEN Scenarios](../spec-writing/given-when-then-en.md)** - Writing test scenarios
+1. **[Specification Writing Guide](../spec-writing/)** - Complete guide to writing specs
+2. **[RFC 2119 Keywords](../spec-writing/rfc2119)** - Understanding requirement levels
+3. **[GIVEN-WHEN-THEN Scenarios](../spec-writing/given-when-then)** - Writing test scenarios
 
 ### For Using CLI Commands
 
 Reference for command-line interface:
 
-1. **[CLI Command Reference](../cli/index-en.md)** - Complete command documentation
-2. **[Quick Reference](../../QUICK_REFERENCE.md)** - Quick lookup of commands
+1. **[CLI Command Reference](../cli/)** - Complete command documentation
 
 ### For Best Practices
 
 Team-wide guidance and patterns:
 
-1. **[Best Practices Guide](./best-practices-en.md)** - Proven strategies for SDD success
-2. **[Specification Writing Guide](../spec-writing/index-en.md)** - Writing patterns and examples
+1. **[Best Practices Guide](./best-practices)** - Proven strategies for SDD success
+2. **[Specification Writing Guide](../spec-writing/)** - Writing patterns and examples
 
 ---
 
 ## Documentation by Topic
 
 ### Installation & Setup
-- [README.en.md](../../README.en.md#installation) - Install globally
-- [Getting Started](./getting-started-en.md#installation) - Detailed setup
+- [README.en.md](https://github.com/JakeB-5/sdd-tool#installation) - Install globally
+- [Getting Started](./getting-started#installation) - Detailed setup
 
 ### Slash Commands (AI-Powered)
-- [README.en.md](../../README.en.md#slash-commands-20-total) - Complete slash command list
-- [Main Commands](../../README.en.md#core-workflow) - Core workflow commands
+- [README.en.md](https://github.com/JakeB-5/sdd-tool#slash-commands-20-total) - Complete slash command list
+- [Main Commands](https://github.com/JakeB-5/sdd-tool#core-workflow) - Core workflow commands
 
 ### CLI Commands
-- [CLI Reference](../cli/index-en.md) - All CLI commands with options
-- [Quick Reference](../../QUICK_REFERENCE.md#essential-cli-commands) - Essential commands
+- [CLI Reference](../cli/) - All CLI commands with options
+- [Quick Reference](./getting-started#essential-cli-commands) - Essential commands
 
 ### Writing Specifications
-- [Specification Writing Guide](../spec-writing/index-en.md) - Complete spec writing
-- [RFC 2119 Keywords](../spec-writing/rfc2119-en.md) - Keyword usage
-- [GIVEN-WHEN-THEN Format](../spec-writing/given-when-then-en.md) - Scenario writing
+- [Specification Writing Guide](../spec-writing/) - Complete spec writing
+- [RFC 2119 Keywords](../spec-writing/rfc2119.md) - Keyword usage
+- [GIVEN-WHEN-THEN Format](../spec-writing/given-when-then.md) - Scenario writing
 
 ### Project Organization
-- [Domains](../../README.en.md#domain-management-v120) - Organize by domain
-- [Contexts](../../README.en.md#context-management-v120) - Focus on specific areas
-- [Structure](../../README.en.md#claude-code-structure) - Project directory layout
+- [Domains](https://github.com/JakeB-5/sdd-tool#domain-management-v120) - Organize by domain
+- [Contexts](https://github.com/JakeB-5/sdd-tool#context-management-v120) - Focus on specific areas
+- [Structure](https://github.com/JakeB-5/sdd-tool#claude-code-structure) - Project directory layout
 
 ### Development Workflows
-- [Getting Started](./getting-started-en.md) - First project workflow
-- [Best Practices](./best-practices-en.md) - Team workflow patterns
-- [CLI Reference](../cli/index-en.md#command-organization-by-workflow) - Workflow-organized commands
+- [Getting Started](./getting-started) - First project workflow
+- [Best Practices](./best-practices) - Team workflow patterns
+- [CLI Reference](../cli/#command-organization-by-workflow) - Workflow-organized commands
 
 ### Quality & Validation
-- [Validation Commands](../cli/index-en.md#analysis--validation-commands) - Quality checking
-- [Sync & Change Tracking](../cli/index-en.md#synchronization--change-tracking-commands) - Verify implementation
-- [Best Practices](./best-practices-en.md#4-quality-assurance) - QA strategies
+- [Validation Commands](../cli/#analysis--validation-commands) - Quality checking
+- [Sync & Change Tracking](../cli/#synchronization--change-tracking-commands) - Verify implementation
+- [Best Practices](./best-practices#4-quality-assurance) - QA strategies
 
 ### Integration
-- [Git Integration](../../README.en.md#git-workflow-v100) - Git workflow setup
-- [CI/CD Integration](../../README.en.md#cicd-configuration) - Automate validation
-- [CLI Reference](../cli/index-en.md#cicd-integration-commands) - CI/CD commands
+- [Git Integration](https://github.com/JakeB-5/sdd-tool#git-workflow-v100) - Git workflow setup
+- [CI/CD Integration](https://github.com/JakeB-5/sdd-tool#cicd-configuration) - Automate validation
+- [CLI Reference](../cli/#cicd-integration-commands) - CI/CD commands
 
 ### Advanced Features
-- [Reverse Extraction](../../README.en.md#reverse-extraction-v120) - Extract specs from code
-- [Domain Management](../../README.en.md#domain-management-v120) - Organize large projects
-- [Context Management](../../README.en.md#context-management-v120) - Focused work
+- [Reverse Extraction](https://github.com/JakeB-5/sdd-tool#reverse-extraction-v120) - Extract specs from code
+- [Domain Management](https://github.com/JakeB-5/sdd-tool#domain-management-v120) - Organize large projects
+- [Context Management](https://github.com/JakeB-5/sdd-tool#context-management-v120) - Focused work
 
 ---
 
@@ -89,9 +87,9 @@ Team-wide guidance and patterns:
 ### Beginner
 Getting started with SDD Tool:
 
-1. [README.en.md](../../README.en.md) - Introduction and features
-2. [Getting Started](./getting-started-en.md) - Step-by-step setup
-3. [Specification Writing](../spec-writing/index-en.md) - Learn to write specs
+1. [README.en.md](https://github.com/JakeB-5/sdd-tool) - Introduction and features
+2. [Getting Started](./getting-started) - Step-by-step setup
+3. [Specification Writing](../spec-writing/) - Learn to write specs
 
 **Time to read:** ~30 minutes
 **Time to implement:** 1-2 hours for first project
@@ -99,10 +97,10 @@ Getting started with SDD Tool:
 ### Intermediate
 Using SDD Tool effectively:
 
-1. [CLI Reference](../cli/index-en.md) - Master commands
-2. [RFC 2119 Guide](../spec-writing/rfc2119-en.md) - Keyword mastery
-3. [Scenarios Guide](../spec-writing/given-when-then-en.md) - Scenario writing
-4. [Best Practices](./best-practices-en.md) - Team patterns
+1. [CLI Reference](../cli/) - Master commands
+2. [RFC 2119 Guide](../spec-writing/rfc2119.md) - Keyword mastery
+3. [Scenarios Guide](../spec-writing/given-when-then.md) - Scenario writing
+4. [Best Practices](./best-practices) - Team patterns
 
 **Time to read:** ~90 minutes
 **Required for:** Production projects
@@ -110,10 +108,10 @@ Using SDD Tool effectively:
 ### Advanced
 Optimizing SDD implementation:
 
-1. [Best Practices](./best-practices-en.md) - Team strategies
-2. [Large Projects](./best-practices-en.md#6-large-projects) - Scaling patterns
-3. [CI/CD Integration](../cli/index-en.md#cicd-integration-commands) - Pipeline setup
-4. [Advanced Features](../../README.en.md#advanced) - Full toolkit
+1. [Best Practices](./best-practices) - Team strategies
+2. [Large Projects](./best-practices#6-large-projects) - Scaling patterns
+3. [CI/CD Integration](../cli/#cicd-integration-commands) - Pipeline setup
+4. [Advanced Features](https://github.com/JakeB-5/sdd-tool#advanced) - Full toolkit
 
 **Time to read:** ~120 minutes
 **Required for:** Large teams, enterprise
@@ -186,21 +184,21 @@ Optimizing SDD implementation:
 ## Quick Links
 
 ### Most Popular Pages
-1. [Getting Started](./getting-started-en.md) - New users
-2. [CLI Reference](../cli/index-en.md) - Command lookup
-3. [RFC 2119 Guide](../spec-writing/rfc2119-en.md) - Keyword help
-4. [Quick Reference](../../QUICK_REFERENCE.md) - Cheat sheet
+1. [Getting Started](./getting-started) - New users
+2. [CLI Reference](../cli/) - Command lookup
+3. [RFC 2119 Guide](../spec-writing/rfc2119.md) - Keyword help
+4. [Quick Reference](./getting-started) - Cheat sheet
 
 ### Common Tasks
-1. **Install SDD Tool** → [README Installation](../../README.en.md#installation)
-2. **Initialize project** → [Getting Started](./getting-started-en.md#step-1-initialize-your-project)
-3. **Write spec** → [Specification Writing](../spec-writing/index-en.md)
-4. **Run command** → [CLI Reference](../cli/index-en.md) or [Quick Reference](../../QUICK_REFERENCE.md)
-5. **Check best practices** → [Best Practices](./best-practices-en.md)
+1. **Install SDD Tool** → [README Installation](https://github.com/JakeB-5/sdd-tool#installation)
+2. **Initialize project** → [Getting Started](./getting-started#step-1-initialize-your-project)
+3. **Write spec** → [Specification Writing](../spec-writing/)
+4. **Run command** → [CLI Reference](../cli/) or [Quick Reference](./getting-started)
+5. **Check best practices** → [Best Practices](./best-practices)
 
 ### Troubleshooting
-1. [Getting Started - Troubleshooting](./getting-started-en.md#troubleshooting)
-2. [Quick Reference - Common Issues](../../QUICK_REFERENCE.md#common-issues)
+1. [Getting Started - Troubleshooting](./getting-started#troubleshooting)
+2. [Quick Reference - Common Issues](./getting-started#common-issues)
 
 ---
 
@@ -311,8 +309,8 @@ This documentation is part of SDD Tool and is licensed under MIT.
 
 ---
 
-**Ready to get started?** → [Getting Started Guide](./getting-started-en.md)
+**Ready to get started?** → [Getting Started Guide](./getting-started)
 
-**Want to dive deep?** → [Specification Writing Guide](../spec-writing/index-en.md)
+**Want to dive deep?** → [Specification Writing Guide](../spec-writing/)
 
-**Need quick reference?** → [Quick Reference Card](../../QUICK_REFERENCE.md)
+**Need quick reference?** → [Quick Reference Card](./getting-started)

@@ -1,75 +1,75 @@
 # dev-review (Skill)
 
-구현된 코드가 스펙을 충족하는지 검증하는 개발 스킬입니다.
+A development skill that verifies whether implemented code meets the spec.
 
-> **Note**: 이것은 슬래시 커맨드가 아닌 **스킬**입니다. Claude가 작업 컨텍스트에 따라 자동으로 선택하여 사용합니다.
+> **Note**: This is a **skill**, not a slash command. Claude automatically selects and uses it based on the work context.
 
-## 개요
+## Overview
 
-`dev-review` 스킬은 구현된 코드가 스펙을 충족하는지 검증하고 코드 품질, 타입 안전성, 에러 처리를 검토합니다.
+The `dev-review` skill verifies that implemented code meets the spec and reviews code quality, type safety, and error handling.
 
-## 트리거 조건
+## Trigger Conditions
 
-Claude가 다음과 같은 요청을 받으면 자동으로 이 스킬을 사용합니다:
+Claude automatically uses this skill when receiving requests like:
 
-- "리뷰해줘", "코드 검토", "품질 확인"
+- "Review this", "code review", "check quality"
 - "review this code"
 
-## 검토 항목
+## Review Items
 
-1. **스펙 충족**: 모든 요구사항 구현 여부
-2. **시나리오 커버리지**: GIVEN-WHEN-THEN 테스트 존재 여부
-3. **코드 품질**: 가독성, 유지보수성
-4. **타입 안전성**: TypeScript 타입 적절성
-5. **에러 처리**: 예외 케이스 처리
+1. **Spec compliance**: Whether all requirements are implemented
+2. **Scenario coverage**: Whether GIVEN-WHEN-THEN tests exist
+3. **Code quality**: Readability, maintainability
+4. **Type safety**: Appropriateness of TypeScript types
+5. **Error handling**: Exception case handling
 
-## 사용 예시
+## Usage Example
 
 ```
-User: auth/login 코드 리뷰해줘
+User: Review the auth/login code
 
-Claude: 📋 코드 리뷰: auth/login
+Claude: Code Review: auth/login
 
-## 스펙 충족 검사
+## Spec Compliance Check
 
-| 요구사항 | 상태 |
+| Requirement | Status |
+|-------------|--------|
+| REQ-001: Email/password login | Met |
+| REQ-002: JWT token issuance | Met |
+| REQ-003: Login failure handling | Partially met |
+
+## Scenario Coverage
+
+| Scenario | Test |
 |----------|------|
-| REQ-001: 이메일/비밀번호 로그인 | ✅ 충족 |
-| REQ-002: JWT 토큰 발급 | ✅ 충족 |
-| REQ-003: 로그인 실패 처리 | ⚠️ 부분 충족 |
+| Normal login | Exists |
+| Wrong password | Exists |
+| Unregistered user | Missing |
 
-## 시나리오 커버리지
+## Improvement Suggestions
 
-| 시나리오 | 테스트 |
-|----------|--------|
-| 정상 로그인 | ✅ 있음 |
-| 잘못된 비밀번호 | ✅ 있음 |
-| 미등록 사용자 | ❌ 없음 |
+1. **Add missing test**
+   - Need test for unregistered user scenario
 
-## 개선 제안
-
-1. **누락된 테스트 추가**
-   - 미등록 사용자 시나리오 테스트 필요
-
-2. **에러 처리 개선**
+2. **Improve error handling**
    ```typescript
-   // 현재
+   // Current
    throw new Error('Login failed');
 
-   // 권장
+   // Recommended
    throw new AuthenticationError('INVALID_CREDENTIALS');
    ```
 
-3. **타입 개선**
-   - `any` 타입 사용 제거 권장
+3. **Improve types**
+   - Recommend removing `any` type usage
 
-## 점수: 85/100
+## Score: 85/100
 
-✅ 대부분 충족
-⚠️ 일부 개선 필요
+Mostly compliant
+Some improvements needed
 ```
 
-## 관련 스킬
+## Related Skills
 
-- [`dev-implement`](/commands/dev-implement) - 스펙 구현
-- [`dev-test`](/commands/dev-test) - 테스트 실행
+- [`dev-implement`](/commands/dev-implement) - Spec implementation
+- [`dev-test`](/commands/dev-test) - Run tests

@@ -1,70 +1,70 @@
 # /sdd.constitution
 
-프로젝트의 핵심 원칙(Constitution)을 정의합니다.
+Define the core principles (Constitution) for your project.
 
-## 사용법
+## Usage
 
 ```
-/sdd.constitution [프로젝트 설명]
+/sdd.constitution [project description]
 ```
 
-## 인수
+## Arguments
 
-| 인수 | 설명 |
-|------|------|
-| 프로젝트 설명 | 프로젝트에 대한 간단한 설명 |
+| Argument | Description |
+|----------|-------------|
+| project description | A brief description of the project |
 
-## 동작
+## Behavior
 
-AI가 대화를 통해 프로젝트 원칙을 작성합니다:
+The AI writes project principles through conversation:
 
-1. 프로젝트 목적 파악
-2. 핵심 원칙 도출
-3. 기술 원칙 정의
-4. 금지 사항 목록화
+1. Understand project purpose
+2. Derive core principles
+3. Define technical principles
+4. List forbidden practices
 
-## Constitution 구조
+## Constitution Structure
 
 ```markdown
-# [프로젝트명] Constitution
+# [Project Name] Constitution
 
-## 핵심 원칙 (Core Principles)
-- 사용자 데이터 보호가 최우선이다
-- 성능보다 정확성이 중요하다
+## Core Principles
+- User data protection is the top priority
+- Accuracy is more important than performance
 
-## 기술 원칙 (Technical Principles)
-- TypeScript 엄격 모드 사용
-- 모든 함수에 타입 정의 필수
-- 테스트 커버리지 80% 이상 유지
+## Technical Principles
+- Use TypeScript strict mode
+- Type definitions required for all functions
+- Maintain test coverage above 80%
 
-## 금지 사항 (Forbidden)
-- any 타입 사용 금지
-- console.log 프로덕션 코드 금지
-- 외부 의존성 무분별한 추가 금지
+## Forbidden
+- No use of `any` type
+- No console.log in production code
+- No indiscriminate addition of external dependencies
 ```
 
-## 예시
+## Example
 
 ```
-/sdd.constitution React 기반 할일 관리 앱
+/sdd.constitution React-based todo management app
 
-AI: 할일 관리 앱의 Constitution을 작성해 드릴게요.
-    몇 가지 질문이 있습니다:
+AI: I'll write the Constitution for your todo management app.
+    I have a few questions:
 
-    1. 앱의 주요 사용자는 누구인가요?
-    2. 오프라인 지원이 필요한가요?
-    3. 어떤 데이터 저장 방식을 선호하시나요?
+    1. Who are the main users of the app?
+    2. Do you need offline support?
+    3. What data storage method do you prefer?
 ```
 
-## 버전 관리
+## Version Management
 
-Constitution 변경 시 버전을 올립니다:
+Increment the version when the Constitution changes:
 
 ```yaml
-version: 1.0.0  →  1.1.0
+version: 1.0.0  ->  1.1.0
 ```
 
-스펙에서 참조:
+Reference in specs:
 
 ```yaml
 constitution_version: 1.0.0

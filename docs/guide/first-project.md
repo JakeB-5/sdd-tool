@@ -1,8 +1,8 @@
-# 첫 프로젝트
+# First Project
 
-이 가이드에서는 SDD Tool을 사용해 간단한 할일 관리 기능을 만들어봅니다.
+This guide walks you through creating a simple todo management feature using SDD Tool.
 
-## 1. 프로젝트 초기화
+## 1. Initialize Project
 
 ```bash
 mkdir todo-app
@@ -11,122 +11,122 @@ npm init -y
 sdd init
 ```
 
-## 2. Claude Code 시작
+## 2. Start Claude Code
 
 ```bash
 claude
 ```
 
-## 3. Constitution 작성
+## 3. Write Constitution
 
-프로젝트의 핵심 원칙을 정의합니다:
+Define the core principles of your project:
 
 ```
-/sdd.constitution React 기반 할일 관리 앱
+/sdd.constitution React-based todo management app
 ```
 
-AI가 대화를 통해 프로젝트 원칙을 작성합니다.
+The AI will help you write the project principles through conversation.
 
-### 예시 Constitution
+### Example Constitution
 
 ```markdown
 # Todo App Constitution
 
-## 핵심 원칙
-- 사용자 경험이 최우선이다
-- 오프라인에서도 동작해야 한다
+## Core Principles
+- User experience is the top priority
+- Must work offline
 
-## 기술 원칙
-- React + TypeScript 사용
-- 로컬 스토리지로 데이터 저장
+## Technical Principles
+- Use React + TypeScript
+- Store data in local storage
 
-## 금지 사항
-- 외부 API 의존 금지
+## Forbidden
+- No external API dependencies
 ```
 
-## 4. 기능 명세 작성
+## 4. Write Feature Spec
 
 ```
-/sdd.spec 할일 추가 기능
+/sdd.spec Add todo feature
 ```
 
-AI가 대화를 통해 명세를 작성합니다.
+The AI will help you write the spec through conversation.
 
-### 예시 명세
+### Example Spec
 
 ```markdown
 ---
 id: add-todo
-title: "할일 추가"
+title: "Add Todo"
 status: draft
 ---
 
-# 할일 추가
+# Add Todo
 
-## 요구사항
+## Requirements
 
-### REQ-01: 할일 입력
-- 시스템은 할일 텍스트 입력을 지원해야 한다(SHALL)
-- 빈 텍스트는 거부해야 한다(SHALL)
+### REQ-01: Todo Input
+- The system SHALL support todo text input
+- Empty text SHALL be rejected
 
-## 시나리오
+## Scenarios
 
-### Scenario 1: 성공적인 할일 추가
-- **GIVEN** 사용자가 할일 입력 폼에 있을 때
-- **WHEN** "우유 사기"를 입력하고 추가 버튼을 클릭하면
-- **THEN** 할일 목록에 "우유 사기"가 추가된다
+### Scenario 1: Successful Todo Addition
+- **GIVEN** the user is on the todo input form
+- **WHEN** they enter "Buy milk" and click the add button
+- **THEN** "Buy milk" is added to the todo list
 ```
 
-## 5. 구현 계획
+## 5. Implementation Plan
 
 ```
 /sdd.plan
 ```
 
-AI가 기술적 구현 계획을 수립합니다.
+The AI will create a technical implementation plan.
 
-## 6. 작업 분해
+## 6. Task Breakdown
 
 ```
 /sdd.tasks
 ```
 
-AI가 실행 가능한 작업 단위로 분해합니다.
+The AI will break down the work into executable task units.
 
-## 7. 도구 점검
+## 7. Tool Check
 
 ```
 /sdd.prepare
 ```
 
-필요한 서브에이전트와 스킬을 확인하고 생성합니다.
+Verify and create necessary subagents and skills.
 
-## 8. 구현
+## 8. Implementation
 
 ```
 /sdd.implement
 ```
 
-AI가 TDD 방식으로 순차적 구현을 안내합니다:
+The AI guides sequential TDD-style implementation:
 
-1. 테스트 작성
-2. 코드 구현
-3. 테스트 통과 확인
-4. 다음 작업으로 이동
+1. Write tests
+2. Implement code
+3. Verify tests pass
+4. Move to next task
 
-## 9. 검증
+## 9. Validation
 
 ```
 /sdd.validate
 ```
 
-명세가 올바르게 작성되었는지 검증합니다.
+Validate that the spec is correctly written.
 
-## 완료!
+## Complete!
 
-첫 번째 SDD 기반 기능이 완성되었습니다.
+Your first SDD-based feature is finished.
 
-## 다음 단계
+## Next Steps
 
-- [워크플로우 이해하기](/guide/workflow)
-- [모범 사례](/guide/best-practices)
+- [Understanding Workflow](/guide/workflow)
+- [Best Practices](/guide/best-practices)
