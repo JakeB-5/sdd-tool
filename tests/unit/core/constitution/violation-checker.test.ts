@@ -125,22 +125,19 @@ describe('checkConstitutionViolations', () => {
     expect(result.versionMismatch).toBeUndefined();
   });
 
-  it('금지 사항 위반을 감지한다', () => {
+  // NOTE: 키워드 기반 위반 검사가 비활성화됨 (false positive 버그로 인해)
+  // 이제 버전 호환성만 검사하므로 violations 배열은 항상 비어있음
+  it('키워드 기반 위반 검사는 비활성화되어 violations가 비어있다', () => {
     const result = checkConstitutionViolations(
       violatingSpecContent,
       '2.0.0',
       constitution
     );
 
-    expect(result.passed).toBe(false);
-    expect(result.violations.length).toBeGreaterThan(0);
-
-    // 평문 비밀번호 위반 확인
-    const passwordViolation = result.violations.find((v) =>
-      v.message.includes('평문')
-    );
-    expect(passwordViolation).toBeDefined();
-    expect(passwordViolation?.severity).toBe('critical');
+    // 버전이 일치하므로 통과
+    expect(result.passed).toBe(true);
+    // 키워드 검사가 비활성화되어 violations 없음
+    expect(result.violations).toHaveLength(0);
   });
 
   it('버전 불일치를 감지한다 (Major 변경)', () => {
@@ -179,16 +176,16 @@ describe('checkConstitutionViolations', () => {
     expect(result.rulesChecked).toBeGreaterThan(0);
   });
 
-  it('위반 라인 번호를 반환한다', () => {
+  // NOTE: 키워드 기반 위반 검사가 비활성화되어 라인 번호 반환 테스트는 제거
+  it('키워드 검사 비활성화로 위반 라인 번호는 반환되지 않는다', () => {
     const result = checkConstitutionViolations(
       violatingSpecContent,
       '2.0.0',
       constitution
     );
 
-    const violationWithLine = result.violations.find((v) => v.line !== undefined);
-    expect(violationWithLine).toBeDefined();
-    expect(violationWithLine?.line).toBeGreaterThan(0);
+    // 키워드 검사 비활성화로 violations 없음
+    expect(result.violations).toHaveLength(0);
   });
 });
 

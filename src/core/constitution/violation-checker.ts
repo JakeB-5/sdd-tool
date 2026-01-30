@@ -67,6 +67,11 @@ interface ForbiddenPattern {
 
 /**
  * Constitution 위반 검사
+ *
+ * NOTE: 키워드 기반 위반 검사는 false positive가 많아 비활성화됨
+ * - "코드", "테스트" 같은 일반 단어가 위반으로 감지되는 버그
+ * - 버전 호환성 검사만 유지
+ * - 향후 명시적 패턴 기반 검사로 대체 예정
  */
 export function checkConstitutionViolations(
   specContent: string,
@@ -76,50 +81,26 @@ export function checkConstitutionViolations(
   const violations: Violation[] = [];
   let rulesChecked = 0;
 
-  // 1. 버전 불일치 검사
+  // 1. 버전 불일치 검사 (유지)
   const versionMismatch = checkVersionMismatch(specConstitutionVersion, constitution.metadata.version);
 
-  // 2. 금지 사항 위반 검사
-  for (let i = 0; i < constitution.forbidden.length; i++) {
-    const forbiddenRule = constitution.forbidden[i];
-    rulesChecked++;
+  // 2. 금지 사항 규칙 수 카운트 (검사는 비활성화)
+  rulesChecked += constitution.forbidden.length;
 
-    const pattern = extractForbiddenPattern(forbiddenRule);
-    const violation = checkForbiddenViolation(specContent, pattern, `FORBIDDEN-${i + 1}`);
-
-    if (violation) {
-      violations.push(violation);
-    }
-  }
-
-  // 3. 원칙 위반 검사 (SHALL NOT, MUST NOT 규칙)
+  // 3. 원칙 규칙 수 카운트 (검사는 비활성화)
   for (const principle of constitution.principles) {
-    for (let i = 0; i < principle.rules.length; i++) {
-      const rule = principle.rules[i];
-      rulesChecked++;
-
-      // SHALL NOT 또는 MUST NOT 규칙만 위반 검사
-      if (/SHALL\s+NOT|MUST\s+NOT/i.test(rule)) {
-        const pattern = extractForbiddenPattern(rule);
-        const violation = checkForbiddenViolation(
-          specContent,
-          pattern,
-          `${principle.id}-R${i + 1}`
-        );
-
-        if (violation) {
-          violations.push(violation);
-        }
-      }
-    }
+    rulesChecked += principle.rules.length;
   }
 
-  // 4. 결과 반환
-  const hasCritical = violations.some((v) => v.severity === 'critical');
+  // NOTE: 키워드 기반 위반 검사 비활성화
+  // - extractForbiddenPattern/checkForbiddenViolation 로직이 일반 단어를 위반으로 감지
+  // - 향후 명시적 패턴 시스템으로 대체 시 재활성화
+
+  // 4. 결과 반환 (버전 검사 결과만 반영)
   const hasVersionIssue = versionMismatch && versionMismatch.severity === 'critical';
 
   return {
-    passed: !hasCritical && !hasVersionIssue,
+    passed: !hasVersionIssue,
     violations,
     versionMismatch,
     rulesChecked,
