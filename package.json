@@ -25,7 +25,8 @@
     "prepublishOnly": "npm run build && npm run test:run",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "benchmark": "npx tsx scripts/benchmark.ts"
   },
   "repository": {
     "type": "git",

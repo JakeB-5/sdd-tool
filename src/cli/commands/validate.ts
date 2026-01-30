@@ -16,6 +16,7 @@ import {
   type DomainValidationResult,
 } from '../../core/validators/domain-validator.js';
 import { promises as fs } from 'node:fs';
+import { setCacheOptions, getCacheOptions } from '../../core/cache/index.js';
 
 /**
  * CLI 옵션
@@ -27,6 +28,8 @@ export interface ValidateOptions {
   constitution?: boolean;
   domain?: string;
   orphanSpecs?: boolean;
+  useCache?: boolean;
+  noCache?: boolean;
 }
 
 /**
@@ -287,6 +290,8 @@ export function registerValidateCommand(program: Command): void {
     .option('--no-constitution', 'Constitution 검사 건너뛰기')
     .option('-d, --domain <domain>', '특정 도메인 스펙만 검증')
     .option('--orphan-specs', '도메인에 속하지 않은 스펙 검사')
+    .option('--use-cache', '캐시 사용 (기본값)')
+    .option('--no-cache', '캐시 사용 안함')
     .action(async (targetPath: string, options: ValidateOptions) => {
       try {
         await runValidate(targetPath, options);
@@ -304,6 +309,17 @@ async function runValidate(
   targetPath: string,
   options: ValidateOptions
 ): Promise<void> {
+  // 캐시 옵션 처리
+  if (options.noCache) {
+    const currentOptions = getCacheOptions();
+    setCacheOptions({ enabled: false });
+    // 명령 완료 후 복원할 수 있도록 원래 설정 저장
+    const restoreCache = () => setCacheOptions(currentOptions);
+    process.on('exit', restoreCache);
+  } else if (options.useCache !== undefined) {
+    setCacheOptions({ enabled: options.useCache });
+  }
+
   const sddRoot = await findSddRoot();
 
   const contextResult = await createValidateContext(targetPath, options, sddRoot);

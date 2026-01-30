@@ -28,6 +28,7 @@ import { registerGitCommand } from './commands/git.js';
 import { registerDomainCommand } from './commands/domain.js';
 import { registerContextCommand } from './commands/context.js';
 import { registerReverseCommand } from './commands/reverse.js';
+import { registerCacheCommand } from './commands/cache.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
@@ -65,6 +66,7 @@ registerGitCommand(program);
 registerDomainCommand(program);
 registerContextCommand(program);
 registerReverseCommand(program);
+registerCacheCommand(program);
 
 /**
  * CLI 실행
