@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-01-30
+
+### Added
+
+- **캐싱 시스템** (Phase 3)
+  - `src/core/cache/spec-cache.ts`: 스펙 파싱 결과 캐싱
+    - LRU 에빅션, mtime 기반 무효화
+    - 캐시 통계 (hit/miss ratio)
+    - 직렬화/역직렬화 지원
+  - `sdd cache clear`: 캐시 초기화
+  - `sdd cache stats`: 캐시 통계 조회
+  - `sdd validate --use-cache / --no-cache`: 캐시 옵션
+
+- **벤치마크 도구** (Phase 3)
+  - `scripts/benchmark.ts`: 1000개 스펙 성능 측정
+  - `pnpm run benchmark` 명령어 추가
+  - 결과: validate 2,013ms, list 1,151ms (1000 specs)
+
+- **영문 문서** (Phase 4)
+  - `README.en.md`: 영문 프로젝트 개요
+  - `docs/guide/getting-started-en.md`: 시작 가이드
+  - `docs/guide/best-practices-en.md`: 모범 사례
+  - `docs/cli/index-en.md`: CLI 참조
+  - `docs/spec-writing/*.md`: 스펙 작성 가이드 (3개)
+  - `QUICK_REFERENCE.md`: 빠른 참조 치트시트
+
+- **테스트 대폭 확장** (Phase 1)
+  - Unit Tests +84개: watcher, watch/cicd/migrate CLI
+  - Integration Tests +38개: sync, diff, export, prepare, reverse
+  - **총 1,600개 테스트** (126개 파일)
+  - **테스트 커버리지: 68.31%** (목표 50% 초과)
+
+### Improved
+
+- **Windows 호환성** (Phase 2)
+  - `.gitattributes`: LF 라인 엔딩 정규화
+  - `src/utils/path.ts`: 크로스 플랫폼 경로 유틸리티
+    - `normalizePathForGit()`, `normalizePathForGlob()`
+    - `pathsEqual()` (Windows 대소문자 무시)
+  - `watch.test.ts`: 파일 잠금 이슈 해결, skip 해제
+
+### Technical
+
+- 새 디렉토리 구조:
+  - `src/core/cache/`: 캐싱 시스템
+  - `src/utils/path.ts`: 경로 유틸리티
+  - `scripts/benchmark.ts`: 벤치마크 도구
+
+---
+
 ## [1.4.3] - 2026-01-07
 
 ### Documentation
