@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.1] - 2026-01-30
+
+### Fixed
+
+- **Constitution 위반 검사 false positive 버그 수정**
+  - "코드", "테스트" 같은 일반 단어가 위반으로 감지되는 문제 해결
+  - `extractKeywords()`: 2글자 이상 한글을 모두 키워드로 추출하던 문제
+  - 키워드 기반 위반 검사 비활성화, 버전 호환성 검사만 유지
+  - 향후 명시적 패턴 기반 검사로 대체 예정
+
+---
+
 ## [1.5.0] - 2026-01-30
 
 ### Added
