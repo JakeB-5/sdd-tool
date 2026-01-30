@@ -1,0 +1,403 @@
+# RFC 2119 Keywords Guide
+
+Deep dive into using RFC 2119 keywords effectively in specifications.
+
+## What is RFC 2119?
+
+RFC 2119 is an Internet standards document that defines key words used to indicate requirement levels in formal specifications. These keywords have precise, standardized meanings that make requirements unambiguous.
+
+- **RFC** = Request for Comments (IETF standards document)
+- **2119** = Document number
+- **Official Title**: "Key words for use in RFCs to Indicate Requirement Levels"
+
+## The Five Keywords
+
+SDD Tool uses five RFC 2119 keywords, each with specific implications for implementation.
+
+### 1. SHALL / MUST
+
+**Meaning:** Absolute requirement - this is mandatory
+
+**When to use:**
+- Critical features that must be implemented
+- Security requirements
+- Core functionality
+- Mandatory constraints
+
+**Examples:**
+
+```markdown
+- The system SHALL authenticate all API requests
+- The password field SHALL be encrypted
+- The API SHALL return HTTP 401 for invalid tokens
+- Users SHALL receive a confirmation email
+```
+
+**Implementation implications:**
+- Code MUST satisfy this requirement
+- Tests MUST verify compliance
+- Missing implementations are bugs
+- No exceptions without explicit approval
+
+**Test approach:**
+- Write test to verify requirement is met
+- Test should fail if requirement is violated
+
+### 2. SHOULD
+
+**Meaning:** Recommended requirement - strongly suggested but not mandatory
+
+**When to use:**
+- Important features that enhance usability
+- Best practices
+- Requirements that can have documented exceptions
+- Features that should be prioritized
+
+**Examples:**
+
+```markdown
+- The system SHOULD validate email format
+- Error messages SHOULD be user-friendly
+- The API SHOULD return structured error responses
+- Login responses SHOULD complete within 500ms
+```
+
+**Implementation implications:**
+- Code SHOULD satisfy this requirement
+- Exceptions require documented justification
+- Missing implementation is a deviation (not a bug)
+- Team should consciously decide to skip
+
+**When might you not implement:**
+- Time constraints require prioritization
+- Conflicting requirements exist
+- Alternative solutions better serve users
+- Technical limitations prevent it
+
+**Test approach:**
+- Implement test for the requirement
+- Document why if not implemented
+- Consider re-prioritizing later
+
+### 3. MAY
+
+**Meaning:** Optional requirement - implementation may choose to include or exclude
+
+**When to use:**
+- Nice-to-have features
+- Future extensions
+- Context-dependent functionality
+- Advanced features
+- Features dependent on external factors
+
+**Examples:**
+
+```markdown
+- The system MAY support biometric authentication
+- Users MAY customize their dashboard layout
+- The API MAY cache user preferences
+- The system MAY support dark mode
+```
+
+**Implementation implications:**
+- Code may or may not satisfy this requirement
+- No requirement to implement
+- No requirement to test
+- No plan needed for non-implementation
+
+**When to use MAY carefully:**
+- It's easy to overcomplicate specs with optional features
+- Distinguish between truly optional vs. should implement
+- Use sparingly for genuinely optional features
+
+**Test approach:**
+- Optional: write test if implemented
+- No test needed if not implemented
+- Don't block on MAY requirements
+
+### 4. SHALL NOT
+
+**Meaning:** Forbidden behavior - must not do this
+
+**When to use:**
+- Security constraints
+- Performance constraints
+- Compatibility requirements
+- Anti-patterns to avoid
+- Explicit forbidden behaviors
+
+**Examples:**
+
+```markdown
+- The system SHALL NOT store passwords in plaintext
+- The API SHALL NOT expose internal error details
+- Code SHALL NOT contain hardcoded API keys
+- The UI SHALL NOT block the main thread
+```
+
+**Implementation implications:**
+- Code MUST NOT do this
+- Doing this is a violation (serious bug)
+- Tests MUST verify non-compliance
+- No exceptions without explicit approval
+
+**Test approach:**
+- Write negative test to verify it doesn't happen
+- Test should fail if requirement is violated
+- Treat violations as critical bugs
+
+### 5. SHOULD NOT
+
+**Meaning:** Recommended against but not forbidden
+
+**When to use:**
+- Anti-patterns to generally avoid
+- Discouraged but allowed implementations
+- Legacy compatibility concerns
+- Performance considerations
+
+**Examples:**
+
+```markdown
+- The system SHOULD NOT use nested callbacks
+- User data SHOULD NOT be cached for more than 1 hour
+- The API SHOULD NOT return more than 10,000 records
+- The client SHOULD NOT retry indefinitely
+```
+
+**Implementation implications:**
+- Code SHOULD NOT do this
+- Exceptions may be documented and justified
+- Not implementing this pattern is better
+- Consider alternatives first
+
+**Test approach:**
+- Test the preferred approach
+- Document why if violated
+- Plan to refactor if anti-pattern is used
+
+## Using Keywords Effectively
+
+### Keyword Selection Matrix
+
+| Situation | Keyword | Reason |
+|-----------|---------|--------|
+| Non-negotiable requirement | SHALL | Zero flexibility |
+| Important but flexible | SHOULD | Allows prioritization |
+| Truly optional | MAY | No implementation pressure |
+| Security/compliance constraint | SHALL NOT | Prevents harm |
+| Best practice to avoid | SHOULD NOT | Encourages better design |
+
+### Pairing Keywords
+
+#### Requirement + Negation
+
+Use complementary pairs:
+
+```markdown
+### Authentication
+
+- Users SHALL provide valid credentials
+- The system SHALL NOT accept invalid tokens
+- Users SHOULD change passwords regularly
+- Users SHOULD NOT share their tokens
+```
+
+#### Different Aspects of Same Feature
+
+```markdown
+### Email Notifications
+
+- System SHALL send confirmation emails (function)
+- Emails SHOULD be delivered within 5 minutes (quality)
+- Emails MAY include personalization (enhancement)
+- System SHALL NOT send after user unsubscribes (constraint)
+```
+
+### Common Keyword Patterns
+
+#### Pattern: Mandatory Feature with Quality Goals
+
+```markdown
+### Pattern Example: User Login
+
+- Users SHALL be able to log in (mandatory)
+- Login response SHOULD complete within 500ms (quality)
+- System SHOULD provide helpful error messages (usability)
+- System SHALL NOT expose user existence (security)
+```
+
+#### Pattern: Core Feature + Nice-to-Have Extensions
+
+```markdown
+### Pattern Example: Search
+
+- System SHALL support text search (core)
+- System SHOULD support advanced filters (enhancement)
+- System SHOULD return results within 1 second (performance)
+- Search MAY include spell correction (extension)
+```
+
+## Common Mistakes and How to Avoid Them
+
+### Mistake 1: Using "Should" for Everything
+
+**Bad:**
+```markdown
+- The system should have user authentication
+- Users should be able to log in
+- Passwords should be secure
+```
+
+This is vague and creates uncertainty.
+
+**Good:**
+```markdown
+- The system SHALL have user authentication
+- Users SHALL be able to log in with email/password
+- Passwords SHALL be encrypted using bcrypt
+```
+
+**Rule:** If it's needed for the feature to work, use SHALL. If it's enhancement, use SHOULD.
+
+### Mistake 2: Forgetting the Negative Case
+
+**Incomplete:**
+```markdown
+- Valid passwords SHALL be accepted
+```
+
+**Better:**
+```markdown
+- Valid passwords SHALL be accepted
+- Invalid passwords SHALL be rejected
+```
+
+**Rule:** Consider both positive and negative cases.
+
+### Mistake 3: Mixing Levels of Specificity
+
+**Bad:**
+```markdown
+- Users SHALL be able to authenticate
+- The bcrypt rounds SHALL be 10
+- Passwords should be complex
+```
+
+**Good:**
+```markdown
+### Authentication
+- Users SHALL authenticate using email/password (feature)
+- Passwords SHALL meet complexity requirements (constraint)
+
+### Password Hashing
+- Passwords SHALL be hashed with bcrypt (method)
+- Bcrypt rounds SHALL be minimum 10 (parameter)
+```
+
+**Rule:** Group related requirements at same abstraction level.
+
+### Mistake 4: Overusing "Shall Not"
+
+**Bad:**
+```markdown
+- The system SHALL NOT have bugs
+- The system SHALL NOT be slow
+- The system SHALL NOT fail
+```
+
+These are too vague. Be specific about what's forbidden.
+
+**Good:**
+```markdown
+- The system SHALL NOT return passwords in responses
+- The API SHALL NOT make unencrypted database calls
+- Failed requests SHALL NOT lock user accounts
+```
+
+**Rule:** Use SHALL NOT for specific, checkable constraints.
+
+### Mistake 5: Confusing "May" with "Should"
+
+**Problem:**
+```markdown
+- The system MAY have a dark mode (is it really optional?)
+- The system MAY load within 2 seconds (is this really optional?)
+```
+
+**Better:**
+```markdown
+- If dark mode is truly optional for MVP: MAY
+- If it's an expected feature: SHOULD
+- If it's a critical requirement: SHALL
+- If it's a performance SLA: SHOULD
+```
+
+**Rule:** Use MAY only for genuinely optional features, not for prioritization.
+
+## Writing Testable Requirements
+
+### Requirement Must Be Verifiable
+
+**Not testable:**
+```markdown
+- The system SHALL be user-friendly
+- The API SHALL be efficient
+- Users SHOULD have a good experience
+```
+
+**Testable:**
+```markdown
+- The system SHALL have error messages in clear language
+- API response time SHOULD be under 500ms
+- 95% of users SHOULD find desired feature within 3 clicks
+```
+
+### Actionable and Specific
+
+**Not specific:**
+```markdown
+- SHALL handle errors appropriately
+- SHOULD work with different browsers
+- MAY include security features
+```
+
+**Specific:**
+```markdown
+- SHALL return HTTP 400 with error details for invalid input
+- SHOULD support browsers released in last 2 years
+- MAY implement HTTPS/TLS encryption
+```
+
+## RFC 2119 Compliance Checklist
+
+Before finalizing specifications:
+
+- [ ] Every requirement uses one of the five keywords (SHALL, SHOULD, MAY, SHALL NOT, SHOULD NOT)
+- [ ] Keywords are capitalized and bold (**SHALL**, **SHOULD**, etc.)
+- [ ] Each requirement is specific and testable
+- [ ] Negative cases are addressed (both SHALL and SHALL NOT)
+- [ ] Level of strictness matches actual priority
+- [ ] Team understands what each keyword means
+- [ ] Test plan aligns with keyword levels
+- [ ] Keywords are used consistently throughout spec
+
+## Quick Reference
+
+| Keyword | Strictness | Implementation | Testing |
+|---------|-----------|----------------|---------|
+| **SHALL** | Mandatory | Must implement | Must test |
+| **SHOULD** | Recommended | Should implement | Should test |
+| **MAY** | Optional | Optional | Test if implemented |
+| **SHALL NOT** | Forbidden | Must not do | Must test non-compliance |
+| **SHOULD NOT** | Discouraged | Avoid | Test better approach |
+
+## Learning Resources
+
+- **[Original RFC 2119](https://tools.ietf.org/html/rfc2119)** - Official specification
+- **[Specification Writing Guide](./index-en.md)** - Full guide
+- **[Requirements Writing](./requirements.md)** - Detailed requirements
+
+---
+
+Next: [GIVEN-WHEN-THEN Scenarios](./given-when-then.md)
