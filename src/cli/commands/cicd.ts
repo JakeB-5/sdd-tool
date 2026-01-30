@@ -135,7 +135,7 @@ async function setupGitLabCI(projectRoot: string, strict: boolean): Promise<void
 /**
  * GitHub Actions 워크플로우 생성
  */
-function generateGitHubWorkflow(strict: boolean): string {
+export function generateGitHubWorkflow(strict: boolean): string {
   const strictFlag = strict ? ' --strict' : '';
 
   return `# SDD 스펙 검증 워크플로우
@@ -261,7 +261,7 @@ jobs:
 /**
  * GitLab CI 구성 생성
  */
-function generateGitLabCI(strict: boolean): string {
+export function generateGitLabCI(strict: boolean): string {
   const strictFlag = strict ? ' --strict' : '';
 
   return `# SDD 스펙 검증 파이프라인
@@ -339,7 +339,7 @@ async function runHooksSetup(type: HookType | undefined, options: { install?: bo
 /**
  * Git hook 스크립트 생성
  */
-function generateHookScript(hook: HookType): string {
+export function generateHookScript(hook: HookType): string {
   switch (hook) {
     case 'pre-commit':
       return `#!/bin/sh
