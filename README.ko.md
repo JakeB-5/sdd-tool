@@ -14,7 +14,7 @@
 
 ## 개요
 
-SDD Tool은 **Claude Code**와 함께 사용하도록 설계된 명세 기반 개발(Spec-Driven Development) CLI입니다. **슬래시 커맨드**를 통해 AI와 대화하며 명세를 작성하고, 코드를 구현합니다.
+SDD Tool은 **Claude Code**와 함께 사용하도록 설계된 명세 기반 개발(Spec-Driven Development) CLI입니다. **슬래시 커맨드**와 **스킬 2.0(Skills 2.0)**을 통해 AI와 대화하며 스펙을 작성하고, 코드를 구현합니다.
 
 ### 핵심 개념
 
@@ -37,13 +37,13 @@ npm install -g sdd-tool
 ## 빠른 시작
 
 ```bash
-# 1. 프로젝트 초기화 (슬래시 커맨드 + Git/CI-CD 설정)
+# 1. 프로젝트 초기화 (슬래시 커맨드 + 스킬 2.0 + Git/CI-CD 설정)
 sdd init
 
 # 2. Claude Code 실행
 claude
 
-# 3. 슬래시 커맨드로 워크플로우 시작
+# 3. 슬래시 커맨드 또는 스킬로 워크플로우 시작
 /sdd.start
 ```
 
@@ -84,9 +84,24 @@ claude
 
 ---
 
-## 슬래시 커맨드 (20개)
+## 슬래시 커맨드 & 스킬 2.0
 
-`sdd init` 실행 시 `.claude/commands/`에 자동 생성됩니다.
+`sdd init` 실행 시 `.claude/commands/` (슬래시 커맨드, 한국어)와 `.claude/skills/sdd-*/` (스킬 2.0, 영어)에 자동 생성됩니다.
+
+> 각 `sdd.foo` 슬래시 커맨드는 `.claude/skills/sdd-foo/SKILL.md` 스킬과 1:1로 대응됩니다. 슬래시 커맨드는 점 표기법(dot-notation), 스킬은 케밥 케이스(kebab-case)를 사용합니다. 기본적으로 둘 다 생성되며, `--no-commands` 또는 `--no-skills`로 각각 건너뛸 수 있습니다.
+
+### 스킬 2.0 (v1.6.0+)
+
+스킬 2.0 정의는 모델 라우팅 정확도를 위해 영어로 작성되며, 다음 프론트매터 필드를 포함합니다:
+
+| 필드 | 적용 대상 |
+|------|----------|
+| `context: fork` | 분석/도메인 스킬 7개 (`sdd-analyze`, `sdd-impact`, `sdd-sync`, `sdd-search`, `sdd-report`, `sdd-reverse`, `sdd-research`) |
+| `context: manual-invoke-only` | `sdd-watch` |
+| `disable-model-invocation: true` | 유틸리티 스킬 5개 (`sdd-guide`, `sdd-chat`, `sdd-cicd`, `sdd-watch`, `sdd-migrate`) |
+| `allowed-tools` | 모든 스킬 — 최소 권한 glob 패턴 (예: `Bash(sdd validate*)`) |
+
+스킬 2.0 프론트매터 세부 사항은 Claude Code 팀의 공식 발표를 참고하세요.
 
 ### 핵심 워크플로우
 
@@ -347,6 +362,8 @@ constitution_version: 1.0.0
 sdd init                    # 프로젝트 초기화 (대화형 Git/CI-CD 설정 포함)
 sdd init --skip-git-setup   # Git/CI-CD 설정 건너뛰기
 sdd init --auto-approve     # 모든 설정 자동 승인
+sdd init --no-skills        # .claude/skills/ 생성 건너뛰기
+sdd init --no-commands      # .claude/commands/ 생성 건너뛰기
 sdd validate                # 스펙 검증
 sdd status                  # 상태 확인
 sdd list                    # 목록 조회
@@ -490,22 +507,27 @@ your-project/
 │   └── .reverse-drafts/    # 역추출 임시 스펙 (v1.2.0)
 │
 └── .claude/
-    ├── commands/           # 슬래시 커맨드 (20개)
+    ├── commands/           # 슬래시 커맨드 — 한국어, 점 표기법 (sdd.start.md …)
     │   ├── sdd.start.md
     │   ├── sdd.new.md
     │   └── ...
     ├── agents/             # 서브에이전트
     │   ├── test-runner.md
     │   └── api-scaffold.md
-    ├── skills/             # 스킬 (v1.2.0)
-    │   ├── dev-implement.md
-    │   ├── dev-test.md
-    │   ├── sdd-reverse.md
-    │   ├── sdd-domain.md
-    │   ├── sdd-context.md
-    │   └── ...
+    ├── skills/             # 스킬
+    │   ├── dev-implement/  # 개발 스킬 (v1.2.0)
+    │   │   └── SKILL.md
+    │   ├── dev-test/
+    │   │   └── SKILL.md
+    │   ├── sdd-start/      # SDD 워크플로우 스킬 — 영어, 케밥 케이스 (v1.6.0)
+    │   │   └── SKILL.md
+    │   ├── sdd-spec/
+    │   │   └── SKILL.md
+    │   └── ...             # sdd-* 스킬 32개
     └── settings.json       # 스킬 설정 (v1.2.0)
 ```
+
+> **스킬 2.0 (v1.6.0)**: `sdd init`이 `.claude/skills/sdd-*/SKILL.md`에 영어 스킬 2.0 정의 32개를 생성합니다. 한국어 슬래시 커맨드와 1:1로 대응되며, `context`, `allowed-tools`, `disable-model-invocation` 등 스킬 2.0 프론트매터를 포함합니다. v1.2.0에서 도입된 `dev-*` 스킬 6개는 변경 없이 유지됩니다.
 
 ---
 
