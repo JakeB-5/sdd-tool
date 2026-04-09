@@ -9,6 +9,7 @@ import { ExitCode } from '../../errors/index.js';
 import * as logger from '../../utils/logger.js';
 import { generateAgentsMd } from '../../generators/agents-md.js';
 import { generateClaudeCommands } from '../../generators/claude-commands.js';
+import { generateClaudeSkills, serializeSkill } from '../../generators/claude-skills.js';
 import { Result, success, failure } from '../../types/index.js';
 import { analyzeProject, generateSuggestions, formatAnalysis } from '../../utils/project-analyzer.js';
 import { setupGit } from './git.js';
@@ -22,6 +23,10 @@ export interface InitOptions {
   autoApprove?: boolean;
   /** 도메인 설정 파일 생성 여부 */
   withDomains?: boolean;
+  /** .claude/commands/ 생성 여부 (기본 true, --no-commands 로 false) */
+  commands?: boolean;
+  /** .claude/skills/ 생성 여부 (기본 true, --no-skills 로 false) */
+  skills?: boolean;
 }
 
 /**
@@ -227,13 +232,22 @@ export async function executeInit(
   const templateFiles = await createTemplateFiles(projectPath);
   createdFiles.push(...templateFiles);
 
-  // Claude 슬래시 커맨드 생성
-  const commandFiles = await createCommandFiles(projectPath);
-  createdFiles.push(...commandFiles);
+  // Claude 슬래시 커맨드 생성 (--no-commands 로 제외 가능)
+  if (options.commands !== false) {
+    const commandFiles = await createCommandFiles(projectPath);
+    createdFiles.push(...commandFiles);
+  }
 
-  // Claude 개발 스킬 생성
-  const skillFiles = await createSkillFiles(projectPath);
-  createdFiles.push(...skillFiles);
+  // Claude 스킬 생성 (--no-skills 로 제외 가능)
+  // - 기존 dev-* 개발 스킬 (TDD/리뷰 등)
+  // - Skills 2.0 형식의 영문 sdd-* 워크플로우 스킬
+  if (options.skills !== false) {
+    const devSkillFiles = await createSkillFiles(projectPath);
+    createdFiles.push(...devSkillFiles);
+
+    const claudeSkillFiles = await createClaudeSkillFiles(projectPath);
+    createdFiles.push(...claudeSkillFiles);
+  }
 
   return success({
     sddPath,
@@ -295,6 +309,28 @@ async function createSkillFiles(projectPath: string): Promise<string[]> {
     const skillDir = path.join(skillsPath, skill.name);
     await ensureDir(skillDir);
     await writeFile(path.join(skillDir, 'SKILL.md'), skill.content);
+    files.push(`.claude/skills/${skill.name}/SKILL.md`);
+  }
+
+  return files;
+}
+
+/**
+ * Claude Code Skills 2.0 파일 생성 (sdd-* 워크플로우 스킬).
+ *
+ * Mirrors the Korean slash commands as English Skills 2.0 definitions
+ * with allowed-tools, context, and model-invocation flags. Written under
+ * `.claude/skills/<name>/SKILL.md` alongside the existing dev-* skills.
+ */
+async function createClaudeSkillFiles(projectPath: string): Promise<string[]> {
+  const skillsPath = path.join(projectPath, '.claude', 'skills');
+  const files: string[] = [];
+
+  const skills = generateClaudeSkills();
+  for (const skill of skills) {
+    const skillDir = path.join(skillsPath, skill.name);
+    await ensureDir(skillDir);
+    await writeFile(path.join(skillDir, 'SKILL.md'), serializeSkill(skill));
     files.push(`.claude/skills/${skill.name}/SKILL.md`);
   }
 
@@ -1105,6 +1141,8 @@ export function registerInitCommand(program: Command): void {
     .option('--skip-git-setup', 'Git/CI-CD 설정 건너뛰기')
     .option('--auto-approve', '모든 설정을 자동 승인')
     .option('--with-domains', '도메인 설정 파일(domains.yml) 생성')
+    .option('--no-commands', '.claude/commands/ 슬래시 커맨드 생성 건너뛰기')
+    .option('--no-skills', '.claude/skills/ 스킬 생성 건너뛰기')
     .action(async (options: InitOptions) => {
       try {
         await runInit(options);
@@ -1169,6 +1207,10 @@ async function runInit(options: InitOptions): Promise<void> {
   logger.listItem('dev-scaffold - 보일러플레이트 생성');
   logger.listItem('dev-status - 구현 진행 상황');
   logger.listItem('dev-test - 테스트 작성/실행');
+  logger.newline();
+  logger.info('SDD Workflow Skills (Skills 2.0, English):');
+  logger.listItem('32 skills under .claude/skills/sdd-* mirror the slash commands');
+  logger.listItem('Use --no-skills or --no-commands to opt out individually');
 
   // Git/CI-CD 설정 프롬프트
   if (!options.skipGitSetup) {
