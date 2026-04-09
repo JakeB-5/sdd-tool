@@ -29,7 +29,10 @@ sdd init
 
 이 명령어는 다음을 생성합니다:
 - `.sdd/` - 명세 저장소
-- `.claude/commands/` - 29개의 슬래시 커맨드
+- `.claude/commands/` - 32개의 슬래시 커맨드
+- `.claude/skills/` - 32개의 sdd-* 스킬 2.0 (영문) + 6개의 dev-* 개발 스킬
+
+스킬 생성을 건너뛰려면 `--no-skills`, 슬래시 커맨드를 건너뛰려면 `--no-commands` 옵션을 사용합니다.
 
 ### 2. Git 워크플로우 설정 (선택)
 

@@ -4,7 +4,13 @@ A guide to SDD slash commands for Claude Code.
 
 ## Overview
 
-When you run `sdd init`, slash commands and development skills are automatically created in `.claude/commands/` and `.claude/skills/`.
+When you run `sdd init`, slash commands, development skills, and SDD workflow Skills 2.0 are automatically created in `.claude/commands/` and `.claude/skills/`.
+
+- **32 slash commands** in `.claude/commands/` — Korean, dot-notation (`sdd.start`, `sdd.spec`, …)
+- **6 dev-* skills** in `.claude/skills/dev-*/` — existing development skills (`dev-implement`, `dev-test`, …)
+- **32 sdd-* Skills 2.0** in `.claude/skills/sdd-*/` — English counterparts of each slash command (v1.6.0+)
+
+Use `--no-commands` to skip slash command generation, or `--no-skills` to skip all skills (both `dev-*` and `sdd-*`).
 
 ## Command List
 
@@ -43,6 +49,21 @@ When you run `sdd init`, slash commands and development skills are automatically
 | [`dev-scaffold`](/commands/dev-scaffold) | Boilerplate generation |
 | [`dev-status`](/commands/dev-status) | Implementation progress |
 | [`dev-test`](/commands/dev-test) | Run Vitest tests |
+
+### Skills 2.0 (v1.6.0+)
+
+`sdd init` also generates 32 English Skills 2.0 under `.claude/skills/sdd-*/SKILL.md`. Each mirrors a slash command with a 1:1 kebab-case mapping (e.g., `sdd.start` → `sdd-start`).
+
+Skills 2.0 include advanced frontmatter fields:
+
+| Field | Applied to |
+|-------|-----------|
+| `context: fork` | 7 analysis/domain skills (`sdd-analyze`, `sdd-impact`, `sdd-sync`, `sdd-search`, `sdd-report`, `sdd-reverse`, `sdd-research`) |
+| `context: manual-invoke-only` | `sdd-watch` |
+| `disable-model-invocation: true` | 5 utility skills (`sdd-guide`, `sdd-chat`, `sdd-cicd`, `sdd-watch`, `sdd-migrate`) |
+| `allowed-tools` | All sdd-* skills — minimum-privilege glob patterns (e.g., `Bash(sdd validate*)`) |
+
+For details on Skills 2.0 frontmatter, see the Claude Code team's announcement.
 
 ### Change Management
 

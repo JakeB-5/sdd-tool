@@ -30,8 +30,8 @@ features:
     title: 헌법(Constitution)
     details: 프로젝트의 핵심 원칙을 정의하고 일관성을 유지합니다
   - icon: 🚀
-    title: 29개 슬래시 커맨드
-    details: 완전한 SDD 워크플로우를 위한 자동화된 명령어 제공
+    title: 32개 슬래시 커맨드 & 스킬 2.0
+    details: 완전한 SDD 워크플로우를 위한 32개 슬래시 커맨드와 32개 sdd-* 스킬 2.0 제공
 ---
 
 ## 빠른 시작
@@ -40,12 +40,14 @@ features:
 # 설치
 npm install -g sdd-tool
 
-# 프로젝트 초기화
+# 프로젝트 초기화 (슬래시 커맨드 + 스킬 2.0 생성)
 sdd init
 
 # Claude Code에서 워크플로우 시작
 /sdd.start
 ```
+
+`sdd init`은 32개의 슬래시 커맨드(`.claude/commands/`)와 32개의 sdd-* 스킬 2.0(`.claude/skills/sdd-*/`)을 함께 생성합니다. 각 `sdd.foo` 슬래시 커맨드는 대응하는 `sdd-foo` 스킬 2.0을 가집니다.
 
 ## 왜 SDD인가?
 

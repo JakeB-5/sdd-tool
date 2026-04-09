@@ -38,8 +38,8 @@ Created items:
   .sdd/changes/
   .sdd/archive/
   .sdd/templates/
-  .claude/commands/    <- Slash commands
-  .claude/skills/      <- Development skills
+  .claude/commands/    <- Slash commands (32 total)
+  .claude/skills/      <- 6 dev-* skills + 32 sdd-* Skills 2.0
   .sdd/constitution.md
   .sdd/AGENTS.md
 
@@ -58,8 +58,8 @@ todo-api/
 │   ├── archive/            # Archive
 │   └── templates/          # Templates
 ├── .claude/
-│   ├── commands/           # Slash commands
-│   └── skills/             # Development skills
+│   ├── commands/           # Slash commands (32, dot-notation)
+│   └── skills/             # 6 dev-* skills + 32 sdd-* Skills 2.0
 └── package.json
 ```
 

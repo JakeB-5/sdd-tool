@@ -57,7 +57,8 @@ your-project/
 │   ├── AGENTS.md           # AI 워크플로우 가이드
 │   └── specs/              # 기능 명세
 └── .claude/
-    └── commands/           # 슬래시 커맨드 (29개)
+    ├── commands/           # 슬래시 커맨드 (32개)
+    └── skills/             # dev-* 스킬 6개 + sdd-* 스킬 2.0 32개
 ```
 
 ## 업데이트
