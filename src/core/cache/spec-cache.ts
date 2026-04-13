@@ -2,7 +2,6 @@
  * 스펙 파싱 결과 캐싱 시스템
  */
 import fs from 'node:fs';
-import path from 'node:path';
 
 export interface CacheEntry<T> {
   data: T;
