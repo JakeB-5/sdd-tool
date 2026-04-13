@@ -48,6 +48,9 @@ export class SpecCache<T = unknown> {
     }
 
     this.hits++;
+    // Refresh LRU order: delete and re-insert moves entry to end of Map.
+    this.cache.delete(filePath);
+    this.cache.set(filePath, entry);
     return entry.data;
   }
 
@@ -122,10 +125,30 @@ export class SpecCache<T = unknown> {
    */
   deserialize(json: string): void {
     try {
-      const data = JSON.parse(json);
+      const raw = JSON.parse(json) as unknown;
+      if (
+        typeof raw !== 'object' ||
+        raw === null ||
+        typeof (raw as Record<string, unknown>)['entries'] !== 'object' ||
+        (raw as Record<string, unknown>)['entries'] === null
+      ) {
+        return;
+      }
+      const data = raw as {
+        entries: Record<string, unknown>;
+        stats?: { hits?: number; misses?: number };
+      };
       this.cache.clear();
       for (const [key, value] of Object.entries(data.entries)) {
-        this.cache.set(key, value as CacheEntry<T>);
+        if (
+          typeof value === 'object' &&
+          value !== null &&
+          'data' in value &&
+          typeof (value as Record<string, unknown>)['mtime'] === 'number' &&
+          typeof (value as Record<string, unknown>)['createdAt'] === 'number'
+        ) {
+          this.cache.set(key, value as CacheEntry<T>);
+        }
       }
       this.hits = data.stats?.hits ?? 0;
       this.misses = data.stats?.misses ?? 0;
