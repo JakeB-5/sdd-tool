@@ -176,4 +176,37 @@ describe('executeInit', () => {
 
     expect(specTemplate).toContain('{{FEATURE_NAME}}');
   });
+
+  it('기본으로 sdd-* Skills 2.0 파일을 생성한다', async () => {
+    const result = await executeInit(tempDir, {});
+    expect(result.success).toBe(true);
+
+    const sddStartSkill = path.join(
+      tempDir, '.claude', 'skills', 'sdd-start', 'SKILL.md'
+    );
+    const exists = await fs.stat(sddStartSkill).then(() => true).catch(() => false);
+    expect(exists).toBe(true);
+
+    const content = await fs.readFile(sddStartSkill, 'utf-8');
+    expect(content).toContain('name: sdd-start');
+    expect(content).toContain('allowed-tools');
+  });
+
+  it('commands: false 옵션은 .claude/commands/ 를 비워둔다', async () => {
+    const result = await executeInit(tempDir, { commands: false });
+    expect(result.success).toBe(true);
+
+    const commandsDir = path.join(tempDir, '.claude', 'commands');
+    const entries = await fs.readdir(commandsDir).catch(() => [] as string[]);
+    expect(entries).toEqual([]);
+  });
+
+  it('skills: false 옵션은 .claude/skills/ 를 비워둔다', async () => {
+    const result = await executeInit(tempDir, { skills: false });
+    expect(result.success).toBe(true);
+
+    const skillsDir = path.join(tempDir, '.claude', 'skills');
+    const entries = await fs.readdir(skillsDir).catch(() => [] as string[]);
+    expect(entries).toEqual([]);
+  });
 });

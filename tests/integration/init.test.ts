@@ -116,4 +116,37 @@ describe('sdd init', () => {
     expect(result.code).toBe(0);
     expect(result.stdout).toContain('덮어씁니다');
   });
+
+  it('.claude/skills/ 에 32개의 sdd-* Skills 2.0 파일을 생성한다', async () => {
+    await runCli(['init'], tempDir);
+
+    const skillsDir = path.join(tempDir, '.claude', 'skills');
+    const entries = await fs.readdir(skillsDir);
+    const sddSkills = entries.filter((e) => e.startsWith('sdd-'));
+    expect(sddSkills.length).toBe(32);
+
+    // Spot-check one skill for YAML frontmatter
+    const startSkillMd = path.join(skillsDir, 'sdd-start', 'SKILL.md');
+    const content = await fs.readFile(startSkillMd, 'utf-8');
+    expect(content).toContain('name: sdd-start');
+    expect(content).toContain('context: inline');
+  });
+
+  it('--no-skills 옵션으로 .claude/skills/ 가 비어있다', async () => {
+    const result = await runCli(['init', '--no-skills'], tempDir);
+    expect(result.code).toBe(0);
+
+    const skillsDir = path.join(tempDir, '.claude', 'skills');
+    const entries = await fs.readdir(skillsDir).catch(() => [] as string[]);
+    expect(entries).toEqual([]);
+  });
+
+  it('--no-commands 옵션으로 .claude/commands/ 가 비어있다', async () => {
+    const result = await runCli(['init', '--no-commands'], tempDir);
+    expect(result.code).toBe(0);
+
+    const commandsDir = path.join(tempDir, '.claude', 'commands');
+    const entries = await fs.readdir(commandsDir).catch(() => [] as string[]);
+    expect(entries).toEqual([]);
+  });
 });

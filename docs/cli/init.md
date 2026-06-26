@@ -15,6 +15,8 @@ sdd init [options]
 | `-f, --force` | Overwrite existing configuration |
 | `--skip-git-setup` | Skip Git/CI-CD setup |
 | `--auto-approve` | Auto-approve all settings |
+| `--no-skills` | Skip `.claude/skills/` generation (both `dev-*` and `sdd-*`) |
+| `--no-commands` | Skip `.claude/commands/` slash command generation |
 
 ## Generated Files
 
@@ -29,12 +31,42 @@ your-project/
 │   └── templates/          # Spec templates
 │
 └── .claude/
-    └── commands/           # Slash commands (20 total)
-        ├── sdd.start.md
-        ├── sdd.spec.md
-        ├── sdd.plan.md
-        └── ...
+    ├── commands/           # Slash commands — Korean, dot-notation
+    │   ├── sdd.start.md
+    │   ├── sdd.spec.md
+    │   ├── sdd.plan.md
+    │   └── ...
+    └── skills/             # Skills 2.0 — English, kebab-case (v1.6.0)
+        ├── dev-implement/
+        │   └── SKILL.md
+        ├── dev-test/
+        │   └── SKILL.md
+        ├── sdd-start/
+        │   └── SKILL.md
+        ├── sdd-spec/
+        │   └── SKILL.md
+        └── ...             # 32 sdd-* skills total
 ```
+
+## Skills 2.0
+
+Starting with v1.6.0, `sdd init` generates 32 English Skills 2.0 definitions under `.claude/skills/sdd-*/SKILL.md` alongside the existing slash commands.
+
+Each `sdd.foo` slash command has a matching `sdd-foo` skill. Skills are authored in English and include Skills 2.0 frontmatter:
+
+- **`context: fork`** — 7 analysis/domain skills run in a forked context (`sdd-analyze`, `sdd-impact`, `sdd-sync`, `sdd-search`, `sdd-report`, `sdd-reverse`, `sdd-research`)
+- **`context: manual-invoke-only`** — `sdd-watch` (long-running, not auto-triggered)
+- **`disable-model-invocation: true`** — 5 utility skills that run a single CLI command (`sdd-guide`, `sdd-chat`, `sdd-cicd`, `sdd-watch`, `sdd-migrate`)
+- **`allowed-tools`** — minimum-privilege glob patterns per skill (e.g., `Bash(sdd validate*)`)
+
+To opt out of skill generation:
+
+```bash
+sdd init --no-skills        # Skip .claude/skills/ entirely
+sdd init --no-commands      # Skip .claude/commands/ entirely
+```
+
+Both flags are backward-compatible. Omitting them generates everything (the default).
 
 ## Git Workflow Setup
 

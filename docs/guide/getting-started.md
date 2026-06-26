@@ -45,7 +45,8 @@ sdd init
 
 This command:
 - Creates `.sdd/` directory structure
-- Generates `.claude/commands/` with 20 slash commands
+- Generates `.claude/commands/` with 32 slash commands
+- Generates `.claude/skills/` with 32 English Skills 2.0 (`sdd-*`) plus 6 dev-* development skills
 - Optionally sets up Git workflow and CI/CD
 
 ### Step 2: Configure Optional Features
@@ -60,6 +61,16 @@ sdd init --skip-git-setup
 **Auto-approve All Settings:**
 ```bash
 sdd init --auto-approve
+```
+
+**Skip Skills generation:**
+```bash
+sdd init --no-skills
+```
+
+**Skip slash commands generation:**
+```bash
+sdd init --no-commands
 ```
 
 ### Step 3: Project Structure Created

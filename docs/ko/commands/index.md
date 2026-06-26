@@ -4,7 +4,13 @@ Claude Code에서 사용하는 SDD 슬래시 커맨드 가이드입니다.
 
 ## 개요
 
-`sdd init` 실행 시 `.claude/commands/`와 `.claude/skills/`에 슬래시 커맨드와 개발 스킬이 자동 생성됩니다.
+`sdd init` 실행 시 `.claude/commands/`와 `.claude/skills/`에 슬래시 커맨드, 개발 스킬, SDD 워크플로우 스킬 2.0이 자동 생성됩니다.
+
+- **32개 슬래시 커맨드** — `.claude/commands/` (한국어, dot-notation: `sdd.start`, `sdd.spec`, …)
+- **6개 dev-* 스킬** — `.claude/skills/dev-*/` (기존 개발 스킬: `dev-implement`, `dev-test`, …)
+- **32개 sdd-* 스킬 2.0** — `.claude/skills/sdd-*/` (각 슬래시 커맨드의 영문 대응, v1.6.0+)
+
+슬래시 커맨드 생성을 건너뛰려면 `--no-commands`, 스킬 생성을 건너뛰려면 `--no-skills`를 사용합니다.
 
 ## 커맨드 목록
 
@@ -43,6 +49,21 @@ Claude Code에서 사용하는 SDD 슬래시 커맨드 가이드입니다.
 | [`dev-scaffold`](/commands/dev-scaffold) | 보일러플레이트 생성 |
 | [`dev-status`](/commands/dev-status) | 구현 진행 상황 |
 | [`dev-test`](/commands/dev-test) | Vitest 테스트 실행 |
+
+### 스킬 2.0 (v1.6.0+)
+
+`sdd init`은 `.claude/skills/sdd-*/SKILL.md`에 32개의 영문 스킬 2.0도 생성합니다. 각 스킬은 슬래시 커맨드와 1:1로 대응되며 kebab-case를 사용합니다 (예: `sdd.start` → `sdd-start`).
+
+스킬 2.0은 다음 프론트매터 필드를 포함합니다:
+
+| 필드 | 적용 대상 |
+|------|----------|
+| `context: fork` | 7개 분석/도메인 스킬 (`sdd-analyze`, `sdd-impact`, `sdd-sync`, `sdd-search`, `sdd-report`, `sdd-reverse`, `sdd-research`) |
+| `context: manual-invoke-only` | `sdd-watch` |
+| `disable-model-invocation: true` | 5개 유틸리티 스킬 (`sdd-guide`, `sdd-chat`, `sdd-cicd`, `sdd-watch`, `sdd-migrate`) |
+| `allowed-tools` | 모든 sdd-* 스킬 — 최소 권한 glob 패턴 (예: `Bash(sdd validate*)`) |
+
+스킬 2.0 프론트매터에 대한 자세한 내용은 Claude Code 팀의 공지를 참고하세요.
 
 ### 변경 관리
 

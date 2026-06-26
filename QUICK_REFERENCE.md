@@ -8,8 +8,10 @@ A quick lookup guide for common SDD Tool commands and concepts.
 # Install globally
 npm install -g sdd-tool
 
-# Initialize project
+# Initialize project (generates slash commands + Skills 2.0 + Git/CI-CD setup)
 sdd init
+sdd init --no-skills        # Skip .claude/skills/ generation
+sdd init --no-commands      # Skip .claude/commands/ generation
 
 # Start workflow
 /sdd.start
@@ -136,9 +138,11 @@ your-project/
 │   └── archive/             # Completed changes
 │
 └── .claude/                 # Claude Code config
-    ├── commands/            # Slash commands
+    ├── commands/            # Slash commands (Korean, dot-notation)
     ├── agents/              # Sub-agents
     └── skills/              # Skills
+        ├── dev-*/           # Dev skills (v1.2.0)
+        └── sdd-*/           # SDD workflow skills — Skills 2.0 (v1.6.0)
 ```
 
 ## Common Workflows
@@ -360,6 +364,7 @@ sdd --version                   # Show version
 
 ## Version Compatibility
 
+- **v1.6.0+**: Skills 2.0 — 32 English `sdd-*` skills, `--no-skills`/`--no-commands` flags
 - **v1.3.0+**: Domain-based spec structure
 - **v1.2.0+**: Context, reverse extraction, skills
 - **v1.0.0+**: Git workflow integration

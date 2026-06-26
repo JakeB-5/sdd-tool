@@ -38,8 +38,8 @@ sdd init
   📁 .sdd/changes/
   📁 .sdd/archive/
   📁 .sdd/templates/
-  📁 .claude/commands/    ← 슬래시 커맨드
-  📁 .claude/skills/      ← 개발 스킬
+  📁 .claude/commands/    ← 슬래시 커맨드 (32개)
+  📁 .claude/skills/      ← dev-* 스킬 6개 + sdd-* 스킬 2.0 32개
   📄 .sdd/constitution.md
   📄 .sdd/AGENTS.md
 
@@ -58,8 +58,8 @@ todo-api/
 │   ├── archive/            # 아카이브
 │   └── templates/          # 템플릿
 ├── .claude/
-│   ├── commands/           # 슬래시 커맨드
-│   └── skills/             # 개발 스킬
+│   ├── commands/           # 슬래시 커맨드 (32개, dot-notation)
+│   └── skills/             # dev-* 스킬 6개 + sdd-* 스킬 2.0 32개
 └── package.json
 ```
 

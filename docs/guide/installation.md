@@ -57,7 +57,8 @@ your-project/
 │   ├── AGENTS.md           # AI workflow guide
 │   └── specs/              # Feature specs
 └── .claude/
-    └── commands/           # Slash commands (29 total)
+    ├── commands/           # Slash commands (32 total)
+    └── skills/             # 6 dev-* skills + 32 sdd-* Skills 2.0
 ```
 
 ## Update
