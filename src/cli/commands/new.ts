@@ -20,6 +20,7 @@ import { ensureDir, fileExists, readFile, writeFile, findSddRoot } from '../../u
 import { resolveSpec } from '../../core/spec/locator.js';
 import { parseConstitution } from '../../core/constitution/index.js';
 import { Result, success, failure } from '../../types/index.js';
+import { ExitCode } from '../../errors/index.js';
 import { createDomainService } from '../../core/domain/service.js';
 import { isValidDomainId } from '../../schemas/domains.schema.js';
 import { createContextManager } from '../../core/context/manager.js';
@@ -200,6 +201,16 @@ export async function createFeature(
 
   const filesCreated: string[] = [];
 
+  // Write a generated file and record it; any write failure aborts feature creation.
+  const writeGenerated = async (fileName: string, content: string): Promise<Result<void, Error>> => {
+    const writeResult = await writeFile(path.join(featurePath, fileName), content);
+    if (!writeResult.success) {
+      return failure(new Error(`파일 생성 실패: ${writeResult.error.message}`));
+    }
+    filesCreated.push(fileName);
+    return success(undefined);
+  };
+
   // spec.md 생성
   const specContent = generateSpec({
     id: featureId,
@@ -208,8 +219,8 @@ export async function createFeature(
     domain,
     constitutionVersion,
   });
-  await writeFile(path.join(featurePath, 'spec.md'), specContent);
-  filesCreated.push('spec.md');
+  const specWrite = await writeGenerated('spec.md', specContent);
+  if (!specWrite.success) return specWrite;
 
   // plan.md 생성
   if (options.plan || options.all) {
@@ -218,8 +229,8 @@ export async function createFeature(
       featureTitle: title,
       overview: description,
     });
-    await writeFile(path.join(featurePath, 'plan.md'), planContent);
-    filesCreated.push('plan.md');
+    const planWrite = await writeGenerated('plan.md', planContent);
+    if (!planWrite.success) return planWrite;
   }
 
   // tasks.md 생성
@@ -234,15 +245,15 @@ export async function createFeature(
         { title: '문서 업데이트', priority: 'low' },
       ],
     });
-    await writeFile(path.join(featurePath, 'tasks.md'), tasksContent);
-    filesCreated.push('tasks.md');
+    const tasksWrite = await writeGenerated('tasks.md', tasksContent);
+    if (!tasksWrite.success) return tasksWrite;
   }
 
   // 체크리스트 생성
   if (options.checklist || options.all) {
     const checklistContent = generateFullChecklistMarkdown();
-    await writeFile(path.join(featurePath, 'checklist.md'), checklistContent);
-    filesCreated.push('checklist.md');
+    const checklistWrite = await writeGenerated('checklist.md', checklistContent);
+    if (!checklistWrite.success) return checklistWrite;
   }
 
   // 도메인에 스펙 연결
@@ -276,10 +287,10 @@ export async function createPlan(
     return failure(new Error(`기능 '${featureId}'을 찾을 수 없습니다.`));
   }
 
-  // spec.md에서 제목 추출 시도
+  // An explicit title wins; otherwise fall back to the spec.md title, then the feature id.
   let featureTitle = title || featureId;
   const specPath = path.join(featurePath, 'spec.md');
-  if (await fileExists(specPath)) {
+  if (!title && (await fileExists(specPath))) {
     const specResult = await readFile(specPath);
     if (specResult.success) {
       const titleMatch = specResult.data.match(/title:\s*"?([^"\n]+)"?/);
@@ -297,7 +308,10 @@ export async function createPlan(
   });
 
   const planPath = path.join(featurePath, 'plan.md');
-  await writeFile(planPath, planContent);
+  const writeResult = await writeFile(planPath, planContent);
+  if (!writeResult.success) {
+    return failure(new Error(`계획 파일 생성 실패: ${writeResult.error.message}`));
+  }
 
   return success(planPath);
 }
@@ -339,7 +353,10 @@ export async function createTasks(
   });
 
   const tasksPath = path.join(featurePath, 'tasks.md');
-  await writeFile(tasksPath, tasksContent);
+  const writeResult = await writeFile(tasksPath, tasksContent);
+  if (!writeResult.success) {
+    return failure(new Error(`작업 분해 파일 생성 실패: ${writeResult.error.message}`));
+  }
 
   return success(tasksPath);
 }
@@ -354,7 +371,10 @@ export async function createChecklist(sddPath: string): Promise<Result<string, E
 
   const checklistContent = generateFullChecklistMarkdown();
   const outputPath = path.join(sddPath, 'checklist.md');
-  await writeFile(outputPath, checklistContent);
+  const writeResult = await writeFile(outputPath, checklistContent);
+  if (!writeResult.success) {
+    return failure(new Error(`체크리스트 파일 생성 실패: ${writeResult.error.message}`));
+  }
 
   return success(outputPath);
 }
@@ -406,8 +426,10 @@ export function registerNewCommand(program: Command): void {
     .description('기능 구현 계획 생성')
     .argument('<feature>', '기능 ID')
     .option('--title <title>', '계획 제목')
-    .action(async (feature, opts) => {
-      await handlePlan(feature, opts);
+    .action(async (feature: string, _opts: { title?: string }, cmd: Command) => {
+      // The parent `new` also declares --title and commander hands it the flag,
+      // so read the merged local + parent options.
+      await handlePlan(feature, cmd.optsWithGlobals<{ title?: string }>());
     });
 
   // tasks 서브커맨드
@@ -446,7 +468,7 @@ async function requireProjectRoot(): Promise<string> {
   const projectRoot = await findSddRoot();
   if (!projectRoot) {
     logger.error('.sdd 디렉토리가 없습니다. 먼저 sdd init을 실행해주세요.');
-    process.exit(1);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
   return projectRoot;
 }
@@ -475,7 +497,7 @@ async function handleNew(
     logger.info('  sdd new <name>                  기본 기능 생성');
     logger.info('  sdd new <domain>/<name>         도메인과 함께 생성');
     logger.info('  sdd new <name> --domain <d>     도메인 옵션으로 생성');
-    process.exit(1);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
   const cwd = await requireProjectRoot();
@@ -485,7 +507,7 @@ async function handleNew(
   const result = await createFeature(sddPath, name, options);
   if (!result.success) {
     logger.error(`기능 생성 실패: ${result.error.message}`);
-    process.exit(1);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
   const { featureId, featurePath, branchName, filesCreated, domain } = result.data;
@@ -511,8 +533,9 @@ async function handleNew(
   // 브랜치 생성
   if (options.branch !== false) {
     if (await isGitRepository(cwd)) {
-      const branchToCreate = branchName || featureId;
-      const branchResult = await createBranch(branchToCreate, { checkout: true, cwd });
+      // createBranch adds the `feature/` prefix itself, so pass the bare feature id
+      // (for --numbered this is `001-name`, yielding `feature/001-name`).
+      const branchResult = await createBranch(featureId, { checkout: true, cwd });
       if (branchResult.success) {
         logger.info(`✅ 브랜치 생성: ${branchResult.data}`);
       } else {
@@ -531,14 +554,28 @@ async function handleNew(
   }
   logger.info('');
   logger.info('다음 단계:');
-  logger.info(`  1. ${featurePath}/spec.md 편집`);
+  for (const [index, step] of buildNextSteps(featurePath, featureId, options).entries()) {
+    logger.info(`  ${index + 1}. ${step}`);
+  }
+}
+
+/**
+ * Next-step hints after `sdd new`, skipping files that were already generated.
+ */
+export function buildNextSteps(
+  featurePath: string,
+  featureId: string,
+  options: Pick<NewFeatureOptions, 'plan' | 'tasks' | 'all'>
+): string[] {
+  const steps = [`${featurePath}/spec.md 편집`];
   if (!(options.plan || options.all)) {
-    logger.info('  2. sdd new plan ' + featureId + ' - 계획 작성');
+    steps.push(`sdd new plan ${featureId} - 계획 작성`);
   }
   if (!(options.tasks || options.all)) {
-    logger.info('  3. sdd new tasks ' + featureId + ' - 작업 분해');
+    steps.push(`sdd new tasks ${featureId} - 작업 분해`);
   }
-  logger.info('  4. sdd validate - 명세 검증');
+  steps.push('sdd validate - 명세 검증');
+  return steps;
 }
 
 /**
@@ -561,7 +598,7 @@ async function handlePlan(
     logger.info('사용법:');
     logger.info('  sdd new plan <domain>/<feature>  도메인/기능 형식');
     logger.info('  sdd new plan <feature>           자동 탐색');
-    process.exit(1);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
   const featurePath = resolved.data.dir;
@@ -569,7 +606,7 @@ async function handlePlan(
   const result = await createPlan(featurePath, featureId, options.title);
   if (!result.success) {
     logger.error(result.error.message);
-    process.exit(1);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
   logger.info(`✅ 계획 생성: ${result.data}`);
@@ -596,7 +633,7 @@ async function handleTasks(feature: string): Promise<void> {
     logger.info('사용법:');
     logger.info('  sdd new tasks <domain>/<feature>  도메인/기능 형식');
     logger.info('  sdd new tasks <feature>           자동 탐색');
-    process.exit(1);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
   const featurePath = resolved.data.dir;
@@ -604,7 +641,7 @@ async function handleTasks(feature: string): Promise<void> {
   const result = await createTasks(featurePath, featureId);
   if (!result.success) {
     logger.error(result.error.message);
-    process.exit(1);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
   logger.info(`✅ 작업 분해 생성: ${result.data}`);
@@ -623,7 +660,7 @@ async function handleChecklist(): Promise<void> {
   const result = await createChecklist(sddPath);
   if (!result.success) {
     logger.error(result.error.message);
-    process.exit(1);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
   logger.info(`✅ 체크리스트 생성: ${result.data}`);
@@ -648,7 +685,7 @@ async function handleCounter(options: {
       logger.info(`브랜치 형식: feature/${paddedNumber}-<name>`);
     } else {
       logger.error(`카운터 조회 실패: ${result.error.message}`);
-      process.exit(1);
+      process.exit(ExitCode.GENERAL_ERROR);
     }
     return;
   }
@@ -672,7 +709,7 @@ async function handleCounter(options: {
       }
     } else {
       logger.error(`이력 조회 실패: ${result.error.message}`);
-      process.exit(1);
+      process.exit(ExitCode.GENERAL_ERROR);
     }
     return;
   }
@@ -682,7 +719,7 @@ async function handleCounter(options: {
     const nextNumber = parseInt(options.set, 10);
     if (isNaN(nextNumber) || nextNumber < 1) {
       logger.error('유효한 번호를 입력해주세요 (1 이상의 정수)');
-      process.exit(1);
+      process.exit(ExitCode.GENERAL_ERROR);
     }
 
     const { setNextFeatureNumber } = await import('../../core/new/index.js');
@@ -691,7 +728,7 @@ async function handleCounter(options: {
       logger.info(`다음 기능 번호가 #${String(nextNumber).padStart(3, '0')}로 설정되었습니다.`);
     } else {
       logger.error(`번호 설정 실패: ${result.error.message}`);
-      process.exit(1);
+      process.exit(ExitCode.GENERAL_ERROR);
     }
     return;
   }
@@ -711,6 +748,6 @@ async function handleCounter(options: {
     logger.info('  --set <n>  다음 번호 설정');
   } else {
     logger.error(statusResult.error.message);
-    process.exit(1);
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 }

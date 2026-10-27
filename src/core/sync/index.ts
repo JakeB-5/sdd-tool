@@ -33,28 +33,32 @@ export async function executeSync(
     // 1. 스펙에서 요구사항 추출
     const specParser = new SpecParser(projectRoot);
 
-    let requirements;
-    if (options.specId) {
-      requirements = await specParser.parseSpec(options.specId);
-    } else {
-      requirements = await specParser.parseAllSpecs();
-    }
+    // All requirements are always parsed so that reference resolution (ambiguity,
+    // orphans) is the same whether or not a single spec is being checked.
+    const allRequirements = await specParser.parseAllSpecs();
+    const requirements = options.specId
+      ? await specParser.parseSpec(options.specId)
+      : allRequirements;
 
     if (requirements.length === 0) {
+      const emptyResult: SyncResult = {
+        specs: [],
+        requirements: [],
+        syncRate: 100,
+        implemented: [],
+        missing: [],
+        orphans: [],
+        totalRequirements: 0,
+        totalImplemented: 0,
+        warnings: [],
+      };
       return {
         success: true,
         data: {
-          result: {
-            specs: [],
-            requirements: [],
-            syncRate: 100,
-            implemented: [],
-            missing: [],
-            orphans: [],
-            totalRequirements: 0,
-            totalImplemented: 0,
-          },
-          output: '스펙에 요구사항이 없습니다.',
+          result: emptyResult,
+          output: options.json
+            ? new SyncReporter({ colors: false }).formatJson(emptyResult)
+            : '스펙에 요구사항이 없습니다.',
         },
       };
     }
@@ -73,7 +77,7 @@ export async function executeSync(
 
     // 4. 매칭
     const matcher = new SyncMatcher();
-    const result = matcher.match(requirements, codeRefs, testRefs);
+    const result = matcher.match(requirements, codeRefs, testRefs, allRequirements);
 
     // 5. 출력 생성
     const reporter = new SyncReporter({ colors: !options.json && !options.markdown });

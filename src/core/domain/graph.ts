@@ -309,12 +309,29 @@ export class DomainGraph {
     lines.push(`graph ${direction}`);
 
     if (options.title) {
-      lines.push(`  %% ${options.title}`);
+      lines.push(`  %% ${options.title.replace(/[\r\n]+/g, ' ')}`);
     }
+
+    // Mermaid node ids must be plain identifiers (a hyphen would start an edge),
+    // so map each domain id to a safe, unique node id and show the real id in the label.
+    const nodeIds = new Map<string, string>();
+    const usedNodeIds = new Set<string>();
+    const nodeId = (id: string): string => {
+      const existing = nodeIds.get(id);
+      if (existing) return existing;
+      const base = id.replace(/[^A-Za-z0-9_]/g, '_') || 'node';
+      let candidate = base;
+      for (let i = 2; usedNodeIds.has(candidate); i++) {
+        candidate = `${base}_${i}`;
+      }
+      nodeIds.set(id, candidate);
+      usedNodeIds.add(candidate);
+      return candidate;
+    };
 
     // 노드 정의
     for (const [id, info] of this.domains) {
-      lines.push(`  ${id}["${info.description || id}"]`);
+      lines.push(`  ${nodeId(id)}["${escapeMermaidLabel(info.description || id)}"]`);
     }
 
     // 엣지 정의
@@ -338,7 +355,7 @@ export class DomainGraph {
             break;
         }
 
-        lines.push(`  ${edge.from} ${arrow}|${label}| ${edge.to}`);
+        lines.push(`  ${nodeId(edge.from)} ${arrow}|${label}| ${nodeId(edge.to)}`);
       }
     }
 
@@ -348,21 +365,25 @@ export class DomainGraph {
   /**
    * DOT 형식 (Graphviz) 생성
    */
-  toDot(options: { title?: string } = {}): string {
+  toDot(options: { title?: string; direction?: 'LR' | 'TD' | 'BT' | 'RL' } = {}): string {
     const lines: string[] = [];
+    // Graphviz uses TB for top-down
+    const rankdir = options.direction === 'TD' ? 'TB' : (options.direction ?? 'LR');
 
     lines.push('digraph DomainGraph {');
-    lines.push('  rankdir=LR;');
+    lines.push(`  rankdir=${rankdir};`);
     lines.push('  node [shape=box, style=rounded];');
 
     if (options.title) {
-      lines.push(`  label="${options.title}";`);
+      lines.push(`  label=${dotString(options.title)};`);
     }
 
-    // 노드 정의
+    // 노드 정의 (ID와 라벨 모두 따옴표 + 이스케이프)
     for (const [id, info] of this.domains) {
-      const label = info.description ? `${id}\\n${info.description}` : id;
-      lines.push(`  ${id} [label="${label}"];`);
+      const label = info.description
+        ? `${escapeDot(id)}\\n${escapeDot(info.description)}`
+        : escapeDot(id);
+      lines.push(`  ${dotString(id)} [label="${label}"];`);
     }
 
     // 엣지 정의
@@ -380,7 +401,7 @@ export class DomainGraph {
             style = ' [style=bold]';
             break;
         }
-        lines.push(`  ${edge.from} -> ${edge.to}${style};`);
+        lines.push(`  ${dotString(edge.from)} -> ${dotString(edge.to)}${style};`);
       }
     }
 
@@ -401,6 +422,27 @@ export class DomainGraph {
       edges: this.getEdges(),
     };
   }
+}
+
+/**
+ * Escape text for use inside a double-quoted DOT string.
+ */
+function escapeDot(text: string): string {
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, '\\n');
+}
+
+/**
+ * Double-quoted DOT identifier/string.
+ */
+function dotString(text: string): string {
+  return `"${escapeDot(text)}"`;
+}
+
+/**
+ * Escape text for a Mermaid `["..."]` label (quotes as entity codes, no raw newlines).
+ */
+function escapeMermaidLabel(text: string): string {
+  return text.replace(/"/g, '#quot;').replace(/\r?\n/g, ' ');
 }
 
 /**

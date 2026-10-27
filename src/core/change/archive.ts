@@ -7,7 +7,7 @@ import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { directoryExists, ensureDir, copyDir, removeDir } from '../../utils/fs.js';
 import { parseProposal, updateProposalStatus } from './proposal.js';
-import { isValidChangeId } from './schemas.js';
+import { isValidChangeId, generateChangeId, localDateString } from './schemas.js';
 
 /**
  * 아카이브 결과
@@ -40,14 +40,14 @@ export async function archiveChange(
       return failure(new ChangeError(`변경 디렉토리를 찾을 수 없습니다: ${changeId}`));
     }
 
-    // 아카이브 디렉토리 생성
+    // 아카이브 디렉토리 생성 (월 폴더와 날짜 프리픽스 모두 로컬 날짜 기준)
     const today = new Date();
     const yearMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     const archiveMonthDir = path.join(archivePath, yearMonth);
     await ensureDir(archiveMonthDir);
 
     // 날짜 프리픽스로 아카이브
-    const datePrefix = today.toISOString().split('T')[0];
+    const datePrefix = localDateString(today);
     const archiveDir = path.join(archiveMonthDir, `${datePrefix}-${changeId}`);
 
     // 디렉토리 복사
@@ -87,6 +87,44 @@ export async function archiveChange(
       )
     );
   }
+}
+
+/**
+ * 사용 중인 모든 변경 ID 수집 (진행 중 changes/ + 아카이브 archive/YYYY-MM/YYYY-MM-DD-CHG-XXX)
+ *
+ * Archived IDs are included so that a new change never reuses an archived ID.
+ */
+export async function collectUsedChangeIds(sddPath: string): Promise<string[]> {
+  const ids: string[] = [];
+
+  const readDirSafe = async (dir: string): Promise<string[]> => {
+    try {
+      return await fs.readdir(dir);
+    } catch {
+      return [];
+    }
+  };
+
+  for (const entry of await readDirSafe(path.join(sddPath, 'changes'))) {
+    if (isValidChangeId(entry)) ids.push(entry);
+  }
+
+  const archivePath = path.join(sddPath, 'archive');
+  for (const month of await readDirSafe(archivePath)) {
+    for (const entry of await readDirSafe(path.join(archivePath, month))) {
+      const match = entry.match(/(CHG-\d+)$/);
+      if (match) ids.push(match[1]);
+    }
+  }
+
+  return ids;
+}
+
+/**
+ * 다음 변경 ID 생성 (아카이브된 ID 포함하여 중복 방지)
+ */
+export async function generateNextChangeId(sddPath: string): Promise<string> {
+  return generateChangeId(await collectUsedChangeIds(sddPath));
 }
 
 /**

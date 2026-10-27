@@ -19,7 +19,13 @@ sdd new <name> [options]
 | Option | Description |
 |--------|-------------|
 | `-d, --domain <domain>` | Specify domain (v1.3.0) |
-| `--all` | Generate spec, plan, and tasks |
+| `--title <title>` / `--description <desc>` | Feature title / description |
+| `--plan` / `--tasks` / `--checklist` | Also generate plan.md / tasks.md / checklist.md |
+| `--all` | Generate spec, plan, tasks, and checklist |
+| `--numbered` | Auto-number the feature: id `001-<name>`, branch `feature/001-<name>` |
+| `--no-branch` | Do not create a git branch (default branch: `feature/<id>`) |
+
+The command fails (non-zero exit) if any file cannot be written.
 
 ## Generated Files
 
@@ -66,6 +72,7 @@ Create only the implementation plan:
 
 ```bash
 sdd new plan user-auth
+sdd new plan auth/user-auth --title "Auth rollout plan"   # explicit title overrides the spec title
 ```
 
 ### sdd new tasks

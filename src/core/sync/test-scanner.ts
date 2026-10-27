@@ -5,6 +5,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { glob } from 'glob';
 import type { CodeReference } from './schemas.js';
+import { SPEC_ANNOTATION_PATTERN, extractSpecRefs } from './code-scanner.js';
 
 /**
  * 테스트 설명에서 REQ-xxx 패턴
@@ -12,13 +13,9 @@ import type { CodeReference } from './schemas.js';
  * - test('REQ-001: 설명', ...)
  * - describe('REQ-001: 설명', ...)
  * - it('should do something (REQ-001)', ...)
+ * - it('auth/login#REQ-001: 설명', ...)  (스펙 한정)
  */
 const TEST_REQ_PATTERN = /(?:it|test|describe)\s*\(\s*['"`]([^'"`]*REQ-\d+[^'"`]*)/gi;
-
-/**
- * 단일 REQ-xxx 추출
- */
-const REQ_ID_PATTERN = /REQ-\d+/gi;
 
 /**
  * 테스트 파일 패턴
@@ -81,16 +78,16 @@ export class TestScanner {
         const line = lines[i];
         const lineNum = i + 1;
 
-        // 테스트 설명에서 REQ-xxx 찾기
+        const relativePath = path.relative(this.projectRoot, filePath);
+
+        // 테스트 설명에서 [<spec>#]REQ-xxx 찾기
         const matches = line.matchAll(TEST_REQ_PATTERN);
         for (const match of matches) {
           const testDescription = match[1];
-          const reqIds = testDescription.matchAll(REQ_ID_PATTERN);
-
-          for (const reqMatch of reqIds) {
+          for (const ref of extractSpecRefs(testDescription)) {
             references.push({
-              reqId: reqMatch[0].toUpperCase(),
-              file: path.relative(this.projectRoot, filePath),
+              ...ref,
+              file: relativePath,
               line: lineNum,
               type: 'test',
               context: testDescription.trim(),
@@ -99,19 +96,20 @@ export class TestScanner {
         }
 
         // @spec 주석도 확인 (테스트 파일에서도 사용 가능)
-        const specMatch = line.match(/@spec:?\s+(REQ-\d+(?:\s*,\s*REQ-\d+)*)/i);
-        if (specMatch) {
-          const reqIds = specMatch[1].matchAll(REQ_ID_PATTERN);
-          for (const reqMatch of reqIds) {
+        for (const specMatch of line.matchAll(SPEC_ANNOTATION_PATTERN)) {
+          for (const ref of extractSpecRefs(specMatch[1])) {
             // 중복 방지
-            const reqId = reqMatch[0].toUpperCase();
             const exists = references.some(
-              r => r.reqId === reqId && r.file === path.relative(this.projectRoot, filePath) && r.line === lineNum
+              r =>
+                r.reqId === ref.reqId &&
+                r.specRef === ref.specRef &&
+                r.file === relativePath &&
+                r.line === lineNum
             );
             if (!exists) {
               references.push({
-                reqId,
-                file: path.relative(this.projectRoot, filePath),
+                ...ref,
+                file: relativePath,
                 line: lineNum,
                 type: 'test',
                 context: line.trim(),

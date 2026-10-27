@@ -17,8 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `sdd reverse review` lists drafts of every status with validation results, refuses to approve invalid drafts, stores decisions in a schema-validated `review.json` and resets approvals when a draft changes
   - `sdd reverse finalize` refuses to overwrite existing specs without `--force` and registers domains through the domain service
   - The `sdd-reverse` skill no longer runs in a forked context and may write drafts (`Write`, `Edit`, `Bash(sdd reverse *)`, `Bash(sdd validate *)`)
+- **BREAKING: `sdd sync` exit policy.** Without `--ci`/`--threshold` it only reports and exits 0 (previously any missing requirement failed). With the gate active, it fails only when the sync rate is below the threshold (default 100), with exit code 2 (`VALIDATION_FAILED`) instead of 7; the report is always printed first. `--threshold` must be a number in 0-100
+- **BREAKING: `sdd sync` requirement references are scoped per spec.** New syntax `@spec <domain>/<feature>#REQ-xx` (or `<feature>#REQ-xx`, also in test names). Bare `REQ-xx` references count only when exactly one spec has that id; ambiguous ones are ignored and reported in `warnings`
+- **BREAKING: `sdd impact simulate` reads `.sdd/changes/<id>/delta.md`** (proposal.md only as legacy fallback), uses only explicit spec targets (`### <spec>` headings that resolve, `` - `spec-id` `` items), computes removed dependencies/edges, and fails (exit 1) when no delta applies
+- **BREAKING: `sdd domain validate` exits 2** (`VALIDATION_FAILED`) on invalid structure instead of 7
+- `sdd impact report|change|simulate --json` now emit JSON (the flag was swallowed by the parent command), and `--json` modes print only JSON to stdout
+- `sdd change apply` is described truthfully: it marks the proposal `applied` and does not edit specs; change ids are never reused after archiving
+- `sdd domain delete --force` works with linked specs; `--unlink-specs` removes the spec `domain` field; `sdd domain rename` moves `.sdd/specs/<old>/` and rewrites `<old>/…` references in spec `depends` and proposal `target`
 
 ### Removed
+
+- `sdd impact -r/--reverse` (was declared but never implemented; the default output already lists what a spec depends on)
 
 - Serena MCP integration (`src/integrations/serena`), `sdd reverse extract`, `--check-serena`, `--skip-serena-check`, `--ai`, `--compare`, `--no-create-domains`, `finalize --domain`, confidence scoring, `.sdd/.reverse-meta.json`, and the Serena setup guide
 - Unused reverse modules (AI assistant, editor, intent inferrer, cleanup, diff, domain generator, reporter, confidence)

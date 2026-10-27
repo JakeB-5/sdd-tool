@@ -181,7 +181,10 @@ sdd domain graph [options]
 |--------|-------------|---------|
 | `--format` | Output format (mermaid, dot, json) | mermaid |
 | `--output`, `-o` | Save to file | - |
-| `--direction` | Direction (TD, LR, BT, RL) | LR |
+| `--direction` | Direction (TD, LR, BT, RL); applies to Mermaid and DOT (`TD` → `rankdir=TB`) | LR |
+
+Domain ids and descriptions are quoted/escaped in DOT and Mermaid output, so hyphenated ids
+(`user-profile`) and descriptions containing `"` produce valid graphs.
 
 **Examples:**
 
@@ -215,20 +218,23 @@ sdd domain delete <name> [options]
 
 | Option | Description |
 |--------|-------------|
-| `--force` | Delete without confirmation |
-| `--keep-specs` | Keep specs (unlink domain only) |
+| `-f, --force` | Delete even when specs are linked (the links in domains.yml are removed with the domain) |
+| `--unlink-specs` | Also delete when specs are linked, and remove the `domain` field from those specs' frontmatter |
+
+Without either option, a domain with linked specs is not deleted. Spec files are never deleted.
 
 **Examples:**
 
 ```bash
 sdd domain delete legacy
 sdd domain delete legacy --force
-sdd domain delete legacy --keep-specs
+sdd domain delete legacy --unlink-specs
 ```
 
 ### rename
 
-Renames a domain.
+Renames a domain. The spec folder `.sdd/specs/<old>/` is moved to `.sdd/specs/<new>/` and the
+`domain` field of affected specs is updated. Fails without changing anything if `.sdd/specs/<new>/` already exists.
 
 ```bash
 sdd domain rename <old-name> <new-name>

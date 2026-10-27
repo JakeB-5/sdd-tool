@@ -181,7 +181,10 @@ sdd domain graph [options]
 |------|------|--------|
 | `--format` | 출력 형식 (mermaid, dot, json) | mermaid |
 | `--output`, `-o` | 파일로 저장 | - |
-| `--direction` | 방향 (TD, LR, BT, RL) | LR |
+| `--direction` | 방향 (TD, LR, BT, RL), Mermaid와 DOT 모두 적용 (`TD` → `rankdir=TB`) | LR |
+
+DOT/Mermaid 출력은 도메인 ID와 설명을 따옴표로 감싸고 이스케이프하므로, 하이픈 ID(`user-profile`)나
+`"`가 포함된 설명도 유효한 그래프가 됩니다.
 
 **예시:**
 
@@ -215,20 +218,23 @@ sdd domain delete <name> [options]
 
 | 옵션 | 설명 |
 |------|------|
-| `--force` | 확인 없이 삭제 |
-| `--keep-specs` | 스펙은 유지 (도메인 연결만 해제) |
+| `-f, --force` | 연결된 스펙이 있어도 삭제 (domains.yml의 스펙 연결은 도메인과 함께 제거) |
+| `--unlink-specs` | 연결된 스펙이 있어도 삭제하고, 해당 스펙 frontmatter의 `domain` 필드도 제거 |
+
+두 옵션이 모두 없으면 스펙이 연결된 도메인은 삭제되지 않습니다. 스펙 파일 자체는 삭제하지 않습니다.
 
 **예시:**
 
 ```bash
 sdd domain delete legacy
 sdd domain delete legacy --force
-sdd domain delete legacy --keep-specs
+sdd domain delete legacy --unlink-specs
 ```
 
 ### rename
 
-도메인 이름을 변경합니다.
+도메인 이름을 변경합니다. 스펙 폴더 `.sdd/specs/<old>/`를 `.sdd/specs/<new>/`로 옮기고,
+해당 스펙들의 `domain` 필드도 갱신합니다. `.sdd/specs/<new>/`가 이미 있으면 아무것도 바꾸지 않고 실패합니다.
 
 ```bash
 sdd domain rename <old-name> <new-name>

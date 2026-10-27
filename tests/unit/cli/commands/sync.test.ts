@@ -5,7 +5,40 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { executeSyncCommand, SyncCommandResult } from '../../../../src/cli/commands/sync.js';
+import {
+  executeSyncCommand,
+  SyncCommandResult,
+  evaluateSyncGate,
+  parseThreshold,
+} from '../../../../src/cli/commands/sync.js';
+
+describe('parseThreshold', () => {
+  it('0~100 숫자를 허용한다', () => {
+    expect(parseThreshold('80')).toBe(80);
+    expect(parseThreshold('66.5')).toBe(66.5);
+    expect(parseThreshold('0')).toBe(0);
+  });
+
+  it.each(['abc', '', '101', '-1', '80%'])('잘못된 값 %j는 에러', (value) => {
+    expect(() => parseThreshold(value)).toThrow('0~100');
+  });
+});
+
+describe('evaluateSyncGate', () => {
+  it('--ci/--threshold가 없으면 게이트가 비활성화되어 항상 통과한다', () => {
+    expect(evaluateSyncGate(10, {})).toMatchObject({ active: false, passed: true });
+  });
+
+  it('--ci는 기본 임계값 100을 사용한다', () => {
+    expect(evaluateSyncGate(99, { ci: true })).toMatchObject({ active: true, passed: false, threshold: 100 });
+    expect(evaluateSyncGate(100, { ci: true }).passed).toBe(true);
+  });
+
+  it('임계값 이상이면 미구현이 있어도 통과한다', () => {
+    expect(evaluateSyncGate(66.67, { ci: true, threshold: 60 }).passed).toBe(true);
+    expect(evaluateSyncGate(50, { threshold: 60 })).toMatchObject({ active: true, passed: false });
+  });
+});
 
 // core/sync 모킹
 vi.mock('../../../../src/core/sync/index.js', () => ({

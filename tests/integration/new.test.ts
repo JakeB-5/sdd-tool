@@ -136,4 +136,38 @@ describe('sdd new', () => {
     expect(content).toContain('id: login');
     expect(content).toContain('domain: auth');
   });
+
+  it('--numbered는 feature/001-<name> 브랜치를 만든다 (feature/feature/ 중복 없음)', async () => {
+    await execAsync(
+      'git init -q && git -c user.email=t@t -c user.name=t commit -q --allow-empty -m init',
+      { cwd: tempDir }
+    );
+
+    const { stdout } = await execAsync(`node "${cliPath}" new search --numbered`, { cwd: tempDir });
+
+    expect(stdout).toContain('feature/001-search');
+    expect(stdout).not.toContain('feature/feature/');
+    const { stdout: branch } = await execAsync('git branch --show-current', { cwd: tempDir });
+    expect(branch.trim()).toBe('feature/001-search');
+  });
+
+  it('new plan <f> --title은 서브커맨드 제목으로 계획을 만든다', async () => {
+    await execAsync(`node "${cliPath}" new billing --title "청구" --no-branch`, { cwd: tempDir });
+    await execAsync(`node "${cliPath}" new plan common/billing --title "청구 계획 v2"`, { cwd: tempDir });
+
+    const plan = await fs.readFile(
+      path.join(tempDir, '.sdd', 'specs', 'common', 'billing', 'plan.md'),
+      'utf-8'
+    );
+    expect(plan).toContain('청구 계획 v2');
+  });
+
+  it('--plan 사용 시 다음 단계 번호가 연속된다', async () => {
+    const { stdout } = await execAsync(`node "${cliPath}" new orders --plan --no-branch`, { cwd: tempDir });
+
+    expect(stdout).toContain('1. ');
+    expect(stdout).toContain('2. sdd new tasks orders');
+    expect(stdout).toContain('3. sdd validate');
+    expect(stdout).not.toContain('4. ');
+  });
 });

@@ -323,7 +323,7 @@ describe('DomainGraph', () => {
       const dot = graph.toDot();
 
       expect(dot).toContain('digraph DomainGraph');
-      expect(dot).toContain('auth -> core');
+      expect(dot).toContain('"auth" -> "core"');
     });
   });
 

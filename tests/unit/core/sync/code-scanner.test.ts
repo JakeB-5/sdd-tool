@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { CodeScanner } from '../../../../src/core/sync/code-scanner.js';
+import { CodeScanner, extractSpecRefs } from '../../../../src/core/sync/code-scanner.js';
 
 describe('CodeScanner', () => {
   let tempDir: string;
@@ -19,6 +19,38 @@ describe('CodeScanner', () => {
 
   afterEach(async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  describe('스펙 한정 참조', () => {
+    it('@spec <spec>#REQ-xxx에서 스펙 한정자를 추출한다', async () => {
+      await fs.writeFile(
+        path.join(srcDir, 'mixed.ts'),
+        '// @spec auth/login#REQ-01, REQ-02, pay#REQ-3\n'
+      );
+
+      const refs = await new CodeScanner(tempDir, { srcDir }).scan();
+
+      expect(refs.map(r => ({ reqId: r.reqId, specRef: r.specRef }))).toEqual([
+        { reqId: 'REQ-01', specRef: 'auth/login' },
+        { reqId: 'REQ-02', specRef: undefined },
+        { reqId: 'REQ-3', specRef: 'pay' },
+      ]);
+    });
+
+    it('extractSpecRefs는 bare/한정 참조를 모두 처리한다', () => {
+      expect(extractSpecRefs("auth/login#REQ-01: 로그인 (REQ-02)")).toEqual([
+        { reqId: 'REQ-01', specRef: 'auth/login' },
+        { reqId: 'REQ-02' },
+      ]);
+    });
+
+    it('괄호류로 감싼 참조에서 괄호를 스펙 한정자에 포함하지 않는다', () => {
+      expect(extractSpecRefs('[user/signup#REQ-01] {a#REQ-2} <b#REQ-3>')).toEqual([
+        { reqId: 'REQ-01', specRef: 'user/signup' },
+        { reqId: 'REQ-2', specRef: 'a' },
+        { reqId: 'REQ-3', specRef: 'b' },
+      ]);
+    });
   });
 
   describe('scan', () => {

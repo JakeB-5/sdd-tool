@@ -7,17 +7,30 @@ import { glob } from 'glob';
 import type { CodeReference } from './schemas.js';
 
 /**
- * @spec REQ-001 패턴
- * - @spec REQ-001
- * - @spec REQ-001, REQ-002
+ * @spec 참조 패턴
+ * - @spec REQ-001                  (bare: 유일한 스펙에만 매칭)
+ * - @spec auth/login#REQ-001       (스펙 한정: <domain>/<feature>#REQ-xxx)
+ * - @spec login#REQ-001            (스펙 한정: <feature>#REQ-xxx, feature가 유일할 때)
+ * - @spec REQ-001, auth/login#REQ-002
  * - @spec: REQ-001
  */
-const SPEC_ANNOTATION_PATTERN = /@spec:?\s+(REQ-\d+(?:\s*,\s*REQ-\d+)*)/gi;
+export const SPEC_ANNOTATION_PATTERN =
+  /@spec:?\s+((?:[^\s,#]+#)?REQ-\d+(?:\s*,\s*(?:[^\s,#]+#)?REQ-\d+)*)/gi;
 
 /**
- * 단일 REQ-xxx 추출
+ * 단일 참조 추출 (group 1 = 스펙 한정자, group 2 = REQ-xxx)
  */
-const REQ_ID_PATTERN = /REQ-\d+/gi;
+const SPEC_REF_PATTERN = /(?:([^\s,#'"`()[\]{}<>]+)#)?(REQ-\d+)/gi;
+
+/**
+ * 텍스트에서 `[<spec>#]REQ-xxx` 참조 추출
+ */
+export function extractSpecRefs(text: string): Array<{ reqId: string; specRef?: string }> {
+  return [...text.matchAll(SPEC_REF_PATTERN)].map((m) => ({
+    reqId: m[2].toUpperCase(),
+    ...(m[1] ? { specRef: m[1] } : {}),
+  }));
+}
 
 /**
  * 기본 제외 패턴
@@ -88,10 +101,9 @@ export class CodeScanner {
         // @spec 주석 찾기
         const matches = line.matchAll(SPEC_ANNOTATION_PATTERN);
         for (const match of matches) {
-          const reqIds = match[1].matchAll(REQ_ID_PATTERN);
-          for (const reqMatch of reqIds) {
+          for (const ref of extractSpecRefs(match[1])) {
             references.push({
-              reqId: reqMatch[0].toUpperCase(),
+              ...ref,
               file: path.relative(this.projectRoot, filePath),
               line: lineNum,
               type: 'code',

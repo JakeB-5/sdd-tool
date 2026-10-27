@@ -139,7 +139,9 @@ Files to be modified:
 
 ## Transition Notes
 
-1. **new to change**: Original spec is preserved
+1. **new to change**: Original spec is preserved. The generated proposal gets the next `CHG-XXX` id
+   (archived ids are never reused) and uses the proposal schema fields (`id`, `target`), so
+   `sdd change validate` / `sdd impact change` can read it.
 2. **change to new**: Original change proposal is marked as cancelled
 3. **Work in progress**: Warning is displayed if there is work in progress
 

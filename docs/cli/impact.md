@@ -5,128 +5,60 @@ Analyzes the impact of spec changes.
 ## Usage
 
 ```bash
-sdd impact [spec-id] [options]
+sdd impact <spec> [options]
+sdd impact report [--json]
+sdd impact change <change-id> [--json]
+sdd impact simulate <spec> <change-id> [--json]
 ```
+
+`<spec>` is `<domain>/<feature>` or a unique `<feature>`.
 
 ## Options
 
 | Option | Description |
 |--------|-------------|
-| `--json` | Output in JSON format |
-| `--depth <n>` | Analysis depth (default: 3) |
-| `--code` | Include code impact |
-| `--report` | Generate detailed report |
+| `-g, --graph` | Output the dependency graph (Mermaid) |
+| `-c, --code` | Code impact analysis |
+| `--json` | JSON output — works on every subcommand; stdout carries only the JSON document |
 
-## Analysis Items
+## Subcommands
 
-1. **Spec Dependencies**: Other specs that depend on this spec
-2. **Code References**: Source code files that reference this spec
-3. **Test Impact**: Related test files
-4. **Domain Impact**: Affected domains
+| Command | Description |
+|---------|-------------|
+| `report` | Project-wide dependency report |
+| `change <id>` | Specs affected by a change proposal |
+| `simulate <spec> <id>` | What-if prediction as if the change were applied |
+
+## What Is Analyzed
+
+- **Depends on**: specs the target uses (frontmatter `depends`)
+- **Directly/indirectly affected specs**: specs that depend on the target
+- **Risk score** and recommendations
+
+## simulate
+
+`simulate` reads `.sdd/changes/<id>/delta.md` (proposal.md is used only for legacy changes without delta.md).
+
+- `## ADDED` / `## REMOVED`: only explicit spec targets count — a list item starting with `` `spec-id` `` adds/removes
+  that spec, and a `### <spec>` heading that resolves to an existing spec marks it modified. Requirement text
+  (plain bullets, `### REQ-xx` headings) and `<!-- -->` placeholders are ignored
+- `## MODIFIED`: for each `### <target spec>`, the `depends:` lines in Before/After are compared to
+  compute added and removed dependencies (`newDependencies`, `removedDependencies`)
+- `changes.addedEdges` / `changes.removedEdges` are the real edge differences between the current and projected graphs
+- If no delta is found the command fails (exit code 1)
+
+```bash
+sdd impact simulate auth/login CHG-001 --json
+```
 
 ## Examples
 
-### Basic Impact Analysis
-
 ```bash
-sdd impact user-auth
-```
-
-Output:
-```
-=== Impact Analysis: user-auth ===
-
-📊 Direct Dependencies:
-  • user-profile (depends: user-auth)
-  • order-checkout (depends: user-auth)
-
-🔗 Indirect Dependencies (depth 2):
-  • payment-flow → order-checkout → user-auth
-
-📁 Related Code:
-  • src/auth/login.ts
-  • src/auth/session.ts
-  • src/middleware/auth.ts
-
-🧪 Related Tests:
-  • tests/auth/login.test.ts
-  • tests/integration/auth.test.ts
-
-⚠️  Impact Summary:
-  - Direct dependencies: 2 specs
-  - Indirect dependencies: 1 spec
-  - Code files: 3
-  - Test files: 2
-```
-
-### JSON Output
-
-```bash
-sdd impact user-auth --json
-```
-
-```json
-{
-  "specId": "user-auth",
-  "directDependents": ["user-profile", "order-checkout"],
-  "indirectDependents": ["payment-flow"],
-  "codeFiles": [
-    "src/auth/login.ts",
-    "src/auth/session.ts"
-  ],
-  "testFiles": [
-    "tests/auth/login.test.ts"
-  ],
-  "summary": {
-    "directCount": 2,
-    "indirectCount": 1,
-    "codeCount": 3,
-    "testCount": 2
-  }
-}
-```
-
-### Include Code Impact
-
-```bash
-sdd impact user-auth --code
-```
-
-Output:
-```
-=== Code Impact Analysis: user-auth ===
-
-📁 src/auth/login.ts
-   Line 15: implements REQ-AUTH-001
-   Line 42: implements REQ-AUTH-002
-
-📁 src/auth/session.ts
-   Line 8: implements REQ-AUTH-003
-
-📁 src/middleware/auth.ts
-   Line 23: depends on user-auth
-```
-
-### Generate Detailed Report
-
-```bash
-sdd impact user-auth --report
-```
-
-Creates `.sdd/reports/impact-user-auth.md` file.
-
-## Impact Visualization
-
-```bash
-sdd impact user-auth --graph
-```
-
-Mermaid diagram output:
-```mermaid
-graph TD
-    user-auth --> user-profile
-    user-auth --> order-checkout
-    order-checkout --> payment-flow
+sdd impact auth/login              # impact analysis
+sdd impact auth/login --graph      # Mermaid graph
+sdd impact auth/login -c --json    # code impact (JSON)
+sdd impact report --json           # project report (JSON)
+sdd impact change CHG-001 --json   # change proposal impact (JSON)
 ```
 
 ## Related Documentation

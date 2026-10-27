@@ -14,6 +14,7 @@ import {
   formatImpactReport,
   analyzeChangeImpact,
   parseDeltaFromProposal,
+  resolveDeltaSourcePath,
   runSimulation,
   formatSimulationResult,
   analyzeCodeImpact,
@@ -36,7 +37,6 @@ import { Result, success, failure } from '../../types/index.js';
  */
 export interface ImpactOptions {
   graph?: boolean;
-  reverse?: boolean;
   code?: boolean;
   json?: boolean;
 }
@@ -226,7 +226,8 @@ export async function executeSimulation(
   feature: string,
   proposalPath: string
 ): Promise<Result<{ deltas: unknown[]; result: SimulationResult }, Error>> {
-  const deltaResult = await parseDeltaFromProposal(proposalPath);
+  // delta.md next to proposal.md holds the delta; proposal.md is the legacy source
+  const deltaResult = await parseDeltaFromProposal(await resolveDeltaSourcePath(proposalPath));
   if (!deltaResult.success) {
     return failure(deltaResult.error);
   }
@@ -241,7 +242,8 @@ export async function executeSimulation(
     return failure(simResult.error);
   }
 
-  return success({ deltas, result: simResult.data });
+  // Report the deltas actually applied (resolved, unresolvable heading targets dropped)
+  return success({ deltas: simResult.data.deltas ?? deltas, result: simResult.data });
 }
 
 /**
@@ -252,15 +254,9 @@ export function registerImpactCommand(program: Command): void {
     .command('impact [feature]')
     .description('스펙 변경의 영향도를 분석합니다')
     .option('-g, --graph', '의존성 그래프 출력 (Mermaid)')
-    .option('-r, --reverse', '역방향 영향도 분석')
     .option('-c, --code', '코드 영향도 분석')
     .option('--json', 'JSON 형식 출력')
-    .action(async (feature: string | undefined, options: {
-      graph?: boolean;
-      reverse?: boolean;
-      code?: boolean;
-      json?: boolean;
-    }) => {
+    .action(async (feature: string | undefined, options: ImpactOptions) => {
       try {
         await runImpact(feature, options);
       } catch (error) {
@@ -274,9 +270,11 @@ export function registerImpactCommand(program: Command): void {
     .command('report')
     .description('전체 프로젝트 의존성 리포트 생성')
     .option('--json', 'JSON 형식 출력')
-    .action(async (options: { json?: boolean }) => {
+    .action(async (_options: ReportOptions, cmd: Command) => {
       try {
-        await runImpactReport(options);
+        // The parent `impact` also declares --json and commander hands it the flag,
+        // so subcommands read the merged local + parent options.
+        await runImpactReport(cmd.optsWithGlobals<ReportOptions>());
       } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
         process.exit(ExitCode.GENERAL_ERROR);
@@ -288,9 +286,9 @@ export function registerImpactCommand(program: Command): void {
     .command('change <id>')
     .description('변경 제안의 영향도를 분석합니다')
     .option('--json', 'JSON 형식 출력')
-    .action(async (id: string, options: { json?: boolean }) => {
+    .action(async (id: string, _options: ReportOptions, cmd: Command) => {
       try {
-        await runChangeImpact(id, options);
+        await runChangeImpact(id, cmd.optsWithGlobals<ReportOptions>());
       } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
         process.exit(ExitCode.GENERAL_ERROR);
@@ -302,9 +300,9 @@ export function registerImpactCommand(program: Command): void {
     .command('simulate <feature> <proposal>')
     .description('변경 제안을 시뮬레이션하여 영향도를 예측합니다')
     .option('--json', 'JSON 형식 출력')
-    .action(async (feature: string, proposal: string, options: { json?: boolean }) => {
+    .action(async (feature: string, proposal: string, _options: SimulateOptions, cmd: Command) => {
       try {
-        await runSimulate(feature, proposal, options);
+        await runSimulate(feature, proposal, cmd.optsWithGlobals<SimulateOptions>());
       } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
         process.exit(ExitCode.GENERAL_ERROR);
@@ -370,8 +368,10 @@ async function runImpact(
       process.exit(ExitCode.GENERAL_ERROR);
     }
 
-    logger.info(`💻 코드 영향도 분석: ${feature}`);
-    logger.newline();
+    if (!options.json) {
+      logger.info(`💻 코드 영향도 분석: ${feature}`);
+      logger.newline();
+    }
 
     const codeResult = await executeCodeImpactAnalysis(projectRoot, sddPath, feature);
     if (!codeResult.success) {
@@ -482,33 +482,32 @@ async function runSimulate(
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  logger.info(`📊 What-if 시뮬레이션`);
-  logger.info(`대상 스펙: ${feature}`);
-  logger.info(`변경 제안: ${fullProposalPath}`);
-  logger.newline();
-
   const result = await executeSimulation(specsPath, feature, fullProposalPath);
   if (!result.success) {
-    if (result.error.message.includes('델타를 찾을 수 없습니다')) {
-      logger.warn(result.error.message);
-      logger.info('ADDED, MODIFIED, REMOVED 섹션을 확인하세요.');
-      return;
-    }
     logger.error(result.error.message);
+    if (result.error.message.includes('델타를 찾을 수 없습니다')) {
+      logger.error('delta.md의 ADDED, MODIFIED, REMOVED 섹션을 확인하세요.');
+    }
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
   const { deltas, result: simResult } = result.data;
+
+  // JSON mode: stdout carries only the JSON document
+  if (options.json) {
+    console.log(JSON.stringify({ ...simResult, deltas }, null, 2));
+    return;
+  }
+
+  logger.info(`📊 What-if 시뮬레이션`);
+  logger.info(`대상 스펙: ${feature}`);
+  logger.info(`변경 제안: ${fullProposalPath}`);
+  logger.newline();
   logger.info(`감지된 변경: ${deltas.length}건`);
   for (const delta of deltas as Array<{ type: string; specId: string }>) {
     const icon = delta.type === 'ADDED' ? '➕' : delta.type === 'REMOVED' ? '➖' : '✏️';
     logger.listItem(`${icon} ${delta.type}: ${delta.specId}`, 1);
   }
   logger.newline();
-
-  if (options.json) {
-    console.log(JSON.stringify(simResult, null, 2));
-  } else {
-    console.log(formatSimulationResult(simResult, feature));
-  }
+  console.log(formatSimulationResult(simResult, feature));
 }

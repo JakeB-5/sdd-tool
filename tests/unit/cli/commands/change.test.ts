@@ -166,6 +166,54 @@ created: 2024-01-01
     );
     expect(updatedContent).toContain('status: applied');
   });
+
+  it('proposal.md를 저장할 수 없으면 실패를 반환한다', async () => {
+    const proposalPath = path.join(changePath, 'proposal.md');
+    await fs.writeFile(proposalPath, '---\nid: CHG-001\nstatus: draft\ncreated: 2024-01-01\n---\n# t\n');
+    await fs.chmod(proposalPath, 0o444);
+
+    try {
+      const result = await applyChange(changePath);
+      expect(result.success).toBe(false);
+    } finally {
+      await fs.chmod(proposalPath, 0o644);
+    }
+  });
+});
+
+describe('createChange - ID 발급', () => {
+  let sddPath: string;
+
+  beforeEach(async () => {
+    sddPath = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-change-id-'));
+  });
+
+  afterEach(async () => {
+    await fs.rm(sddPath, { recursive: true, force: true });
+  });
+
+  it('아카이브된 변경 ID 다음 번호를 사용한다', async () => {
+    await fs.mkdir(path.join(sddPath, 'archive', '2025-01', '2025-01-10-CHG-005'), { recursive: true });
+
+    const result = await createChange(sddPath, { title: '새 변경' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.id).toBe('CHG-006');
+    }
+  });
+
+  it('변경 디렉토리를 만들 수 없으면 실패를 반환한다', async () => {
+    await fs.mkdir(path.join(sddPath, 'changes'));
+    await fs.chmod(path.join(sddPath, 'changes'), 0o555);
+
+    try {
+      const result = await createChange(sddPath, {});
+      expect(result.success).toBe(false);
+    } finally {
+      await fs.chmod(path.join(sddPath, 'changes'), 0o755);
+    }
+  });
 });
 
 describe('getDeltaInfo', () => {

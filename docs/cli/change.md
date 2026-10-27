@@ -5,141 +5,100 @@ Manages change proposals for existing specs.
 ## Usage
 
 ```bash
-sdd change [command] [options]
+sdd change [id] [options]        # no id: create a proposal, with id: show details
+sdd change <subcommand> <id>
 ```
 
 ## Subcommands
 
 | Command | Description |
 |---------|-------------|
-| `create` | Create new change proposal |
-| `list` | List pending changes |
-| `show <id>` | Show change details |
-| `apply <id>` | Apply change |
-| `archive <id>` | Archive completed change |
+| `apply <id>` | Mark the proposal as `applied` (spec files are not modified automatically) |
+| `archive <id>` | Move a completed change to `.sdd/archive/YYYY-MM/YYYY-MM-DD-<id>/` |
+| `diff <id>` | Summarize ADDED/MODIFIED/REMOVED from delta.md |
+| `validate <id>` | Validate proposal.md and delta.md (exit code 2 on failure) |
 
 ## Options
 
 | Option | Description |
 |--------|-------------|
+| `-l, --list` | List pending changes |
 | `-t, --title <title>` | Change proposal title |
-| `-s, --spec <spec-id>` | Affected spec ID |
-| `--dry-run` | Preview without applying |
+| `-s, --spec <spec>` | Target spec path |
 
 ## Change Workflow
 
 ```
-create → review → apply → archive
+create → write delta.md → validate → edit specs → apply → archive
 ```
 
-1. **create**: Generates proposal.md and delta.md files
-2. **review**: Team review and modifications
-3. **apply**: Apply changes to existing specs
-4. **archive**: Move completed changes to archive
+1. **create** (`sdd change -t "..."`): generates `proposal.md` and `delta.md`. IDs account for both
+   pending and archived changes, so an ID is never reused after archiving.
+2. **write delta.md**: fill in the ADDED / MODIFIED / REMOVED sections
+3. **validate**: check the format
+4. **edit specs**: the user or the AI edits the spec files following delta.md
+5. **apply**: marks the proposal as `applied` — it does not rewrite specs
+6. **archive**: moves the change to the archive (dates use local time)
 
 ## Examples
 
-### Create New Change Proposal
-
 ```bash
-sdd change create --title "Login Feature Enhancement" --spec user-auth
-```
-
-Output:
-```
-✅ Change proposal created.
-   ID: CHG-001
-   Path: .sdd/changes/CHG-001/
-
-Generated files:
-  - proposal.md (change proposal)
-  - delta.md (change contents)
-```
-
-### List Pending Changes
-
-```bash
-sdd change list
-```
-
-Output:
-```
-=== Pending Changes ===
-
-CHG-001: Login Feature Enhancement [draft]
-CHG-002: API Response Format Change [review]
-
-Total: 2
-```
-
-### Show Change Details
-
-```bash
-sdd change show CHG-001
-```
-
-### Apply Change
-
-```bash
+sdd change -t "Login Feature Enhancement" -s auth/login   # creates CHG-001
+sdd change -l                                             # list
+sdd change CHG-001                                        # details (exit code 2 if proposal.md fails to parse)
+sdd change validate CHG-001
 sdd change apply CHG-001
-```
-
-### Archive Change
-
-```bash
 sdd change archive CHG-001
 ```
 
-## Generated Files
+## delta.md Format
 
-### proposal.md
-
-```markdown
+~~~markdown
 ---
-id: CHG-001
-title: "Login Feature Enhancement"
-status: draft
+proposal: CHG-001
 created: 2025-01-07
----
-
-# Change Proposal: Login Feature Enhancement
-
-## Reason for Change
-
-[Explain why this change is needed]
-
-## Affected Specs
-
-- user-auth
-
-## Change Summary
-
-[Summarize the main changes]
-```
-
-### delta.md
-
-```markdown
----
-proposal_id: CHG-001
 ---
 
 # Delta: Login Feature Enhancement
 
 ## ADDED
 
-- [Newly added requirements]
+### REQ-10: OAuth login
+
+The system SHALL support OAuth 2.0.
 
 ## MODIFIED
 
-- [Modified requirements]
+### specs/auth/login/spec.md
+
+#### Before
+
+```markdown
+old content
+```
+
+#### After
+
+```markdown
+new content
+```
+
+### specs/auth/logout/spec.md
+
+#### Before
+...
 
 ## REMOVED
 
-- [Removed requirements]
-```
+### REQ-01: Legacy login
+~~~
+
+- Only `## ` headings end a section; `###` sub-headings inside ADDED/REMOVED stay in the section.
+- MODIFIED is parsed into one item per `### <target>`, each with its own Before/After
+  (the code block after `#### Before` or `**Before:**`).
+- `## ` lines inside code blocks are not treated as headings.
 
 ## Related Documentation
 
-- [sdd impact](./impact) - Change impact analysis
+- [sdd impact](./impact) - Change impact analysis (`impact simulate` reads delta.md)
 - [CLI Reference](./) - All commands
