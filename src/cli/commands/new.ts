@@ -14,6 +14,7 @@ import {
   getNextFeatureNumber,
   peekNextFeatureNumber,
   getFeatureHistory,
+  type GenerateTasksOptions,
 } from '../../core/new/index.js';
 import { logger } from '../../utils/index.js';
 import { ensureDir, fileExists, readFile, writeFile, findSddRoot } from '../../utils/fs.js';
@@ -24,6 +25,7 @@ import { ExitCode } from '../../errors/index.js';
 import { createDomainService } from '../../core/domain/service.js';
 import { isValidDomainId } from '../../schemas/domains.schema.js';
 import { createContextManager } from '../../core/context/manager.js';
+import { executeDomainCreate } from './domain.js';
 
 /**
  * 새 기능 옵션
@@ -38,6 +40,7 @@ export interface NewFeatureOptions {
   all?: boolean;
   checklist?: boolean;
   domain?: string;
+  force?: boolean;
 }
 
 /**
@@ -49,6 +52,42 @@ export interface CreateFeatureResult {
   branchName?: string;
   filesCreated: string[];
   domain?: string;
+  /** True when the domain did not exist and was created for this feature. */
+  domainCreated?: boolean;
+}
+
+/**
+ * Default task breakdown for a new tasks.md. Implementation tasks are test-first,
+ * so there is no separate after-the-fact "write tests" task.
+ */
+const TEST_FIRST_DESCRIPTION =
+  '테스트 우선: 스펙 시나리오(GIVEN-WHEN-THEN)를 실패하는 테스트로 먼저 작성한 뒤, 테스트를 통과하도록 구현';
+
+const DEFAULT_TASKS: GenerateTasksOptions['tasks'] = [
+  { title: '기반 구조 설정', priority: 'high', description: TEST_FIRST_DESCRIPTION },
+  { title: '핵심 기능 구현', priority: 'high', description: TEST_FIRST_DESCRIPTION },
+  { title: '문서 업데이트', priority: 'low' },
+];
+
+/**
+ * Refuse to overwrite existing files unless forced.
+ */
+async function refuseOverwrite(filePaths: string[], force?: boolean): Promise<Result<void, Error>> {
+  if (force) {
+    return success(undefined);
+  }
+  const existing: string[] = [];
+  for (const filePath of filePaths) {
+    if (await fileExists(filePath)) {
+      existing.push(filePath);
+    }
+  }
+  if (existing.length === 0) {
+    return success(undefined);
+  }
+  return failure(
+    new Error(`파일이 이미 존재합니다: ${existing.join(', ')} (덮어쓰려면 --force 옵션을 사용하세요)`)
+  );
 }
 
 /**
@@ -153,7 +192,8 @@ export async function createFeature(
     domain = await detectDomain(projectPath);
   }
 
-  // 도메인이 지정되었으면 형식(경로 조작 방지) 및 존재 여부 검증
+  // 도메인이 지정되었으면 형식(경로 조작 방지) 검증 및 존재 여부 확인
+  let domainMissing = false;
   if (domain) {
     if (!isValidDomainId(domain)) {
       return failure(
@@ -162,10 +202,11 @@ export async function createFeature(
         )
       );
     }
-    const validateResult = await validateDomain(projectPath, domain);
-    if (!validateResult.success) {
-      return validateResult;
+    const domainResult = await createDomainService(projectPath).get(domain);
+    if (!domainResult.success) {
+      return domainResult;
     }
+    domainMissing = !domainResult.data;
   }
 
   // 실제 디렉토리에 사용할 도메인 (없으면 'common')
@@ -189,6 +230,27 @@ export async function createFeature(
   const title = options.title || effectiveName;
   const description = options.description || `${title} 기능 명세`;
   const featurePath = path.join(sddPath, 'specs', effectiveDomain, featureId);
+
+  // Refuse before writing anything if any target file already exists
+  const targetFiles = ['spec.md'];
+  if (options.plan || options.all) targetFiles.push('plan.md');
+  if (options.tasks || options.all) targetFiles.push('tasks.md');
+  if (options.checklist || options.all) targetFiles.push('checklist.md');
+  const overwriteCheck = await refuseOverwrite(
+    targetFiles.map((file) => path.join(featurePath, file)),
+    options.force
+  );
+  if (!overwriteCheck.success) {
+    return overwriteCheck;
+  }
+
+  // Missing domain: create it, same as `sdd domain create <domain>`
+  if (domain && domainMissing) {
+    const createResult = await executeDomainCreate(domain, {}, projectPath);
+    if (!createResult.success) {
+      return failure(new Error(`도메인 생성 실패: ${createResult.error.message}`));
+    }
+  }
 
   // 기능 디렉토리 생성
   const dirResult = await ensureDir(featurePath);
@@ -238,12 +300,7 @@ export async function createFeature(
     const tasksContent = generateTasks({
       featureId,
       featureTitle: title,
-      tasks: [
-        { title: '기반 구조 설정', priority: 'high' },
-        { title: '핵심 기능 구현', priority: 'high' },
-        { title: '테스트 작성', priority: 'medium' },
-        { title: '문서 업데이트', priority: 'low' },
-      ],
+      tasks: DEFAULT_TASKS,
     });
     const tasksWrite = await writeGenerated('tasks.md', tasksContent);
     if (!tasksWrite.success) return tasksWrite;
@@ -272,6 +329,7 @@ export async function createFeature(
     branchName,
     filesCreated,
     domain: effectiveDomain,
+    domainCreated: domainMissing,
   });
 }
 
@@ -281,10 +339,17 @@ export async function createFeature(
 export async function createPlan(
   featurePath: string,
   featureId: string,
-  title?: string
+  title?: string,
+  force?: boolean
 ): Promise<Result<string, Error>> {
   if (!(await fileExists(featurePath))) {
     return failure(new Error(`기능 '${featureId}'을 찾을 수 없습니다.`));
+  }
+
+  const planPath = path.join(featurePath, 'plan.md');
+  const overwriteCheck = await refuseOverwrite([planPath], force);
+  if (!overwriteCheck.success) {
+    return overwriteCheck;
   }
 
   // An explicit title wins; otherwise fall back to the spec.md title, then the feature id.
@@ -307,7 +372,6 @@ export async function createPlan(
     overview: `${featureTitle} 구현 계획`,
   });
 
-  const planPath = path.join(featurePath, 'plan.md');
   const writeResult = await writeFile(planPath, planContent);
   if (!writeResult.success) {
     return failure(new Error(`계획 파일 생성 실패: ${writeResult.error.message}`));
@@ -321,10 +385,17 @@ export async function createPlan(
  */
 export async function createTasks(
   featurePath: string,
-  featureId: string
+  featureId: string,
+  force?: boolean
 ): Promise<Result<string, Error>> {
   if (!(await fileExists(featurePath))) {
     return failure(new Error(`기능 '${featureId}'을 찾을 수 없습니다.`));
+  }
+
+  const tasksPath = path.join(featurePath, 'tasks.md');
+  const overwriteCheck = await refuseOverwrite([tasksPath], force);
+  if (!overwriteCheck.success) {
+    return overwriteCheck;
   }
 
   // spec.md에서 제목 추출 시도
@@ -344,15 +415,9 @@ export async function createTasks(
   const tasksContent = generateTasks({
     featureId,
     featureTitle,
-    tasks: [
-      { title: '기반 구조 설정', priority: 'high' },
-      { title: '핵심 기능 구현', priority: 'high' },
-      { title: '테스트 작성', priority: 'medium' },
-      { title: '문서 업데이트', priority: 'low' },
-    ],
+    tasks: DEFAULT_TASKS,
   });
 
-  const tasksPath = path.join(featurePath, 'tasks.md');
   const writeResult = await writeFile(tasksPath, tasksContent);
   if (!writeResult.success) {
     return failure(new Error(`작업 분해 파일 생성 실패: ${writeResult.error.message}`));
@@ -364,13 +429,21 @@ export async function createTasks(
 /**
  * 체크리스트 생성 (테스트 가능)
  */
-export async function createChecklist(sddPath: string): Promise<Result<string, Error>> {
+export async function createChecklist(
+  sddPath: string,
+  force?: boolean
+): Promise<Result<string, Error>> {
   if (!(await fileExists(sddPath))) {
     return failure(new Error('.sdd 디렉토리가 없습니다.'));
   }
 
-  const checklistContent = generateFullChecklistMarkdown();
   const outputPath = path.join(sddPath, 'checklist.md');
+  const overwriteCheck = await refuseOverwrite([outputPath], force);
+  if (!overwriteCheck.success) {
+    return overwriteCheck;
+  }
+
+  const checklistContent = generateFullChecklistMarkdown();
   const writeResult = await writeFile(outputPath, checklistContent);
   if (!writeResult.success) {
     return failure(new Error(`체크리스트 파일 생성 실패: ${writeResult.error.message}`));
@@ -414,8 +487,9 @@ export function registerNewCommand(program: Command): void {
     .option('--numbered', '자동 번호 부여 (feature/001-name 형식)')
     .option('--plan', '계획 파일도 함께 생성')
     .option('--tasks', '작업 분해 파일도 함께 생성')
-    .option('--all', '모든 파일 생성 (spec, plan, tasks)')
+    .option('--all', '모든 파일 생성 (spec, plan, tasks, checklist)')
     .option('--checklist', '체크리스트 파일 생성')
+    .option('-f, --force', '기존 파일 덮어쓰기')
     .action(async (name, options) => {
       await handleNew(name, options);
     });
@@ -426,10 +500,11 @@ export function registerNewCommand(program: Command): void {
     .description('기능 구현 계획 생성')
     .argument('<feature>', '기능 ID')
     .option('--title <title>', '계획 제목')
-    .action(async (feature: string, _opts: { title?: string }, cmd: Command) => {
-      // The parent `new` also declares --title and commander hands it the flag,
+    .option('-f, --force', '기존 plan.md 덮어쓰기')
+    .action(async (feature: string, _opts: unknown, cmd: Command) => {
+      // The parent `new` also declares --title/--force and commander hands it the flags,
       // so read the merged local + parent options.
-      await handlePlan(feature, cmd.optsWithGlobals<{ title?: string }>());
+      await handlePlan(feature, cmd.optsWithGlobals<{ title?: string; force?: boolean }>());
     });
 
   // tasks 서브커맨드
@@ -437,16 +512,18 @@ export function registerNewCommand(program: Command): void {
     .command('tasks')
     .description('작업 분해 생성')
     .argument('<feature>', '기능 ID')
-    .action(async (feature) => {
-      await handleTasks(feature);
+    .option('-f, --force', '기존 tasks.md 덮어쓰기')
+    .action(async (feature: string, _opts: unknown, cmd: Command) => {
+      await handleTasks(feature, cmd.optsWithGlobals<{ force?: boolean }>());
     });
 
   // checklist 서브커맨드
   newCmd
     .command('checklist')
     .description('워크플로우 체크리스트 생성')
-    .action(async () => {
-      await handleChecklist();
+    .option('-f, --force', '기존 checklist.md 덮어쓰기')
+    .action(async (_opts: unknown, cmd: Command) => {
+      await handleChecklist(cmd.optsWithGlobals<{ force?: boolean }>());
     });
 
   // counter 서브커맨드
@@ -488,6 +565,7 @@ async function handleNew(
     tasks?: boolean;
     all?: boolean;
     checklist?: boolean;
+    force?: boolean;
   }
 ): Promise<void> {
   if (!name) {
@@ -510,7 +588,11 @@ async function handleNew(
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  const { featureId, featurePath, branchName, filesCreated, domain } = result.data;
+  const { featureId, featurePath, branchName, filesCreated, domain, domainCreated } = result.data;
+
+  if (domainCreated && domain) {
+    logger.info(`ℹ 도메인 '${domain}'이(가) 없어 새로 생성했습니다 (sdd domain create ${domain})`);
+  }
 
   // 도메인 정보 로깅
   if (domain) {
@@ -583,7 +665,7 @@ export function buildNextSteps(
  */
 async function handlePlan(
   feature: string,
-  options: { title?: string }
+  options: { title?: string; force?: boolean }
 ): Promise<void> {
   const sddPath = path.join(await requireProjectRoot(), '.sdd');
   const resolved = await resolveSpec(sddPath, feature);
@@ -603,7 +685,7 @@ async function handlePlan(
 
   const featurePath = resolved.data.dir;
   const featureId = resolved.data.feature;
-  const result = await createPlan(featurePath, featureId, options.title);
+  const result = await createPlan(featurePath, featureId, options.title, options.force);
   if (!result.success) {
     logger.error(result.error.message);
     process.exit(ExitCode.GENERAL_ERROR);
@@ -619,7 +701,7 @@ async function handlePlan(
 /**
  * tasks 서브커맨드 핸들러
  */
-async function handleTasks(feature: string): Promise<void> {
+async function handleTasks(feature: string, options: { force?: boolean }): Promise<void> {
   const sddPath = path.join(await requireProjectRoot(), '.sdd');
   const resolved = await resolveSpec(sddPath, feature);
 
@@ -638,7 +720,7 @@ async function handleTasks(feature: string): Promise<void> {
 
   const featurePath = resolved.data.dir;
   const featureId = resolved.data.feature;
-  const result = await createTasks(featurePath, featureId);
+  const result = await createTasks(featurePath, featureId, options.force);
   if (!result.success) {
     logger.error(result.error.message);
     process.exit(ExitCode.GENERAL_ERROR);
@@ -654,10 +736,10 @@ async function handleTasks(feature: string): Promise<void> {
 /**
  * checklist 서브커맨드 핸들러
  */
-async function handleChecklist(): Promise<void> {
+async function handleChecklist(options: { force?: boolean }): Promise<void> {
   const sddPath = path.join(await requireProjectRoot(), '.sdd');
 
-  const result = await createChecklist(sddPath);
+  const result = await createChecklist(sddPath, options.force);
   if (!result.success) {
     logger.error(result.error.message);
     process.exit(ExitCode.GENERAL_ERROR);

@@ -84,22 +84,73 @@ ${task.files.map(f => `  - \`${f}\``).join('\n')}
 
 ## 완료 조건
 
-각 작업 완료 시:
-1. [ ] 코드 작성 완료
-2. [ ] 테스트 작성 및 통과
-3. [ ] 코드 리뷰 완료
-4. [ ] 문서 업데이트
+각 작업 완료 시 (테스트 우선):
+1. [ ] 실패하는 테스트 먼저 작성 (Red)
+2. [ ] 테스트를 통과하는 구현 작성 (Green)
+3. [ ] 리팩터링 후 테스트 재통과 (Refactor)
+4. [ ] 코드 리뷰 완료
+5. [ ] 문서 업데이트
 
 ---
 
 ## 다음 단계
 
-1. 첫 번째 작업부터 순차적으로 진행
-2. 각 작업 완료 후 상태 업데이트
-3. 모든 작업 완료 시 \`/sdd:archive\` 실행
+1. 첫 번째 작업부터 순차적으로 진행 (Claude Code: \`/sdd-implement\`, Codex: \`$sdd-implement\`)
+2. 각 작업 완료 후 상태 업데이트 (대기 · 진행 중 · 완료 · 차단됨)
+3. 모든 작업 완료 시 \`sdd validate\`와 \`sdd sync\`로 명세 검증 및 추적성 확인 (Claude Code: \`/sdd-validate\`, Codex: \`$sdd-validate\`)
 `;
 
   return content;
+}
+
+/**
+ * Task status line: Korean (`**상태:**`) or English (`**Status:**`) label.
+ * Group 1 = label, group 2 = raw value (rest of the line).
+ */
+const STATUS_LINE_PATTERN = /\*\*(상태|status):\*\*[ \t]*([^\n]*)/i;
+
+/**
+ * Accepted status values (case-insensitive) mapped to the internal enum.
+ */
+const STATUS_ALIASES: Record<string, TaskStatus> = {
+  pending: 'pending',
+  대기: 'pending',
+  'in-progress': 'in_progress',
+  in_progress: 'in_progress',
+  '진행 중': 'in_progress',
+  진행중: 'in_progress',
+  진행: 'in_progress',
+  completed: 'completed',
+  완료: 'completed',
+  blocked: 'blocked',
+  차단됨: 'blocked',
+};
+
+/**
+ * Normalize a raw status value to the internal enum; undefined when unrecognized.
+ * Trailing notes are tolerated (e.g. `완료 (2026-10-27)`, `in-progress - reviewing`).
+ */
+export function normalizeTaskStatus(raw: string): TaskStatus | undefined {
+  const value = raw.trim().replace(/\s+/g, ' ').toLowerCase();
+  const tokens = value.split(' ');
+  for (const candidate of [value, tokens.slice(0, 2).join(' '), tokens[0]]) {
+    const status = STATUS_ALIASES[candidate];
+    if (status) return status;
+  }
+  return undefined;
+}
+
+/**
+ * Status text written back to the file, matching the label language in use.
+ */
+function formatTaskStatus(status: TaskStatus, english: boolean): string {
+  if (english) {
+    return status === 'in_progress' ? 'in-progress' : status;
+  }
+  return status === 'pending' ? '대기'
+    : status === 'in_progress' ? '진행 중'
+    : status === 'completed' ? '완료'
+    : '차단됨';
 }
 
 /**
@@ -114,19 +165,11 @@ export function parseTasks(content: string): TaskItem[] {
     const title = match[2];
     const body = match[3];
 
-    // 상태 추출
-    const statusMatch = body.match(/\*\*상태:\*\*\s*(\S+)/);
-    let status: TaskStatus = 'pending';
-    if (statusMatch) {
-      const statusText = statusMatch[1].toLowerCase();
-      if (statusText.includes('진행') || statusText === 'in_progress') {
-        status = 'in_progress';
-      } else if (statusText.includes('완료') || statusText === 'completed') {
-        status = 'completed';
-      } else if (statusText.includes('차단') || statusText === 'blocked') {
-        status = 'blocked';
-      }
-    }
+    // 상태 추출 (`**상태:**` / `**Status:**`)
+    const statusMatch = body.match(STATUS_LINE_PATTERN);
+    const status: TaskStatus = statusMatch
+      ? normalizeTaskStatus(statusMatch[2]) ?? 'pending'
+      : 'pending';
 
     // 우선순위 추출
     const priorityMatch = body.match(/\*\*우선순위:\*\*\s*(?:[🔴🟡🟢]\s*)?([A-Za-z]+)/u);
@@ -179,18 +222,17 @@ export function updateTaskStatus(
   taskId: string,
   newStatus: TaskStatus
 ): string {
-  const statusText = newStatus === 'pending' ? '대기'
-    : newStatus === 'in_progress' ? '진행 중'
-    : newStatus === 'completed' ? '완료'
-    : '차단됨';
-
-  // 작업 상태 업데이트
+  // 작업 상태 업데이트: stay within this task's section and keep the label form in the file
+  const escapedId = taskId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const taskRegex = new RegExp(
-    `(### ${taskId}:[^\\n]+\\s*\\n[\\s\\S]*?\\*\\*상태:\\*\\*)\\s*\\S+`,
+    `(### ${escapedId}:[^\\n]*\\n(?:(?!#{1,3} )[^\\n]*\\n)*?[^\\n]*\\*\\*(상태|status):\\*\\*)[ \\t]*[^\\n]*`,
     'i'
   );
 
-  let updated = content.replace(taskRegex, `$1 ${statusText}`);
+  let updated = content.replace(taskRegex, (_match, prefix: string, label: string) => {
+    const english = label.toLowerCase() === 'status';
+    return `${prefix} ${formatTaskStatus(newStatus, english)}`;
+  });
 
   // 진행 상황 업데이트
   const tasks = parseTasks(updated);

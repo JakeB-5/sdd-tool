@@ -24,8 +24,11 @@ sdd new <name> [options]
 | `--all` | Generate spec, plan, tasks, and checklist |
 | `--numbered` | Auto-number the feature: id `001-<name>`, branch `feature/001-<name>` |
 | `--no-branch` | Do not create a git branch (default branch: `feature/<id>`) |
+| `-f, --force` | Overwrite existing spec.md / plan.md / tasks.md / checklist.md |
 
-The command fails (non-zero exit) if any file cannot be written.
+The command fails (non-zero exit) if any file cannot be written. Existing files are never overwritten without `--force`: if any target file already exists, nothing is written and the command exits with code 1.
+
+If the domain (`-d` or `<domain>/<name>`) does not exist yet, it is created first — same as `sdd domain create <domain>` — and a notice is printed.
 
 ## Generated Files
 

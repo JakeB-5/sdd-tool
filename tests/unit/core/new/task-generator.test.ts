@@ -7,6 +7,7 @@ import {
   parseTasks,
   updateTaskStatus,
   getNextTask,
+  normalizeTaskStatus,
 } from '../../../../src/core/new/task-generator.js';
 
 describe('generateTasks', () => {
@@ -94,6 +95,51 @@ describe('generateTasks', () => {
 
     expect(content).toContain('**의존성:** other-task-001, other-task-002');
   });
+
+  it('다음 단계는 현재 스킬/CLI 이름만 안내한다', () => {
+    const content = generateTasks({ featureId: 'test', featureTitle: '테스트', tasks: [] });
+
+    expect(content).not.toMatch(/\/?sdd:/);
+    expect(content).not.toContain('archive');
+    expect(content).toContain('`/sdd-validate`');
+    expect(content).toContain('`$sdd-validate`');
+    expect(content).toContain('`sdd sync`');
+  });
+
+  it('완료 조건은 테스트를 구현보다 먼저 둔다', () => {
+    const content = generateTasks({ featureId: 'test', featureTitle: '테스트', tasks: [] });
+
+    expect(content.indexOf('실패하는 테스트 먼저 작성')).toBeGreaterThan(-1);
+    expect(content.indexOf('실패하는 테스트 먼저 작성')).toBeLessThan(
+      content.indexOf('테스트를 통과하는 구현 작성')
+    );
+  });
+});
+
+describe('normalizeTaskStatus', () => {
+  it.each([
+    ['pending', 'pending'],
+    ['Pending', 'pending'],
+    ['대기', 'pending'],
+    ['in-progress', 'in_progress'],
+    ['in_progress', 'in_progress'],
+    ['IN-PROGRESS', 'in_progress'],
+    ['진행 중', 'in_progress'],
+    ['진행중', 'in_progress'],
+    ['completed', 'completed'],
+    ['Completed', 'completed'],
+    ['완료', 'completed'],
+    ['완료 (2026-10-27)', 'completed'],
+    ['blocked', 'blocked'],
+    ['BLOCKED', 'blocked'],
+    ['차단됨', 'blocked'],
+  ] as const)('%s → %s', (raw, expected) => {
+    expect(normalizeTaskStatus(raw)).toBe(expected);
+  });
+
+  it('알 수 없는 값은 undefined', () => {
+    expect(normalizeTaskStatus('someday')).toBeUndefined();
+  });
 });
 
 describe('parseTasks', () => {
@@ -150,6 +196,33 @@ feature: auth
 
     expect(tasks[0].files).toEqual(['src/a.ts', 'src/b.ts']);
   });
+
+  it('영문 **Status:** 레이블과 스킬 값(in-progress 등)을 파싱한다', () => {
+    const content = `### cart-task-001: Model
+
+- **Status:** completed
+- **Priority:** 🔴 HIGH
+
+#### Description
+Cart model
+
+### cart-task-002: API
+
+- **Status:** in-progress
+
+### cart-task-003: UI
+
+- **status:** Blocked
+
+### cart-task-004: Docs
+
+- **Status:** pending
+`;
+
+    const tasks = parseTasks(content);
+
+    expect(tasks.map((t) => t.status)).toEqual(['completed', 'in_progress', 'blocked', 'pending']);
+  });
 });
 
 describe('updateTaskStatus', () => {
@@ -188,6 +261,51 @@ completed: 0
     expect(updated).toContain('완료: 1');
     expect(updated).toContain('대기: 1');
     expect(updated).toContain('completed: 1');
+  });
+
+  it('"진행 중" 값을 통째로 교체한다', () => {
+    const content = `### t-001: A
+
+- **상태:** 진행 중
+`;
+
+    const updated = updateTaskStatus(content, 't-001', 'completed');
+
+    expect(updated).toContain('- **상태:** 완료\n');
+    expect(updated).not.toContain('완료 중');
+  });
+
+  it('영문 레이블은 영문 레이블·값으로 유지한다', () => {
+    const content = `### cart-task-001: Model
+
+- **Status:** pending
+- **Priority:** 🔴 HIGH
+
+### cart-task-002: API
+
+- **Status:** pending
+`;
+
+    const updated = updateTaskStatus(content, 'cart-task-002', 'in_progress');
+
+    expect(updated).toContain('### cart-task-002: API\n\n- **Status:** in-progress');
+    expect(updated).not.toContain('상태');
+    expect(parseTasks(updated).map((t) => t.status)).toEqual(['pending', 'in_progress']);
+  });
+
+  it('상태 줄이 없는 작업은 다음 작업의 상태를 바꾸지 않는다', () => {
+    const content = `### t-001: A
+
+- **우선순위:** 🔴 HIGH
+
+### t-002: B
+
+- **상태:** 대기
+`;
+
+    const updated = updateTaskStatus(content, 't-001', 'completed');
+
+    expect(updated).toBe(content);
   });
 });
 
