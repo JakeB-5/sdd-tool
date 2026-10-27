@@ -1,74 +1,86 @@
 # /sdd-validate
 
-Verify that specifications are correctly written.
+Validate specs with `sdd validate` and fix the reported errors.
 
 ## Usage
 
 ```
-/sdd-validate [feature-id]
+/sdd-validate [path] [--strict]
 ```
+
+In Codex, invoke it as `$sdd-validate`.
 
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
-| feature-id | Feature ID (validates all if omitted) |
+| path | Spec file or directory to validate (all specs if omitted) |
+| --strict | Treat warnings as errors |
 
-## Validation Items
+## Behavior
 
-### Required Validation (Errors)
+The skill runs the CLI and fixes what it reports:
+
+```bash
+# Validate all specs
+sdd validate
+
+# Validate a specific file (domain-based path)
+sdd validate .sdd/specs/auth/login/spec.md
+
+# Strict mode (warnings count as errors)
+sdd validate --strict
+```
+
+When validation fails, the skill opens the flagged file and corrects the reported errors (each message says how to fix it), then re-runs `sdd validate`.
+For a deeper read-only review (RFC 2119 usage, scenario coverage, constitution compliance), delegate to the `sdd-spec-reviewer` subagent that `sdd init` generates. It reports issues without editing files.
+
+## Validation Checks
+
+### Errors
 
 - YAML frontmatter format
 - Required metadata: id, title, status
 - Markdown syntax
 
-### Recommended Validation (Warnings)
+### Warnings
 
-- RFC 2119 keyword usage
-- GIVEN-WHEN-THEN format
-- Requirement ID format (REQ-XX)
+- RFC 2119 keyword usage (SHALL, MUST, SHOULD, MAY, ...)
+- GIVEN-WHEN-THEN scenario format
+- Requirement ID format (`### REQ-01: Title`)
+- Leftover template placeholders such as `[requirement title]`
 
-### Constitution Validation
+### Constitution
 
-- constitution_version match
-- Forbidden practices violations
+- `constitution_version` match
+- Forbidden practices violations (skip with `--no-constitution`)
 
 ## Example
 
 ```
 /sdd-validate
 
-AI: Validating all specs.
+AI: Running sdd validate.
 
-    ✓ user-auth/spec.md
-      - 5 requirements
-      - 3 scenarios
-      - RFC 2119 keywords ✓
-
-    ⚠ profile/spec.md
+    ✓ auth/user-auth/spec.md
+    ⚠ auth/profile/spec.md
       - RFC 2119 keywords missing
-      - Not in GIVEN-WHEN-THEN format
-
-    ✗ settings/spec.md
-      - Invalid YAML frontmatter
+    ✗ common/settings/spec.md
       - Required field 'id' missing
 
-    ━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    Result: 1 passed, 1 warning, 1 error
+    Result: 1 passed, 1 failed, 1 warning
+    -> Fixing common/settings/spec.md and auth/profile/spec.md, re-running sdd validate.
 ```
 
-## Auto-fix
+## After Validation Passes
 
-Some issues can be automatically fixed:
+For features that are already implemented, also run `sdd sync` to confirm every requirement is referenced by code or tests (`@spec <domain>/<feature>#REQ-xx`).
 
-```
-/sdd-validate --fix
+1. `git add .sdd/` - stage the spec changes
+2. `git commit -m "spec: <description>"` - commit
+3. Open a PR and request review
 
-AI: Auto-fixable issues:
-    - profile/spec.md: Add SHOULD keyword
-
-    Apply fixes? [Y/n]
-```
+Commit messages follow the commit-msg hook format `<type>(<scope>): <message>`. The type is a spec type (`spec`, `spec-update`, `spec-status`, `plan`, `tasks`, `constitution`, `sdd-config`) or a Conventional Commits type (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, ...). The scope is optional, and `Merge ...` / `Revert ...` messages are allowed.
 
 ## CI/CD Integration
 
@@ -76,4 +88,10 @@ AI: Auto-fixable issues:
 sdd validate --strict --quiet
 ```
 
-Returns exit code 1 on errors or warnings
+Returns exit code 1 on errors or warnings.
+
+## Related Commands
+
+- [`sdd validate`](/cli/validate) - CLI reference
+- [`sdd sync`](/cli/sync) - Spec-to-code traceability
+- [`/sdd-spec`](/commands/sdd-spec) - Write/modify specs
