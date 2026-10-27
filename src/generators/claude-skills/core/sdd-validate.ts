@@ -8,7 +8,7 @@ export const sddValidateSkill: SkillDefinition = {
   description:
     'Validate specs with `sdd validate` (RFC 2119 keywords, GIVEN-WHEN-THEN scenarios, frontmatter) and fix reported errors. Use after writing or changing specs, or when the user asks to check spec format.',
   argumentHint: '[path] [--strict]',
-  allowedTools: ['Read', 'Glob', 'Bash(sdd validate*)'],
+  allowedTools: ['Read', 'Glob', 'Bash(sdd validate*)', 'Bash(sdd sync*)'],
   content: `# SDD Validate
 
 ## Instructions
@@ -52,9 +52,13 @@ Based on validation results:
 - **Errors found**: Fix errors and re-run \`sdd validate\`
 - **Warnings only**: Review warnings and decide whether to proceed
 
+For features that are already implemented, also run \`sdd sync\` to confirm every requirement is
+referenced by code or tests (\`@spec <domain>/<feature>#REQ-xx\`).
+
 Recommended workflow after validation passes:
 1. \`git add .sdd/\` — stage spec changes
-2. \`git commit -m "spec: <description>"\` — commit
+2. \`git commit -m "spec: <description>"\` — commit (the SDD commit-msg hook accepts
+   \`spec\`, \`spec-update\`, \`spec-status\`, \`plan\`, \`tasks\`, \`constitution\`, \`sdd-config\`, or a Conventional Commits type)
 3. Open a PR and request review
 `,
 };

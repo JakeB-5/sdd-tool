@@ -21,13 +21,23 @@ Run \`sdd status\` to inspect the project state.
 ## Checklist
 
 - Project structure (presence of \`constitution.md\`, \`AGENTS.md\`)
-- Feature list and their statuses
+- Feature list with spec status and task progress (completed/total)
 - Current Git branch
-- Suggested next steps
+- Suggested next steps per feature (plan → tasks → implement → finalize → done)
+
+The stage comes from the feature's files, its spec \`status\`, and the task statuses in \`tasks.md\`.
+If it looks stale, the statuses were not updated: \`/sdd-implement\` updates task statuses as it
+works and sets the spec to \`implemented\` when the feature is finished.
 
 ## Additional Commands
 
 \`\`\`bash
+# Per-feature status labels, files, and feature branches
+sdd status --verbose
+
+# One domain only
+sdd status -d auth
+
 # Project summary
 sdd list
 

@@ -16,6 +16,7 @@ export const sddSpecSkill: SkillDefinition = {
     'Bash(sdd new*)',
     'Bash(sdd change*)',
     'Bash(sdd validate*)',
+    'Bash(sdd sync*)',
   ],
   content: `# SDD Spec
 
@@ -36,10 +37,15 @@ to an existing feature, and follows the matching workflow.
 sdd new <domain>/<feature-id> --all
 \`\`\`
 
-- Creates the \`.sdd/specs/<domain>/<feature-id>/\` directory
-- Generates \`spec.md\`, \`plan.md\`, and \`tasks.md\`
-- If no domain is specified, the feature is created under \`common\`
-- Write the spec using RFC 2119 keywords and GIVEN-WHEN-THEN scenarios
+- Creates \`.sdd/specs/<domain>/<feature-id>/\` with \`spec.md\`, \`plan.md\`, \`tasks.md\`, and \`checklist.md\`
+- A missing domain is created automatically (a notice is printed); without a domain the feature goes under \`common\`
+- By default \`sdd new\` also creates and switches to a \`feature/<feature-id>\` git branch from the current one.
+  Add \`--no-branch\` when you are already on a working branch (e.g. several features in one branch),
+  otherwise each new feature branches off the previous feature's branch
+- Existing files are never overwritten (exit code 1); use \`--force\` only to regenerate them from scratch
+- Fill in the generated \`spec.md\` using RFC 2119 keywords and GIVEN-WHEN-THEN scenarios
+- The spec starts as \`status: draft\`; change it with \`sdd new status <domain>/<feature-id> <status>\`
+  (draft, review, approved, planned, tasked, implementing, implemented, deprecated) instead of editing the frontmatter
 
 ### If a spec exists (modifying existing) → route by change scope
 
@@ -58,20 +64,37 @@ sdd new <domain>/<feature-id> --all
 ## Spec Authoring Rules
 
 - Use RFC 2119 keywords: SHALL, MUST, SHOULD, MAY, SHALL NOT
-- Every requirement MUST include at least one GIVEN-WHEN-THEN scenario
-- Assign a unique ID to each requirement (REQ-001, REQ-002, …)
+- Every requirement MUST be covered by at least one GIVEN-WHEN-THEN scenario
+- Define each requirement with a heading \`### REQ-01: Title\` under the requirements section.
+  Only definition headings count as requirements (\`sdd sync\`); REQ IDs in prose, tables, or lists are references
+- Number requirements uniquely within the spec (REQ-01, REQ-02, …). IDs restart in every spec, so when you
+  mention another spec's requirement write it qualified: \`<domain>/<feature>#REQ-xx\`
+- Keep the structure \`sdd new\` generates: a requirements section with \`### REQ-xx\` headings, then a
+  scenarios section whose scenarios name the requirement they cover
+  (a \`#### Scenario:\` directly under each requirement is also accepted)
 
 \`\`\`markdown
+## Requirements
+
 ### REQ-01: User Authentication
 
 The system SHALL authenticate users using email and password.
 
-### Scenario: Login with valid credentials
+## Scenarios
+
+### Scenario 1: Login with valid credentials (REQ-01)
 
 - **GIVEN** a registered user exists
 - **WHEN** the user submits the correct email and password
 - **THEN** an access token SHALL be issued
 \`\`\`
+
+## Traceability
+
+Code and tests reference requirements with the qualified form \`@spec <domain>/<feature>#REQ-xx\`
+(in a comment, or in the test title). A bare \`REQ-xx\` counts only while a single spec has that ID;
+once another spec defines it too, the reference is ambiguous and ignored. \`/sdd-implement\` adds these
+references, and \`sdd sync\` reports which requirements are covered.
 
 ## Change Scope Reference
 

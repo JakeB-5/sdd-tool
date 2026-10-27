@@ -15,6 +15,7 @@ export const sddGuideSkill: SkillDefinition = {
     'Bash(sdd status*)',
     'Bash(sdd list*)',
     'Bash(sdd validate*)',
+    'Bash(sdd sync*)',
   ],
   disableModelInvocation: true,
   content: `# SDD Guide
@@ -102,7 +103,10 @@ sdd init                    # Initialize project
 sdd start                   # Start workflow
 sdd new <name>              # Create new feature
 sdd new <name> --numbered   # Auto-assign number
+sdd new task <feature> <task-id> <status>   # Update a task status
+sdd new status <feature> <status>           # Update a spec status
 sdd validate                # Validate specs
+sdd sync                    # Check requirement references in code and tests
 sdd validate --check-links  # Include link validation
 sdd status                  # Check status
 sdd list                    # List specs

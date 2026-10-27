@@ -57,34 +57,22 @@ sdd quality <specId> --json
 
 ---
 
-## Scoring Dimensions
+## Scoring Criteria
 
-- **Clarity** — requirements use unambiguous RFC 2119 keywords (SHALL, SHOULD, MAY)
-- **Completeness** — all sections present: Overview, Requirements, Scenarios, Acceptance Criteria
-- **Testability** — each requirement has at least one GIVEN/WHEN/THEN scenario
-- **Traceability** — requirements are uniquely identified (REQ-xxx)
-- **Consistency** — no conflicting requirements within the spec
+| Criterion | Points | What earns them |
+|-----------|--------|-----------------|
+| RFC 2119 keywords | 10 | SHALL, MUST, SHOULD, MAY (and NOT forms) used in the spec |
+| GIVEN-WHEN-THEN scenarios | 20 | Complete GIVEN/WHEN/THEN scenarios (at least two) |
+| Requirement clarity | 15 | A requirements section and REQ-xx ids (\`### REQ-xx: Title\` headings) |
+| Dependencies | 10 | A \`depends\` field in the frontmatter (\`depends: []\` when there are none) |
+| Document structure | 15 | Title (H1), requirements section, scenarios, plus overview, constraints, and notes sections |
+| Constitution | 10 | A \`constitution_version\` field (full score when the project has no constitution) |
+| Links | 10 | Markdown links to related specs or documents |
+| Metadata | 10 | \`id\`, \`title\`, \`status\`, plus \`created\` / \`updated\` / \`author\` / \`version\` |
 
----
-
-## Output Format
-
-\`\`\`
-=== SDD Quality: user-auth ===
-
-Score: 85 / 100  [B]
-
-Breakdown:
-  Clarity      : 90/100
-  Completeness : 80/100
-  Testability  : 85/100
-  Traceability : 88/100
-  Consistency  : 82/100
-
-Suggestions:
-  - REQ-003 uses "should" (lowercase) — replace with SHALL or SHOULD
-  - Scenario for REQ-007 is missing a THEN clause
-\`\`\`
+Scenarios count whether they sit in one scenarios section (the layout generated for a new spec) or under
+each requirement (\`#### Scenario:\`); keep the layout the spec already uses.
+The output lists each criterion's score and concrete suggestions.
 
 ---
 

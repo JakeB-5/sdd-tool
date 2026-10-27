@@ -30,6 +30,8 @@ changed in the working tree (see \`git status\` and \`git diff\`).
 4. Check by reading:
    - Every requirement uses an uppercase RFC 2119 keyword (SHALL, MUST, SHOULD, MAY, or their NOT forms).
    - Every requirement has at least one concrete, testable GIVEN-WHEN-THEN scenario.
+   - Every requirement is defined by a \`### REQ-xx: Title\` heading with an id unique in the spec, and
+     references to other specs' requirements are qualified (\`<domain>/<feature>#REQ-xx\`).
    - Nothing contradicts the constitution's principles or prohibitions.
    - Frontmatter is consistent (\`id\`, \`status\`, \`depends\` pointing to existing specs).
    - No leftover template placeholders and no vague wording without measurable criteria.
@@ -72,8 +74,12 @@ If no task id is given, pick the first task in \`tasks.md\` that is not complete
   code or add features the spec does not describe. If the spec is ambiguous or wrong, stop
   and report instead of guessing.
 - Follow the existing code style, structure, and error handling of the project.
+- Reference each requirement you implement as \`@spec <domain>/<feature>#REQ-xx\` in code comments
+  and in the test titles (\`it('<domain>/<feature>#REQ-xx: ...')\`); a bare \`REQ-xx\` is ignored by
+  \`sdd sync\` when several specs define that id.
 - Run the project's tests (at least the ones related to your change) and make sure they pass.
-- Mark the task as completed in \`tasks.md\` only when its tests pass.
+- Set the task status with \`sdd new task <feature> <task-id> in-progress\` when you start and
+  \`sdd new task <feature> <task-id> completed\` only when its tests pass; do not hand-edit tasks.md statuses.
 - Do not commit, push, or change branches unless the caller asks.
 
 ## Report

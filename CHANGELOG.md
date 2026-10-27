@@ -43,6 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `sdd validate` reports unfilled `{{PLACEHOLDER}}` values in the frontmatter (`id: "{{FEATURE_ID}}"`) like body placeholders, so `--strict` fails on an unfilled spec template
 - `sdd quality` accepts scenarios written under each requirement (`### Scenario:` / `#### Scenario:`) as a scenario section, and recognises `depends: [..]`, `depends: []`, `depends: null` and `dependencies` as a declared dependency field
 - `templates/spec.md` and the `.sdd/templates/spec.md` written by `sdd init` use the same `### REQ-01` + `## 시나리오` structure that `sdd new` generates
+- Generated skill guidance (Claude Code `.claude/skills/` and Codex `.agents/skills/`), subagents and the AGENTS.md block now match the CLI:
+  - `sdd-spec`: a missing domain is auto-created (no domain → `common`); `sdd new` creates and switches to a `feature/<id>` branch unless `--no-branch`; `--all` writes spec.md, plan.md, tasks.md and checklist.md and never overwrites existing files without `--force`; requirements are defined by `### REQ-01: Title` headings with ids unique per spec, scenarios follow the `sdd new` layout, and code/tests reference requirements as `@spec <domain>/<feature>#REQ-xx`
+  - `sdd-plan` / `sdd-tasks`: edit the plan.md / tasks.md that `--all` already created instead of re-running `sdd new plan|tasks`; one task format (`### <feature>-task-NNN: Title` + `**Status:** pending|in-progress|completed|blocked`, Korean labels from `sdd new tasks` also parse); tasks are test-first
+  - `sdd-implement` / `sdd-implementer`: strictly test-first (the "write tests after each task" step is gone), task status via `sdd new task <feature> <task-id> in-progress|completed`, `@spec` references, `sdd validate` + `sdd sync` then `sdd new status <feature> implemented`, and the commit types the generated commit-msg hook accepts
+  - `sdd-quality` lists the real scoring criteria instead of invented dimensions; `sdd-sync`, `sdd-validate`, `sdd-status`, `sdd-start` and `sdd-guide` describe heading-defined requirements, covered bare references, `sdd sync`, per-feature stages and the commit-msg format
+  - AGENTS.md drops the unused `[P1-3]` / `[→T]` / `[US]` task markers in favour of the status commands and commit format; the legacy `/sdd.implement` command is test-first
 
 ### Changed
 

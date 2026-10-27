@@ -16,23 +16,25 @@ export const implementCommand: ClaudeCommand = {
 ## 구현 규칙
 
 - 한 번에 하나의 작업만 진행
-- 각 작업 완료 후 테스트 작성 필수
+- 테스트 우선: 실패하는 테스트 없이 구현 코드를 먼저 쓰지 않음
 - 커밋 메시지에 작업 ID 포함
+- 코드·테스트에 \`@spec <domain>/<feature>#REQ-xx\` 참조 추가
 - \`.sdd/constitution.md\`의 원칙 준수
 
 ## 작업 흐름
 
-1. 작업 상태를 "진행 중"으로 변경
-2. 코드 구현
-3. 테스트 작성 및 실행
-4. 작업 상태를 "완료"로 변경
+1. \`sdd new task <feature> <task-id> in-progress\`
+2. 시나리오를 실패하는 테스트로 작성하고 실패 확인 (Red)
+3. 테스트를 통과하는 최소 구현 (Green), 리팩터링 (Refactor)
+4. \`sdd new task <feature> <task-id> completed\`
 5. 커밋: \`feat(<feature>): <task-id> - <설명>\`
 
 ## 완료 조건
 
 모든 작업이 완료되면:
-1. \`sdd validate\`로 최종 검증
-2. 커밋 후 PR 생성 또는 머지
-3. \`/sdd.status\`로 전체 진행 상황 확인
+1. \`sdd validate\`와 \`sdd sync\`로 최종 검증
+2. \`sdd new status <feature> implemented\`
+3. 커밋 후 PR 생성 또는 머지
+4. \`/sdd.status\`로 전체 진행 상황 확인
 `,
 };

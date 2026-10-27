@@ -20,6 +20,9 @@ export const sddImplementSkill: SkillDefinition = {
     'Bash(git *)',
     'Bash(sdd status*)',
     'Bash(sdd validate*)',
+    'Bash(sdd sync*)',
+    'Bash(sdd new task *)',
+    'Bash(sdd new status *)',
     'WebFetch',
   ],
   content: `# SDD Implement
@@ -27,31 +30,53 @@ export const sddImplementSkill: SkillDefinition = {
 ## Instructions
 
 1. Run \`sdd status\` to review current progress
-2. Read the feature's \`tasks.md\` and identify the next task
-3. Implement the task, then update its status when done
+2. Read the feature's \`spec.md\` and \`tasks.md\`; pick the first task that is not completed and whose dependencies are completed
+3. Implement it with the workflow below, strictly test-first
 
 ## Implementation Rules
 
 - Work on one task at a time
-- Write tests after completing each task
+- Tests come first: never write implementation code before a failing test for it exists
+- Change task status only with \`sdd new task <feature> <task-id> <status>\` (pending, in-progress, completed, blocked);
+  do not hand-edit status lines or the progress counts
 - Include the task ID in every commit message
 - Follow the principles in \`.sdd/constitution.md\`
+- Work on the feature branch created together with the spec (or the current working branch); do not create a branch per task
 
 ## Workflow
 
-1. Set task status to "in-progress"
-2. Implement the code
-3. Write and run tests (red → green → refactor)
-4. Set task status to "completed"
-5. Commit: \`feat(<feature>): <task-id> - <description>\`
+1. \`sdd new task <domain>/<feature> <task-id> in-progress\`
+2. **Red**: turn the task's GIVEN-WHEN-THEN scenarios into tests and run them; confirm they fail
+3. **Green**: write the minimum code that makes the tests pass
+4. **Refactor**: clean up while keeping all tests green
+5. Add traceability references (see below)
+6. \`sdd new task <domain>/<feature> <task-id> completed\`
+7. Commit: \`feat(<feature>): <task-id> - <description>\`
 
-## TDD Cycle
+## Traceability
 
+Reference every requirement you implement with the qualified form \`<domain>/<feature>#REQ-xx\`,
+in the code and in the tests:
+
+\`\`\`typescript
+/**
+ * @spec auth/login#REQ-01
+ */
+export function login(email: string, password: string) { ... }
+
+it('auth/login#REQ-01: issues a token for valid credentials', () => { ... });
 \`\`\`
-Red:    Write a failing test that describes the expected behavior
-Green:  Write the minimum code to make the test pass
-Refactor: Clean up the code while keeping all tests green
-\`\`\`
+
+A bare \`REQ-01\` is ambiguous once several specs define \`REQ-01\` and is then ignored by \`sdd sync\`.
+
+## Commit Messages
+
+The SDD commit-msg hook accepts only \`<type>(<scope>): <message>\` (scope optional), where \`<type>\` is one of:
+
+- Conventional Commits: \`feat\`, \`fix\`, \`docs\`, \`style\`, \`refactor\`, \`perf\`, \`test\`, \`build\`, \`ci\`, \`chore\`, \`revert\`
+- Spec commits: \`spec\`, \`spec-update\`, \`spec-status\`, \`plan\`, \`tasks\`, \`constitution\`, \`sdd-config\`
+
+\`Merge ...\` and \`Revert ...\` messages are also accepted.
 
 ## Delegation
 
@@ -63,7 +88,9 @@ review its changes and test results before marking the task completed.
 
 Once all tasks are complete:
 1. Run \`sdd validate\` for a final validation pass
-2. Commit and open a PR or merge
-3. Run \`/sdd-status\` to review overall progress
+2. Run \`sdd sync <domain>/<feature>\`: every requirement SHOULD be covered, with no ignored-reference warnings
+3. \`sdd new status <domain>/<feature> implemented\`
+4. Commit and open a PR or merge
+5. Run \`/sdd-status\` to review overall progress
 `,
 };
