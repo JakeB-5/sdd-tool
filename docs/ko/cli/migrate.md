@@ -12,21 +12,21 @@ sdd migrate [command] [options]
 
 | 커맨드 | 설명 |
 |--------|------|
-| `detect` | 외부 SDD 도구 감지 |
-| `openspec [path]` | OpenSpec 프로젝트에서 마이그레이션 |
-| `speckit [path]` | Spec Kit 프로젝트에서 마이그레이션 |
+| `detect` | 외부 SDD 도구 감지 (`-p, --path <path>`로 검색 경로 지정) |
+| `openspec [source]` | OpenSpec 프로젝트에서 마이그레이션 |
+| `speckit [source]` | Spec Kit 프로젝트에서 마이그레이션 |
 | `docs <source>` | 마크다운 문서를 스펙으로 변환 |
 | `analyze <file>` | 문서 SDD 호환성 분석 |
 | `scan [dir]` | 마이그레이션 가능한 문서 스캔 |
 
 ## 옵션
 
-| 옵션 | 설명 |
-|------|------|
-| `--dry-run` | 실제 파일 생성 없이 미리보기 |
-| `--overwrite` | 기존 스펙 덮어쓰기 |
-| `-o, --output <dir>` | 출력 디렉토리 지정 |
-| `--ext <extensions>` | 파일 확장자 필터 (기본: .md) |
+| 옵션 | 적용 대상 | 설명 |
+|------|-----------|------|
+| `--dry-run` | `docs`, `openspec`, `speckit` | 실제 파일 생성 없이 미리보기 |
+| `--overwrite` | `openspec`, `speckit` | 기존 스펙 덮어쓰기 |
+| `-o, --output <dir>` | `docs` | 출력 디렉토리 지정 |
+| `--ext <extensions>` | `scan` | 파일 확장자 필터 (기본: .md) |
 
 ## 예시
 

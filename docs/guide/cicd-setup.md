@@ -45,9 +45,8 @@ Automatically adds labels to PRs.
 **Label types**:
 - `spec:domain-name` - Changed domain
 - `constitution` - Constitution changes
-- `spec:new` - New spec added
-- `spec:update` - Spec modified
-- `spec:remove` - Spec deleted
+
+The labeler workflow declares its own `permissions` (`contents: read`, `pull-requests: write`, `issues: write`).
 
 ### Manual Setup
 
@@ -74,11 +73,27 @@ jobs:
           node-version: '20'
 
       - name: Install SDD
-        run: npm install -g sdd-tool
+        run: npm install -g sdd-tool@2.1.0   # pin the version you use
 
       - name: Validate Specs
         run: sdd validate
 ```
+
+The generated workflows (GitHub and GitLab, and the ones `sdd init` writes) pin `sdd-tool@<version>` of the CLI that
+generated them, so upgrading the CLI does not silently change CI behavior; bump the version when you upgrade.
+
+#### Spec-code sync gate
+
+The generated workflows only validate specs. To also fail CI when requirements are not referenced from code or
+tests (`@spec <domain>/<feature>#REQ-01`), add a step:
+
+```yaml
+      - name: Check spec-code sync
+        run: sdd sync --ci --threshold 80
+```
+
+`sdd sync` only reports (exit code 0) unless `--ci` or `--threshold` is given; with the gate active it exits with
+code 2 when the sync rate is below the threshold (default 100). See [sdd sync](/cli/sync).
 
 ### Customization
 
@@ -161,8 +176,8 @@ sdd git hooks install
 
 | Hook | Timing | Validation |
 |------|--------|------------|
-| `pre-commit` | Before commit | Validates only changed specs |
-| `commit-msg` | After commit message | Validates message format |
+| `pre-commit` | Before commit | Runs `sdd validate` when spec files are staged |
+| `commit-msg` | After commit message | Validates message format ([Commit Convention](./commit-convention.md)) |
 | `pre-push` | Before push | Validates all specs |
 
 ---
@@ -198,17 +213,19 @@ If status check is not visible:
 # Validate locally first
 sdd validate
 
-# Verbose output
-sdd validate --verbose
+# Treat warnings as errors, like `sdd cicd setup github --strict`
+sdd validate --strict
 ```
+
+`sdd validate` exits with code 2 when a spec fails.
 
 ### Permission Error
 
-If label addition fails in GitHub Actions:
+The generated labeler workflow declares the permissions it needs. If label addition still fails (for example an
+older workflow file without `permissions`, or a fork PR with a read-only token):
 
-1. Settings → Actions → General
-2. "Workflow permissions" section
-3. Select "Read and write permissions"
+1. Re-run `sdd cicd setup github` (it rewrites the workflow files) or add the `permissions` block by hand
+2. Or: Settings → Actions → General → "Workflow permissions" → "Read and write permissions"
 
 ---
 

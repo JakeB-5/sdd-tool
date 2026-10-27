@@ -6,7 +6,7 @@ Drafts SDD specs from an existing codebase.
 
 `sdd reverse` supports brownfield onboarding. The CLI only does the deterministic parts —
 structure scan, draft validation, review state and finalization. Reading the code and writing
-the spec drafts is done by the AI through the `sdd-reverse` skill (or `/sdd.reverse` command).
+the spec drafts is done by the AI through the `sdd-reverse` skill (`/sdd-reverse` in Claude Code, `$sdd-reverse` in Codex).
 
 ## Workflow
 
@@ -128,5 +128,5 @@ command exits with a non-zero code.
 ## Related
 
 - [Reverse Extraction Guide](/guide/reverse-extraction)
-- [/sdd.reverse](/commands/sdd-reverse)
+- [/sdd-reverse](/commands/sdd-reverse) (`$sdd-reverse` in Codex)
 - [sdd validate](/cli/validate)

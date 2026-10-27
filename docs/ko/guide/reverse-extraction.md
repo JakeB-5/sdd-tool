@@ -9,7 +9,7 @@
 | 주체 | 역할 |
 |------|------|
 | `sdd reverse` CLI | 결정적인 작업: 구조 스캔, 초안 검증, 리뷰 상태, 확정 |
-| AI (`sdd-reverse` 스킬 / `/sdd.reverse`) | 코드를 읽고 스펙 초안 작성 |
+| AI (`sdd-reverse` 스킬) | 코드를 읽고 스펙 초안 작성 |
 | 사용자 | 초안별 승인 또는 거부 |
 
 별도의 외부 분석 서버는 필요하지 않습니다.
@@ -20,7 +20,7 @@
 scan → 코드 읽기 → 초안 작성 → validate → review → finalize
 ```
 
-Claude Code에서 `sdd-reverse` 스킬(또는 `/sdd.reverse`)을 실행하면 Claude가 모든 단계를
+Claude Code에서는 `/sdd-reverse`, Codex에서는 `$sdd-reverse`를 실행하면 AI가 모든 단계를
 진행하며, 확정 전에 반드시 사용자 승인을 받습니다. 아래는 내부에서 일어나는 단계입니다.
 
 ### 1. 스캔
@@ -134,6 +134,8 @@ finalize는 승인된 초안을 `.sdd/specs/<domain>/<feature>/spec.md`로 이�
 - **스펙을 작게 유지하세요.** 기능 하나당 스펙 하나가 리뷰와 이후 변경에 유리합니다.
 - **불확실성을 기록하세요.** 확신에 찬 추측보다 "불확실: ..." 메모가 낫습니다.
 - **확정 후 검증하세요.** `sdd validate`를 실행하고 `sdd domain`으로 도메인을 조정합니다.
+- **추적성을 마무리하세요.** 확정된 요구사항을 기존 테스트와 코드에서 `@spec <domain>/<feature>#REQ-01`로 참조하고
+  `sdd sync`로 커버리지를 확인합니다.
 
 ## 문제 해결
 

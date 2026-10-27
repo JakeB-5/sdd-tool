@@ -17,7 +17,10 @@ REQ-XX
 ```
 
 - REQ: Requirement prefix
-- XX: 2-digit number (01, 02, ...)
+- XX: 2-digit number (01, 02, ...), unique within a spec (every spec starts again at `REQ-01`)
+
+A requirement is **defined** by a heading in this form (levels 2-4). `sdd sync` counts only ids defined by a heading;
+an id mentioned in prose, a list or a table is a reference and does not create a requirement.
 
 ## Characteristics of Good Requirements
 
@@ -51,14 +54,23 @@ Each requirement should be implementable/testable independently.
 
 ### 4. Traceable
 
-Reference requirement IDs in code and tests:
+Reference requirement IDs in code and tests with a spec-qualified `@spec <domain>/<feature>#REQ-01`:
 
 ```typescript
 /**
- * @spec REQ-01
+ * @spec auth/login#REQ-01
  */
 function login() {}
 ```
+
+```typescript
+describe('auth/login#REQ-01: Login', () => {
+  it('rejects a wrong password', () => {});
+});
+```
+
+`REQ-01` exists in every spec, so a bare `@spec REQ-01` only counts when exactly one spec has that id; when several do, it
+is ignored with a warning. Check coverage with `sdd sync`.
 
 ## Requirements by Category
 
@@ -114,6 +126,10 @@ function login() {}
 - The system SHALL send reset link via email
 - **Dependency**: REQ-01 (Login)
 ```
+
+This is a note for readers; it does not create a dependency. Dependencies **between specs** are declared only in the
+frontmatter: `depends: [auth/login]` (`depends: []` for none, ids in `<domain>/<feature>` form).
+`sdd impact` builds its graph from `depends` alone; mentioning another spec in the body is reported as a reference.
 
 ## Validation Checklist
 

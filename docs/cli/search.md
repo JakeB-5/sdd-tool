@@ -5,27 +5,35 @@ Searches specs.
 ## Usage
 
 ```bash
-sdd search <query> [options]
+sdd search [query] [options]
 ```
+
+The query is optional when at least one filter is given.
 
 ## Options
 
 | Option | Description |
 |--------|-------------|
-| `-d, --domain <domain>` | Filter by domain |
-| `-s, --status <status>` | Filter by status |
-| `--tag <tag>` | Filter by tag |
+| `--status <status>` | Status filter, comma-separated (`draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated`) |
+| `--phase <phase>` | Phase filter, comma-separated |
+| `--author <author>` | Author filter |
+| `--tags <tags>` | Tag filter, comma-separated |
+| `--created-after <date>` / `--created-before <date>` | Created date range (YYYY-MM-DD) |
+| `--updated-after <date>` / `--updated-before <date>` | Updated date range (YYYY-MM-DD) |
+| `--depends-on <specId>` | Specs that depend on the given spec |
+| `--limit <n>` | Maximum number of results |
+| `--sort-by <field>` | `relevance`, `created`, `updated`, `title`, `status` |
+| `--sort-order <order>` | `asc` or `desc` |
+| `-r, --regex` | Treat the query as a regular expression |
+| `-c, --case-sensitive` | Case-sensitive search |
 | `--json` | Output in JSON format |
-| `--limit <n>` | Limit results (default: 20) |
-| `--content` | Search content as well |
+
+Invalid `--limit`, `--sort-by`, `--sort-order`, dates and statuses are rejected. Specs without a `created` date never match
+`--created-*` filters.
 
 ## Search Targets
 
-- Spec ID
-- Spec title
-- Requirement content
-- Scenario content
-- Tags
+The full text of every spec (frontmatter, requirements, scenarios). Matches are shown with their line numbers.
 
 ## Examples
 
@@ -35,100 +43,52 @@ sdd search <query> [options]
 sdd search "login"
 ```
 
-Output:
+Output (CLI output is Korean):
 ```
-=== Search Results: "login" ===
+🔍 검색 결과: "login"
+   2개 발견 (8ms)
 
-📄 user-auth (auth domain)
-   Title: User Authentication
-   Status: approved
-   Match: "The system SHALL support login functionality"
-
-📄 social-login (auth domain)
-   Title: Social Login
-   Status: draft
-   Match: "Social login SHALL use OAuth 2.0"
-
-Total: 2 results
-```
-
-### Filter by Domain
-
-```bash
-sdd search "authentication" --domain auth
+📝 auth/login
+   제목: login
+   상태: draft | Phase: unknown | 점수: ██████████ 100%
+   매칭:
+     L2: id: **login**
 ```
 
 ### Filter by Status
 
 ```bash
-sdd search "payment" --status approved
+sdd search "payment" --status approved,implemented
 ```
 
 ### Filter by Tag
 
 ```bash
-sdd search --tag "critical"
+sdd search --tags critical
 ```
 
-### Search Content
+### Regular Expression
 
 ```bash
-sdd search "JWT" --content
+sdd search "user-.*" --regex
+```
+
+### Spec Dependents
+
+```bash
+sdd search --depends-on auth/login
 ```
 
 ### JSON Output
 
 ```bash
-sdd search "authentication" --json
-```
-
-```json
-{
-  "query": "authentication",
-  "results": [
-    {
-      "id": "user-auth",
-      "title": "User Authentication",
-      "domain": "auth",
-      "status": "approved",
-      "matches": [
-        {
-          "type": "requirement",
-          "content": "The system SHALL support user authentication"
-        }
-      ]
-    }
-  ],
-  "total": 1
-}
-```
-
-### Combined Filters
-
-```bash
-sdd search "API" --domain api --status draft --limit 5
-```
-
-## Search Tips
-
-### Exact Phrase Search
-
-Wrap in quotes for exact phrase matching:
-
-```bash
-sdd search "\"login failure\""
-```
-
-### Wildcard Search
-
-```bash
-sdd search "user-*"
+sdd search "authentication" --json --limit 5
 ```
 
 ### RFC Keyword Search
 
 ```bash
-sdd search "SHALL NOT"
+sdd search "SHALL NOT" --case-sensitive
 ```
 
 ## Related Documentation

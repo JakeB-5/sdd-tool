@@ -26,9 +26,12 @@ sdd git hooks uninstall
 
 | Hook | Timing | Action |
 |------|--------|--------|
-| `pre-commit` | Before commit | Validate changed specs |
-| `commit-msg` | After commit message | Validate message format |
+| `pre-commit` | Before commit | When files under `.sdd/specs/` are staged, run `sdd validate` (all specs) |
+| `commit-msg` | After commit message | Validate the first line: `<type>(<scope>): <message>` ([Commit Convention](/guide/commit-convention)) |
 | `pre-push` | Before push | Validate all specs |
+
+Hooks are POSIX-sh scripts. `uninstall` only removes hooks carrying the SDD marker, `--force` replaces an existing
+hook (the original is backed up once), and hooks outside the repository (`core.hooksPath`) are refused.
 
 ### template
 
@@ -50,14 +53,13 @@ sdd git setup
 
 **Setup includes:**
 - Git hooks installation
-- Commit message template installation
-- `.gitignore.sdd` merge
-- `.gitattributes.sdd` merge
+- Commit message template (`.gitmessage`) installation
 
 ## Options
 
 | Option | Description |
 |--------|-------------|
+| `-f, --force` | Overwrite existing hooks / configuration (`sdd git hooks install`, `sdd git setup`) |
 | `--help` | Show help |
 
 ## Examples

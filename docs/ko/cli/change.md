@@ -24,7 +24,7 @@ sdd change <subcommand> <id>
 |------|------|
 | `-l, --list` | 진행 중인 변경 목록 |
 | `-t, --title <title>` | 변경 제안 제목 |
-| `-s, --spec <spec>` | 대상 스펙 경로 |
+| `-s, --spec <spec>` | 대상 스펙(`<domain>/<feature>`). 옵션을 반복(`-s a -s b`)하거나 쉼표로 구분(`-s a,b`)해 여러 스펙 지정 |
 
 ## 변경 워크플로우
 
@@ -32,8 +32,9 @@ sdd change <subcommand> <id>
 생성 → delta.md 작성 → validate → 스펙 수정 → apply → archive
 ```
 
-1. **생성** (`sdd change -t "..."`): `proposal.md`와 `delta.md` 생성. ID는 진행 중인 변경과
-   아카이브된 변경을 모두 고려해 발급되므로 아카이브 후에도 재사용되지 않습니다.
+1. **생성** (`sdd change -t "..." -s <spec>`): `proposal.md`와 `delta.md` 생성. 제안서에는 대상 스펙이
+   모두 나열되고, `delta.md`에는 스펙마다 `MODIFIED` 블록(`### <spec>` + Before/After)이 하나씩 생깁니다.
+   ID는 진행 중인 변경과 아카이브된 변경을 모두 고려해 발급되므로 아카이브 후에도 재사용되지 않습니다.
 2. **delta.md 작성**: ADDED / MODIFIED / REMOVED 섹션 작성
 3. **validate**: 형식 검증
 4. **스펙 수정**: delta.md를 참고해 사용자 또는 AI가 스펙 파일을 직접 수정
@@ -44,6 +45,7 @@ sdd change <subcommand> <id>
 
 ```bash
 sdd change -t "로그인 기능 개선" -s auth/login   # CHG-001 생성
+sdd change -t "인증과 결제" -s auth/login -s billing/pay   # 여러 스펙 (또는 -s auth/login,billing/pay)
 sdd change -l                                    # 목록
 sdd change CHG-001                               # 상세 (proposal.md 파싱 실패 시 종료 코드 2)
 sdd change validate CHG-001
@@ -69,7 +71,7 @@ created: 2025-01-07
 
 ## MODIFIED
 
-### specs/auth/login/spec.md
+### auth/login
 
 #### Before
 
@@ -83,7 +85,7 @@ created: 2025-01-07
 변경된 내용
 ```
 
-### specs/auth/logout/spec.md
+### auth/logout
 
 #### Before
 ...

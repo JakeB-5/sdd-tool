@@ -34,8 +34,11 @@ git checkout -b spec-bundle/payment-v2
 
 ```bash
 # Create/modify multiple specs
-sdd new billing/payment-gateway-v2
-sdd new billing/refund-policy-v2
+sdd new billing/payment-gateway-v2 --no-branch
+sdd new billing/refund-policy-v2 --no-branch
+
+# (--no-branch: you already created the bundle branch; without it `sdd new`
+#  creates and switches to a feature/<id> branch per spec)
 
 # Modify existing specs
 # Edit .sdd/specs/billing/checkout/spec.md
@@ -48,21 +51,24 @@ sdd new billing/refund-policy-v2
 # Check impact of changed specs
 sdd impact billing/payment-gateway-v2
 
-# Check all dependencies
-sdd deps check
-
-# Check for circular dependencies
-sdd deps check --cycles
+# Whole-project dependency report (cycles, isolated specs, health score)
+sdd impact report
 ```
 
-**Example output**:
+Impact follows the frontmatter `depends` lists only. Declare real dependencies there
+(`depends: [billing/payment-gateway-v2]`); a spec merely mentioned in another spec's body is listed as a reference,
+not as an affected spec.
+
+**Example output** (simplified; the CLI prints Korean):
 ```
 📊 Impact Analysis: billing/payment-gateway-v2
 
 Direct Impact:
   ├── billing/checkout (depends)
-  ├── billing/subscription (depends)
-  └── billing/invoice (references)
+  └── billing/subscription (depends)
+
+References (not dependencies):
+  └── billing/invoice
 
 Indirect Impact:
   └── order/order-complete (via billing/checkout)
@@ -114,7 +120,7 @@ sdd validate
 sdd validate --constitution
 
 # Final dependency check
-sdd deps check
+sdd impact report
 ```
 
 ### 6. Push & Create PR
@@ -185,7 +191,7 @@ git branch -d spec-bundle/payment-v2
 
 ```bash
 # Identify through impact analysis
-sdd impact billing/payment-gateway --code
+sdd impact billing/payment-gateway-v2 --code
 
 # Specify in footer
 Breaking-Spec: billing/checkout, billing/invoice

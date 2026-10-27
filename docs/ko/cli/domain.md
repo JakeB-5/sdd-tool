@@ -20,13 +20,16 @@ sdd domain create <name> [options]
 
 **옵션:**
 
-| 옵션 | 설명 | 기본값 |
-|------|------|--------|
-| `--description`, `-d` | 도메인 설명 | - |
-| `--path`, `-p` | 소스 코드 경로 | `src/<name>` |
-| `--depends-on` | 의존하는 도메인 | - |
-| `--owner` | 도메인 소유자 | - |
-| `--tags` | 태그 (쉼표 구분) | - |
+| 옵션 | 설명 |
+|------|------|
+| `-d, --description <text>` | 도메인 설명 |
+| `-p, --path <path>` | 소스 코드 경로 |
+| `--depends-on <domains...>` | 이 도메인이 사용(uses)하는 도메인 |
+| `--extends <domains...>` | 이 도메인이 확장하는 도메인 |
+| `--implements <domains...>` | 이 도메인이 구현하는 도메인 |
+
+`owner`, `tags`, `defaults`는 CLI 옵션이 아니므로 `.sdd/domains.yml`에서 설정합니다.
+`sdd new <domain>/<feature>`도 없는 도메인을 자동으로 만듭니다(`sdd domain create <domain>`과 동일).
 
 **예시:**
 
@@ -38,13 +41,10 @@ sdd domain create auth
 sdd domain create auth \
   --description "인증 및 인가" \
   --path "src/auth" \
-  --depends-on core \
-  --owner "@security-team"
+  --depends-on core
 
 # 여러 의존성
-sdd domain create order \
-  --depends-on core \
-  --depends-on auth
+sdd domain create order --depends-on core auth
 ```
 
 ### list
@@ -61,7 +61,8 @@ sdd domain list [options]
 |------|------|
 | `--tree` | 의존성 트리로 표시 |
 | `--json` | JSON 형식 출력 |
-| `--verbose`, `-v` | 상세 정보 표시 |
+| `--has-specs` | 스펙이 있는 도메인만 |
+| `--orphan` | 스펙이 없는 도메인만 |
 
 **예시:**
 
@@ -93,24 +94,23 @@ sdd domain show <name>
 
 **출력 예시:**
 
+`경로`와 `의존성`은 설정된 경우에만 표시되고, `의존 그래프`는 도메인이 의존 관계에 속할 때 표시됩니다
+(`core ← auth ← order`는 "order가 auth에, auth가 core에 의존"한다는 뜻):
+
 ```
-📁 도메인: auth
 
-설명: 인증 및 인가
+# auth 도메인
+설명: auth 도메인 (reverse finalize로 등록)
 경로: src/auth
-소유자: @security-team
+의존성: core
 
-스펙 (4개):
-  ✅ user-login
-  ✅ oauth-google
-  🔄 session-management
-  📝 mfa-setup
+스펙 목록 (3):
+  - login
+  - logout
+  - register
 
-의존성:
-  사용: core
-  사용됨: user, order
-
-태그: security, authentication
+의존 그래프:
+  core ← auth ← order
 ```
 
 ### link
@@ -154,7 +154,8 @@ sdd domain depends <domain> --on <target> [options]
 
 | 옵션 | 설명 |
 |------|------|
-| `--on` | 의존 대상 도메인 |
+| `--on <target>` | 의존 대상 도메인 |
+| `--type <uses\|extends\|implements>` | 의존성 타입 (기본: `uses`) |
 | `--remove` | 의존성 제거 |
 
 **예시:**
@@ -246,36 +247,22 @@ sdd domain rename <old-name> <new-name>
 sdd domain rename auth authentication
 ```
 
-### lock / unlock
+### update
 
-도메인 잠금을 관리합니다.
-
-```bash
-sdd domain lock <name> [options]
-sdd domain unlock <name>
-```
-
-**옵션:**
-
-| 옵션 | 설명 |
-|------|------|
-| `--reason` | 잠금 사유 |
-| `--until` | 잠금 기한 |
-
-**예시:**
+도메인의 설명이나 소스 경로를 수정합니다.
 
 ```bash
-sdd domain lock auth --reason "OAuth 리팩토링 진행 중"
-sdd domain unlock auth
+sdd domain update <name> [-d, --description <text>] [-p, --path <path>]
 ```
 
-## 전역 옵션
+### validate
 
-| 옵션 | 설명 |
-|------|------|
-| `--help`, `-h` | 도움말 표시 |
-| `--quiet`, `-q` | 최소 출력 |
-| `--json` | JSON 형식 출력 |
+도메인 구조(순환 의존성, 의존성 규칙, 없는 도메인)를 검증합니다. 구조가 잘못되면 종료 코드 2
+(`VALIDATION_FAILED`)로 끝납니다.
+
+```bash
+sdd domain validate
+```
 
 ## 설정 파일
 

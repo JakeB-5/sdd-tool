@@ -12,21 +12,21 @@ sdd report [options]
 
 | Option | Description |
 |--------|-------------|
-| `--json` | Output in JSON format |
-| `--markdown` | Save as markdown file |
-| `-o, --output <file>` | Output file path |
-| `--include <sections>` | Include specific sections (comma-separated) |
+| `-f, --format <format>` | Output format: `html` (default), `markdown`, `json` |
+| `-o, --output <path>` | Output file path (default: `sdd-report-<date>.<ext>` in the current directory) |
+| `--title <title>` | Report title |
+| `--no-quality` | Leave out the quality analysis |
+| `--no-validation` | Leave out the validation results |
 
-## Report Sections
+The report is always written to a file; the command prints the path.
+
+## Report Contents
 
 | Section | Description |
 |---------|-------------|
-| `summary` | Project summary |
-| `specs` | Specs overview |
-| `domains` | Domains overview |
-| `quality` | Quality analysis |
-| `changes` | Changes overview |
-| `sync` | Sync status |
+| Specs | Every spec with its id, title and status |
+| Quality | Quality analysis (see [sdd quality](/cli/quality)); skipped with `--no-quality` |
+| Validation | Validation results (see [sdd validate](/cli/validate)); skipped with `--no-validation` |
 
 ## Examples
 
@@ -34,89 +34,49 @@ sdd report [options]
 
 ```bash
 sdd report
+# → sdd-report-2026-10-27.html
 ```
 
-Output:
-```
-=== SDD Project Report ===
-
-📅 Generated: 2025-01-07
-
-📊 Project Summary:
-  • Total Specs: 12
-  • Domains: 4
-  • Average Quality: 78/100
-
-📋 Spec Status:
-  • draft: 3
-  • review: 2
-  • approved: 5
-  • implemented: 2
-
-🏷️ Domain Distribution:
-  • auth: 4 specs
-  • user: 3 specs
-  • order: 3 specs
-  • payment: 2 specs
-
-🔄 Changes Overview:
-  • Pending: 2
-  • Applied this week: 3
-
-🔗 Sync Status:
-  • Synced: 8
-  • Out of sync: 2
-  • Unlinked: 2
-```
-
-### Save as Markdown
+### Markdown Report
 
 ```bash
-sdd report --markdown -o ./reports/weekly.md
+sdd report -f markdown -o ./reports/weekly.md
 ```
 
-### JSON Output
+### JSON Report
 
 ```bash
-sdd report --json
+sdd report -f json -o sdd-report.json
 ```
 
 ```json
 {
-  "generatedAt": "2025-01-07T12:00:00Z",
-  "summary": {
-    "totalSpecs": 12,
-    "totalDomains": 4,
-    "averageQuality": 78
-  },
-  "specs": {
-    "byStatus": {
-      "draft": 3,
-      "review": 2,
-      "approved": 5,
-      "implemented": 2
-    }
-  },
-  "domains": [
-    { "name": "auth", "specCount": 4 },
-    { "name": "user", "specCount": 3 }
+  "title": "SDD 프로젝트 리포트",
+  "generatedAt": "2026-10-27T11:41:03.082Z",
+  "projectPath": "/abs/path/to/project/.sdd",
+  "specs": [
+    { "id": "auth/login", "title": "User Login", "status": "implemented" }
   ],
-  "changes": {
-    "pending": 2,
-    "appliedThisWeek": 3
+  "summary": {
+    "totalSpecs": 13,
+    "byPhase": { "unknown": 13 },
+    "byStatus": { "implemented": 1, "draft": 12 },
+    "averageQuality": 54,
+    "validationErrors": 0,
+    "validationWarnings": 7
   },
-  "sync": {
-    "synced": 8,
-    "outOfSync": 2,
-    "unlinked": 2
-  }
+  "quality": { "averageScore": 54, "grade": "F", "specResults": ["..."] },
+  "validation": { "passed": 13, "failed": 0, "warnings": 7, "files": ["..."] }
 }
 ```
 
-### Include Specific Sections Only
+`quality` has the shape of `sdd quality --all --json` and `validation` lists every validated file with its errors and
+warnings; both are omitted with `--no-quality` / `--no-validation`.
+
+### Without Quality and Validation
 
 ```bash
-sdd report --include summary,quality,sync
+sdd report --no-quality --no-validation
 ```
 
 ## CI/CD Integration
@@ -124,8 +84,7 @@ sdd report --include summary,quality,sync
 ```yaml
 # GitHub Actions example
 - name: Generate SDD Report
-  run: |
-    sdd report --json > sdd-report.json
+  run: sdd report -f json -o sdd-report.json
 
 - name: Upload Report
   uses: actions/upload-artifact@v4

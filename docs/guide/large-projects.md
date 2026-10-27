@@ -14,16 +14,16 @@ Large-scale projects with hundreds of specs and multiple domains require systema
 .sdd/
 ├── domains.yml              # Domain definitions
 ├── .context.json            # Current context
-├── specs/
+├── specs/                   # <domain>/<feature>/spec.md
 │   ├── core/               # Core domain
-│   │   ├── data-model.md
-│   │   └── validation.md
+│   │   ├── data-model/spec.md
+│   │   └── validation/spec.md
 │   ├── auth/               # Auth domain
-│   │   ├── user-login.md
-│   │   └── oauth-google.md
+│   │   ├── user-login/spec.md
+│   │   └── oauth-google/spec.md
 │   ├── order/              # Order domain
-│   │   ├── create-order.md
-│   │   └── payment.md
+│   │   ├── create-order/spec.md
+│   │   └── payment/spec.md
 │   └── ...
 └── .reverse-drafts/        # Reverse extraction drafts (temporary)
 ```
@@ -60,27 +60,33 @@ Core layer (core)
 # domains.yml
 domains:
   core:
+    description: "Core functionality"
     specs: [data-model, validation, utils]
 
   auth:
+    description: "Authentication"
     dependencies:
       uses: [core]
     specs: [user-login, oauth, session]
 
   order:
+    description: "Orders and payments"
     dependencies:
       uses: [core, auth]
     specs: [create-order, payment, refund]
 ```
+
+`description` is required for every domain; `specs` and `dependencies` are optional.
 
 ## Context Strategy
 
 ### During Feature Development
 
 ```bash
-# Load only working domain
+# Mark the working domain (dependencies are added read-only)
 sdd context set auth
-sdd list  # Shows only auth specs
+sdd context specs   # Specs in scope
+sdd new mfa-setup   # → auth/mfa-setup
 ```
 
 ### Cross-Domain Work
@@ -88,14 +94,18 @@ sdd list  # Shows only auth specs
 ```bash
 # Load related domains together
 sdd context set order payment
+sdd new payment/refund   # several active domains: name the domain explicitly
 ```
 
 ### Full Review
 
 ```bash
 sdd context clear
-sdd list --all
+sdd validate          # validation always covers every spec
+sdd validate -d auth  # or one domain
 ```
+
+The context only sets the default domain of `sdd new` and the scope of `sdd context specs`; it does not filter `sdd list` or `sdd validate`.
 
 ## Dependency Management
 
@@ -119,29 +129,31 @@ graph TD
 ### Circular Dependency Prevention
 
 ```bash
-sdd validate --domain
+sdd domain validate
 ```
 
 ```
-❌ Circular dependency detected: order → payment → order
-   Solution: Merge payment as submodule of order or
-             Extract common interface to core
+❌ 도메인 검증 실패
+
+📛 에러 (1개):
+  • [CIRCULAR_DEPENDENCY] 순환 의존성이 발견되었습니다: order → payment → order (uses)
 ```
+
+Solution: merge payment into order, or extract the common interface to core. The command exits with code 2 on invalid structure.
 
 ### Dependency Rules
 
 ```yaml
-# domains.yml
+# domains.yml (top level, next to `domains:`)
 rules:
-  - from: "feature/*"
-    to: "core/*"
-    allow: true
-
-  - from: "core/*"
-    to: "feature/*"
-    allow: false
-    message: "core cannot depend on feature"
+  - from: core
+    to: order
+    type: uses
+    allowed: false
+    reason: "core cannot depend on order"
 ```
+
+`sdd domain validate` reports a `RULE_VIOLATION` when an existing dependency of that type breaks a rule.
 
 ## Team Collaboration
 
@@ -151,48 +163,37 @@ rules:
 # domains.yml
 domains:
   auth:
+    description: "Authentication"
     owner: "@security-team"
-    reviewers: ["@lead-dev"]
+    defaults:
+      reviewers: ["@lead-dev"]
 
   payment:
+    description: "Payments"
     owner: "@payment-team"
-    reviewers: ["@finance-lead", "@security-team"]
+    defaults:
+      author: "@payment-team"
+      reviewers: ["@finance-lead", "@security-team"]
 ```
 
-### Change Notifications
-
-```bash
-# Notify owner on domain changes
-sdd notify --domain auth --message "OAuth spec added"
-```
+`owner` and `tags` sit directly on the domain; `reviewers` and `author` are only valid inside `defaults`.
 
 ### Merge Conflict Prevention
 
-```bash
-# Lock domain before work
-sdd domain lock auth --reason "OAuth refactoring"
-
-# Release after work complete
-sdd domain unlock auth
-```
+Give every domain its own owner and keep one spec per directory (`.sdd/specs/<domain>/<feature>/`), so
+parallel work rarely touches the same files. Use feature branches (`sdd new` creates `feature/<id>` by default)
+and [change proposals](/cli/change) for edits to existing specs.
 
 ## Performance Optimization
 
-### Incremental Validation
+### Scoped Validation
 
 ```bash
-# Validate only changed specs
-sdd validate --changed
-
 # Validate specific domain only
 sdd validate --domain auth
-```
 
-### Parallel Processing
-
-```bash
-# Parallel processing by domain
-sdd validate --parallel
+# Validate a single spec file
+sdd validate .sdd/specs/auth/user-login/spec.md
 ```
 
 ## Version Management
@@ -202,23 +203,9 @@ sdd validate --parallel
 ```yaml
 # spec.md frontmatter
 version: "1.2.0"
-deprecated: false
-breaking_changes:
-  - version: "1.0.0"
-    description: "Initial version"
-  - version: "1.2.0"
-    description: "OAuth support added"
 ```
 
-### Domain Versions
-
-```yaml
-# domains.yml
-domains:
-  auth:
-    version: "2.0"
-    min_compatible: "1.5"
-```
+Use `status: deprecated` (see `sdd new status <feature> deprecated`) to retire a spec.
 
 ## Migration
 
@@ -245,48 +232,24 @@ domains:
     description: "Code awaiting migration"
     path: "src/legacy/"
     specs: []
-    migrating: true
 ```
 
 ## Monitoring
 
-### Progress Dashboard
+### Progress
 
 ```bash
-sdd status --dashboard
-```
-
-```
-📊 Project Status
-
-Domains: 8
-Specs: 47
-  ✅ Implemented: 35 (74%)
-  🔄 In Progress: 8 (17%)
-  📝 Draft: 4 (9%)
-
-Test Coverage: 82%
-Last Changed: 3 days ago
+sdd status                 # per-feature status, task progress and next steps
+sdd status --domain auth   # one domain
+sdd list features --status implementing
 ```
 
 ### Quality Metrics
 
 ```bash
-sdd metrics
-```
-
-```
-📈 Quality Metrics
-
-Spec Quality:
-  - Average scenarios: 4.2/spec
-  - Contract definition rate: 89%
-  - Documentation rate: 95%
-
-Domain Health:
-  - auth: A (Excellent)
-  - order: B (Good)
-  - legacy: D (Needs improvement)
+sdd quality --all          # per-spec scores and grade distribution
+sdd sync                   # spec-to-code traceability
+sdd impact report          # dependency health of the whole project
 ```
 
 ## Best Practices Summary

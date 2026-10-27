@@ -10,7 +10,7 @@ between two actors:
 | Actor | Responsibility |
 |-------|----------------|
 | `sdd reverse` CLI | Deterministic work: structure scan, draft validation, review state, finalization |
-| AI (`sdd-reverse` skill / `/sdd.reverse`) | Reads the code and writes spec drafts |
+| AI (`sdd-reverse` skill) | Reads the code and writes spec drafts |
 | You | Approve or reject each draft |
 
 No external analysis server is required.
@@ -21,7 +21,7 @@ No external analysis server is required.
 scan → read code → write drafts → validate → review → finalize
 ```
 
-In Claude Code, run the `sdd-reverse` skill (or `/sdd.reverse`) and Claude walks through all
+In Claude Code run `/sdd-reverse`, in Codex `$sdd-reverse`; the AI walks through all
 steps, asking for your approval before anything is finalized. The steps below show what
 happens under the hood.
 
@@ -139,6 +139,8 @@ spec is never overwritten without `--force`.
 - **Keep specs small.** One feature per spec makes review and later changes easier.
 - **Record uncertainty.** An explicit "Uncertain: ..." note is better than a confident guess.
 - **Validate after finalizing.** Run `sdd validate` and adjust domains with `sdd domain`.
+- **Close the traceability loop.** Reference the finalized requirements from existing tests and code as
+  `@spec <domain>/<feature>#REQ-01`, then check coverage with `sdd sync`.
 
 ## Troubleshooting
 

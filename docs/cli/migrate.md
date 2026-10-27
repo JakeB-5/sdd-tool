@@ -12,21 +12,21 @@ sdd migrate [command] [options]
 
 | Command | Description |
 |---------|-------------|
-| `detect` | Detect external SDD tools |
-| `openspec [path]` | Migrate from OpenSpec project |
-| `speckit [path]` | Migrate from Spec Kit project |
+| `detect` | Detect external SDD tools (`-p, --path <path>` sets the search path) |
+| `openspec [source]` | Migrate from OpenSpec project |
+| `speckit [source]` | Migrate from Spec Kit project |
 | `docs <source>` | Convert markdown documents to specs |
 | `analyze <file>` | Analyze document SDD compatibility |
 | `scan [dir]` | Scan for migratable documents |
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--dry-run` | Preview without creating files |
-| `--overwrite` | Overwrite existing specs |
-| `-o, --output <dir>` | Specify output directory |
-| `--ext <extensions>` | File extension filter (default: .md) |
+| Option | Applies to | Description |
+|--------|------------|-------------|
+| `--dry-run` | `docs`, `openspec`, `speckit` | Preview without creating files |
+| `--overwrite` | `openspec`, `speckit` | Overwrite existing specs |
+| `-o, --output <dir>` | `docs` | Specify output directory |
+| `--ext <extensions>` | `scan` | File extension filter (default: .md) |
 
 ## Examples
 

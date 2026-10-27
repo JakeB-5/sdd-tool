@@ -43,6 +43,10 @@ sdd cicd hooks pre-commit
 sdd cicd hooks --install
 ```
 
+훅 스크립트를 `.husky/`에 씁니다(`pre-commit`과 `pre-push`, 또는 지정한 하나만). `--install`을 주면 husky 설치 절차
+(`npm install -D husky`, `npx husky init`)를 먼저 출력하지만 실행하지는 않습니다. 스크립트가 동작하려면 husky를 직접
+설치하세요.
+
 ::: tip
 직접 Git hooks 방식을 원한다면 `sdd git hooks install`을 사용하세요.
 :::
@@ -94,28 +98,40 @@ sdd cicd check
 
 ```yaml
 on:
+  push:
+    branches: [main, master, develop]
+    paths: ['.sdd/**']
   pull_request:
-    paths:
-      - '.sdd/**'
+    branches: [main, master, develop]
+    paths: ['.sdd/**']
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: npm install -g sdd-tool
+        with:
+          node-version: '20'
+      - run: npm install -g sdd-tool@2.1.0   # 파일을 생성한 버전으로 고정
       - run: sdd validate
+      - run: sdd constitution validate
+      - run: sdd impact report --json > impact-report.json   # 아티팩트로 업로드
 ```
+
+설치 단계는 `sdd cicd setup`을 실행한 CLI의 `sdd-tool@<버전>`으로 고정됩니다(GitLab 파일과 `sdd init`이 쓰는
+워크플로우도 같습니다). 업그레이드할 때 버전을 바꾸세요. 생성되는 워크플로우는 `sdd validate`만 실행하므로,
+스펙-코드 추적성을 CI 게이트로 쓰려면 `sdd sync --ci --threshold 80`을 직접 추가하세요
+(임계값 미만이면 종료 코드 2, [sdd sync](/ko/cli/sync) 참고).
 
 ### sdd-labeler.yml
 
-PR에 자동으로 라벨을 추가합니다:
+PR에 자동으로 라벨을 추가합니다 (워크플로우가 `permissions`를 선언합니다: `contents: read`,
+`pull-requests: write`, `issues: write`):
 - `spec:<domain>` - 변경된 도메인
 - `constitution` - Constitution 변경 시
-- `spec:new` - 새 스펙 추가
-- `spec:update` - 스펙 수정
-- `spec:remove` - 스펙 삭제
 
 ## 관련 문서
 

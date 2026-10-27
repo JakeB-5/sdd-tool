@@ -78,78 +78,70 @@ git checkout -b constitution/v2.0
 
 **변경 예시**:
 
+`.sdd/constitution.md`:
+
 ```markdown
-<!-- .sdd/constitution.md -->
-# Project Constitution
-
-Version: 2.0.0
-Last Updated: 2024-01-20
-
-## 변경 이력
-- v2.0.0 (2024-01-20): API 버전 관리 원칙 추가
-- v1.1.0 (2024-01-10): 보안 원칙 강화
-- v1.0.0 (2024-01-01): 초기 버전
-
+---
+version: 2.0.0
+created: 2024-01-01
+updated: 2024-01-20
 ---
 
-## 1. 아키텍처 원칙
+# Constitution: My Project
 
-### 1.1 계층 분리
-모든 비즈니스 로직은 서비스 계층에 위치해야 한다 (MUST).
-...
+> 프로젝트의 아키텍처와 API 원칙.
 
-## 2. API 설계 원칙 (NEW)
+## 핵심 원칙
 
-### 2.1 버전 관리
-- 모든 API는 URL 경로에 버전을 포함해야 한다 (MUST)
-- 형식: `/api/v{major}/...`
-- 하위 호환성은 최소 6개월 유지해야 한다 (MUST)
+### 1. 계층 분리
 
-### 2.2 응답 형식
-- 모든 API는 일관된 응답 형식을 사용해야 한다 (MUST)
-- 성공: `{ data: ..., meta: ... }`
-- 실패: `{ error: { code, message, details } }`
+- 모든 비즈니스 로직은 서비스 계층에 위치해야 한다(SHALL)
+
+### 2. API 버전 관리 (NEW)
+
+- 모든 API는 URL 경로에 버전을 포함해야 한다(SHALL) (`/api/v{major}/...`)
+- 하위 호환성은 최소 6개월 유지해야 한다(SHALL)
+
+### 3. 응답 형식 (NEW)
+
+- 모든 API는 일관된 응답 형식을 사용해야 한다(SHALL)
+- 성공: `{ data: ..., meta: ... }`, 실패: `{ error: { code, message, details } }`
 ```
+
+버전은 frontmatter의 `version:`에 두고, 제목 줄은 `# Constitution: <프로젝트명>` 형식이어야 합니다. 원칙은
+`## 핵심 원칙`(또는 `## 원칙`) 아래의 `### N. 제목` 항목으로 파싱되며, 그 밖에 인식되는 섹션은 `## 기술 스택`,
+`## 품질 기준`, `## 금지 사항`입니다(금지 규칙에는 `SHALL NOT` / `MUST NOT`이 있어야 함). 변경 이력은
+`sdd constitution bump`(5단계)가 `.sdd/CHANGELOG.md`에 남기므로 "변경 이력" 섹션을 직접 관리할 필요가 없습니다.
 
 ### 4. 영향 분석
 
 ```bash
-# Constitution 준수 여부 검사
+# 각 스펙의 constitution_version을 constitution과 비교 (기본값으로 켜져 있음)
 sdd validate --constitution
-
-# 위반 스펙 목록 확인
-sdd validate --constitution --verbose
 ```
+
+`sdd validate`는 모든 스펙의 `constitution_version`을 현재 constitution과 비교합니다. Patch 차이는 정보,
+Minor 차이는 경고, Major 차이는 에러(종료 코드 2)로 보고합니다. constitution 파일을 파싱할 수 없으면 경고 W007을 보고하고 검사를 건너뜁니다.
+원칙의 내용 자체는 읽지 않으므로 "API 버전 관리" 같은 규칙에 대한 스펙 준수 여부는
+리뷰로 확인해야 하며, 영향받는 스펙은 `sdd search`로 찾을 수 있습니다.
 
 **출력 예시**:
 ```
-❌ Constitution 위반 발견: 5개 스펙
-
-위반 목록:
-  1. api/user-endpoint
-     - 위반: "API 버전 관리" (2.1)
-     - 내용: URL에 버전 없음
-
-  2. api/product-endpoint
-     - 위반: "API 버전 관리" (2.1)
-     - 내용: URL에 버전 없음
-     - 위반: "응답 형식" (2.2)
-     - 내용: 에러 응답 형식 불일치
-
-  ...
-
-💡 이 스펙들을 업데이트하거나, Constitution 적용을 유예하세요.
+✓ api/user-endpoint/spec.md
+  ⚠ Constitution Minor 버전이 변경되었습니다 (1.0.0 → 1.1.0). 새 원칙을 확인하세요.
 ```
 
 ### 5. 버전 업데이트
 
 ```bash
-# 버전 범프 (향후 CLI 지원)
-# sdd constitution bump --minor
+# 버전을 올리고 변경 기록 (--major | --minor | --patch 중 하나 필수)
+sdd constitution bump --minor -m "API 설계 원칙 추가"
 
-# 수동으로 버전 업데이트
-# constitution.md의 Version 필드 수정
+# 이력 확인
+sdd constitution history
 ```
+
+이 명령은 constitution.md의 Version 필드를 갱신하고 변경 내용을 `.sdd/CHANGELOG.md`에 기록합니다.
 
 **시맨틱 버전**:
 - **Major** (x.0.0): Breaking Change, 대규모 원칙 변경

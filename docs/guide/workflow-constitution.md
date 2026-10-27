@@ -78,78 +78,71 @@ git checkout -b constitution/v2.0
 
 **Change example**:
 
+`.sdd/constitution.md`:
+
 ```markdown
-<!-- .sdd/constitution.md -->
-# Project Constitution
-
-Version: 2.0.0
-Last Updated: 2024-01-20
-
-## Change History
-- v2.0.0 (2024-01-20): Add API versioning principle
-- v1.1.0 (2024-01-10): Strengthen security principles
-- v1.0.0 (2024-01-01): Initial version
-
+---
+version: 2.0.0
+created: 2024-01-01
+updated: 2024-01-20
 ---
 
-## 1. Architecture Principles
+# Constitution: My Project
 
-### 1.1 Layer Separation
-All business logic must be located in the service layer (MUST).
-...
+> Architecture and API principles for the project.
 
-## 2. API Design Principles (NEW)
+## 핵심 원칙
 
-### 2.1 Version Management
-- All APIs must include version in URL path (MUST)
-- Format: `/api/v{major}/...`
-- Backward compatibility must be maintained for minimum 6 months (MUST)
+### 1. Layer Separation
 
-### 2.2 Response Format
-- All APIs must use consistent response format (MUST)
-- Success: `{ data: ..., meta: ... }`
-- Failure: `{ error: { code, message, details } }`
+- All business logic SHALL be located in the service layer
+
+### 2. API Versioning (NEW)
+
+- All APIs SHALL include the version in the URL path (`/api/v{major}/...`)
+- Backward compatibility SHALL be maintained for at least 6 months
+
+### 3. Response Format (NEW)
+
+- All APIs SHALL use a consistent response format
+- Success: `{ data: ..., meta: ... }`, failure: `{ error: { code, message, details } }`
 ```
+
+The version lives in the frontmatter `version:` and the title line must be `# Constitution: <project name>`.
+Principles are parsed from `### N. Title` entries under a `## 핵심 원칙` (or `## 원칙`) heading, and the other recognised
+sections are `## 기술 스택`, `## 품질 기준` and `## 금지 사항` (forbidden rules must contain `SHALL NOT` / `MUST NOT`).
+The change history is kept for you in `.sdd/CHANGELOG.md` by `sdd constitution bump` (step 5), so there is no
+"Change History" section to maintain by hand.
 
 ### 4. Impact Analysis
 
 ```bash
-# Check Constitution compliance
+# Check each spec's constitution_version against the constitution (on by default)
 sdd validate --constitution
-
-# Check list of violating specs
-sdd validate --constitution --verbose
 ```
 
-**Example output**:
+`sdd validate` compares every spec's `constitution_version` with the current constitution: a patch difference is
+informational, a minor difference is a warning, and a major difference is an error (exit code 2). If the constitution file cannot be parsed,
+it reports warning W007 and skips the check. It does not read the principles themselves,
+so checking specs against rules such as "API Version Management" is a review task; use `sdd search` to find affected specs.
+
+**Example output** (the CLI prints Korean):
 ```
-❌ Constitution violations found: 5 specs
-
-Violation list:
-  1. api/user-endpoint
-     - Violation: "API Version Management" (2.1)
-     - Content: No version in URL
-
-  2. api/product-endpoint
-     - Violation: "API Version Management" (2.1)
-     - Content: No version in URL
-     - Violation: "Response Format" (2.2)
-     - Content: Error response format mismatch
-
-  ...
-
-💡 Update these specs or defer Constitution enforcement.
+✓ api/user-endpoint/spec.md
+  ⚠ Constitution Minor 버전이 변경되었습니다 (1.0.0 → 1.1.0). 새 원칙을 확인하세요.
 ```
 
 ### 5. Version Update
 
 ```bash
-# Version bump (future CLI support)
-# sdd constitution bump --minor
+# Bump the version and record the change (--major | --minor | --patch is required)
+sdd constitution bump --minor -m "Add API design principles"
 
-# Manually update version
-# Modify Version field in constitution.md
+# Show the history
+sdd constitution history
 ```
+
+The command updates the Version field in constitution.md and writes the change to `.sdd/CHANGELOG.md`.
 
 **Semantic version**:
 - **Major** (x.0.0): Breaking Change, large-scale principle changes

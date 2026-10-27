@@ -14,16 +14,16 @@
 .sdd/
 ├── domains.yml              # 도메인 정의
 ├── .context.json            # 현재 컨텍스트
-├── specs/
+├── specs/                   # <domain>/<feature>/spec.md
 │   ├── core/               # 핵심 도메인
-│   │   ├── data-model.md
-│   │   └── validation.md
+│   │   ├── data-model/spec.md
+│   │   └── validation/spec.md
 │   ├── auth/               # 인증 도메인
-│   │   ├── user-login.md
-│   │   └── oauth-google.md
+│   │   ├── user-login/spec.md
+│   │   └── oauth-google/spec.md
 │   ├── order/              # 주문 도메인
-│   │   ├── create-order.md
-│   │   └── payment.md
+│   │   ├── create-order/spec.md
+│   │   └── payment/spec.md
 │   └── ...
 └── .reverse-drafts/        # 역추출 초안 (임시)
 ```
@@ -60,27 +60,33 @@
 # domains.yml
 domains:
   core:
+    description: "핵심 기능"
     specs: [data-model, validation, utils]
 
   auth:
+    description: "인증"
     dependencies:
       uses: [core]
     specs: [user-login, oauth, session]
 
   order:
+    description: "주문과 결제"
     dependencies:
       uses: [core, auth]
     specs: [create-order, payment, refund]
 ```
+
+`description`은 모든 도메인에 필수이고 `specs`와 `dependencies`는 선택입니다.
 
 ## 컨텍스트 전략
 
 ### 기능 개발 시
 
 ```bash
-# 작업할 도메인만 로드
+# 작업할 도메인 지정 (의존 도메인은 읽기 전용으로 추가)
 sdd context set auth
-sdd list  # auth 스펙만 표시
+sdd context specs   # 범위 안의 스펙
+sdd new mfa-setup   # → auth/mfa-setup
 ```
 
 ### 크로스 도메인 작업
@@ -88,14 +94,18 @@ sdd list  # auth 스펙만 표시
 ```bash
 # 관련 도메인 함께 로드
 sdd context set order payment
+sdd new payment/refund   # 활성 도메인이 여러 개이면 도메인을 명시
 ```
 
 ### 전체 검토 시
 
 ```bash
 sdd context clear
-sdd list --all
+sdd validate          # 검증은 항상 모든 스펙을 대상으로 함
+sdd validate -d auth  # 또는 한 도메인만
 ```
+
+컨텍스트는 `sdd new`의 기본 도메인과 `sdd context specs`의 범위만 정하며, `sdd list`나 `sdd validate`를 필터링하지 않습니다.
 
 ## 의존성 관리
 
@@ -119,29 +129,31 @@ graph TD
 ### 순환 의존성 방지
 
 ```bash
-sdd validate --domain
+sdd domain validate
 ```
 
 ```
-❌ 순환 의존성 감지: order → payment → order
-   해결책: payment를 order의 하위 모듈로 병합하거나
-          공통 인터페이스를 core로 추출
+❌ 도메인 검증 실패
+
+📛 에러 (1개):
+  • [CIRCULAR_DEPENDENCY] 순환 의존성이 발견되었습니다: order → payment → order (uses)
 ```
+
+해결책: payment를 order에 병합하거나 공통 인터페이스를 core로 추출하세요. 구조가 잘못되면 종료 코드 2로 끝납니다.
 
 ### 의존성 규칙
 
 ```yaml
-# domains.yml
+# domains.yml (최상위, `domains:`와 같은 레벨)
 rules:
-  - from: "feature/*"
-    to: "core/*"
-    allow: true
-
-  - from: "core/*"
-    to: "feature/*"
-    allow: false
-    message: "core는 feature에 의존할 수 없습니다"
+  - from: core
+    to: order
+    type: uses
+    allowed: false
+    reason: "core는 order에 의존할 수 없습니다"
 ```
+
+해당 타입의 기존 의존성이 규칙을 어기면 `sdd domain validate`가 `RULE_VIOLATION`을 보고합니다.
 
 ## 팀 협업
 
@@ -151,48 +163,37 @@ rules:
 # domains.yml
 domains:
   auth:
+    description: "인증"
     owner: "@security-team"
-    reviewers: ["@lead-dev"]
+    defaults:
+      reviewers: ["@lead-dev"]
 
   payment:
+    description: "결제"
     owner: "@payment-team"
-    reviewers: ["@finance-lead", "@security-team"]
+    defaults:
+      author: "@payment-team"
+      reviewers: ["@finance-lead", "@security-team"]
 ```
 
-### 변경 알림
-
-```bash
-# 도메인 변경 시 소유자 알림
-sdd notify --domain auth --message "OAuth 스펙 추가"
-```
+`owner`와 `tags`는 도메인에 직접 두고, `reviewers`와 `author`는 `defaults` 안에서만 유효합니다.
 
 ### 병합 충돌 방지
 
-```bash
-# 작업 전 도메인 잠금
-sdd domain lock auth --reason "OAuth 리팩토링"
-
-# 작업 완료 후 해제
-sdd domain unlock auth
-```
+도메인마다 소유자를 두고 스펙을 디렉토리 하나씩(`.sdd/specs/<domain>/<feature>/`) 유지하면 병렬 작업이
+같은 파일을 건드릴 일이 줄어듭니다. 기능 브랜치(`sdd new`는 기본으로 `feature/<id>`를 만듭니다)와
+[변경 제안](/ko/cli/change)으로 기존 스펙을 수정하세요.
 
 ## 성능 최적화
 
-### 증분 검증
+### 범위 지정 검증
 
 ```bash
-# 변경된 스펙만 검증
-sdd validate --changed
-
 # 특정 도메인만 검증
 sdd validate --domain auth
-```
 
-### 병렬 처리
-
-```bash
-# 도메인별 병렬 처리
-sdd validate --parallel
+# 스펙 파일 하나만 검증
+sdd validate .sdd/specs/auth/user-login/spec.md
 ```
 
 ## 버전 관리
@@ -202,23 +203,9 @@ sdd validate --parallel
 ```yaml
 # spec.md frontmatter
 version: "1.2.0"
-deprecated: false
-breaking_changes:
-  - version: "1.0.0"
-    description: "초기 버전"
-  - version: "1.2.0"
-    description: "OAuth 지원 추가"
 ```
 
-### 도메인 버전
-
-```yaml
-# domains.yml
-domains:
-  auth:
-    version: "2.0"
-    min_compatible: "1.5"
-```
+스펙을 폐기할 때는 `status: deprecated`를 사용합니다 (`sdd new status <feature> deprecated`).
 
 ## 마이그레이션
 
@@ -245,48 +232,24 @@ domains:
     description: "마이그레이션 대기 코드"
     path: "src/legacy/"
     specs: []
-    migrating: true
 ```
 
 ## 모니터링
 
-### 진행 상황 대시보드
+### 진행 상황
 
 ```bash
-sdd status --dashboard
-```
-
-```
-📊 프로젝트 현황
-
-도메인: 8개
-스펙: 47개
-  ✅ 구현됨: 35개 (74%)
-  🔄 진행중: 8개 (17%)
-  📝 초안: 4개 (9%)
-
-테스트 커버리지: 82%
-최근 변경: 3일 전
+sdd status                 # 기능별 상태, 작업 진행률, 다음 단계
+sdd status --domain auth   # 한 도메인만
+sdd list features --status implementing
 ```
 
 ### 품질 지표
 
 ```bash
-sdd metrics
-```
-
-```
-📈 품질 지표
-
-스펙 품질:
-  - 시나리오 평균: 4.2개/스펙
-  - 계약 정의율: 89%
-  - 문서화율: 95%
-
-도메인 건강도:
-  - auth: A (우수)
-  - order: B (양호)
-  - legacy: D (개선 필요)
+sdd quality --all          # 스펙별 점수와 등급 분포
+sdd sync                   # 스펙-코드 추적성
+sdd impact report          # 프로젝트 전체 의존성 건강도
 ```
 
 ## 모범 사례 요약

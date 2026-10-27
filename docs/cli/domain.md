@@ -20,13 +20,16 @@ sdd domain create <name> [options]
 
 **Options:**
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--description`, `-d` | Domain description | - |
-| `--path`, `-p` | Source code path | `src/<name>` |
-| `--depends-on` | Dependent domain | - |
-| `--owner` | Domain owner | - |
-| `--tags` | Tags (comma-separated) | - |
+| Option | Description |
+|--------|-------------|
+| `-d, --description <text>` | Domain description |
+| `-p, --path <path>` | Source code path |
+| `--depends-on <domains...>` | Domains this domain uses |
+| `--extends <domains...>` | Domains this domain extends |
+| `--implements <domains...>` | Domains this domain implements |
+
+`owner`, `tags` and `defaults` are not CLI options; set them in `.sdd/domains.yml`.
+`sdd new <domain>/<feature>` also creates a missing domain automatically (same as `sdd domain create <domain>`).
 
 **Examples:**
 
@@ -38,13 +41,10 @@ sdd domain create auth
 sdd domain create auth \
   --description "Authentication and authorization" \
   --path "src/auth" \
-  --depends-on core \
-  --owner "@security-team"
+  --depends-on core
 
 # Multiple dependencies
-sdd domain create order \
-  --depends-on core \
-  --depends-on auth
+sdd domain create order --depends-on core auth
 ```
 
 ### list
@@ -61,7 +61,8 @@ sdd domain list [options]
 |--------|-------------|
 | `--tree` | Display as dependency tree |
 | `--json` | JSON format output |
-| `--verbose`, `-v` | Show detailed information |
+| `--has-specs` | Only domains that have specs |
+| `--orphan` | Only domains without specs |
 
 **Examples:**
 
@@ -93,24 +94,23 @@ sdd domain show <name>
 
 **Output example:**
 
+The CLI prints Korean labels. `경로` (path) and `의존성` appear only when set, and `의존 그래프` only when the
+domain has dependencies or dependents (`core ← auth ← order` reads "order depends on auth, which depends on core"):
+
 ```
-📁 Domain: auth
 
-Description: Authentication and authorization
-Path: src/auth
-Owner: @security-team
+# auth 도메인
+설명: auth 도메인 (reverse finalize로 등록)
+경로: src/auth
+의존성: core
 
-Specs (4):
-  ✅ user-login
-  ✅ oauth-google
-  🔄 session-management
-  📝 mfa-setup
+스펙 목록 (3):
+  - login
+  - logout
+  - register
 
-Dependencies:
-  Uses: core
-  Used by: user, order
-
-Tags: security, authentication
+의존 그래프:
+  core ← auth ← order
 ```
 
 ### link
@@ -154,8 +154,9 @@ sdd domain depends <domain> --on <target> [options]
 
 | Option | Description |
 |--------|-------------|
-| `--on` | Target domain |
-| `--remove` | Remove dependency |
+| `--on <target>` | Target domain |
+| `--type <uses\|extends\|implements>` | Dependency type (default: `uses`) |
+| `--remove` | Remove the dependency |
 
 **Examples:**
 
@@ -246,36 +247,22 @@ sdd domain rename <old-name> <new-name>
 sdd domain rename auth authentication
 ```
 
-### lock / unlock
+### update
 
-Manages domain locking.
-
-```bash
-sdd domain lock <name> [options]
-sdd domain unlock <name>
-```
-
-**Options:**
-
-| Option | Description |
-|--------|-------------|
-| `--reason` | Lock reason |
-| `--until` | Lock expiration |
-
-**Examples:**
+Updates a domain's description or source path.
 
 ```bash
-sdd domain lock auth --reason "OAuth refactoring in progress"
-sdd domain unlock auth
+sdd domain update <name> [-d, --description <text>] [-p, --path <path>]
 ```
 
-## Global Options
+### validate
 
-| Option | Description |
-|--------|-------------|
-| `--help`, `-h` | Show help |
-| `--quiet`, `-q` | Minimal output |
-| `--json` | JSON format output |
+Validates the domain structure (circular dependencies, dependency rules, missing domains). Exits with code 2
+(`VALIDATION_FAILED`) when it is invalid.
+
+```bash
+sdd domain validate
+```
 
 ## Configuration File
 

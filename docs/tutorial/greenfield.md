@@ -30,22 +30,29 @@ Run the `sdd init` command in your terminal:
 sdd init
 ```
 
+Output (the CLI prints Korean; abridged):
+
 ```
-SDD project has been initialized!
+✓ SDD 프로젝트가 초기화되었습니다.
 
-Created items:
-  .sdd/specs/
-  .sdd/changes/
-  .sdd/archive/
-  .sdd/templates/
-  .claude/skills/      <- 30 sdd-* skills (invoked as /sdd-*)
-  .agents/skills/      <- 30 sdd-* skills for Codex (invoked as $sdd-*)
-  .claude/agents/, .codex/agents/  <- sdd-* subagents
-  .sdd/constitution.md
-  AGENTS.md            <- SDD guide block
-  CLAUDE.md            <- Imports @AGENTS.md
+ℹ 생성된 구조:
+• .sdd/
+  • constitution.md
+  • specs/
+  • changes/
+  • archive/
+  • templates/
+• .claude/ (Claude Code)
+  • skills/ (30개)
+  • agents/ (3개)
+• .agents/skills/ (Codex 스킬 30개)
+• .codex/agents/ (Codex 서브에이전트 3개)
+• AGENTS.md (SDD 워크플로우 지침 블록)
+• CLAUDE.md (AGENTS.md import)
 
-Next step: Run /sdd-start in Claude Code.
+ℹ 다음 단계:
+• constitution.md를 수정하여 프로젝트 원칙을 정의하세요
+• /sdd-spec (Codex: $sdd-spec) 으로 첫 번째 기능 명세를 작성하세요
 ```
 
 Generated structure:
@@ -70,21 +77,15 @@ todo-api/
 
 ### Start in Claude Code
 
-Now open the project in Claude Code and run `/sdd-start`:
+Now open the project in Claude Code (or Codex) and run `/sdd-start` (`$sdd-start`):
 
 ```
 /sdd-start
 ```
 
-```
-Project Status
-
-SDD Initialized
-Constitution: Template (modification needed)
-Specs: 0
-
-Next step: Define project principles with /sdd-constitution.
-```
+`/sdd-start` checks the setup (`.sdd/`, Git hooks, CI workflow, existing source). Missing items go through a setup wizard
+(`sdd init`, `sdd git hooks install`, `sdd cicd setup github`); only then does it recommend the next skill. With no
+existing code and no specs (this project) that is `/sdd-spec`; define the principles first with `/sdd-constitution`.
 
 ## Step 2: Define Project Constitution
 
@@ -192,22 +193,33 @@ Claude: Spec Draft
 
 Creates a new todo item.
 
-### Scenarios
+### REQ-01: Create a todo
 
-**Successful creation**
-- GIVEN: Valid todo data (title: "Test", description: "Description")
-- WHEN: Create request
-- THEN: New todo is created and ID is returned
+The system SHALL create a todo from a title (1-200 chars), an optional description and an optional due date.
 
-**Missing title**
-- GIVEN: Data without title
-- WHEN: Create request
-- THEN: 400 error (TITLE_REQUIRED)
+### REQ-02: Reject invalid titles
 
-**Title too long**
-- GIVEN: Title with 201+ characters
-- WHEN: Create request
-- THEN: 400 error (TITLE_TOO_LONG)
+The system SHALL reject a missing or over-long title with a 400 error.
+
+### Scenario 1: Successful creation (REQ-01)
+
+- **GIVEN** valid todo data (title: "Test", description: "Description")
+- **WHEN** a create request is sent
+- **THEN** a new todo is created and its ID is returned
+
+### Scenario 2: Missing title (REQ-02)
+
+- **GIVEN** data without a title
+- **WHEN** a create request is sent
+- **THEN** a 400 error (TITLE_REQUIRED) is returned
+
+### Scenario 3: Title too long (REQ-02)
+
+- **GIVEN** a title with 201+ characters
+- **WHEN** a create request is sent
+- **THEN** a 400 error (TITLE_TOO_LONG) is returned
+
+The spec depends on `core/validation` (frontmatter `depends: [core/validation]`).
 
 ### Contract
 
@@ -236,7 +248,7 @@ When saved:
 ```
 Spec saved
 
-File: .sdd/specs/create-todo/spec.md
+File: .sdd/specs/todo/create-todo/spec.md
 Status: draft
 Domain: todo
 
@@ -268,25 +280,22 @@ For each spec, define scenarios and contracts through conversation with Claude.
 /sdd-validate
 ```
 
+The skill runs `sdd validate`, which checks format (frontmatter, uppercase RFC 2119 keywords, GIVEN-WHEN-THEN
+scenarios, leftover placeholders, constitution version). Output with all six specs filled in (Korean; abridged):
+
 ```
-Validation complete
+✓ core/validation/spec.md
+✓ todo/create-todo/spec.md
+✓ todo/delete-todo/spec.md
+✓ todo/get-todo/spec.md
+✓ todo/list-todos/spec.md
+✓ todo/update-todo/spec.md
 
-Specs: 6
-  validation (domain: core)
-  create-todo (domain: todo)
-  get-todo (domain: todo)
-  update-todo (domain: todo)
-  delete-todo (domain: todo)
-  list-todos (domain: todo)
-
-Warnings: 0
-Errors: 0
-
-Dependency graph:
-  validation
-    └── create-todo
-    └── update-todo
+결과: 6개 통과, 0개 실패
 ```
+
+Dependencies are declared in each spec's frontmatter `depends` (for example `depends: [core/validation]` in create-todo
+and update-todo); `sdd impact core/validation` lists the specs that depend on it.
 
 ## Step 7: Implementation Plan
 
@@ -339,38 +348,36 @@ Save this plan? [Y/n]
 ```
 
 ```
-Task Breakdown: create-todo
+Task Breakdown: create-todo (written to .sdd/specs/todo/create-todo/tasks.md)
 
-[ ] 1. Type definitions
-    - Write CreateTodoInput interface
-    - Write Todo interface
-    - Estimated time: 10 min
+### create-todo-task-001: Type definitions
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **설명:** CreateTodoInput and Todo interfaces
+- **의존성:** 없음
 
-[ ] 2. Write tests (Red)
-    - Successful creation test
-    - Missing title test
-    - Title too long test
-    - Estimated time: 20 min
+### create-todo-task-002: Write failing tests (Red)
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **설명:** Successful creation, missing title, title too long (REQ-01, REQ-02)
+- **의존성:** create-todo-task-001
 
-[ ] 3. Implement validation logic (Green)
-    - validateTitle function
-    - Integrate core/validation
-    - Estimated time: 15 min
+### create-todo-task-003: Validation and business logic (Green)
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **설명:** validateTitle (core/validation) and createTodo
+- **의존성:** create-todo-task-002
 
-[ ] 4. Implement business logic (Green)
-    - createTodo function
-    - Estimated time: 20 min
-
-[ ] 5. Refactoring (Refactor)
-    - Code cleanup
-    - Estimated time: 10 min
-
-[ ] 6. API endpoint
-    - POST /todos route
-    - Estimated time: 15 min
-
-Total estimated time: 1 hour 30 minutes
+### create-todo-task-004: Refactor and API endpoint
+- **상태:** 대기
+- **우선순위:** 🟡 MEDIUM
+- **설명:** Code cleanup and POST /todos route
+- **의존성:** create-todo-task-003
 ```
+
+Each task is a `### <feature>-task-NNN: Title` heading with a `**상태:**` line (`대기`, `진행 중`, `완료`, `차단됨`; English
+`pending`, `in-progress`, `completed`, `blocked` are accepted too). The progress block and the `total:` / `completed:`
+frontmatter are kept up to date by `sdd new task`.
 
 ## Step 9: Implementation
 
@@ -383,7 +390,9 @@ Claude will implement using TDD methodology:
 ```
 Starting implementation: create-todo
 
-## Task 1/6: Type definitions
+$ sdd new task todo/create-todo create-todo-task-001 in-progress
+
+## Task 1/4: Type definitions
 
 src/todo/types.ts:
 
@@ -404,13 +413,18 @@ src/todo/types.ts:
 
 Type definitions complete
 
-## Task 2/6: Write tests
+$ sdd new task todo/create-todo create-todo-task-001 completed
+
+## Task 2/4: Write failing tests
+
+$ sdd new task todo/create-todo create-todo-task-002 in-progress
 
 src/todo/create-todo.test.ts:
 
   import { describe, it, expect } from 'vitest';
   import { createTodo } from './create-todo';
 
+  // @spec todo/create-todo#REQ-01, todo/create-todo#REQ-02
   describe('createTodo', () => {
     it('creates a todo with valid data', () => {
       const input = { title: 'Test todo' };
@@ -435,10 +449,18 @@ src/todo/create-todo.test.ts:
 
 Running tests... 3/3 failed (as expected)
 
-## Task 3/6: Implementation...
+## Task 3/4: Implementation...
 ```
 
-When implementation is complete:
+When all tasks are completed, finish the spec from the terminal. `sdd status` does not change the spec status
+automatically; it suggests this step:
+
+```bash
+sdd validate
+sdd sync todo/create-todo     # REQ-01 and REQ-02 are referenced by the tests: 100%
+sdd new status todo/create-todo implemented
+# ✅ todo/create-todo 스펙 상태: draft → implemented
+```
 
 ```
 Implementation complete: create-todo
@@ -490,23 +512,25 @@ Say "Implement validation" to proceed.
 /sdd-status
 ```
 
+The skill runs `sdd status`. After the first two specs are implemented and a third is started (Korean; abridged):
+
 ```
-Project Status: todo-api
+📋 기능 목록:
+   ✅ validation (core/validation)
+   ✅ create-todo (todo/create-todo) — 작업 3/3
+   📝 delete-todo (todo/delete-todo)
+   🔨 get-todo (todo/get-todo) — 작업 0/3
+   📝 list-todos (todo/list-todos)
+   📝 update-todo (todo/update-todo)
 
-Specs: 6
-  Implemented: 2 (33%)
-  In Progress: 1 (17%)
-  Draft: 3 (50%)
-
-Domains:
-  core: 1/1 complete 100%
-  todo: 1/5 complete  20%
-
-Tests: 8/8 passed
-
-Next step:
-  -> Say "Implement get-todo"
+💡 다음 단계:
+   todo/delete-todo: 명세 완성 후 계획 작성 — sdd new plan todo/delete-todo (Claude Code /sdd-plan · Codex $sdd-plan)
+   todo/get-todo: 명세 완성 후 계획 작성 — sdd new plan todo/get-todo (Claude Code /sdd-plan · Codex $sdd-plan)
+   ...
 ```
+
+Icons follow the spec status (📝 draft, 🔨 implementing, ✅ implemented); `— 작업 n/m` counts completed tasks.
+The next step is computed per feature from its files, status and task progress.
 
 ## Check Domain Graph
 
@@ -514,23 +538,16 @@ Next step:
 /sdd-domain graph
 ```
 
+`sdd domain graph` prints the domain dependency graph (Mermaid by default):
+
 ```mermaid
 graph LR
-    subgraph core[core domain]
-        validation[validation ]
-    end
-
-    subgraph todo[todo domain]
-        create[create-todo ]
-        get[get-todo ]
-        update[update-todo ]
-        delete[delete-todo ]
-        list[list-todos ]
-    end
-
-    validation --> create
-    validation --> update
+  core["Common utilities and types"]
+  todo["Todo CRUD operations"]
+  todo -->|uses| core
 ```
+
+For spec-level dependencies use `sdd impact <spec> --graph`.
 
 ## Next Steps
 

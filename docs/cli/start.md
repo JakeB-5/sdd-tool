@@ -1,6 +1,6 @@
 # sdd start
 
-Starts the SDD workflow.
+Starts the SDD workflow (a single entry point that shows the project status and the available workflows).
 
 ## Usage
 
@@ -12,18 +12,14 @@ sdd start [options]
 
 | Option | Description |
 |--------|-------------|
-| `--new` | Start new feature workflow |
-| `--change` | Start change workflow |
-| `--continue` | Continue in-progress work |
+| `-w, --workflow <type>` | Show the steps of one workflow: `new-feature`, `change-spec`, `validate`, `status`, `constitution` |
+| `--status` | Show the project status only |
 
 ## Behavior
 
-`sdd start` analyzes project status and guides you to the appropriate next step:
-
-1. **New project**: Guide to constitution writing
-2. **No constitution**: Recommend constitution creation
-3. **Work in progress**: Offer continue option
-4. **Existing project**: Workflow selection menu
+`sdd start` is not interactive. Without options it prints the project status (constitution version, spec count, the
+first 5 spec ids followed by `... 외 N개` when there are more, pending changes) followed by the list of workflows. With `--workflow <type>` it prints the steps, the
+matching Claude Code skills and the commands for that workflow. Outside an SDD project it fails (exit code 1).
 
 ## Examples
 
@@ -33,76 +29,47 @@ sdd start [options]
 sdd start
 ```
 
-Output (new project):
+Output (CLI output is Korean):
 ```
-=== SDD Workflow Start ===
+ℹ === SDD 프로젝트 상태 ===
 
-🔍 Analyzing project status...
+ℹ Constitution: v1.0.0
+ℹ 명세 수: 2개
+  • auth/login
+  • billing/pay
+⚠ 진행 중인 변경: 1개
 
-📋 Project Status:
-  • Constitution: ❌ None
-  • Specs: 0
-  • Domains: 0
+ℹ === 사용 가능한 워크플로우 ===
 
-💡 Recommended Next Step:
-  1. Write Constitution: sdd constitution
+ℹ [new-feature] 새 기능 명세
+  • 명령어: sdd new <name>
 
-Would you like to write a constitution? (y/n):
-```
-
-Output (existing project):
-```
-=== SDD Workflow Start ===
-
-🔍 Analyzing project status...
-
-📋 Project Status:
-  • Constitution: ✅ v1.2.0
-  • Specs: 12 (draft: 3, approved: 9)
-  • Domains: 4
-  • Work in progress: None
-
-🚀 Select Workflow:
-  1. Write new feature spec (/sdd-spec)
-  2. Change existing spec (/sdd-spec)
-  3. Check project status (sdd status)
-  4. Quality analysis (sdd quality)
-
-Select (1-4):
-```
-
-Output (work in progress):
-```
-=== SDD Workflow Start ===
-
-🔍 Analyzing project status...
-
-⚠️  You have work in progress:
-
-📄 user-auth (auth domain)
-   Status: draft
-   Last modified: 2 hours ago
-   Progress: plan complete, tasks pending
-
-Would you like to continue? (y/n):
+ℹ [change-spec] 기존 스펙 변경
+  • 명령어: sdd change
+...
 ```
 
 ### Start New Feature Workflow Directly
 
 ```bash
-sdd start --new
+sdd start --workflow new-feature
 ```
+
+Prints the steps: `sdd new <name>`, edit spec.md, `sdd new plan <id>`, `sdd new tasks <id>`, implement.
 
 ### Start Change Workflow Directly
 
 ```bash
-sdd start --change
+sdd start --workflow change-spec
 ```
 
-### Continue In-Progress Work
+Prints the change steps: `sdd change -t "..."`, edit proposal.md / delta.md, `sdd change validate <id>`,
+`sdd change apply <id>`, `sdd change archive <id>`.
+
+### Project Status Only
 
 ```bash
-sdd start --continue
+sdd start --status
 ```
 
 ## Workflow Flow
@@ -111,18 +78,18 @@ sdd start --continue
 sdd start
     │
     ├── No Constitution
-    │   └── sdd constitution
+    │   └── /sdd-constitution
     │
     ├── New Feature
-    │   └── sdd new → sdd plan → sdd tasks → sdd implement
+    │   └── /sdd-spec → /sdd-plan → /sdd-tasks → /sdd-implement → /sdd-validate
     │
     └── Change
-        └── sdd change → sdd impact → sdd apply
+        └── /sdd-spec (change proposal) → /sdd-impact → sdd change apply
 ```
 
-## Slash Command
+## Skill
 
-In Claude Code, use the `/sdd-start` slash command:
+In Claude Code use the `/sdd-start` skill, in Codex `$sdd-start`:
 
 ```
 /sdd-start

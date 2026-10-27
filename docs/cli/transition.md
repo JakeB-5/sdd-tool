@@ -1,149 +1,92 @@
 # sdd transition
 
-Manages transitions between new and change workflows.
+Manages transitions between the new-feature and change workflows.
 
 ## Usage
 
 ```bash
-sdd transition [command] [options]
+sdd transition <subcommand> [options]
 ```
 
 ## Subcommands
 
 | Command | Description |
 |---------|-------------|
-| `to-change <spec-id>` | Transition from new to change workflow |
-| `to-new <change-id>` | Transition from change to new workflow |
-| `status` | Check current workflow status |
+| `new-to-change <spec-id>` | Turn work on a new feature into a change proposal for an existing spec |
+| `change-to-new <change-id>` | Turn a change proposal into a new feature spec |
+| `guide` | Print the transition guide |
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--dry-run` | Preview without actual changes |
-| `--force` | Force transition ignoring warnings |
+| Subcommand | Option | Description |
+|------------|--------|-------------|
+| `new-to-change` | `-t, --title <title>` | Change proposal title |
+| `new-to-change` | `-r, --reason <reason>` | Reason for the transition |
+| `change-to-new` | `-n, --name <name>` | New feature name |
+| `change-to-new` | `-r, --reason <reason>` | Reason for the transition |
 
 ## When Workflow Transition is Needed
 
 ### new to change Transition
 
-- When changes are needed to an already implemented feature
-- When improvements are needed based on existing specs
-- When bug fixes or refactoring is required
+- When you find an overlap with an existing spec while writing a new one
+- When extending an existing feature is more appropriate
+- When the dependency analysis shows an existing spec must change
 
 ### change to new Transition
 
 - When the change scope is too large and needs to be split into a new feature
-- When a completely different approach is needed from the existing spec
+- When it grows into a feature independent of the existing spec
 
 ## Examples
 
 ### Transition from new to change
 
 ```bash
-sdd transition to-change user-auth
+sdd transition new-to-change auth/login -r "extends the existing login"
 ```
 
-Output:
+Creates the next `CHG-XXX` change proposal (`proposal.md`, `delta.md` and `tasks.md`) for `auth/login`:
+
 ```
-🔄 Workflow Transition: new → change
+✓ 전환 완료! 변경 제안이 생성되었습니다.
 
-📄 Original Spec: user-auth
-   Status: approved
-   Domain: auth
-
-Change proposal to be created:
-  • ID: CHG-005
-  • Path: .sdd/changes/CHG-005/
-
-Proceed with transition? (y/n): y
-
-✅ Transition complete!
-   Change Proposal: CHG-005
-   Next step: sdd change show CHG-005
+ℹ 변경 ID: CHG-002
+ℹ 위치: .sdd/changes/CHG-002/
 ```
+
+Then edit the proposal and delta, run `sdd change validate CHG-002` and `sdd change apply CHG-002`.
 
 ### Transition from change to new
 
 ```bash
-sdd transition to-new CHG-003
+sdd transition change-to-new CHG-002 -n new-login
 ```
 
-Output:
-```
-🔄 Workflow Transition: change → new
+Creates the spec `.sdd/specs/common/new-login/spec.md` (plus plan.md and tasks.md) and marks the original change as `transitioned`.
+Continue by editing them (`sdd new plan` / `sdd new tasks` would refuse because the files exist; add `--force` only to regenerate).
 
-📋 Original Change: CHG-003
-   Title: Complete API Response Format Overhaul
-   Affected Specs: 5
+Without `-n` the feature name is the proposal title, lowercased with spaces turned into hyphens. The command
+fails (exit code 1) when that name is not a single path segment (a title like `Auth/Login v2` contains `/`) or the spec
+already exists (`스펙이 이미 존재합니다`); pass `-n <name>` then. For non-English or otherwise odd titles, pass `-n`
+with a kebab-case name anyway so the id is a valid feature name.
 
-⚠️  Warning: This change affects 5 specs.
-   Splitting into a new feature will cancel the original change proposal.
-
-Continue? (y/n): y
-
-Spec to be created:
-  • ID: api-v2-response
-  • Path: .sdd/specs/api/api-v2-response/
-
-✅ Transition complete!
-   New Spec: api-v2-response
-   Original change (CHG-003) has been marked as cancelled.
-```
-
-### Check Current Status
+### Print the Guide
 
 ```bash
-sdd transition status
-```
-
-Output:
-```
-=== Workflow Status ===
-
-📋 New Workflow:
-  • In Progress: 2 specs
-    - user-profile (draft)
-    - payment-gateway (plan)
-
-📋 Change Workflow:
-  • In Progress: 1 change
-    - CHG-004: Login UX Improvement (review)
-
-💡 Transition Candidates:
-  • user-profile → can transition to change (already approved status)
-  • CHG-004 → can transition to new (large change scope)
-```
-
-### Preview (dry-run)
-
-```bash
-sdd transition to-change user-auth --dry-run
-```
-
-Output:
-```
-🔍 [DRY-RUN] Workflow Transition Preview
-
-📄 Original Spec: user-auth
-
-Files to be created:
-  • .sdd/changes/CHG-005/proposal.md
-  • .sdd/changes/CHG-005/delta.md
-
-Files to be modified:
-  • None
-
-(No actual files were changed)
+sdd transition guide
 ```
 
 ## Transition Notes
 
-1. **new to change**: Original spec is preserved. The generated proposal gets the next `CHG-XXX` id
+1. **new to change**: The original spec is preserved. The generated proposal gets the next `CHG-XXX` id
    (archived ids are never reused) and uses the proposal schema fields (`id`, `target`), so
    `sdd change validate` / `sdd impact change` can read it.
-2. **change to new**: Original change proposal is marked as cancelled
-3. **Work in progress**: Warning is displayed if there is work in progress
+2. **change to new**: The `transitioned` state is written only to `.sdd/changes/<id>/.status` (with the new feature name
+   and a timestamp). `proposal.md` keeps `status: draft`, so `sdd list changes` and `sdd change -l` still show the
+   change as `[draft]`.
+3. Rule of thumb: prefer a change when ≤ 3 specs are affected and the work extends existing behavior;
+   prefer a new feature when more specs are affected, a new concept or domain is introduced, or it can be tested independently.
 
 ## Related Documentation
 

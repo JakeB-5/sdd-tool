@@ -15,6 +15,7 @@ sdd init [options]
 | `-f, --force` | 기존 설정 덮어쓰기 (내용이 다른 `.sdd/` 파일은 `<파일>.bak`, 이미 있으면 `<파일>.1.bak`…으로 백업 후 보고. 백업은 확인 후 삭제하고 커밋하지 마세요: `.gitignore`에 `.sdd/**/*.bak` 권장) |
 | `--skip-git-setup` | Git/CI-CD 설정 건너뛰기 |
 | `--auto-approve` | 모든 설정을 자동 승인 |
+| `--with-domains` | 도메인 설정 파일 `.sdd/domains.yml`도 생성 |
 | `--no-skills` | 스킬 생성 건너뛰기 (`.claude/skills/`, `.agents/skills/`) |
 | `--legacy-commands` | 레거시 한국어 슬래시 커맨드를 `.claude/commands/sdd.*.md`에 추가로 생성 |
 
@@ -54,7 +55,7 @@ your-project/
 
 `sdd init`은 `.claude/skills/sdd-*/SKILL.md`에 영어 스킬 30개를 생성합니다. Claude Code는 각 스킬을 스킬 이름 그대로의 슬래시 커맨드(예: `/sdd-start`, `/sdd-spec`)로 노출합니다. 스킬은 다음 프론트매터 필드를 포함합니다:
 
-- **`context: fork`** — 분석/도메인 스킬 7개가 포크된 컨텍스트에서 실행됨 (`sdd-analyze`, `sdd-impact`, `sdd-report`, `sdd-research`, `sdd-reverse`, `sdd-search`, `sdd-sync`)
+- **`context: fork`** — 분석 스킬 6개가 포크된 컨텍스트에서 실행됨 (`sdd-analyze`, `sdd-impact`, `sdd-report`, `sdd-research`, `sdd-search`, `sdd-sync`)
 - **`disable-model-invocation: true`** — 사용자만 호출할 수 있는 유틸리티 스킬 5개 (`sdd-chat`, `sdd-cicd`, `sdd-guide`, `sdd-migrate`, `sdd-watch`)
 - **`argument-hint`** — 인수를 받는 스킬
 - **`allowed-tools`** — 스킬별 최소 권한 패턴 (예: `Bash(sdd validate*)`)

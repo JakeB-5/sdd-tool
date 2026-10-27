@@ -34,14 +34,18 @@ depends: [auth/session]
 ---
 ```
 
-**Required Fields:**
+**Checked by `sdd validate`:** only `created` (YYYY-MM-DD) is checked: a missing date is a warning (an error with
+`--strict`). The other fields are optional for validation (`sdd new` always writes them): `status` defaults to `draft`,
+and a spec without `constitution_version` simply skips the constitution version check.
+
+**Fields:**
 - `id` - Unique identifier (kebab-case)
 - `title` - Human-readable title
-- `status` - One of: draft, active, deprecated
+- `status` - One of: `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated` (see [Specification Lifecycle](#specification-lifecycle))
 - `created` - Creation date (YYYY-MM-DD)
 - `constitution_version` - Project constitution version
 
-**Optional Fields:**
+**Other fields:**
 - `updated` - Last update date
 - `version` - Specification version
 - `domain` - Domain this spec belongs to
@@ -88,7 +92,7 @@ Define specific requirements using RFC 2119 keywords.
 ```markdown
 ## Requirements
 
-### REQ-001: Email/Password Login
+### REQ-01: Email/Password Login
 
 The system SHALL support user login using email and password.
 
@@ -96,6 +100,15 @@ The system SHALL support user login using email and password.
 - Password SHALL be at least 8 characters
 - Failed login attempts SHOULD be rate-limited
 ```
+
+**Requirement definition format:** a requirement is defined by a heading `### REQ-01: Title` (levels 2-4; `REQ-01 Title`,
+`` `REQ-01`: Title `` and `[REQ-01] Title` also work). Ids are unique within a spec and restart at `REQ-01` in every spec.
+`sdd sync` counts **only** ids defined by a heading; an id merely mentioned in prose or a table is a reference, not a
+requirement, and a spec that mentions REQ ids but defines none gets a warning.
+
+**Traceability:** reference requirements from code and tests as `@spec <domain>/<feature>#REQ-01`
+(for example `@spec auth/login#REQ-01`). A bare `REQ-01` only counts when exactly one spec has that id, so qualify it.
+Run `sdd sync` to check coverage; see [sdd sync](/cli/sync).
 
 ## RFC 2119 Keywords
 
@@ -256,11 +269,12 @@ Scenarios provide concrete examples of how features work:
 ---
 id: user-authentication
 title: "User Authentication System"
-status: active
+status: implemented
 created: 2025-01-30
 version: 1.0.0
 constitution_version: 1.0.0
 domain: auth
+depends: []
 tags:
   - security
   - core
@@ -289,7 +303,7 @@ Enable secure user identification and session management while protecting user c
 
 ## Core Requirements
 
-### REQ-001: Email/Password Authentication
+### REQ-01: Email/Password Authentication
 
 The system SHALL support secure authentication using email and password.
 
@@ -315,7 +329,7 @@ The system SHALL support secure authentication using email and password.
 - Login response time SHOULD be under 500ms
 - The system SHOULD rate-limit failed attempts (5 attempts per 15 minutes)
 
-### REQ-002: JWT Token Management
+### REQ-02: JWT Token Management
 
 The system SHALL use JWT (JSON Web Tokens) for API authentication.
 
@@ -324,7 +338,7 @@ The system SHALL use JWT (JSON Web Tokens) for API authentication.
 - Refresh token SHALL have 30-day expiration
 - Expired tokens SHALL be rejected with HTTP 401
 
-### REQ-003: Password Reset
+### REQ-03: Password Reset
 
 The system SHOULD provide password reset capability.
 
@@ -458,16 +472,16 @@ The system SHOULD provide password reset capability.
 
 **Good:**
 ```markdown
-### REQ-001: Email Validation
+### REQ-01: Email Validation
 - Emails SHALL be RFC 5322 compliant
 
-### REQ-002: Password Validation
+### REQ-02: Password Validation
 - Passwords SHALL be minimum 8 characters
 ```
 
 **Avoid:**
 ```markdown
-### REQ-001: User Credentials
+### REQ-01: User Credentials
 - Emails should be valid and passwords should be strong
 ```
 
@@ -529,20 +543,33 @@ Before implementing, review specs for:
 ## Specification Lifecycle
 
 ```
-draft
+draft         (spec being written)
   ↓
-(review & feedback)
+review        (team feedback)
   ↓
-active (being implemented)
+approved      (spec accepted)
   ↓
-(updates during development)
+planned       (plan.md written)
   ↓
-completed (implementation done)
+tasked        (tasks.md written)
   ↓
-(later changes)
+implementing  (tasks in progress)
   ↓
-deprecated (replaced by newer version)
+implemented   (all tasks done, `sdd validate` and `sdd sync` pass)
+  ↓
+deprecated    (replaced or retired)
 ```
+
+Change the status with the CLI instead of editing the frontmatter by hand:
+
+```bash
+sdd new status auth/user-authentication implemented
+# ✅ auth/user-authentication 스펙 상태: implementing → implemented
+```
+
+`<feature>` is `<domain>/<feature>` or a unique feature name. Legacy `specified` / `completed` are read as
+`review` / `implemented`. `sdd status` never changes the status for you: it suggests the next step per feature, and after
+the last task is completed it suggests `sdd new status <feature> implemented`.
 
 ## Next Steps
 

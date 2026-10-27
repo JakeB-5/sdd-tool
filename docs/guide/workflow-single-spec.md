@@ -24,20 +24,25 @@ git checkout -b spec/auth/user-login
 ### 2. Write Spec
 
 ```bash
-# Create new spec
-sdd new auth/user-login
+# Create new spec on the branch you just created
+sdd new auth/user-login --no-branch
 
 # Or modify existing spec
 # Edit .sdd/specs/auth/user-login/spec.md
 ```
 
+`sdd new` creates a missing domain automatically and, **unless you pass `--no-branch`**, creates and switches to
+a `feature/<id>` branch of its own. Since step 1 already created the working branch, use `--no-branch` here (or skip
+step 1 and let `sdd new` create the branch). Add `--all` to also write plan.md, tasks.md and checklist.md; existing
+files are never overwritten without `--force`.
+
 ### 3. Local Validation
 
 ```bash
-# Validate spec
-sdd validate auth/user-login
+# Validate one spec (validate takes a path)
+sdd validate .sdd/specs/auth/user-login/spec.md
 
-# Full validation (including dependencies)
+# Full validation
 sdd validate
 
 # Constitution compliance check
@@ -97,13 +102,13 @@ Reflect review feedback:
 # Edit spec.md
 
 # Re-validate
-sdd validate auth/user-login
+sdd validate .sdd/specs/auth/user-login/spec.md
 
 # Additional commit
 git add .
 git commit -m "spec-update(auth/user-login): address review feedback
 
-- Clarified REQ-003
+- Clarified REQ-03
 - Modified scenario 2"
 
 git push
@@ -138,10 +143,10 @@ git checkout main && git pull
 git checkout -b spec/auth/user-login
 
 # 2. Write spec
-sdd new auth/user-login
+sdd new auth/user-login --no-branch
 
 # 3. Validate
-sdd validate auth/user-login
+sdd validate .sdd/specs/auth/user-login/spec.md
 
 # 4. Commit & push
 git add .sdd/specs/auth/user-login/
@@ -164,7 +169,7 @@ git branch -d spec/auth/user-login
 ### Writing Specs
 
 - **One spec = One feature**: Keep scope clear
-- **Specify dependencies**: Use `depends_on` field
+- **Specify dependencies**: Use the frontmatter `depends` field (`depends: [core/user-model]`, `[]` for none); mentioning another spec in the body is not a dependency
 - **GIVEN-WHEN-THEN**: Be specific with scenarios
 
 ### Commits
@@ -187,12 +192,12 @@ git branch -d spec/auth/user-login
 
 ```bash
 # Check errors
-sdd validate auth/user-login --verbose
+sdd validate .sdd/specs/auth/user-login/spec.md
 
 # Common causes:
-# - Missing MUST/SHOULD keywords
-# - GIVEN-WHEN-THEN format errors
-# - Dependency spec doesn't exist
+# - Missing uppercase SHALL/MUST/SHOULD keywords
+# - GIVEN-WHEN-THEN format errors (no scenario)
+# And with --strict: unfilled template placeholders ([요구사항 제목], etc.)
 ```
 
 ### Commit Hook Failure
@@ -213,7 +218,7 @@ git fetch origin
 git rebase origin/main
 
 # After resolving conflicts
-sdd validate auth/user-login
+sdd validate .sdd/specs/auth/user-login/spec.md
 git add .
 git rebase --continue
 ```

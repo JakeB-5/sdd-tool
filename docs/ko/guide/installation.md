@@ -25,7 +25,8 @@ sdd --version
 
 ## Claude Code 설정
 
-SDD Tool은 Claude Code 스킬(`/sdd-*` 슬래시 커맨드로 호출)을 통해 AI와 협업합니다.
+SDD Tool은 스킬을 통해 AI와 협업합니다. `sdd init`은 같은 30개 스킬을 Claude Code(`/sdd-*`로 호출)와
+OpenAI Codex(`$sdd-*`로 호출하거나 `/skills`에서 선택) 양쪽에 생성합니다.
 
 ### Claude Code 설치
 

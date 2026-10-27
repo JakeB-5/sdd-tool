@@ -206,23 +206,29 @@ sdd list --domain auth               # Auth domain specs
 Search specifications by keyword or requirement.
 
 ```bash
-sdd search <query> [options]
+sdd search [query] [options]
 ```
 
 **Arguments:**
-- `<query>` - Search term
+- `[query]` - Search term (optional when a filter is given)
 
 **Options:**
-- `--type <type>` - Search type (keyword, requirement, all)
-- `--domain <domain>` - Limit search to domain
-- `--json` - Output as JSON
+- `--status <status>` - Status filter (comma-separated)
+- `--tags <tags>` / `--author <author>` / `--phase <phase>` - Tag, author and phase filters
+- `--created-after` / `--created-before` / `--updated-after` / `--updated-before <date>` - Date ranges (YYYY-MM-DD)
+- `--depends-on <specId>` - Specs that depend on the given spec
+- `--limit <n>`, `--sort-by <field>`, `--sort-order <asc|desc>`
+- `-r, --regex`, `-c, --case-sensitive`, `--json`
 
 **Example:**
 ```bash
-sdd search authentication            # Search by keyword
-sdd search REQ-001                   # Search by requirement ID
-sdd search login --domain auth       # Domain-specific search
+sdd search authentication              # Search by keyword
+sdd search REQ-01                      # Search by requirement ID
+sdd search --status draft,review       # Filter only
+sdd search "user-.*" --regex           # Regular expression
 ```
+
+See [sdd search](./search) for all options.
 
 ### quality
 
@@ -508,7 +514,7 @@ sdd context clear
 
 ### reverse
 
-Extract specifications from existing code. The CLI scans structure and manages review; the AI (`/sdd.reverse`) reads the code and writes drafts to `.sdd/.reverse-drafts/`.
+Extract specifications from existing code. The CLI scans structure and manages review; the AI (`/sdd-reverse`, `$sdd-reverse` in Codex) reads the code and writes drafts to `.sdd/.reverse-drafts/`.
 
 ```bash
 sdd reverse <subcommand> [options]
