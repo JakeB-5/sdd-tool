@@ -174,11 +174,16 @@ describe('validateSpecs', () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
+  async function writeSpec(relDir: string, content: string): Promise<void> {
+    await fs.mkdir(path.join(tempDir, relDir), { recursive: true });
+    await fs.writeFile(path.join(tempDir, relDir, 'spec.md'), content);
+  }
+
   it('디렉토리 내 모든 스펙을 검증한다', async () => {
-    // 유효한 스펙 2개, 무효한 스펙 1개 생성
-    await fs.writeFile(path.join(tempDir, 'valid1.md'), VALID_SPEC);
-    await fs.writeFile(path.join(tempDir, 'valid2.md'), VALID_SPEC);
-    await fs.writeFile(path.join(tempDir, 'invalid.md'), INVALID_SPEC_NO_RFC);
+    // 유효한 스펙 2개, 무효한 스펙 1개 생성 (평면 + 도메인 레이아웃 혼합)
+    await writeSpec('valid1', VALID_SPEC);
+    await writeSpec('auth/valid2', VALID_SPEC);
+    await writeSpec('invalid', INVALID_SPEC_NO_RFC);
 
     const result = await validateSpecs(tempDir);
 
@@ -204,7 +209,7 @@ describe('validateSpecs', () => {
   });
 
   it('index.md와 README.md는 제외한다', async () => {
-    await fs.writeFile(path.join(tempDir, 'valid.md'), VALID_SPEC);
+    await writeSpec('valid', VALID_SPEC);
     await fs.writeFile(path.join(tempDir, 'index.md'), '# Index');
     await fs.writeFile(path.join(tempDir, 'README.md'), '# Readme');
 
@@ -229,17 +234,35 @@ describe('validateSpecs', () => {
     }
   });
 
-  it('plan.md와 tasks.md도 제외한다', async () => {
-    await fs.writeFile(path.join(tempDir, 'valid.md'), VALID_SPEC);
-    await fs.writeFile(path.join(tempDir, 'plan.md'), '# Plan');
-    await fs.writeFile(path.join(tempDir, 'tasks.md'), '# Tasks');
-    await fs.writeFile(path.join(tempDir, 'checklist.md'), '# Checklist');
+  it('plan.md, tasks.md, prepare.md 등 보조 문서는 제외한다', async () => {
+    await writeSpec('valid', VALID_SPEC);
+    for (const name of ['plan.md', 'tasks.md', 'checklist.md', 'prepare.md']) {
+      await fs.writeFile(path.join(tempDir, 'valid', name), `# ${name}`);
+    }
 
     const result = await validateSpecs(tempDir);
 
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.files).toHaveLength(1);
+      expect(result.data.failed).toBe(0);
+    }
+  });
+
+  it('프로젝트의 .sdd를 넘기면 specs 아래 spec.md만 검증한다', async () => {
+    const sddDir = path.join(tempDir, '.sdd');
+    await fs.mkdir(path.join(sddDir, 'templates'), { recursive: true });
+    await fs.writeFile(path.join(sddDir, 'constitution.md'), '# Constitution');
+    await fs.writeFile(path.join(sddDir, 'templates', 'spec.md'), '# template');
+    await fs.mkdir(path.join(sddDir, 'specs', 'auth', 'login'), { recursive: true });
+    await fs.writeFile(path.join(sddDir, 'specs', 'auth', 'login', 'spec.md'), VALID_SPEC);
+
+    const result = await validateSpecs(sddDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.files).toHaveLength(1);
+      expect(result.data.passed).toBe(1);
     }
   });
 });

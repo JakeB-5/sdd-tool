@@ -50,6 +50,8 @@ export interface DependencyNode {
 export interface DependencyGraph {
   nodes: Map<string, DependencyNode>;
   edges: DependencyEdge[];
+  /** Declared dependencies that do not resolve to any spec (not edges) */
+  dangling?: Array<{ from: string; to: string }>;
 }
 
 /**
@@ -76,6 +78,8 @@ export interface ImpactAnalysisResult {
   riskLevel: ImpactLevel;
   summary: string;
   recommendations: string[];
+  /** Dependencies declared by the target spec that resolve to no spec */
+  danglingDependencies?: string[];
 }
 
 /**

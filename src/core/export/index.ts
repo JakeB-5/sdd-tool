@@ -10,6 +10,7 @@ export { generateHtml } from './html-exporter.js';
 export { generateJson, generateSummaryJson } from './json-exporter.js';
 
 import { parseAllSpecs, parseSpecById } from './spec-parser.js';
+import { resolveSpec } from '../spec/locator.js';
 import { generateHtml } from './html-exporter.js';
 import { generateJson } from './json-exporter.js';
 import type { ExportOptionsInput, ExportResult, ParsedSpec } from './schemas.js';
@@ -22,7 +23,8 @@ function getDefaultOutputPath(
   format: string,
   specIds?: string[]
 ): string {
-  const baseName = specIds?.length === 1 ? specIds[0] : 'specs';
+  // Canonical ids may contain '/' (domain/feature); flatten for a single file name
+  const baseName = specIds?.length === 1 ? specIds[0].replace(/[\\/]+/g, '-') : 'specs';
   return path.join(projectRoot, `${baseName}.${format}`);
 }
 
@@ -50,7 +52,16 @@ export async function executeExport(
       specs = await parseAllSpecs(projectRoot);
     } else if (specIds && specIds.length > 0) {
       for (const specId of specIds) {
-        const spec = await parseSpecById(projectRoot, specId);
+        const resolved = await resolveSpec(path.join(projectRoot, '.sdd'), specId);
+        if (!resolved.success) {
+          return {
+            success: false,
+            format,
+            specsExported: 0,
+            error: resolved.error.message,
+          };
+        }
+        const spec = await parseSpecById(projectRoot, resolved.data.id);
         if (spec) {
           specs.push(spec);
         }

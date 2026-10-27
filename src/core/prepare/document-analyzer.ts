@@ -5,6 +5,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { DetectionSource } from './schemas.js';
+import { resolveSpec } from '../spec/locator.js';
 
 /**
  * 분석 대상 문서 타입
@@ -44,7 +45,15 @@ export class DocumentAnalyzer {
    * 기능 디렉토리의 모든 문서 분석
    */
   async analyzeFeature(featureName: string): Promise<DocumentAnalysis[]> {
-    const featureDir = path.join(this.sddDir, 'specs', featureName);
+    // Resolve <domain>/<feature>, bare feature or legacy id; fall back to the
+    // literal directory for features that have no spec.md yet
+    const resolved = await resolveSpec(this.sddDir, featureName);
+    if (!resolved.success && resolved.error.reason === 'ambiguous') {
+      throw resolved.error;
+    }
+    const featureDir = resolved.success
+      ? resolved.data.dir
+      : path.join(this.sddDir, 'specs', featureName);
 
     if (!fs.existsSync(featureDir)) {
       throw new Error(`기능 디렉토리를 찾을 수 없습니다: ${featureDir}`);

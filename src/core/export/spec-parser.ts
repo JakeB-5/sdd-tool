@@ -3,8 +3,8 @@
  */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { glob } from 'glob';
 import type { ParsedSpec, ParsedRequirement, ParsedScenario } from './schemas.js';
+import { listSpecs, resolveSpec, type SpecLocation } from '../spec/locator.js';
 
 /**
  * YAML frontmatter 파싱
@@ -260,25 +260,13 @@ export async function parseSpecFile(filePath: string, specId: string): Promise<P
  * 프로젝트의 모든 스펙 파싱
  */
 export async function parseAllSpecs(projectRoot: string): Promise<ParsedSpec[]> {
-  const specsDir = path.join(projectRoot, '.sdd', 'specs');
-  const normalizedDir = specsDir.replace(/\\/g, '/');
-
-  const specFiles = await glob(`${normalizedDir}/**/spec.md`, {
-    absolute: true,
-    nodir: true,
-  });
-
+  const locations = await listSpecs(path.join(projectRoot, '.sdd'));
   const specs: ParsedSpec[] = [];
 
-  for (const filePath of specFiles) {
-    const specDir = path.dirname(filePath);
-    const specId = path.basename(specDir);
-
-    try {
-      const spec = await parseSpecFile(filePath, specId);
+  for (const location of locations) {
+    const spec = await parseLocation(location);
+    if (spec) {
       specs.push(spec);
-    } catch {
-      // 파싱 실패한 스펙은 건너뜀
     }
   }
 
@@ -286,14 +274,25 @@ export async function parseAllSpecs(projectRoot: string): Promise<ParsedSpec[]> 
 }
 
 /**
- * 특정 스펙 ID로 스펙 파싱
+ * 특정 스펙 참조(<domain>/<feature>, bare feature, 레거시 id)로 스펙 파싱
  */
 export async function parseSpecById(projectRoot: string, specId: string): Promise<ParsedSpec | null> {
-  const specPath = path.join(projectRoot, '.sdd', 'specs', specId, 'spec.md');
+  const resolved = await resolveSpec(path.join(projectRoot, '.sdd'), specId);
+  if (!resolved.success) {
+    return null;
+  }
+  return parseLocation(resolved.data);
+}
 
+/**
+ * 위치 기반 파싱 - id는 항상 canonical id (도메인 간 충돌 방지)
+ */
+async function parseLocation(location: SpecLocation): Promise<ParsedSpec | null> {
   try {
-    return await parseSpecFile(specPath, specId);
+    const spec = await parseSpecFile(location.specPath, location.id);
+    return { ...spec, id: location.id };
   } catch {
+    // 파싱 실패한 스펙은 건너뜀
     return null;
   }
 }

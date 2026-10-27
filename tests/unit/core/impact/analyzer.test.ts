@@ -358,6 +358,107 @@ depends: core
   });
 });
 
+describe('의존성 그래프 정확성 (도메인 레이아웃)', () => {
+  let tempDir: string;
+  let specsDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-impact-graph-'));
+    specsDir = path.join(tempDir, 'specs');
+    await fs.mkdir(specsDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  async function writeSpec(id: string, depends: string[]): Promise<void> {
+    const dir = path.join(specsDir, id);
+    await fs.mkdir(dir, { recursive: true });
+    const dependsYaml = depends.length > 0 ? `\n  - ${depends.join('\n  - ')}` : ' null';
+    await fs.writeFile(
+      path.join(dir, 'spec.md'),
+      `---\nstatus: draft\ndepends:${dependsYaml}\n---\n\n# ${id}\n`
+    );
+  }
+
+  it('실제 순환 1개만 보고하고 이미 탐색된 노드로 인한 거짓 순환은 만들지 않는다', async () => {
+    await writeSpec('core/a', ['b']);
+    await writeSpec('core/b', ['a']);
+    await writeSpec('core/c', ['b']);
+
+    const result = await generateImpactReport(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.circularDependencies).toHaveLength(1);
+      expect(result.data.circularDependencies[0].cycle).toEqual(['core/a', 'core/b', 'core/a']);
+    }
+  });
+
+  it('해석되지 않는 의존성은 순환으로 보고하지 않는다', async () => {
+    await writeSpec('core/a', ['missing']);
+    await writeSpec('core/b', ['missing']);
+
+    const result = await generateImpactReport(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.circularDependencies).toHaveLength(0);
+      expect(result.data.totalEdges).toBe(0);
+    }
+  });
+
+  it('간접 영향은 최단 거리로 한 번만 집계하고 직접 의존은 제외한다', async () => {
+    // a, b, d -> t (direct); c -> a, b; d -> c
+    await writeSpec('core/t', []);
+    await writeSpec('core/a', ['t']);
+    await writeSpec('core/b', ['t']);
+    await writeSpec('core/c', ['a', 'b']);
+    await writeSpec('core/d', ['c', 't']);
+
+    const result = await analyzeImpact(tempDir, 't');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.targetSpec).toBe('core/t');
+      expect(result.data.affectedBy.map((s) => s.id).sort()).toEqual(['core/a', 'core/b', 'core/d']);
+      expect(result.data.transitiveAffected.map((s) => s.id)).toEqual(['core/c']);
+      expect(result.data.transitiveAffected[0].reason).toBe('1단계 간접 의존');
+    }
+  });
+
+  it('대상 스펙의 해석되지 않는 의존성을 결과와 텍스트 경고에 포함한다', async () => {
+    await writeSpec('core/t', []);
+    await writeSpec('core/a', ['t', 'ghost']);
+
+    const result = await analyzeImpact(tempDir, 'a');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dependsOn.map((s) => s.id)).toEqual(['core/t']);
+      expect(result.data.danglingDependencies).toEqual(['ghost']);
+
+      const text = formatImpactResult(result.data);
+      expect(text).toContain('해석되지 않는 의존성');
+      expect(text).toContain('ghost');
+    }
+  });
+
+  it('여러 도메인에 같은 feature가 있으면 모호성 에러를 반환한다', async () => {
+    await writeSpec('auth/core', []);
+    await writeSpec('billing/core', []);
+
+    const result = await analyzeImpact(tempDir, 'core');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('auth/core');
+      expect(result.error.message).toContain('billing/core');
+    }
+  });
+});
+
 describe('analyzeChangeImpact', () => {
   let tempDir: string;
   let specsDir: string;

@@ -25,6 +25,7 @@ import {
   type CodeImpactResult,
 } from '../../core/impact/index.js';
 import { findSddRoot } from '../../utils/fs.js';
+import { listSpecsUnder, resolveSpecIn } from '../../core/spec/locator.js';
 import { isSafePathSegment } from '../../utils/path.js';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
@@ -96,23 +97,40 @@ export async function executeGraphAnalysis(
   specsPath: string,
   feature?: string,
   asJson = false
-): Promise<Result<{ mermaid: string; nodes?: unknown[]; edges?: unknown[] }, Error>> {
+): Promise<Result<{
+  mermaid: string;
+  nodes?: unknown[];
+  edges?: unknown[];
+  dangling: Array<{ from: string; to: string }>;
+}, Error>> {
+  // 강조할 스펙 참조를 canonical id로 해석
+  let highlight: string | undefined;
+  if (feature) {
+    const resolved = resolveSpecIn(await listSpecsUnder(specsPath), feature);
+    if (!resolved.success) {
+      return failure(resolved.error);
+    }
+    highlight = resolved.data.id;
+  }
+
   const graphResult = await buildDependencyGraph(specsPath);
   if (!graphResult.success) {
     return failure(graphResult.error);
   }
 
-  const mermaid = generateMermaidGraph(graphResult.data, feature);
+  const mermaid = generateMermaidGraph(graphResult.data, highlight);
+  const dangling = graphResult.data.dangling ?? [];
 
   if (asJson) {
     return success({
       mermaid,
       nodes: Array.from(graphResult.data.nodes.values()),
       edges: graphResult.data.edges,
+      dangling,
     });
   }
 
-  return success({ mermaid });
+  return success({ mermaid, dangling });
 }
 
 /**
@@ -324,6 +342,7 @@ async function runImpact(
         content: graphResult.data.mermaid,
         nodes: graphResult.data.nodes,
         edges: graphResult.data.edges,
+        dangling: graphResult.data.dangling,
       }, null, 2));
     } else {
       logger.info('의존성 그래프 (Mermaid):');
@@ -331,6 +350,13 @@ async function runImpact(
       console.log('```mermaid');
       console.log(graphResult.data.mermaid);
       console.log('```');
+      if (graphResult.data.dangling.length > 0) {
+        logger.newline();
+        logger.warn('해석되지 않는 의존성 (존재하지 않는 스펙):');
+        for (const d of graphResult.data.dangling) {
+          logger.listItem(`${d.from} → ${d.to}`, 1);
+        }
+      }
     }
     return;
   }

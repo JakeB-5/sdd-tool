@@ -29,8 +29,9 @@ describe('buildDependencyGraph', () => {
   });
 
   it('스펙 파일에서 노드를 생성한다', async () => {
+    await fs.mkdir(path.join(tempDir, 'auth'));
     await fs.writeFile(
-      path.join(tempDir, 'auth.md'),
+      path.join(tempDir, 'auth', 'spec.md'),
       `---
 status: draft
 created: 2025-12-21
@@ -98,20 +99,18 @@ depends: null
     }
   });
 
-  it('배열 형식의 의존성을 처리한다', async () => {
+  async function writeSpec(relDir: string, frontmatter: string, title: string): Promise<void> {
+    await fs.mkdir(path.join(tempDir, relDir), { recursive: true });
     await fs.writeFile(
-      path.join(tempDir, 'payment.md'),
-      `---
-status: draft
-created: 2025-12-21
-depends:
-  - auth
-  - database
----
-
-# 결제 기능
-`
+      path.join(tempDir, relDir, 'spec.md'),
+      `---\nstatus: draft\n${frontmatter}\n---\n\n# ${title}\n`
     );
+  }
+
+  it('배열 형식의 의존성을 처리한다', async () => {
+    await writeSpec('payment', 'depends:\n  - auth\n  - database', '결제 기능');
+    await writeSpec('auth', 'depends: null', '인증');
+    await writeSpec('database', 'depends: null', '데이터베이스');
 
     const result = await buildDependencyGraph(tempDir);
 
@@ -120,6 +119,62 @@ depends:
       const paymentNode = result.data.nodes.get('payment');
       expect(paymentNode?.dependsOn).toContain('auth');
       expect(paymentNode?.dependsOn).toContain('database');
+    }
+  });
+
+  it('spec.md만 노드로 만들고 plan/tasks/checklist는 제외한다', async () => {
+    await writeSpec('auth/login', 'depends: null', '로그인');
+    for (const name of ['plan.md', 'tasks.md', 'checklist.md', 'prepare.md']) {
+      await fs.writeFile(path.join(tempDir, 'auth', 'login', name), `# ${name}`);
+    }
+
+    const result = await buildDependencyGraph(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(Array.from(result.data.nodes.keys())).toEqual(['auth/login']);
+    }
+  });
+
+  it('도메인 레이아웃에서 bare depends를 canonical id로 해석하고 역방향 엣지를 만든다', async () => {
+    await writeSpec('auth/login', 'depends: null', '로그인');
+    await writeSpec('common/signup', 'depends: login', '회원가입');
+
+    const result = await buildDependencyGraph(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.nodes.get('common/signup')?.dependsOn).toEqual(['auth/login']);
+      expect(result.data.nodes.get('auth/login')?.dependedBy).toEqual(['common/signup']);
+      expect(result.data.edges).toEqual([
+        expect.objectContaining({ from: 'common/signup', to: 'auth/login', type: 'explicit' }),
+      ]);
+    }
+  });
+
+  it('같은 도메인의 feature를 우선 해석한다', async () => {
+    await writeSpec('auth/core', 'depends: null', 'auth core');
+    await writeSpec('billing/core', 'depends: null', 'billing core');
+    await writeSpec('auth/login', 'depends: core', '로그인');
+
+    const result = await buildDependencyGraph(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.nodes.get('auth/login')?.dependsOn).toEqual(['auth/core']);
+    }
+  });
+
+  it('해석되지 않는 의존성은 dangling으로 기록하고 엣지로 만들지 않는다', async () => {
+    await writeSpec('payment', 'depends:\n  - missing', '결제');
+
+    const result = await buildDependencyGraph(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.nodes.get('payment')?.dependsOn).toEqual([]);
+      expect(result.data.edges).toHaveLength(0);
+      expect(result.data.dangling).toEqual([{ from: 'payment', to: 'missing' }]);
     }
   });
 });

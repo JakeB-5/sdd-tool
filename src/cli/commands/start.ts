@@ -5,10 +5,10 @@
  */
 import { Command } from 'commander';
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
-import { findSddRoot, fileExists, readFile, directoryExists } from '../../utils/fs.js';
+import { findSddRoot, fileExists, readFile } from '../../utils/fs.js';
+import { listSpecs } from '../../core/spec/locator.js';
 import { parseConstitution } from '../../core/constitution/index.js';
 import { listPendingChanges } from '../../core/change/index.js';
 
@@ -120,7 +120,6 @@ async function getProjectStatus(): Promise<ProjectStatus> {
   }
 
   const sddPath = path.join(projectRoot, '.sdd');
-  const specsPath = path.join(sddPath, 'specs');
 
   // Constitution 확인
   let hasConstitution = false;
@@ -138,21 +137,8 @@ async function getProjectStatus(): Promise<ProjectStatus> {
     }
   }
 
-  // Spec 목록 조회
-  const specs: string[] = [];
-  if (await directoryExists(specsPath)) {
-    try {
-      const dirs = await fs.readdir(specsPath);
-      for (const dir of dirs) {
-        const specPath = path.join(specsPath, dir, 'spec.md');
-        if (await fileExists(specPath)) {
-          specs.push(dir);
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }
+  // Spec 목록 조회 (도메인/평면 레이아웃 모두)
+  const specs = (await listSpecs(sddPath)).map((s) => s.id);
 
   // 진행 중인 변경 조회
   let pendingChanges = 0;

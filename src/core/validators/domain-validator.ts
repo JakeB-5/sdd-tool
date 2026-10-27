@@ -60,6 +60,8 @@ export interface DomainValidationOptions {
   warnEmptyDomains?: boolean;
   /** 고아 스펙 감지 (도메인에 속하지 않은 스펙) */
   detectOrphanSpecs?: boolean;
+  /** 고아 스펙 감지에서 제외할 스펙 ID (예: 암묵적 common 버킷) */
+  orphanExemptSpecs?: string[];
 }
 
 const DEFAULT_OPTIONS: DomainValidationOptions = {
@@ -156,8 +158,9 @@ export function validateDomains(
 
     // 5. 고아 스펙 감지
     if (opts.detectOrphanSpecs) {
+      const exempt = new Set(opts.orphanExemptSpecs ?? []);
       for (const specId of opts.existingSpecs) {
-        if (!assignedSpecs.has(specId)) {
+        if (!assignedSpecs.has(specId) && !exempt.has(specId)) {
           issues.push({
             code: 'ORPHAN_SPEC',
             severity: 'warning',

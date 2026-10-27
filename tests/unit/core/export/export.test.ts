@@ -173,7 +173,7 @@ title: "프로필"
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('내보낼 스펙이 없습니다');
+    expect(result.error).toContain('스펙을 찾을 수 없습니다: nonexistent');
   });
 
   it('기본 출력 경로를 사용한다', async () => {

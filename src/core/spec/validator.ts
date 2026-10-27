@@ -4,8 +4,9 @@
 import path from 'node:path';
 import { parseSpec } from './parser.js';
 import { readFile, directoryExists, fileExists } from '../../utils/fs.js';
+import { listSpecsUnder, resolveSpecRef, type SpecLocation } from './locator.js';
 import { ValidationError, ErrorCode } from '../../errors/index.js';
-import { Result, success, failure, type SpecValidationError, type SpecValidationWarning } from '../../types/index.js';
+import { Result, success, type SpecValidationError, type SpecValidationWarning } from '../../types/index.js';
 import {
   parseConstitution,
   checkConstitutionViolations,
@@ -236,6 +237,7 @@ async function validateLinks(
   const brokenLinks: BrokenLink[] = [];
   const lines = content.split('\n');
   const fileDir = path.dirname(filePath);
+  let allSpecs: SpecLocation[] | undefined;
 
   // 마크다운 링크 패턴: [text](url)
   const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
@@ -283,10 +285,11 @@ async function validateLinks(
         continue;
       }
 
-      // 스펙 디렉토리 확인
-      const specPath = path.join(specsRoot, specId);
-      const specFilePath = path.join(specPath, 'spec.md');
-      if (!(await directoryExists(specPath)) && !(await fileExists(specFilePath))) {
+      // 스펙 위치 확인 (도메인/평면 레이아웃 모두, 도메인 이름 참조도 허용)
+      allSpecs ??= await listSpecsUnder(specsRoot);
+      const fromDomain = findOwnDomain(allSpecs, filePath);
+      const isDomainRef = allSpecs.some((s) => s.domain === specId);
+      if (!isDomainRef && !resolveSpecRef(allSpecs, specId, fromDomain)) {
         brokenLinks.push({
           text: specId,
           target: specId,
@@ -323,10 +326,10 @@ export async function validateDependencies(
 
   // dependencies 필드 검증
   if (spec.metadata.dependencies && Array.isArray(spec.metadata.dependencies)) {
+    const allSpecs = await listSpecsUnder(specsRoot);
+    const fromDomain = findOwnDomain(allSpecs, filePath);
     for (const dep of spec.metadata.dependencies) {
-      const depPath = path.join(specsRoot, dep);
-      const depFilePath = path.join(depPath, 'spec.md');
-      if (!(await directoryExists(depPath)) && !(await fileExists(depFilePath))) {
+      if (!resolveSpecRef(allSpecs, dep, fromDomain)) {
         brokenLinks.push({
           text: dep,
           target: dep,
@@ -353,13 +356,8 @@ export async function validateSpecs(
 
   // 디렉토리인지 파일인지 확인
   if (await directoryExists(targetPath)) {
-    // 디렉토리 내 모든 .md 파일 찾기
-    const filesResult = await findSpecFiles(targetPath);
-    if (!filesResult.success) {
-      return failure(new ValidationError(ErrorCode.DIRECTORY_NOT_FOUND, targetPath));
-    }
-
-    for (const file of filesResult.data) {
+    // 디렉토리 내 spec.md 파일만 검증 (plan/tasks/prepare 등 보조 문서 제외)
+    for (const file of await findSpecFiles(targetPath)) {
       const result = await validateSpecFile(file, options);
       results.push(result);
 
@@ -392,41 +390,36 @@ export async function validateSpecs(
 }
 
 /**
- * 디렉토리 내 스펙 파일 재귀 검색
+ * 디렉토리 내 검증 대상 spec.md 파일 목록 (spec locator 기반)
+ *
+ * - 스펙 디렉토리 자체: 해당 spec.md (+ 하위에 중첩된 스펙)
+ * - 프로젝트 루트 또는 .sdd: .sdd/specs 아래 모든 스펙
+ * - 그 외(.sdd/specs, 도메인 디렉토리 등): 해당 디렉토리를 스펙 루트로 보고 탐색
  */
-async function findSpecFiles(dirPath: string): Promise<Result<string[], ValidationError>> {
-  const files: string[] = [];
+async function findSpecFiles(dirPath: string): Promise<string[]> {
+  const resolved = path.resolve(dirPath);
 
-  async function scanDir(dir: string): Promise<void> {
-    const { promises: fs } = await import('node:fs');
-
-    try {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = path.join(dir, entry.name);
-
-        if (entry.isDirectory()) {
-          await scanDir(fullPath);
-        } else if (entry.isFile() && entry.name.endsWith('.md')) {
-          // 보조 파일 및 시스템 파일 제외 (spec.md만 검증)
-          const excludeFiles = [
-            'index.md',
-            'readme.md',
-            'plan.md',
-            'tasks.md',
-            'checklist.md',
-          ];
-          if (!excludeFiles.includes(entry.name.toLowerCase())) {
-            files.push(fullPath);
-          }
-        }
-      }
-    } catch {
-      // 디렉토리 읽기 실패 시 무시
-    }
+  const ownSpec = path.join(resolved, 'spec.md');
+  if (await fileExists(ownSpec)) {
+    const nested = await listSpecsUnder(resolved);
+    return [ownSpec, ...nested.map((l) => l.specPath)];
   }
 
-  await scanDir(dirPath);
-  return success(files);
+  let specsDir = resolved;
+  if (path.basename(resolved) === '.sdd') {
+    specsDir = path.join(resolved, 'specs');
+  } else if (await directoryExists(path.join(resolved, '.sdd'))) {
+    specsDir = path.join(resolved, '.sdd', 'specs');
+  }
+
+  const locations = await listSpecsUnder(specsDir);
+  return locations.map((l) => l.specPath);
+}
+
+/**
+ * 파일이 속한 스펙의 도메인 (의존성 해석 시 같은 도메인 우선)
+ */
+function findOwnDomain(all: SpecLocation[], filePath: string): string | null | undefined {
+  const resolved = path.resolve(filePath);
+  return all.find((s) => s.specPath === resolved)?.domain;
 }

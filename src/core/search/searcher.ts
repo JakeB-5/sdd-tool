@@ -6,6 +6,7 @@ import { promises as fs } from 'node:fs';
 import { Result, success, failure } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { directoryExists } from '../../utils/fs.js';
+import { listSpecs } from '../spec/locator.js';
 import {
   SearchOptions,
   SearchResult,
@@ -31,7 +32,7 @@ export async function searchSpecs(
     }
 
     // 스펙 인덱스 구축
-    const indexResult = await buildSearchIndex(specsPath);
+    const indexResult = await buildSearchIndex(sddPath);
     if (!indexResult.success) {
       return failure(indexResult.error);
     }
@@ -80,11 +81,11 @@ export async function searchSpecs(
  * 검색 인덱스 구축
  */
 async function buildSearchIndex(
-  specsPath: string
+  sddPath: string
 ): Promise<Result<SearchIndexItem[], ChangeError>> {
   try {
     const index: SearchIndexItem[] = [];
-    await collectSpecs(specsPath, specsPath, index);
+    await collectSpecs(sddPath, index);
     return success(index);
   } catch (error) {
     return failure(
@@ -96,44 +97,33 @@ async function buildSearchIndex(
 }
 
 /**
- * 스펙 파일 재귀 수집
+ * 스펙 파일 수집 (spec locator 기반, 도메인/평면 레이아웃 모두)
  */
 async function collectSpecs(
-  basePath: string,
-  currentPath: string,
+  sddPath: string,
   index: SearchIndexItem[]
 ): Promise<void> {
-  const entries = await fs.readdir(currentPath, { withFileTypes: true });
+  const specsPath = path.join(sddPath, 'specs');
 
-  for (const entry of entries) {
-    const fullPath = path.join(currentPath, entry.name);
+  for (const location of await listSpecs(sddPath)) {
+    const fullPath = location.specPath;
+    const content = await fs.readFile(fullPath, 'utf-8');
+    const metadata = parseMetadata(content);
+    const stat = await fs.stat(fullPath);
 
-    if (entry.isDirectory()) {
-      // 하위 디렉토리 탐색
-      await collectSpecs(basePath, fullPath, index);
-    } else if (entry.name === 'spec.md') {
-      // spec.md 파일 처리
-      const content = await fs.readFile(fullPath, 'utf-8');
-      const relativePath = path.relative(basePath, fullPath);
-      const specId = path.dirname(relativePath);
-
-      const metadata = parseMetadata(content);
-      const stat = await fs.stat(fullPath);
-
-      index.push({
-        id: specId === '.' ? entry.name : specId,
-        path: relativePath,
-        title: String(metadata.title || specId),
-        content,
-        status: String(metadata.status || 'unknown'),
-        phase: String(metadata.phase || 'unknown'),
-        author: String(metadata.author || ''),
-        created: String(metadata.created || ''),
-        updated: String(metadata.updated || stat.mtime.toISOString().split('T')[0]),
-        depends: parseDependencies(metadata.depends),
-        tags: parseTags(metadata.tags),
-      });
-    }
+    index.push({
+      id: location.id,
+      path: path.relative(specsPath, fullPath),
+      title: String(metadata.title || location.id),
+      content,
+      status: String(metadata.status || 'unknown'),
+      phase: String(metadata.phase || 'unknown'),
+      author: String(metadata.author || ''),
+      created: String(metadata.created || ''),
+      updated: String(metadata.updated || stat.mtime.toISOString().split('T')[0]),
+      depends: parseDependencies(metadata.depends),
+      tags: parseTags(metadata.tags),
+    });
   }
 }
 

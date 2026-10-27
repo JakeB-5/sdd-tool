@@ -147,18 +147,57 @@ REQ-001은 중요하다.
   });
 
   describe('listSpecs', () => {
-    it('스펙 디렉토리 목록을 반환한다', async () => {
-      await fs.mkdir(path.join(specsDir, 'spec1'));
-      await fs.mkdir(path.join(specsDir, 'spec2'));
-      await fs.mkdir(path.join(specsDir, 'spec3'));
+    it('spec.md가 있는 스펙 디렉토리 목록을 반환한다', async () => {
+      for (const name of ['spec1', 'spec2', 'spec3']) {
+        await fs.mkdir(path.join(specsDir, name));
+        await fs.writeFile(path.join(specsDir, name, 'spec.md'), '# spec');
+      }
+      // spec.md가 없는 디렉토리는 스펙이 아님
+      await fs.mkdir(path.join(specsDir, 'empty'));
 
       const parser = new SpecParser(tempDir);
       const specs = await parser.listSpecs();
 
-      expect(specs).toHaveLength(3);
-      expect(specs).toContain('spec1');
-      expect(specs).toContain('spec2');
-      expect(specs).toContain('spec3');
+      expect(specs).toEqual(['spec1', 'spec2', 'spec3']);
+    });
+
+    it('도메인 레이아웃은 canonical id(<domain>/<feature>)로 반환한다', async () => {
+      await fs.mkdir(path.join(specsDir, 'auth', 'login'), { recursive: true });
+      await fs.writeFile(path.join(specsDir, 'auth', 'login', 'spec.md'), '# login');
+      await fs.mkdir(path.join(specsDir, 'legacy'));
+      await fs.writeFile(path.join(specsDir, 'legacy', 'spec.md'), '# legacy');
+
+      const parser = new SpecParser(tempDir);
+      expect(await parser.listSpecs()).toEqual(['auth/login', 'legacy']);
+    });
+  });
+
+  describe('도메인 레이아웃', () => {
+    beforeEach(async () => {
+      await fs.mkdir(path.join(specsDir, 'auth', 'login'), { recursive: true });
+      await fs.writeFile(
+        path.join(specsDir, 'auth', 'login', 'spec.md'),
+        `### REQ-001: 로그인
+시스템은 로그인을 지원해야 한다(SHALL).
+`
+      );
+      // plan.md의 REQ는 요구사항으로 집계하지 않음
+      await fs.writeFile(path.join(specsDir, 'auth', 'login', 'plan.md'), '### REQ-999: plan');
+    });
+
+    it('parseAllSpecs가 중첩 스펙의 요구사항을 canonical id로 추출한다', async () => {
+      const parser = new SpecParser(tempDir);
+      const requirements = await parser.parseAllSpecs();
+
+      expect(requirements).toHaveLength(1);
+      expect(requirements[0]).toMatchObject({ id: 'REQ-001', specId: 'auth/login' });
+    });
+
+    it('parseSpec이 bare feature와 canonical id를 모두 해석한다', async () => {
+      const parser = new SpecParser(tempDir);
+
+      expect((await parser.parseSpec('login'))[0]?.specId).toBe('auth/login');
+      expect((await parser.parseSpec('auth/login'))[0]?.specId).toBe('auth/login');
     });
   });
 });

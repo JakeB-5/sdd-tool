@@ -15,7 +15,8 @@ import {
 import { buildDependencyGraph, generateMermaidGraph } from './graph.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
-import { directoryExists, fileExists, readFile, findSpecPath } from '../../utils/fs.js';
+import { directoryExists, fileExists, readFile } from '../../utils/fs.js';
+import { listSpecs, resolveSpec, resolveSpecRef } from '../spec/locator.js';
 import { parseProposal, isValidChangeId } from '../change/index.js';
 
 /**
@@ -39,22 +40,14 @@ export async function analyzeImpact(
     }
 
     const graph = graphResult.data;
-    let targetNode = graph.nodes.get(targetSpec);
-    let effectiveTargetSpec = targetSpec;
 
-    // 직접 찾지 못하면 도메인 기반 경로로 재시도
-    if (!targetNode) {
-      // findSpecPath로 실제 경로 찾기
-      const specDir = await findSpecPath(sddPath, targetSpec);
-      if (specDir) {
-        // specs/ 이후의 경로를 ID로 사용
-        const relPath = path.relative(specsPath, specDir).replace(/\\/g, '/');
-        targetNode = graph.nodes.get(relPath);
-        if (targetNode) {
-          effectiveTargetSpec = relPath;
-        }
-      }
+    // 스펙 참조 해석 (<domain>/<feature>, bare feature, 레거시 id)
+    const resolved = await resolveSpec(sddPath, targetSpec);
+    if (!resolved.success) {
+      return failure(new ChangeError(resolved.error.message));
     }
+    const effectiveTargetSpec = resolved.data.id;
+    const targetNode = graph.nodes.get(effectiveTargetSpec);
 
     if (!targetNode) {
       return failure(new ChangeError(`스펙을 찾을 수 없습니다: ${targetSpec}`));
@@ -90,7 +83,7 @@ export async function analyzeImpact(
     });
 
     // 간접 영향 분석 (transitive)
-    const transitiveAffected = getTransitiveAffected(graph, effectiveTargetSpec, new Set([effectiveTargetSpec]));
+    const transitiveAffected = getTransitiveAffected(graph, effectiveTargetSpec);
 
     // 리스크 점수 계산
     const riskScore = calculateRiskScore(dependsOn, affectedBy, transitiveAffected);
@@ -109,11 +102,14 @@ export async function analyzeImpact(
       riskLevel,
       summary,
       recommendations,
+      danglingDependencies: (graph.dangling ?? [])
+        .filter((d) => d.from === effectiveTargetSpec)
+        .map((d) => d.to),
     });
   } catch (error) {
     return failure(
       new ChangeError(
-        `영향도 분석 실패: ${error instanceof Error ? error.message : String(error)}`
+        `영향도 분석 실패:${error instanceof Error ? error.message : String(error)}`
       )
     );
   }
@@ -134,40 +130,45 @@ function determineImpactLevel(type?: string): ImpactLevel {
   }
 }
 
+/** Maximum BFS distance explored for transitive impact */
+const MAX_TRANSITIVE_DISTANCE = 6;
+
 /**
- * 간접 영향 받는 스펙 조회 (재귀)
+ * 간접 영향 받는 스펙 조회 (BFS)
+ *
+ * 각 스펙은 최단 거리에서 한 번만 집계되며, 직접 의존(거리 1)은 제외한다.
  */
-function getTransitiveAffected(
-  graph: DependencyGraph,
-  specId: string,
-  visited: Set<string>,
-  depth: number = 0
-): AffectedSpec[] {
+function getTransitiveAffected(graph: DependencyGraph, specId: string): AffectedSpec[] {
   const result: AffectedSpec[] = [];
-  const node = graph.nodes.get(specId);
+  const distance = new Map<string, number>([[specId, 0]]);
+  const queue: string[] = [specId];
 
-  if (!node || depth > 5) return result; // 최대 5단계까지
+  while (queue.length > 0) {
+    const currentId = queue.shift() as string;
+    const currentDistance = distance.get(currentId) ?? 0;
+    const node = graph.nodes.get(currentId);
+    if (!node || currentDistance >= MAX_TRANSITIVE_DISTANCE) continue;
 
-  for (const depId of node.dependedBy) {
-    if (visited.has(depId)) continue;
-    visited.add(depId);
+    for (const depId of node.dependedBy) {
+      if (distance.has(depId)) continue;
+      const depDistance = currentDistance + 1;
+      distance.set(depId, depDistance);
+      queue.push(depId);
 
-    // 직접 의존이 아닌 경우만 추가 (depth > 0)
-    if (depth > 0) {
-      const depNode = graph.nodes.get(depId);
-      const edge = graph.edges.find((e) => e.from === depId && e.to === specId);
-      result.push({
-        id: depId,
-        path: depNode?.path || depId,
-        title: depNode?.title,
-        level: depth === 1 ? 'medium' : 'low',
-        type: edge?.type || 'reference',
-        reason: `${depth}단계 간접 의존`,
-      });
+      if (depDistance >= 2) {
+        const depNode = graph.nodes.get(depId);
+        const edge = graph.edges.find((e) => e.from === depId && e.to === currentId);
+        const indirectDepth = depDistance - 1;
+        result.push({
+          id: depId,
+          path: depNode?.path || depId,
+          title: depNode?.title,
+          level: indirectDepth === 1 ? 'medium' : 'low',
+          type: edge?.type || 'reference',
+          reason: `${indirectDepth}단계 간접 의존`,
+        });
+      }
     }
-
-    // 재귀 탐색
-    result.push(...getTransitiveAffected(graph, depId, visited, depth + 1));
   }
 
   return result;
@@ -320,6 +321,15 @@ export function formatImpactResult(result: ImpactAnalysisResult): string {
     lines.push('');
   }
 
+  const dangling = result.danglingDependencies ?? [];
+  if (dangling.length > 0) {
+    lines.push('⚠️  해석되지 않는 의존성 (존재하지 않는 스펙):');
+    for (const dep of dangling) {
+      lines.push(`  └─ ${dep}`);
+    }
+    lines.push('');
+  }
+
   const riskIcon = result.riskLevel === 'high' ? '🔴' : result.riskLevel === 'medium' ? '🟡' : '🟢';
   lines.push(`📈 리스크 점수: ${result.riskScore}/10 ${riskIcon}`);
   lines.push('');
@@ -412,18 +422,20 @@ function detectCircularDependencies(
   const visited = new Set<string>();
   const recStack = new Set<string>();
 
-  function dfs(nodeId: string, path: string[]): boolean {
+  function dfs(nodeId: string, path: string[]): void {
     visited.add(nodeId);
-    recStack.add(nodeId);
 
     const node = graph.nodes.get(nodeId);
-    if (!node) return false;
+    if (!node) return;
+
+    recStack.add(nodeId);
 
     for (const depId of node.dependsOn) {
+      // Unresolved ids are never part of a cycle
+      if (!graph.nodes.has(depId)) continue;
+
       if (!visited.has(depId)) {
-        if (dfs(depId, [...path, nodeId])) {
-          return true;
-        }
+        dfs(depId, [...path, nodeId]);
       } else if (recStack.has(depId)) {
         // 순환 발견
         const cycleStart = path.indexOf(depId);
@@ -432,12 +444,11 @@ function detectCircularDependencies(
           cycle,
           description: `순환 의존성: ${cycle.join(' → ')}`,
         });
-        return true;
       }
     }
 
+    // Always unwind, so later traversals do not see stale stack entries
     recStack.delete(nodeId);
-    return false;
   }
 
   for (const nodeId of graph.nodes.keys()) {
@@ -549,9 +560,12 @@ export async function analyzeChangeImpact(
     const allAffected: AffectedSpec[] = [];
     const allTransitive: AffectedSpec[] = [];
 
+    const allSpecs = await listSpecs(sddPath);
+
     // 각 영향 받는 스펙에 대해 분석
     for (const specPath of proposal.affectedSpecs) {
-      const specId = specPath.replace(/^specs\//, '').replace(/\/spec\.md$/, '');
+      const specRef = specPath.replace(/^specs\//, '').replace(/\/spec\.md$/, '');
+      const specId = resolveSpecRef(allSpecs, specRef)?.id ?? specRef;
       const node = graph.nodes.get(specId);
 
       if (node) {
@@ -571,7 +585,7 @@ export async function analyzeChangeImpact(
         }
 
         // 간접 영향
-        const transitive = getTransitiveAffected(graph, specId, new Set([specId]));
+        const transitive = getTransitiveAffected(graph, specId);
         for (const t of transitive) {
           if (!allTransitive.some((a) => a.id === t.id)) {
             allTransitive.push(t);
