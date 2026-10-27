@@ -331,8 +331,8 @@ async function runNewToChange(
   logger.listItem(`3. sdd change validate ${changeId}`);
   logger.listItem(`4. sdd change apply ${changeId}`);
   logger.newline();
-  logger.info('또는 슬래시 커맨드 사용:');
-  logger.listItem('/sdd.change - 변경 내용 작성 도움');
+  logger.info('또는 Claude Code 스킬 사용:');
+  logger.listItem('/sdd-spec - 변경 내용 작성 도움');
 }
 
 /**
@@ -380,8 +380,8 @@ async function runChangeToNew(
   logger.listItem(`3. sdd new tasks common/${featureName}`);
   logger.listItem(`4. 구현 진행`);
   logger.newline();
-  logger.info('또는 슬래시 커맨드 사용:');
-  logger.listItem('/sdd.new - 명세 작성 도움');
+  logger.info('또는 Claude Code 스킬 사용:');
+  logger.listItem('/sdd-spec - 명세 작성 도움');
 }
 
 /**

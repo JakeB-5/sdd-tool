@@ -6,7 +6,9 @@ import { SPEC_STATUSES } from '../../../core/spec/status.js';
 
 export const sddSearchSkill: SkillDefinition = {
   name: 'sdd-search',
-  description: 'Search across spec files by keyword, metadata, domain, or status',
+  description:
+    'Search specs by keyword or regex and filter by status, phase, author, tags, dates, or dependencies with `sdd search`. Use when the user is looking for a spec, requirement, or scenario.',
+  argumentHint: '[query] [--status <status>] [--tags <tags>]',
   allowedTools: ['Read', 'Glob', 'Grep', 'Bash(sdd search*)'],
   context: 'fork',
   content: `# SDD Search

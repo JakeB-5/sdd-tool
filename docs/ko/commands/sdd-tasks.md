@@ -1,11 +1,11 @@
-# /sdd.tasks
+# /sdd-tasks
 
 작업을 실행 가능한 단위로 분해합니다.
 
 ## 사용법
 
 ```
-/sdd.tasks [feature-id]
+/sdd-tasks [feature-id]
 ```
 
 ## 인수
@@ -38,7 +38,7 @@ AI가 구현 계획을 작업 단위로 분해합니다:
 ## 예시
 
 ```
-/sdd.tasks user-auth
+/sdd-tasks user-auth
 
 AI: user-auth 계획을 작업 단위로 분해합니다.
 ```
@@ -92,6 +92,6 @@ completed: 0
 작업 분해 후:
 
 ```
-/sdd.prepare    → 도구 점검
-/sdd.implement  → 구현 시작
+/sdd-prepare    → 도구 점검
+/sdd-implement  → 구현 시작
 ```

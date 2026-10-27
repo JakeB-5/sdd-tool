@@ -1,11 +1,11 @@
-# /sdd.constitution
+# /sdd-constitution
 
 Define the core principles (Constitution) for your project.
 
 ## Usage
 
 ```
-/sdd.constitution [project description]
+/sdd-constitution [project description]
 ```
 
 ## Arguments
@@ -46,7 +46,7 @@ The AI writes project principles through conversation:
 ## Example
 
 ```
-/sdd.constitution React-based todo management app
+/sdd-constitution React-based todo management app
 
 AI: I'll write the Constitution for your todo management app.
     I have a few questions:

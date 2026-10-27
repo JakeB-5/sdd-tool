@@ -5,9 +5,10 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddExportSkill: SkillDefinition = {
   name: 'sdd-export',
-  description: 'Export specs to HTML, JSON, or consolidated Markdown with theme support',
+  description:
+    'Export one or all specs to styled HTML, JSON, or a consolidated Markdown file with `sdd export`. Use when the user wants to share, publish, or hand off specs outside the repository.',
+  argumentHint: '[specId] [--all] [--format html|json|markdown] [-o <path>]',
   allowedTools: ['Read', 'Write', 'Glob', 'Bash(sdd export*)'],
-  context: 'inline',
   content: `# SDD Export
 
 ## Overview

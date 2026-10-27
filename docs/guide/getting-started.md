@@ -45,8 +45,8 @@ sdd init
 
 This command:
 - Creates `.sdd/` directory structure
-- Generates `.claude/commands/` with 32 slash commands
-- Generates `.claude/skills/` with 32 English Skills 2.0 (`sdd-*`) plus 6 dev-* development skills
+- Generates `.claude/skills/` with 30 English skills (`sdd-*`), invoked as `/sdd-*` slash commands
+- Ensures a root `CLAUDE.md` imports the agent guide (`@.sdd/AGENTS.md`)
 - Optionally sets up Git workflow and CI/CD
 
 ### Step 2: Configure Optional Features
@@ -68,9 +68,9 @@ sdd init --auto-approve
 sdd init --no-skills
 ```
 
-**Skip slash commands generation:**
+**Also write legacy slash commands (`.claude/commands/sdd.*.md`):**
 ```bash
-sdd init --no-commands
+sdd init --legacy-commands
 ```
 
 ### Step 3: Project Structure Created
@@ -87,15 +87,16 @@ your-project/
 │   ├── changes/             # Change proposals
 │   └── archive/             # Completed changes
 │
+├── CLAUDE.md                # Imports @.sdd/AGENTS.md
+│
 └── .claude/
-    ├── commands/            # Slash commands
     ├── agents/              # Sub-agents
-    └── skills/              # Skills
+    └── skills/              # Skills (sdd-*)
 ```
 
 ## Creating Your First Specification
 
-### Option 1: Using Slash Commands (Recommended)
+### Option 1: Using Skills (Recommended)
 
 Start Claude Code:
 
@@ -106,7 +107,7 @@ claude
 Begin your workflow:
 
 ```
-/sdd.start
+/sdd-start
 ```
 
 AI will analyze your project and guide you through the workflow.
@@ -302,7 +303,7 @@ Search options:
 ### Short Term (This Week)
 1. Run `sdd init` to initialize your project
 2. Write your project `constitution.md`
-3. Create first spec using `/sdd.spec` or `sdd new`
+3. Create first spec using `/sdd-spec` or `sdd new`
 4. Validate specs with `sdd validate`
 
 ### Medium Term (This Month)
@@ -323,30 +324,30 @@ Search options:
 
 ```bash
 sdd init
-/sdd.constitution [Your project description]
-/sdd.spec [Feature name]
-/sdd.plan
-/sdd.tasks
-/sdd.implement
+/sdd-constitution [Your project description]
+/sdd-spec [Feature name]
+/sdd-plan
+/sdd-tasks
+/sdd-implement
 ```
 
 ### Adding Features to Existing Project
 
 ```bash
-/sdd.spec [New feature name]
-/sdd.plan
-/sdd.tasks
-/sdd.implement
+/sdd-spec [New feature name]
+/sdd-plan
+/sdd-tasks
+/sdd-implement
 ```
 
 ### Modifying Existing Features
 
 ```bash
-/sdd.spec [Feature to modify]
+/sdd-spec [Feature to modify]
 # AI detects existing spec and offers modification workflow
-/sdd.plan
-/sdd.tasks
-/sdd.implement
+/sdd-plan
+/sdd-tasks
+/sdd-implement
 ```
 
 ### Analyzing Change Impact
@@ -378,12 +379,12 @@ Initialize your project:
 sdd init
 ```
 
-### Slash Commands Not Working
+### Skills Not Working
 
-Ensure `.claude/commands/` exists:
+Ensure `.claude/skills/` exists:
 
 ```bash
-ls .claude/commands/
+ls .claude/skills/
 ```
 
 If missing, run:

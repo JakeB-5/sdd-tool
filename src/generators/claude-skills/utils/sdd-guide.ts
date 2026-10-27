@@ -5,9 +5,17 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddGuideSkill: SkillDefinition = {
   name: 'sdd-guide',
-  description: 'Explain the SDD methodology and walk through the available commands',
-  allowedTools: ['Read'],
-  context: 'inline',
+  description:
+    'Explain the Spec-Driven Development methodology, the end-to-end workflow, and the available SDD skills and CLI commands. Use when the user asks how SDD works or which skill or command to use.',
+  // Explanatory skill: only read-only CLI calls are pre-approved.
+  allowedTools: [
+    'Read',
+    'Bash(sdd --help)',
+    'Bash(sdd * --help)',
+    'Bash(sdd status*)',
+    'Bash(sdd list*)',
+    'Bash(sdd validate*)',
+  ],
   disableModelInvocation: true,
   content: `# SDD Guide
 
@@ -36,7 +44,7 @@ Refer to it when starting out or when you need a refresher on the workflow.
 │  2. Constitution ─> /sdd-constitution           │
 │     │               (define project principles) │
 │     ▼                                           │
-│  3. New Feature ──> /sdd-new                    │
+│  3. Spec ─────────> /sdd-spec                   │
 │     │               (write spec.md)             │
 │     ▼                                           │
 │  4. Plan ─────────> /sdd-plan                   │
@@ -61,7 +69,7 @@ Refer to it when starting out or when you need a refresher on the workflow.
 When modifying an existing spec:
 
 \`\`\`
-1. /sdd-change ──> write proposal.md
+1. /sdd-spec (large change) ──> proposal.md + delta.md
        │
        ▼
 2. sdd change validate <id> ──> validate
@@ -78,12 +86,11 @@ When modifying an existing spec:
 | Command | Description | When to Use |
 |---------|-------------|-------------|
 | /sdd-start | Unified entry point | First time starting |
-| /sdd-new | New feature spec | Starting a new feature |
+| /sdd-spec | Create or modify a spec | New feature or spec change |
 | /sdd-plan | Implementation plan | After spec is complete |
 | /sdd-tasks | Task breakdown | After plan is complete |
 | /sdd-implement | Implementation | After task breakdown |
 | /sdd-validate | Validation | After implementation |
-| /sdd-change | Change proposal | Modifying an existing spec |
 | /sdd-constitution | Constitution management | Project setup |
 | /sdd-chat | Conversational mode | Anytime |
 | /sdd-analyze | Request analysis | Estimating scope |

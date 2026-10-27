@@ -79,8 +79,8 @@ async function runStart(options: { workflow?: WorkflowType; status?: boolean }):
     logger.info('프로젝트를 시작하려면:');
     logger.listItem('sdd init');
     logger.newline();
-    logger.info('또는 다음 슬래시 커맨드를 사용하세요:');
-    logger.listItem('/sdd.new - 새 프로젝트와 함께 기능 생성');
+    logger.info('초기화 후 Claude Code 스킬을 사용하세요:');
+    logger.listItem('/sdd-spec - 첫 기능 명세 작성');
     return;
   }
 
@@ -219,10 +219,9 @@ function displayWorkflowMenu(status: ProjectStatus): void {
   logger.info('특정 워크플로우를 바로 시작하려면:');
   logger.listItem('sdd start --workflow <type>');
   logger.newline();
-  logger.info('또는 Claude Code 슬래시 커맨드를 사용하세요:');
-  logger.listItem('/sdd.new - 새 기능 명세');
-  logger.listItem('/sdd.change - 기존 스펙 변경');
-  logger.listItem('/sdd.validate - 명세 검증');
+  logger.info('또는 Claude Code 스킬을 사용하세요:');
+  logger.listItem('/sdd-spec - 새 기능 명세 작성 / 기존 스펙 변경');
+  logger.listItem('/sdd-validate - 명세 검증');
 }
 
 /**
@@ -336,11 +335,11 @@ function displayNewFeatureGuide(): void {
   logger.listItem('4. sdd new tasks <id> - 작업 분해');
   logger.listItem('5. 구현 진행');
   logger.newline();
-  logger.info('Claude Code 슬래시 커맨드:');
-  logger.listItem('/sdd.new - 대화형 명세 작성');
-  logger.listItem('/sdd.plan - 구현 계획 수립');
-  logger.listItem('/sdd.tasks - 작업 분해');
-  logger.listItem('/sdd.implement - 구현 진행');
+  logger.info('Claude Code 스킬:');
+  logger.listItem('/sdd-spec - 대화형 명세 작성');
+  logger.listItem('/sdd-plan - 구현 계획 수립');
+  logger.listItem('/sdd-tasks - 작업 분해');
+  logger.listItem('/sdd-implement - 구현 진행');
   logger.newline();
   logger.info('옵션:');
   logger.listItem('--all : spec, plan, tasks 모두 생성');
@@ -359,8 +358,8 @@ function displayChangeSpecGuide(): void {
   logger.listItem('5. sdd change apply <id> - 변경 적용');
   logger.listItem('6. sdd change archive <id> - 완료 후 아카이브');
   logger.newline();
-  logger.info('Claude Code 슬래시 커맨드:');
-  logger.listItem('/sdd.change - 변경 제안 작성');
+  logger.info('Claude Code 스킬:');
+  logger.listItem('/sdd-spec - 변경 제안 작성');
   logger.newline();
   logger.info('명령어:');
   logger.listItem('sdd change -l : 진행 중인 변경 목록');
@@ -383,8 +382,8 @@ function displayValidateGuide(): void {
   logger.listItem('- GIVEN-WHEN-THEN 시나리오');
   logger.listItem('- 의존성 참조');
   logger.newline();
-  logger.info('Claude Code 슬래시 커맨드:');
-  logger.listItem('/sdd.validate - 검증 및 피드백');
+  logger.info('Claude Code 스킬:');
+  logger.listItem('/sdd-validate - 검증 및 피드백');
 }
 
 /**
@@ -395,8 +394,8 @@ function displayStatusGuide(): void {
   logger.listItem('sdd status : 프로젝트 전체 상태');
   logger.listItem('sdd status <id> : 특정 스펙 상태');
   logger.newline();
-  logger.info('Claude Code 슬래시 커맨드:');
-  logger.listItem('/sdd.status - 상태 리포트');
+  logger.info('Claude Code 스킬:');
+  logger.listItem('/sdd-status - 상태 리포트');
 }
 
 /**
@@ -415,6 +414,6 @@ function displayConstitutionGuide(): void {
   logger.listItem('--minor : 기능 추가');
   logger.listItem('--patch : 오타/명확화');
   logger.newline();
-  logger.info('Claude Code 슬래시 커맨드:');
-  logger.listItem('/sdd.constitution - Constitution 관리');
+  logger.info('Claude Code 스킬:');
+  logger.listItem('/sdd-constitution - Constitution 관리');
 }

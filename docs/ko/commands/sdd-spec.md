@@ -1,15 +1,15 @@
-# /sdd.spec
+# /sdd-spec
 
 기능 명세를 작성하거나 수정합니다. (통합 진입점)
 
 ## 개요
 
-`/sdd.spec`은 새 기능 작성(`/sdd.new`)과 기존 기능 수정(`/sdd.change`)을 자동으로 판단하여 적절한 워크플로우로 안내합니다.
+`/sdd-spec`은 새 스펙을 작성하거나 기존 스펙을 수정합니다. 큰 수정은 `.sdd/changes/CHG-xxx/{proposal,delta,tasks}.md` 변경 제안을 거치며, `sdd change apply <id>`로 적용하고 `sdd change archive <id>`로 보관합니다. (제거된 `/sdd-new`, `/sdd-change`를 대체합니다.)
 
 ## 사용법
 
 ```
-/sdd.spec [기능 설명]
+/sdd-spec [기능 설명]
 ```
 
 ## 인수
@@ -61,7 +61,7 @@ sdd new <domain>/<feature-id> --all
 ### 새 기능 작성
 
 ```
-/sdd.spec 사용자 인증 기능
+/sdd-spec 사용자 인증 기능
 
 AI: .sdd/specs/ 확인 중...
     → auth/user-auth 스펙이 없습니다.
@@ -75,7 +75,7 @@ AI: .sdd/specs/ 확인 중...
 ### 기존 스펙 수정
 
 ```
-/sdd.spec 로그인에 소셜 로그인 추가
+/sdd-spec 로그인에 소셜 로그인 추가
 
 AI: .sdd/specs/ 확인 중...
     → auth/login/spec.md 존재합니다.
@@ -98,14 +98,14 @@ AI: .sdd/specs/ 확인 중...
 
 ## 다음 단계
 
-- 새 스펙 작성 후: `/sdd.plan` → `/sdd.tasks` → `/sdd.implement`
+- 새 스펙 작성 후: `/sdd-plan` → `/sdd-tasks` → `/sdd-implement`
 - 스펙 수정 후: `sdd validate` → 커밋
 
 ## 관련 커맨드
 
 | 커맨드 | 설명 |
 |--------|------|
-| `/sdd.plan` | 구현 계획 작성 |
-| `/sdd.tasks` | 작업 분해 |
-| `/sdd.validate` | 스펙 검증 |
-| `/sdd.impact` | 변경 영향도 분석 |
+| `/sdd-plan` | 구현 계획 작성 |
+| `/sdd-tasks` | 작업 분해 |
+| `/sdd-validate` | 스펙 검증 |
+| `/sdd-impact` | 변경 영향도 분석 |

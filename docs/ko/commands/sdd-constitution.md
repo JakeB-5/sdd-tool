@@ -1,11 +1,11 @@
-# /sdd.constitution
+# /sdd-constitution
 
 프로젝트의 핵심 원칙(Constitution)을 정의합니다.
 
 ## 사용법
 
 ```
-/sdd.constitution [프로젝트 설명]
+/sdd-constitution [프로젝트 설명]
 ```
 
 ## 인수
@@ -46,7 +46,7 @@ AI가 대화를 통해 프로젝트 원칙을 작성합니다:
 ## 예시
 
 ```
-/sdd.constitution React 기반 할일 관리 앱
+/sdd-constitution React 기반 할일 관리 앱
 
 AI: 할일 관리 앱의 Constitution을 작성해 드릴게요.
     몇 가지 질문이 있습니다:

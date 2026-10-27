@@ -1,14 +1,14 @@
 /**
- * Claude Code Skills 2.0 generator.
+ * Claude Code skills generator.
  *
- * Mirrors the Korean slash command generators under ../claude-commands as
- * English Skill definitions. See MIGRATION-PLAN-SLASH-COMMANDS-TO-SKILLS.md
- * for the overall migration strategy.
+ * Skills are the default Claude Code integration written by `sdd init`.
+ * The Korean slash commands under ../claude-commands are a legacy mirror
+ * generated only with `--legacy-commands`.
  *
  * - Skill definitions live under `./core`, `./management`, `./analysis`,
- *   `./domain`, and `./utils` (added in Phase 2).
+ *   `./domain`, and `./utils`.
  * - Each definition is a `SkillDefinition` with an English body.
- * - `generateClaudeSkills()` returns all 32 skills for `sdd init` to write.
+ * - `generateClaudeSkills()` returns all 30 skills for `sdd init` to write.
  */
 
 export type {
@@ -28,9 +28,9 @@ import * as utils from './utils/index.js';
 /**
  * Generate the full set of Claude Code Skills for the SDD workflow.
  *
- * Returns 32 skill definitions spanning five categories:
- * - core (7): start, spec, new, plan, tasks, implement, validate
- * - management (3): constitution, change, status
+ * Returns 30 skill definitions spanning five categories:
+ * - core (6): start, spec, plan, tasks, implement, validate
+ * - management (2): constitution, status
  * - analysis (9): analyze, impact, quality, sync, diff, search, list, export, report
  * - domain (3): reverse, domain, context
  * - utils (10): guide, chat, transition, research, data-model, prepare, cicd, watch, migrate, prompt
@@ -40,14 +40,12 @@ export function generateClaudeSkills(): SkillDefinition[] {
     // Core workflow
     core.sddStartSkill,
     core.sddSpecSkill,
-    core.sddNewSkill,
     core.sddPlanSkill,
     core.sddTasksSkill,
     core.sddImplementSkill,
     core.sddValidateSkill,
     // Management
     management.sddConstitutionSkill,
-    management.sddChangeSkill,
     management.sddStatusSkill,
     // Analysis
     analysis.sddAnalyzeSkill,

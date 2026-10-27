@@ -63,8 +63,8 @@ Constitution을 작성하시겠습니까? (y/n):
   • 진행 중인 작업: 없음
 
 🚀 워크플로우 선택:
-  1. 새 기능 명세 작성 (/sdd.spec)
-  2. 기존 스펙 변경 (/sdd.spec)
+  1. 새 기능 명세 작성 (/sdd-spec)
+  2. 기존 스펙 변경 (/sdd-spec)
   3. 프로젝트 상태 확인 (sdd status)
   4. 품질 분석 (sdd quality)
 
@@ -122,10 +122,10 @@ sdd start
 
 ## 슬래시 커맨드
 
-Claude Code에서는 `/sdd.start` 슬래시 커맨드를 사용합니다:
+Claude Code에서는 `/sdd-start` 슬래시 커맨드를 사용합니다:
 
 ```
-/sdd.start
+/sdd-start
 ```
 
 ## 관련 문서

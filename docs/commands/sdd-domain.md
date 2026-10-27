@@ -1,19 +1,19 @@
-# /sdd.domain
+# /sdd-domain
 
 A slash command for managing domains.
 
 ## Overview
 
-`/sdd.domain` creates, views, modifies, and deletes domains in an SDD project. Use it to logically group specs in large projects.
+`/sdd-domain` creates, views, modifies, and deletes domains in an SDD project. Use it to logically group specs in large projects.
 
 ## Usage
 
 ```
-/sdd.domain create <name>     # Create domain
-/sdd.domain list              # List domains
-/sdd.domain show <name>       # Show details
-/sdd.domain link <domain> <spec>  # Link spec
-/sdd.domain graph             # Dependency graph
+/sdd-domain create <name>     # Create domain
+/sdd-domain list              # List domains
+/sdd-domain show <name>       # Show details
+/sdd-domain link <domain> <spec>  # Link spec
+/sdd-domain graph             # Dependency graph
 ```
 
 ## Subcommands
@@ -23,8 +23,8 @@ A slash command for managing domains.
 Create a new domain.
 
 ```
-/sdd.domain create auth
-/sdd.domain create payment --description "Payment processing"
+/sdd-domain create auth
+/sdd-domain create payment --description "Payment processing"
 ```
 
 ### list
@@ -32,8 +32,8 @@ Create a new domain.
 List all domains.
 
 ```
-/sdd.domain list
-/sdd.domain list --tree      # Tree format
+/sdd-domain list
+/sdd-domain list --tree      # Tree format
 ```
 
 ### show
@@ -41,7 +41,7 @@ List all domains.
 Display detailed information for a specific domain.
 
 ```
-/sdd.domain show auth
+/sdd-domain show auth
 ```
 
 **Output:**
@@ -54,8 +54,8 @@ Display detailed information for a specific domain.
 Link or unlink specs to a domain.
 
 ```
-/sdd.domain link auth user-login
-/sdd.domain unlink auth user-login
+/sdd-domain link auth user-login
+/sdd-domain unlink auth user-login
 ```
 
 ### depends
@@ -63,7 +63,7 @@ Link or unlink specs to a domain.
 Set dependencies between domains.
 
 ```
-/sdd.domain depends payment --on auth
+/sdd-domain depends payment --on auth
 ```
 
 ### graph
@@ -71,8 +71,8 @@ Set dependencies between domains.
 Visualize the domain dependency graph.
 
 ```
-/sdd.domain graph              # Mermaid format
-/sdd.domain graph --format dot # DOT format
+/sdd-domain graph              # Mermaid format
+/sdd-domain graph --format dot # DOT format
 ```
 
 **Example output:**
@@ -88,8 +88,8 @@ graph LR
 Delete or rename a domain.
 
 ```
-/sdd.domain delete legacy
-/sdd.domain rename old-name new-name
+/sdd-domain delete legacy
+/sdd-domain rename old-name new-name
 ```
 
 ### validate
@@ -97,7 +97,7 @@ Delete or rename a domain.
 Validate domain structure.
 
 ```
-/sdd.domain validate
+/sdd-domain validate
 ```
 
 Validation items:
@@ -108,7 +108,7 @@ Validation items:
 ## Example
 
 ```
-User: /sdd.domain create auth --description "User authentication domain"
+User: /sdd-domain create auth --description "User authentication domain"
 
 Claude: Domain created successfully!
 
@@ -118,11 +118,11 @@ auth
    Specs: 0
 
 Next step:
-  /sdd.domain link auth <spec-name>
+  /sdd-domain link auth <spec-name>
 
 ---
 
-User: /sdd.domain graph
+User: /sdd-domain graph
 
 Claude: Domain dependency graph:
 
@@ -137,5 +137,5 @@ Circular dependencies: none
 ## Related Commands
 
 - [`sdd domain`](/cli/domain) - CLI version
-- [`/sdd.context`](/commands/sdd-context) - Context setting
+- [`/sdd-context`](/commands/sdd-context) - Context setting
 - [Domain System Guide](/guide/domains)

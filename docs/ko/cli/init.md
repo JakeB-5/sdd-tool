@@ -15,8 +15,8 @@ sdd init [options]
 | `-f, --force` | 기존 설정 덮어쓰기 |
 | `--skip-git-setup` | Git/CI-CD 설정 건너뛰기 |
 | `--auto-approve` | 모든 설정을 자동 승인 |
-| `--no-skills` | `.claude/skills/` 생성 건너뛰기 (`dev-*` 및 `sdd-*` 모두) |
-| `--no-commands` | `.claude/commands/` 슬래시 커맨드 생성 건너뛰기 |
+| `--no-skills` | `.claude/skills/` 생성 건너뛰기 |
+| `--legacy-commands` | 레거시 한국어 슬래시 커맨드를 `.claude/commands/sdd.*.md`에 추가로 생성 |
 
 ## 생성되는 파일
 
@@ -30,43 +30,49 @@ your-project/
 │   ├── archive/            # 완료된 변경 아카이브
 │   └── templates/          # 스펙 템플릿
 │
+├── CLAUDE.md               # `@.sdd/AGENTS.md`로 에이전트 가이드를 import
+│
 └── .claude/
-    ├── commands/           # 슬래시 커맨드 — 한국어, 점 표기법
-    │   ├── sdd.start.md
-    │   ├── sdd.spec.md
-    │   ├── sdd.plan.md
-    │   └── ...
-    └── skills/             # 스킬 2.0 — 영어, 케밥 케이스 (v1.6.0)
-        ├── dev-implement/
-        │   └── SKILL.md
-        ├── dev-test/
-        │   └── SKILL.md
+    └── skills/             # Claude Code 스킬 — 영어, 케밥 케이스
         ├── sdd-start/
         │   └── SKILL.md
         ├── sdd-spec/
         │   └── SKILL.md
-        └── ...             # sdd-* 스킬 32개
+        └── ...             # sdd-* 스킬 30개
 ```
 
-## 스킬 2.0
+`.claude/commands/`는 기본적으로 생성되지 않습니다. 필요하면 `--legacy-commands`(아래)를 사용하세요.
 
-v1.6.0부터 `sdd init`은 기존 슬래시 커맨드와 함께 `.claude/skills/sdd-*/SKILL.md`에 영어 스킬 2.0 정의 32개를 생성합니다.
+## 스킬
 
-각 `sdd.foo` 슬래시 커맨드는 대응하는 `sdd-foo` 스킬을 가집니다. 스킬은 영어로 작성되며 스킬 2.0 프론트매터를 포함합니다:
+`sdd init`은 `.claude/skills/sdd-*/SKILL.md`에 영어 스킬 30개를 생성합니다. Claude Code는 각 스킬을 스킬 이름 그대로의 슬래시 커맨드(예: `/sdd-start`, `/sdd-spec`)로 노출합니다. 스킬은 다음 프론트매터 필드를 포함합니다:
 
-- **`context: fork`** — 분석/도메인 스킬 7개가 포크된 컨텍스트에서 실행됨 (`sdd-analyze`, `sdd-impact`, `sdd-sync`, `sdd-search`, `sdd-report`, `sdd-reverse`, `sdd-research`)
-- **`context: manual-invoke-only`** — `sdd-watch` (장기 실행, 자동 트리거 안 됨)
-- **`disable-model-invocation: true`** — CLI 명령어 하나만 실행하는 유틸리티 스킬 5개 (`sdd-guide`, `sdd-chat`, `sdd-cicd`, `sdd-watch`, `sdd-migrate`)
-- **`allowed-tools`** — 스킬별 최소 권한 glob 패턴 (예: `Bash(sdd validate*)`)
+- **`context: fork`** — 분석/도메인 스킬 7개가 포크된 컨텍스트에서 실행됨 (`sdd-analyze`, `sdd-impact`, `sdd-report`, `sdd-research`, `sdd-reverse`, `sdd-search`, `sdd-sync`)
+- **`disable-model-invocation: true`** — 사용자만 호출할 수 있는 유틸리티 스킬 5개 (`sdd-chat`, `sdd-cicd`, `sdd-guide`, `sdd-migrate`, `sdd-watch`)
+- **`argument-hint`** — 인수를 받는 스킬
+- **`allowed-tools`** — 스킬별 최소 권한 패턴 (예: `Bash(sdd validate*)`)
 
 스킬 생성을 건너뛰려면:
 
 ```bash
 sdd init --no-skills        # .claude/skills/ 전체 건너뛰기
-sdd init --no-commands      # .claude/commands/ 전체 건너뛰기
 ```
 
-두 플래그 모두 backward-compatible입니다. 생략 시 기본값으로 모두 생성됩니다.
+## CLAUDE.md import
+
+`sdd init`은 프로젝트 루트의 `CLAUDE.md`가 에이전트 가이드를 import하도록 보장합니다:
+
+- `CLAUDE.md`가 없으면 짧은 헤더와 `@.sdd/AGENTS.md` 한 줄이 담긴 파일을 새로 만듭니다.
+- 이미 있지만 import가 없으면 `@.sdd/AGENTS.md` 줄을 끝에 추가합니다. 기존 내용은 절대 덮어쓰지 않습니다.
+- `sdd init`을 다시 실행해도 줄이 중복 추가되지 않습니다.
+
+## 레거시 커맨드
+
+Claude Code가 커스텀 커맨드를 스킬로 통합했으므로 커맨드는 더 이상 기본 생성되지 않습니다. 기존 한국어 점 표기법 슬래시 커맨드(`/sdd.start` 등)를 `.claude/commands/sdd.*.md`에 계속 쓰고 싶다면 `--legacy-commands`를 추가하세요:
+
+```bash
+sdd init --legacy-commands  # .claude/commands/sdd.*.md도 함께 생성 (레거시)
+```
 
 ## Git 워크플로우 설정
 
@@ -144,7 +150,7 @@ sdd init --force
 ## 초기화 후
 
 1. Claude Code 실행: `claude`
-2. 워크플로우 시작: `/sdd.start`
+2. 워크플로우 시작: `/sdd-start`
 
 ## 관련 문서
 

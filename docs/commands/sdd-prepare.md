@@ -1,11 +1,11 @@
-# /sdd.prepare
+# /sdd-prepare
 
 Check the subagents and skills needed for implementation.
 
 ## Usage
 
 ```
-/sdd.prepare [feature-id]
+/sdd-prepare [feature-id]
 ```
 
 ## Arguments
@@ -35,7 +35,7 @@ Check the subagents and skills needed for implementation.
 ## Example
 
 ```
-/sdd.prepare user-auth
+/sdd-prepare user-auth
 
 AI: Analyzing user-auth tasks to check required tools.
 
@@ -88,5 +88,5 @@ AI: Analyzing user-auth tasks to check required tools.
 After tool check:
 
 ```
-/sdd.implement  -> Start implementation
+/sdd-implement  -> Start implementation
 ```

@@ -1,5 +1,5 @@
 /**
- * Claude Skills 2.0 definitions test — validates the 32 skill bundle.
+ * Claude Code skill definitions test — validates the 30 skill bundle.
  */
 import { describe, it, expect } from 'vitest';
 import { generateClaudeSkills } from '../../../../src/generators/claude-skills/index.js';
@@ -7,11 +7,68 @@ import { generateClaudeSkills } from '../../../../src/generators/claude-skills/i
 // Korean (Hangul) Unicode range, used for the "English only" enforcement.
 const KOREAN_REGEX = /[\uAC00-\uD7AF]/;
 
+// sdd-reverse is owned by the separate reverse rework; its description and
+// body are checked there.
+const REVERSE_SKILL = 'sdd-reverse';
+
 describe('generateClaudeSkills', () => {
   const skills = generateClaudeSkills();
 
-  it('returns all 32 skills', () => {
-    expect(skills.length).toBe(32);
+  it('returns all 30 skills', () => {
+    expect(skills.length).toBe(30);
+  });
+
+  it('does not include the removed deprecated skills', () => {
+    const names = skills.map((s) => s.name);
+    expect(names).not.toContain('sdd-new');
+    expect(names).not.toContain('sdd-change');
+  });
+
+  it('no skill routes users to the removed deprecated skills', () => {
+    for (const skill of skills.filter((s) => s.name !== REVERSE_SKILL)) {
+      expect(skill.content).not.toMatch(/\/sdd[-.](new|change)\b/);
+    }
+  });
+
+  it('every description states what it does and when to use it, within 300 chars', () => {
+    for (const skill of skills.filter((s) => s.name !== REVERSE_SKILL)) {
+      expect(skill.description, skill.name).toMatch(/\bUse (when|after|before)\b/);
+      expect(skill.description.length, skill.name).toBeLessThanOrEqual(300);
+    }
+  });
+
+  it('context is either unset or fork (no inline / manual-invoke-only)', () => {
+    for (const skill of skills) {
+      expect([undefined, 'fork']).toContain(skill.context);
+    }
+  });
+
+  it('each allowed-tools entry is a single rule (no comma-combined Bash rules)', () => {
+    for (const skill of skills) {
+      for (const tool of skill.allowedTools ?? []) {
+        expect(tool, skill.name).not.toMatch(/^Bash\([^)]*,[^)]*\)$/);
+      }
+    }
+  });
+
+  it('no skill pre-approves every sdd command with a blanket Bash rule', () => {
+    for (const skill of skills) {
+      for (const tool of skill.allowedTools ?? []) {
+        expect(tool, skill.name).not.toMatch(/^Bash\(sdd ?\*\)$/);
+      }
+    }
+  });
+
+  it('skills that read $ARGUMENTS declare an argument-hint', () => {
+    for (const skill of skills.filter((s) => s.content.includes('$ARGUMENTS'))) {
+      expect(skill.argumentHint, skill.name).toBeTruthy();
+    }
+  });
+
+  it('sdd-spec points to the real change proposal layout', () => {
+    const spec = skills.find((s) => s.name === 'sdd-spec')!;
+    expect(spec.content).toContain('.sdd/changes/CHG-xxx/proposal.md');
+    expect(spec.content).not.toContain('CHG-xxx.md');
   });
 
   it('every skill has a kebab-case name starting with sdd-', () => {
@@ -61,10 +118,11 @@ describe('generateClaudeSkills', () => {
     );
   });
 
-  it('sdd-watch uses context: manual-invoke-only', () => {
+  it('sdd-watch is manual-only via disable-model-invocation (no context field)', () => {
     const watch = skills.find((s) => s.name === 'sdd-watch');
     expect(watch).toBeDefined();
-    expect(watch!.context).toBe('manual-invoke-only');
+    expect(watch!.context).toBeUndefined();
+    expect(watch!.disableModelInvocation).toBe(true);
   });
 
   it('5 utils skills have disableModelInvocation: true', () => {

@@ -5,7 +5,9 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddSyncSkill: SkillDefinition = {
   name: 'sdd-sync',
-  description: 'Verify synchronization between spec requirements and implementation code',
+  description:
+    'Check which spec requirements (REQ-xxx) are implemented in code or tests via `@spec` annotations and report the sync rate with `sdd sync`. Use when the user asks whether code matches the specs.',
+  argumentHint: '[specId] [--json] [--ci --threshold <percent>]',
   allowedTools: ['Read', 'Glob', 'Grep', 'Bash(sdd sync*)'],
   context: 'fork',
   content: `# SDD Sync

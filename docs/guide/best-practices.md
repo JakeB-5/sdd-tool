@@ -11,7 +11,7 @@ Before writing any specs, define your project constitution.
 **Why:** Sets the foundation for all specifications and decisions.
 
 ```bash
-/sdd.constitution "Your project description"
+/sdd-constitution "Your project description"
 ```
 
 **Constitution should include:**
@@ -203,10 +203,10 @@ In spec, explain **why** not just **what**.
 
 ### Keep Team in Sync
 
-Use `/sdd.chat` for collaborative specification.
+Use `/sdd-chat` for collaborative specification.
 
 **Pattern:**
-1. One person starts spec with `/sdd.spec`
+1. One person starts spec with `/sdd-spec`
 2. Team provides feedback
 3. AI refines spec based on discussion
 4. Finalize together
@@ -274,7 +274,7 @@ Follow Test-Driven Development.
 - Fewer bugs
 - Self-documenting tests
 
-### Leverage /sdd.prepare
+### Leverage /sdd-prepare
 
 Auto-detects tools needed.
 

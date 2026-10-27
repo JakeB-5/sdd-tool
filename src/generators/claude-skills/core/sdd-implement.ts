@@ -5,9 +5,23 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddImplementSkill: SkillDefinition = {
   name: 'sdd-implement',
-  description: 'Execute tasks sequentially with TDD discipline (red → green → refactor)',
-  allowedTools: ['Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash(npm*,pnpm*,yarn*,git*,sdd*)', 'WebFetch'],
-  context: 'inline',
+  description:
+    "Implement a feature's tasks.md one task at a time with TDD (red, green, refactor) and per-task commits. Use when tasks are ready and the user wants to start or continue implementing a spec.",
+  argumentHint: '<feature-id>',
+  allowedTools: [
+    'Read',
+    'Write',
+    'Edit',
+    'Glob',
+    'Grep',
+    'Bash(npm *)',
+    'Bash(pnpm *)',
+    'Bash(yarn *)',
+    'Bash(git *)',
+    'Bash(sdd status*)',
+    'Bash(sdd validate*)',
+    'WebFetch',
+  ],
   content: `# SDD Implement
 
 ## Instructions

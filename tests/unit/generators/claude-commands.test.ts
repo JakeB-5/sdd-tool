@@ -33,12 +33,25 @@ describe('generateClaudeCommands', () => {
     expect(startCmd?.content).toContain('SDD');
   });
 
-  it('sdd.new 커맨드가 포함된다', () => {
-    const commands = generateClaudeCommands();
-    const newCmd = commands.find((c) => c.name === 'sdd.new');
+  it('폐기된 sdd.new / sdd.change 커맨드는 생성하지 않는다', () => {
+    const names = generateClaudeCommands().map((c) => c.name);
 
-    expect(newCmd).toBeDefined();
-    expect(newCmd?.content).toContain('명세');
+    expect(names).not.toContain('sdd.new');
+    expect(names).not.toContain('sdd.change');
+  });
+
+  it('레거시 커맨드 본문이 폐기된 커맨드로 안내하지 않는다', () => {
+    // sdd.reverse is owned by the separate reverse rework.
+    for (const cmd of generateClaudeCommands().filter((c) => c.name !== 'sdd.reverse')) {
+      expect(cmd.content).not.toMatch(/\/sdd\.(new|change)\b/);
+    }
+  });
+
+  it('sdd.spec 커맨드는 실제 변경 제안 디렉토리 구조를 안내한다', () => {
+    const specCmd = generateClaudeCommands().find((c) => c.name === 'sdd.spec');
+
+    expect(specCmd?.content).toContain('.sdd/changes/CHG-xxx/proposal.md');
+    expect(specCmd?.content).not.toContain('CHG-xxx.md');
   });
 
   it('sdd.validate 커맨드가 포함된다', () => {
@@ -47,14 +60,6 @@ describe('generateClaudeCommands', () => {
 
     expect(validateCmd).toBeDefined();
     expect(validateCmd?.content).toContain('검증');
-  });
-
-  it('sdd.change 커맨드가 포함된다', () => {
-    const commands = generateClaudeCommands();
-    const changeCmd = commands.find((c) => c.name === 'sdd.change');
-
-    expect(changeCmd).toBeDefined();
-    expect(changeCmd?.content).toContain('변경');
   });
 
   it('sdd.constitution 커맨드가 포함된다', () => {

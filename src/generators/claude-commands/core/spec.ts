@@ -9,7 +9,7 @@ export const specCommand: ClaudeCommand = {
 
 ## 개요
 
-\`/sdd.spec\`은 새 기능 작성(\`/sdd.new\`)과 기존 기능 수정(\`/sdd.change\`)을 
+\`/sdd.spec\`은 새 기능 작성과 기존 기능 수정을
 자동으로 판단하여 적절한 워크플로우로 안내합니다.
 
 ## 지시사항
@@ -18,7 +18,7 @@ export const specCommand: ClaudeCommand = {
 2. \`.sdd/specs/<domain>/<feature-id>/spec.md\` 존재 여부를 확인하세요
 3. **자동 분기:**
 
-### 스펙이 없으면 (새 기능) → /sdd.new 워크플로우
+### 스펙이 없으면 (새 기능)
 
 \`\`\`bash
 sdd new <domain>/<feature-id> --all
@@ -35,8 +35,9 @@ sdd new <domain>/<feature-id> --all
 - \`sdd validate\`로 검증
 
 **큰 변경** (요구사항 다수 변경, 구조 변경, 삭제):
-- \`.sdd/changes/CHG-xxx.md\` 변경 제안서 작성
-- 검토 → 승인 → 반영 워크플로우
+- 변경 제안 생성: \`sdd change -t "<제목>" -s <domain>/<feature-id>\`
+- \`.sdd/changes/CHG-xxx/proposal.md\`, \`delta.md\`가 생성됩니다 (작업 목록이 필요하면 같은 디렉토리에 \`tasks.md\` 추가)
+- 검토 → 승인 → 반영 워크플로우: \`sdd change validate <id>\` → \`sdd change apply <id>\` → \`sdd change archive <id>\`
 
 ## 변경 규모 판단 기준
 

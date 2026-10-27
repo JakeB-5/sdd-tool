@@ -50,13 +50,13 @@ Created items:
   .sdd/changes/
   .sdd/archive/
   .sdd/templates/
-  .claude/commands/    <- Slash commands
-  .claude/skills/      <- Development skills
+  .claude/skills/      <- 30 sdd-* skills (invoked as /sdd-*)
   .sdd/constitution.md
   .sdd/AGENTS.md
+  CLAUDE.md            <- Imports @.sdd/AGENTS.md (created or appended)
 
 Existing code remains unchanged.
-Next step: Run /sdd.start in Claude Code.
+Next step: Run /sdd-start in Claude Code.
 ```
 
 ### Start in Claude Code

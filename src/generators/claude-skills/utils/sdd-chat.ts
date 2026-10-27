@@ -5,9 +5,9 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddChatSkill: SkillDefinition = {
   name: 'sdd-chat',
-  description: 'Interactive SDD assistant for conversational spec work',
+  description:
+    'Start a conversational SDD session to ask questions, draft specs, review documents, and run SDD commands in natural language. Use when the user explicitly wants an open-ended SDD chat.',
   allowedTools: ['Read', 'Glob'],
-  context: 'inline',
   disableModelInvocation: true,
   content: `# SDD Chat
 

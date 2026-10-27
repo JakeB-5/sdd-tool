@@ -1,11 +1,11 @@
-# /sdd.implement
+# /sdd-implement
 
 작업 목록을 기반으로 TDD 방식으로 순차적 구현합니다.
 
 ## 사용법
 
 ```
-/sdd.implement [feature-id]
+/sdd-implement [feature-id]
 ```
 
 ## 인수
@@ -38,7 +38,7 @@
 ## 예시
 
 ```
-/sdd.implement user-auth
+/sdd-implement user-auth
 
 AI: user-auth 구현을 시작합니다.
 
@@ -66,13 +66,13 @@ AI: user-auth 구현을 시작합니다.
 구현 중 중단:
 
 ```
-/sdd.implement pause
+/sdd-implement pause
 ```
 
 재개:
 
 ```
-/sdd.implement
+/sdd-implement
 ```
 
 ## 완료 후
@@ -86,5 +86,5 @@ AI: user-auth 구현이 완료되었습니다!
     테스트 통과: 24/24
     커버리지: 92%
 
-    다음 단계: /sdd.validate
+    다음 단계: /sdd-validate
 ```

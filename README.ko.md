@@ -14,12 +14,12 @@
 
 ## 개요
 
-SDD Tool은 **Claude Code**와 함께 사용하도록 설계된 명세 기반 개발(Spec-Driven Development) CLI입니다. **슬래시 커맨드**와 **스킬 2.0(Skills 2.0)**을 통해 AI와 대화하며 스펙을 작성하고, 코드를 구현합니다.
+SDD Tool은 **Claude Code**와 함께 사용하도록 설계된 명세 기반 개발(Spec-Driven Development) CLI입니다. **Claude Code 스킬**(`/sdd-*` 슬래시 커맨드로 호출)을 통해 AI와 대화하며 스펙을 작성하고, 코드를 구현합니다.
 
 ### 핵심 개념
 
 - **명세 우선**: 코드 작성 전 명세 작성
-- **AI 협업**: Claude Code 슬래시 커맨드로 워크플로우 자동화
+- **AI 협업**: Claude Code 스킬로 워크플로우 자동화
 - **RFC 2119 키워드**: SHALL, MUST, SHOULD, MAY로 요구사항 명확화
 - **GIVEN-WHEN-THEN**: 시나리오 기반 요구사항 정의
 - **헌법(Constitution)**: 프로젝트 핵심 원칙 정의
@@ -37,14 +37,14 @@ npm install -g sdd-tool
 ## 빠른 시작
 
 ```bash
-# 1. 프로젝트 초기화 (슬래시 커맨드 + 스킬 2.0 + Git/CI-CD 설정)
+# 1. 프로젝트 초기화 (Claude Code 스킬 + CLAUDE.md import + Git/CI-CD 설정)
 sdd init
 
 # 2. Claude Code 실행
 claude
 
-# 3. 슬래시 커맨드 또는 스킬로 워크플로우 시작
-/sdd.start
+# 3. 시작 스킬로 워크플로우 시작
+/sdd-start
 ```
 
 ---
@@ -53,138 +53,131 @@ claude
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    SDD 슬래시 커맨드 워크플로우                  │
+│                      SDD 스킬 워크플로우                       │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  1. /sdd.start        → 워크플로우 시작                      │
+│  1. /sdd-start        → 워크플로우 시작                      │
 │     │                                                       │
 │     ▼                                                       │
-│  2. /sdd.constitution → 프로젝트 원칙 정의                   │
+│  2. /sdd-constitution → 프로젝트 원칙 정의                   │
 │     │                                                       │
 │     ▼                                                       │
-│  3. /sdd.spec         → 기능 명세 작성/수정 (spec.md)        │
+│  3. /sdd-spec         → 기능 명세 작성/수정 (spec.md)        │
 │     │                                                       │
 │     ▼                                                       │
-│  4. /sdd.plan         → 구현 계획 수립 (plan.md)             │
+│  4. /sdd-plan         → 구현 계획 수립 (plan.md)             │
 │     │                                                       │
 │     ▼                                                       │
-│  5. /sdd.tasks        → 작업 분해 (tasks.md)                 │
+│  5. /sdd-tasks        → 작업 분해 (tasks.md)                 │
 │     │                                                       │
 │     ▼                                                       │
-│  6. /sdd.prepare      → 서브에이전트/스킬 점검                │
+│  6. /sdd-prepare      → 서브에이전트/스킬 점검                │
 │     │                                                       │
 │     ▼                                                       │
-│  7. /sdd.implement    → 순차적 구현                          │
+│  7. /sdd-implement    → 순차적 구현                          │
 │     │                                                       │
 │     ▼                                                       │
-│  8. /sdd.validate     → 명세 검증                           │
+│  8. /sdd-validate     → 명세 검증                           │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 슬래시 커맨드 & 스킬 2.0
+## 스킬 (슬래시 커맨드)
 
-`sdd init` 실행 시 `.claude/commands/` (슬래시 커맨드, 한국어)와 `.claude/skills/sdd-*/` (스킬 2.0, 영어)에 자동 생성됩니다.
+`sdd init` 실행 시 `.claude/skills/sdd-*/SKILL.md`에 Claude Code 스킬 30개가 자동 생성됩니다. Claude Code는 각 스킬을 슬래시 커맨드로 노출하므로 `/sdd-start`, `/sdd-spec` 등 케밥 케이스 이름으로 호출합니다.
 
-> 각 `sdd.foo` 슬래시 커맨드는 `.claude/skills/sdd-foo/SKILL.md` 스킬과 1:1로 대응됩니다. 슬래시 커맨드는 점 표기법(dot-notation), 스킬은 케밥 케이스(kebab-case)를 사용합니다. 기본적으로 둘 다 생성되며, `--no-commands` 또는 `--no-skills`로 각각 건너뛸 수 있습니다.
+> `.claude/commands/`는 Claude Code가 커맨드를 스킬로 통합했기 때문에 기본 생성되지 않습니다. 레거시 한국어 점 표기법 커맨드(`.claude/commands/sdd.*.md`)도 함께 생성하려면 `sdd init --legacy-commands`를 사용하세요. 스킬 생성을 건너뛰려면 `--no-skills`를 사용합니다.
 
-### 스킬 2.0 (v1.6.0+)
+### 스킬 프론트매터
 
-스킬 2.0 정의는 모델 라우팅 정확도를 위해 영어로 작성되며, 다음 프론트매터 필드를 포함합니다:
+스킬은 모델 라우팅 정확도를 위해 영어로 작성되며, 다음 프론트매터 필드를 사용합니다:
 
 | 필드 | 적용 대상 |
 |------|----------|
-| `context: fork` | 분석/도메인 스킬 7개 (`sdd-analyze`, `sdd-impact`, `sdd-sync`, `sdd-search`, `sdd-report`, `sdd-reverse`, `sdd-research`) |
-| `context: manual-invoke-only` | `sdd-watch` |
-| `disable-model-invocation: true` | 유틸리티 스킬 5개 (`sdd-guide`, `sdd-chat`, `sdd-cicd`, `sdd-watch`, `sdd-migrate`) |
-| `allowed-tools` | 모든 스킬 — 최소 권한 glob 패턴 (예: `Bash(sdd validate*)`) |
-
-스킬 2.0 프론트매터 세부 사항은 Claude Code 팀의 공식 발표를 참고하세요.
+| `context: fork` | 분석/도메인 스킬 7개 (`sdd-analyze`, `sdd-impact`, `sdd-report`, `sdd-research`, `sdd-reverse`, `sdd-search`, `sdd-sync`) |
+| `disable-model-invocation: true` | 유틸리티 스킬 5개 (`sdd-chat`, `sdd-cicd`, `sdd-guide`, `sdd-migrate`, `sdd-watch`) |
+| `argument-hint` | 인수를 받는 스킬 |
+| `allowed-tools` | 모든 스킬 — 최소 권한 패턴 (예: `Bash(sdd validate*)`) |
 
 ### 핵심 워크플로우
 
 | 커맨드 | 설명 | 사용 예시 |
 |--------|------|----------|
-| `/sdd.start` | 통합 진입점 | `/sdd.start` |
-| `/sdd.constitution` | 프로젝트 원칙 관리 | `/sdd.constitution React 기반 할일 앱` |
-| `/sdd.spec` | **기능 명세 작성/수정 (통합)** | `/sdd.spec 사용자 인증 기능` |
-| `/sdd.plan` | 구현 계획 작성 | `/sdd.plan` |
-| `/sdd.tasks` | 작업 분해 | `/sdd.tasks` |
-| `/sdd.prepare` | 서브에이전트/스킬 점검 | `/sdd.prepare` |
-| `/sdd.implement` | 순차적 구현 | `/sdd.implement` |
-| `/sdd.validate` | 스펙 검증 | `/sdd.validate` |
+| `/sdd-start` | 통합 진입점 | `/sdd-start` |
+| `/sdd-constitution` | 프로젝트 원칙 관리 | `/sdd-constitution React 기반 할일 앱` |
+| `/sdd-spec` | **기능 명세 작성/수정 (통합)** | `/sdd-spec 사용자 인증 기능` |
+| `/sdd-plan` | 구현 계획 작성 | `/sdd-plan` |
+| `/sdd-tasks` | 작업 분해 | `/sdd-tasks` |
+| `/sdd-prepare` | 서브에이전트/스킬 점검 | `/sdd-prepare` |
+| `/sdd-implement` | 순차적 구현 | `/sdd-implement` |
+| `/sdd-validate` | 스펙 검증 | `/sdd-validate` |
 
-> **Note**: `/sdd.spec`은 새 기능 작성과 기존 스펙 수정을 자동으로 판단하여 적절한 워크플로우로 안내합니다.
+> **Note**: `/sdd-spec`은 새 스펙을 작성하거나 기존 스펙을 수정합니다. 큰 수정은 `.sdd/changes/CHG-xxx/{proposal,delta,tasks}.md` 변경 제안을 거치며, `sdd change apply <id>`로 적용하고 `sdd change archive <id>`로 보관합니다.
 
 ### 변경 관리
 
 | 커맨드 | 설명 |
 |--------|------|
-| `/sdd.impact` | 변경 영향도 분석 |
-| `/sdd.transition` | new ↔ change 워크플로우 전환 |
+| `/sdd-impact` | 변경 영향도 분석 |
+| `/sdd-transition` | new ↔ change 워크플로우 전환 |
 
-### Deprecated
-
-| 커맨드 | 대체 | 설명 |
-|--------|------|------|
-| `/sdd.new` | `/sdd.spec` | 새 기능 명세 작성 |
-| `/sdd.change` | `/sdd.spec` | 기존 스펙 변경 제안 |
+> **제거됨**: `/sdd-new`와 `/sdd-change`는 더 이상 존재하지 않습니다. 대신 `/sdd-spec`을 사용하세요.
 
 ### 분석 및 품질
 
 | 커맨드 | 설명 |
 |--------|------|
-| `/sdd.analyze` | 요청 분석 및 규모 판단 |
-| `/sdd.quality` | 스펙 품질 점수 산출 |
-| `/sdd.report` | 프로젝트 리포트 생성 |
-| `/sdd.search` | 스펙 검색 |
-| `/sdd.status` | 프로젝트 상태 확인 |
-| `/sdd.list` | 항목 목록 조회 |
-| `/sdd.sync` | 스펙-코드 동기화 검증 |
-| `/sdd.diff` | 스펙 변경사항 시각화 |
-| `/sdd.export` | 스펙 내보내기 (HTML, JSON) |
+| `/sdd-analyze` | 요청 분석 및 규모 판단 |
+| `/sdd-quality` | 스펙 품질 점수 산출 |
+| `/sdd-report` | 프로젝트 리포트 생성 |
+| `/sdd-search` | 스펙 검색 |
+| `/sdd-status` | 프로젝트 상태 확인 |
+| `/sdd-list` | 항목 목록 조회 |
+| `/sdd-sync` | 스펙-코드 동기화 검증 |
+| `/sdd-diff` | 스펙 변경사항 시각화 |
+| `/sdd-export` | 스펙 내보내기 (HTML, JSON) |
 
 ### 문서 생성
 
 | 커맨드 | 설명 |
 |--------|------|
-| `/sdd.research` | 기술 리서치 문서 |
-| `/sdd.data-model` | 데이터 모델 문서 |
-| `/sdd.guide` | 워크플로우 가이드 |
+| `/sdd-research` | 기술 리서치 문서 |
+| `/sdd-data-model` | 데이터 모델 문서 |
+| `/sdd-guide` | 워크플로우 가이드 |
 
 ### 운영
 
 | 커맨드 | 설명 |
 |--------|------|
-| `/sdd.chat` | 대화형 SDD 어시스턴트 |
-| `/sdd.watch` | 파일 감시 모드 |
-| `/sdd.migrate` | 외부 도구에서 마이그레이션 |
-| `/sdd.cicd` | CI/CD 설정 |
-| `/sdd.prompt` | 프롬프트 출력 |
+| `/sdd-chat` | 대화형 SDD 어시스턴트 |
+| `/sdd-watch` | 파일 감시 모드 |
+| `/sdd-migrate` | 외부 도구에서 마이그레이션 |
+| `/sdd-cicd` | CI/CD 설정 |
+| `/sdd-prompt` | 프롬프트 출력 |
 
 ---
 
 ## 워크플로우 상세
 
-### Step 1: /sdd.start
+### Step 1: /sdd-start
 
 프로젝트 상태를 분석하고 다음 작업을 안내합니다:
 
 ```
-/sdd.start
+/sdd-start
 ```
 
 - 신규 프로젝트: Constitution 작성 권장
 - 기존 프로젝트: 워크플로우 선택 메뉴 제공
 
-### Step 2: /sdd.constitution
+### Step 2: /sdd-constitution
 
 프로젝트의 핵심 원칙을 정의합니다:
 
 ```
-/sdd.constitution React 기반 할일 관리 앱
+/sdd-constitution React 기반 할일 관리 앱
 ```
 
 AI가 `.sdd/constitution.md`를 분석하고, 프로젝트 원칙 작성을 도와줍니다:
@@ -192,47 +185,47 @@ AI가 `.sdd/constitution.md`를 분석하고, 프로젝트 원칙 작성을 도�
 - 기술 원칙 (Technical Principles)
 - 금지 사항 (Forbidden)
 
-### Step 3: /sdd.spec
+### Step 3: /sdd-spec
 
 기능 명세를 AI와 함께 작성합니다:
 
 ```
-/sdd.spec 사용자 인증 기능
+/sdd-spec 사용자 인증 기능
 ```
 
 AI가 대화를 통해 다음을 생성합니다:
 - `spec.md` - 기능 명세 (RFC 2119 + GIVEN-WHEN-THEN)
 
-### Step 4: /sdd.plan
+### Step 4: /sdd-plan
 
 구현 계획을 수립합니다:
 
 ```
-/sdd.plan
+/sdd-plan
 ```
 
 - 기술 결정사항과 근거
 - 구현 단계(Phase) 정의
 - 리스크 분석 및 완화 전략
 
-### Step 5: /sdd.tasks
+### Step 5: /sdd-tasks
 
 작업을 실행 가능한 단위로 분해합니다:
 
 ```
-/sdd.tasks
+/sdd-tasks
 ```
 
 - 각 작업은 2-4시간 내 완료 가능한 크기
 - 작업 간 의존성 표시
 - 우선순위: HIGH(🔴), MEDIUM(🟡), LOW(🟢)
 
-### Step 6: /sdd.prepare
+### Step 6: /sdd-prepare
 
 구현에 필요한 Claude Code 도구를 점검합니다:
 
 ```
-/sdd.prepare
+/sdd-prepare
 ```
 
 **기능:**
@@ -260,12 +253,12 @@ sdd prepare user-auth --dry-run       # 미리보기
 sdd prepare user-auth --auto-approve  # 자동 생성
 ```
 
-### Step 7: /sdd.implement
+### Step 7: /sdd-implement
 
 작업 목록을 기반으로 순차적 구현:
 
 ```
-/sdd.implement
+/sdd-implement
 ```
 
 AI가 tasks.md를 읽고, TDD 방식으로 구현을 안내합니다:
@@ -274,12 +267,12 @@ AI가 tasks.md를 읽고, TDD 방식으로 구현을 안내합니다:
 3. 코드 구현
 4. 작업 상태를 "완료"로 변경
 
-### Step 8: /sdd.validate
+### Step 8: /sdd-validate
 
 명세 검증:
 
 ```
-/sdd.validate
+/sdd-validate
 ```
 
 - RFC 2119 키워드 사용 여부
@@ -288,12 +281,12 @@ AI가 tasks.md를 읽고, TDD 방식으로 구현을 안내합니다:
 
 ---
 
-## 대화형 모드: /sdd.chat
+## 대화형 모드: /sdd-chat
 
 자연어로 SDD 작업을 수행할 수 있습니다:
 
 ```
-/sdd.chat
+/sdd-chat
 ```
 
 예시 대화:
@@ -354,7 +347,7 @@ constitution_version: 1.0.0
 
 ## CLI 명령어
 
-슬래시 커맨드 외에 터미널에서 직접 사용할 수 있는 명령어들입니다.
+스킬 외에 터미널에서 직접 사용할 수 있는 명령어들입니다.
 
 ### 기본 명령어
 
@@ -363,7 +356,7 @@ sdd init                    # 프로젝트 초기화 (대화형 Git/CI-CD 설정
 sdd init --skip-git-setup   # Git/CI-CD 설정 건너뛰기
 sdd init --auto-approve     # 모든 설정 자동 승인
 sdd init --no-skills        # .claude/skills/ 생성 건너뛰기
-sdd init --no-commands      # .claude/commands/ 생성 건너뛰기
+sdd init --legacy-commands  # 레거시 .claude/commands/sdd.*.md도 함께 생성
 sdd validate                # 스펙 검증
 sdd status                  # 상태 확인
 sdd list                    # 목록 조회
@@ -444,7 +437,7 @@ sdd domain graph --format dot       # DOT 형식
 ```bash
 sdd context set auth                # 컨텍스트 설정
 sdd context set auth order          # 여러 도메인
-sdd context set auth --include-deps # 의존성 포함
+sdd context set auth # 의존성 기본 포함
 sdd context show                    # 현재 컨텍스트
 sdd context specs                   # 컨텍스트 내 스펙 목록
 sdd context clear                   # 컨텍스트 해제
@@ -506,28 +499,22 @@ your-project/
 │   ├── archive/            # 완료된 변경
 │   └── .reverse-drafts/    # 역추출 임시 스펙 (v1.2.0)
 │
+├── CLAUDE.md               # @.sdd/AGENTS.md로 에이전트 가이드를 import
+│
 └── .claude/
-    ├── commands/           # 슬래시 커맨드 — 한국어, 점 표기법 (sdd.start.md …)
-    │   ├── sdd.start.md
-    │   ├── sdd.new.md
-    │   └── ...
     ├── agents/             # 서브에이전트
     │   ├── test-runner.md
     │   └── api-scaffold.md
-    ├── skills/             # 스킬
-    │   ├── dev-implement/  # 개발 스킬 (v1.2.0)
-    │   │   └── SKILL.md
-    │   ├── dev-test/
-    │   │   └── SKILL.md
-    │   ├── sdd-start/      # SDD 워크플로우 스킬 — 영어, 케밥 케이스 (v1.6.0)
+    ├── skills/             # SDD 워크플로우 스킬 — 영어, 케밥 케이스
+    │   ├── sdd-start/
     │   │   └── SKILL.md
     │   ├── sdd-spec/
     │   │   └── SKILL.md
-    │   └── ...             # sdd-* 스킬 32개
+    │   └── ...             # sdd-* 스킬 30개
     └── settings.json       # 스킬 설정 (v1.2.0)
 ```
 
-> **스킬 2.0 (v1.6.0)**: `sdd init`이 `.claude/skills/sdd-*/SKILL.md`에 영어 스킬 2.0 정의 32개를 생성합니다. 한국어 슬래시 커맨드와 1:1로 대응되며, `context`, `allowed-tools`, `disable-model-invocation` 등 스킬 2.0 프론트매터를 포함합니다. v1.2.0에서 도입된 `dev-*` 스킬 6개는 변경 없이 유지됩니다.
+> **스킬**: `sdd init`이 `.claude/skills/sdd-*/SKILL.md`에 영어 스킬 30개를 생성하고, 루트 `CLAUDE.md`가 `@.sdd/AGENTS.md`를 import하도록 보장합니다 (없으면 생성, import 줄이 없으면 추가하며 기존 내용은 덮어쓰지 않음). 레거시 `.claude/commands/` 파일은 `--legacy-commands`를 사용할 때만 생성됩니다.
 
 ---
 

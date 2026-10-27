@@ -1,13 +1,14 @@
 /**
- * sdd-list skill definition — list specs with filtering by domain, status, or priority.
+ * sdd-list skill definition — list features, change proposals, spec files, or templates.
  */
 import type { SkillDefinition } from '../types.js';
 
 export const sddListSkill: SkillDefinition = {
   name: 'sdd-list',
-  description: 'List specs with filtering by domain, status, or priority',
+  description:
+    'List project items with `sdd list`: summary, features (filter by --status), change proposals (--pending/--archived), spec files, or templates. Use when the user asks which specs, features, or changes exist.',
+  argumentHint: '[features|changes|specs|templates] [--status <status>]',
   allowedTools: ['Read', 'Glob', 'Bash(sdd list*)'],
-  context: 'inline',
   content: `# SDD List
 
 ## Overview

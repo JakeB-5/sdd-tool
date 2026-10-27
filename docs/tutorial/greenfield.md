@@ -38,12 +38,12 @@ Created items:
   .sdd/changes/
   .sdd/archive/
   .sdd/templates/
-  .claude/commands/    <- Slash commands (32 total)
-  .claude/skills/      <- 6 dev-* skills + 32 sdd-* Skills 2.0
+  .claude/skills/      <- 30 sdd-* skills (invoked as /sdd-*)
   .sdd/constitution.md
   .sdd/AGENTS.md
+  CLAUDE.md            <- Imports @.sdd/AGENTS.md
 
-Next step: Run /sdd.start in Claude Code.
+Next step: Run /sdd-start in Claude Code.
 ```
 
 Generated structure:
@@ -57,18 +57,18 @@ todo-api/
 │   ├── changes/            # Change proposals
 │   ├── archive/            # Archive
 │   └── templates/          # Templates
+├── CLAUDE.md               # Imports @.sdd/AGENTS.md
 ├── .claude/
-│   ├── commands/           # Slash commands (32, dot-notation)
-│   └── skills/             # 6 dev-* skills + 32 sdd-* Skills 2.0
+│   └── skills/             # 30 sdd-* skills
 └── package.json
 ```
 
 ### Start in Claude Code
 
-Now open the project in Claude Code and run `/sdd.start`:
+Now open the project in Claude Code and run `/sdd-start`:
 
 ```
-/sdd.start
+/sdd-start
 ```
 
 ```
@@ -78,13 +78,13 @@ SDD Initialized
 Constitution: Template (modification needed)
 Specs: 0
 
-Next step: Define project principles with /sdd.constitution.
+Next step: Define project principles with /sdd-constitution.
 ```
 
 ## Step 2: Define Project Constitution
 
 ```
-/sdd.constitution
+/sdd-constitution
 ```
 
 Claude will interactively establish project principles:
@@ -120,7 +120,7 @@ Constitution saved: .sdd/constitution.md
 Design the main domains for the todo API:
 
 ```
-/sdd.domain
+/sdd-domain
 ```
 
 Design domains through conversation with Claude:
@@ -165,7 +165,7 @@ domains.yml has been updated.
 ### Create New Spec
 
 ```
-/sdd.spec Create todo functionality
+/sdd-spec Create todo functionality
 ```
 
 Claude will interactively write the spec:
@@ -236,8 +236,8 @@ Status: draft
 Domain: todo
 
 Next steps:
-- Write additional specs with /sdd.spec
-- Create implementation plan with /sdd.plan
+- Write additional specs with /sdd-spec
+- Create implementation plan with /sdd-plan
 ```
 
 ## Step 5: Add Related Specs
@@ -245,14 +245,14 @@ Next steps:
 Write the remaining specs:
 
 ```
-/sdd.spec Input validation utility
+/sdd-spec Input validation utility
 ```
 
 ```
-/sdd.spec Get todo
-/sdd.spec Update todo
-/sdd.spec Delete todo
-/sdd.spec List todos
+/sdd-spec Get todo
+/sdd-spec Update todo
+/sdd-spec Delete todo
+/sdd-spec List todos
 ```
 
 For each spec, define scenarios and contracts through conversation with Claude.
@@ -260,7 +260,7 @@ For each spec, define scenarios and contracts through conversation with Claude.
 ## Step 6: Validate Specs
 
 ```
-/sdd.validate
+/sdd-validate
 ```
 
 ```
@@ -286,7 +286,7 @@ Dependency graph:
 ## Step 7: Implementation Plan
 
 ```
-/sdd.plan create-todo
+/sdd-plan create-todo
 ```
 
 Claude will write the implementation plan:
@@ -330,7 +330,7 @@ Save this plan? [Y/n]
 ## Step 8: Task Breakdown
 
 ```
-/sdd.tasks create-todo
+/sdd-tasks create-todo
 ```
 
 ```
@@ -370,7 +370,7 @@ Total estimated time: 1 hour 30 minutes
 ## Step 9: Implementation
 
 ```
-/sdd.implement create-todo
+/sdd-implement create-todo
 ```
 
 Claude will implement using TDD methodology:
@@ -447,8 +447,8 @@ Files:
 Spec status: draft -> implemented
 
 Next tasks:
-- Implement other specs with /sdd.implement
-- Ask "What should I implement next?" -> Claude will recommend using dev-next skill
+- Implement other specs with /sdd-implement
+- Ask "What should I implement next?" -> Claude will recommend the next spec based on status and dependencies
 ```
 
 ## Step 10: Iteration
@@ -459,7 +459,7 @@ Implement remaining specs the same way:
 What should I implement next?
 ```
 
-Claude automatically uses the `dev-next` skill:
+Claude checks spec status and dependencies:
 
 ```
 Next Implementation Recommendation
@@ -482,7 +482,7 @@ Say "Implement validation" to proceed.
 ## Check Progress
 
 ```
-/sdd.status
+/sdd-status
 ```
 
 ```
@@ -506,7 +506,7 @@ Next step:
 ## Check Domain Graph
 
 ```
-/sdd.domain graph
+/sdd-domain graph
 ```
 
 ```mermaid
@@ -536,11 +536,11 @@ graph LR
 ## Summary
 
 1. Initialize project with `sdd init` (CLI)
-2. Check project status with `/sdd.start` (Claude Code)
-3. Define principles with `/sdd.constitution`
-4. Design domains with `/sdd.domain`
-5. Write specs with `/sdd.spec`
-6. Validate with `/sdd.validate`
-7. Plan with `/sdd.plan`, `/sdd.tasks`
-8. Implement with TDD using `/sdd.implement`
-9. Track progress with `/sdd.status`
+2. Check project status with `/sdd-start` (Claude Code)
+3. Define principles with `/sdd-constitution`
+4. Design domains with `/sdd-domain`
+5. Write specs with `/sdd-spec`
+6. Validate with `/sdd-validate`
+7. Plan with `/sdd-plan`, `/sdd-tasks`
+8. Implement with TDD using `/sdd-implement`
+9. Track progress with `/sdd-status`

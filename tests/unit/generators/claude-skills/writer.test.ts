@@ -48,6 +48,12 @@ describe('serializeSkill', () => {
     expect(data).not.toHaveProperty('allowed-tools');
   });
 
+  it('emits argument-hint when set', () => {
+    const out = serializeSkill({ ...minimal(), argumentHint: '<feature-id>' });
+    const { data } = matter(out);
+    expect(data['argument-hint']).toBe('<feature-id>');
+  });
+
   it('emits context when set', () => {
     const out = serializeSkill({ ...minimal(), context: 'fork' });
     const { data } = matter(out);

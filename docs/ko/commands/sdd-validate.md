@@ -1,11 +1,11 @@
-# /sdd.validate
+# /sdd-validate
 
 명세가 올바르게 작성되었는지 검증합니다.
 
 ## 사용법
 
 ```
-/sdd.validate [feature-id]
+/sdd-validate [feature-id]
 ```
 
 ## 인수
@@ -36,7 +36,7 @@
 ## 예시
 
 ```
-/sdd.validate
+/sdd-validate
 
 AI: 전체 스펙을 검증합니다.
 
@@ -62,7 +62,7 @@ AI: 전체 스펙을 검증합니다.
 일부 문제는 자동 수정 가능:
 
 ```
-/sdd.validate --fix
+/sdd-validate --fix
 
 AI: 자동 수정 가능한 문제:
     - profile/spec.md: SHOULD 키워드 추가

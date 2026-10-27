@@ -27,7 +27,7 @@ sdd impact $ARGUMENTS
 
 - \`report\`: 전체 프로젝트 영향도 리포트
 - \`change <id>\`: 변경 제안의 영향도
-- \`simulate --remove <spec>\`: What-if 시뮬레이션
+- \`simulate <feature> <proposal>\`: 변경 제안 적용 시 영향도 시뮬레이션
 
 영향받는 스펙과 코드를 분석하고 변경 전략을 제안해주세요.
 `,

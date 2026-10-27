@@ -18,6 +18,9 @@ function buildFrontmatter(skill: SkillDefinition): SkillFrontmatter {
     description: skill.description,
   };
 
+  if (skill.argumentHint) {
+    fm['argument-hint'] = skill.argumentHint;
+  }
   if (skill.allowedTools && skill.allowedTools.length > 0) {
     fm['allowed-tools'] = skill.allowedTools;
   }

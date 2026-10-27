@@ -14,7 +14,9 @@ import {
   TASKS_PROMPT,
   getPrompt,
   getAvailableCommands,
+  PROMPT_TARGETS,
 } from '../../../src/prompts/index.js';
+import { generateClaudeSkills } from '../../../src/generators/claude-skills.js';
 
 describe('FORMAT_GUIDE', () => {
   it('RFC 2119 키워드를 포함한다', () => {
@@ -67,7 +69,7 @@ describe('APPLY_PROMPT', () => {
   });
 
   it('다음 단계 안내를 포함한다', () => {
-    expect(APPLY_PROMPT).toContain('/sdd:archive');
+    expect(APPLY_PROMPT).toContain('sdd change archive <id>');
   });
 });
 
@@ -196,5 +198,31 @@ describe('getAvailableCommands', () => {
     expect(commands).toContain('plan');
     expect(commands).toContain('tasks');
     expect(commands).toHaveLength(8);
+  });
+});
+
+describe('PROMPT_TARGETS', () => {
+  const skillNames = new Set(generateClaudeSkills().map((s) => s.name));
+
+  it('모든 프롬프트에 관련 스킬/명령어가 있다', () => {
+    for (const name of getAvailableCommands()) {
+      expect(PROMPT_TARGETS[name]).toBeDefined();
+    }
+  });
+
+  it('스킬 대상은 실제로 생성되는 스킬이다', () => {
+    for (const target of Object.values(PROMPT_TARGETS)) {
+      if (target.startsWith('/')) {
+        expect(skillNames.has(target.slice(1))).toBe(true);
+      } else {
+        expect(target.startsWith('sdd ')).toBe(true);
+      }
+    }
+  });
+
+  it('프롬프트 본문에 존재하지 않는 /sdd: 커맨드를 안내하지 않는다', () => {
+    for (const name of getAvailableCommands()) {
+      expect(getPrompt(name)).not.toContain('/sdd:');
+    }
   });
 });

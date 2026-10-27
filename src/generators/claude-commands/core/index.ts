@@ -3,7 +3,6 @@
  */
 export { startCommand } from './start.js';
 export { specCommand } from './spec.js';
-export { newCommand } from './new.js';
 export { planCommand } from './plan.js';
 export { tasksCommand } from './tasks.js';
 export { implementCommand } from './implement.js';

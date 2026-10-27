@@ -5,9 +5,10 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddValidateSkill: SkillDefinition = {
   name: 'sdd-validate',
-  description: 'Validate spec files against RFC 2119 and GIVEN-WHEN-THEN format rules',
+  description:
+    'Validate specs with `sdd validate` (RFC 2119 keywords, GIVEN-WHEN-THEN scenarios, frontmatter) and fix reported errors. Use after writing or changing specs, or when the user asks to check spec format.',
+  argumentHint: '[path] [--strict]',
   allowedTools: ['Read', 'Glob', 'Bash(sdd validate*)'],
-  context: 'inline',
   content: `# SDD Validate
 
 ## Instructions

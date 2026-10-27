@@ -5,9 +5,10 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddTasksSkill: SkillDefinition = {
   name: 'sdd-tasks',
-  description: 'Break an implementation plan into actionable tasks with priorities and dependencies',
-  allowedTools: ['Read', 'Write', 'Edit'],
-  context: 'inline',
+  description:
+    'Break a plan.md into actionable tasks.md entries with priorities, dependencies, and acceptance criteria. Use when a plan exists and the user wants a task breakdown before implementing.',
+  argumentHint: '<feature-id>',
+  allowedTools: ['Read', 'Write', 'Edit', 'Bash(sdd new tasks*)'],
   content: `# SDD Tasks
 
 ## Instructions

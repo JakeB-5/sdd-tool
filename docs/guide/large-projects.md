@@ -87,7 +87,7 @@ sdd list  # Shows only auth specs
 
 ```bash
 # Load related domains together
-sdd context set order payment --include-deps
+sdd context set order payment
 ```
 
 ### Full Review

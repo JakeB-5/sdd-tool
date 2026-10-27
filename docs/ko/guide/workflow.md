@@ -9,42 +9,42 @@ SDD Tool의 전체 워크플로우를 이해합니다.
 │                    SDD 워크플로우                             │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  1. /sdd.start        → 워크플로우 시작                      │
+│  1. /sdd-start        → 워크플로우 시작                      │
 │     │                                                       │
 │     ▼                                                       │
-│  2. /sdd.constitution → 프로젝트 원칙 정의                   │
+│  2. /sdd-constitution → 프로젝트 원칙 정의                   │
 │     │                                                       │
 │     ▼                                                       │
-│  3. /sdd.spec         → 기능 명세 작성/수정 (spec.md)        │
+│  3. /sdd-spec         → 기능 명세 작성/수정 (spec.md)        │
 │     │                                                       │
 │     ▼                                                       │
-│  4. /sdd.plan         → 구현 계획 수립 (plan.md)             │
+│  4. /sdd-plan         → 구현 계획 수립 (plan.md)             │
 │     │                                                       │
 │     ▼                                                       │
-│  5. /sdd.tasks        → 작업 분해 (tasks.md)                 │
+│  5. /sdd-tasks        → 작업 분해 (tasks.md)                 │
 │     │                                                       │
 │     ▼                                                       │
-│  6. /sdd.prepare      → 서브에이전트/스킬 점검                │
+│  6. /sdd-prepare      → 서브에이전트/스킬 점검                │
 │     │                                                       │
 │     ▼                                                       │
-│  7. /sdd.implement    → 순차적 구현                          │
+│  7. /sdd-implement    → 순차적 구현                          │
 │     │                                                       │
 │     ▼                                                       │
-│  8. /sdd.validate     → 명세 검증                            │
+│  8. /sdd-validate     → 명세 검증                            │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## 각 단계 상세
 
-### 1. /sdd.start
+### 1. /sdd-start
 
 프로젝트 상태를 분석하고 다음 작업을 안내합니다.
 
 - **신규 프로젝트**: Constitution 작성 권장
 - **기존 프로젝트**: 워크플로우 선택 메뉴 제공
 
-### 2. /sdd.constitution
+### 2. /sdd-constitution
 
 프로젝트의 핵심 원칙을 정의합니다.
 
@@ -52,7 +52,7 @@ SDD Tool의 전체 워크플로우를 이해합니다.
 - 기술 원칙 (Technical Principles)
 - 금지 사항 (Forbidden)
 
-### 3. /sdd.spec
+### 3. /sdd-spec
 
 기능 명세를 AI와 함께 작성하거나 수정합니다.
 
@@ -60,7 +60,7 @@ SDD Tool의 전체 워크플로우를 이해합니다.
 - RFC 2119 키워드 사용
 - GIVEN-WHEN-THEN 시나리오
 
-### 4. /sdd.plan
+### 4. /sdd-plan
 
 구현 계획을 수립합니다.
 
@@ -68,7 +68,7 @@ SDD Tool의 전체 워크플로우를 이해합니다.
 - 구현 단계(Phase) 정의
 - 리스크 분석
 
-### 5. /sdd.tasks
+### 5. /sdd-tasks
 
 작업을 실행 가능한 단위로 분해합니다.
 
@@ -76,7 +76,7 @@ SDD Tool의 전체 워크플로우를 이해합니다.
 - 작업 간 의존성 표시
 - 우선순위 설정
 
-### 6. /sdd.prepare
+### 6. /sdd-prepare
 
 구현에 필요한 도구를 점검합니다.
 
@@ -84,7 +84,7 @@ SDD Tool의 전체 워크플로우를 이해합니다.
 - 스킬 확인
 - 누락된 도구 자동 생성
 
-### 7. /sdd.implement
+### 7. /sdd-implement
 
 TDD 방식으로 순차적 구현합니다.
 
@@ -93,7 +93,7 @@ TDD 방식으로 순차적 구현합니다.
 3. 코드 구현
 4. 작업 상태를 "완료"로 변경
 
-### 8. /sdd.validate
+### 8. /sdd-validate
 
 명세 검증을 수행합니다.
 
@@ -106,11 +106,11 @@ TDD 방식으로 순차적 구현합니다.
 기존 기능을 수정할 때:
 
 ```
-/sdd.spec     → 스펙 수정 (기존 스펙 자동 감지)
+/sdd-spec     → 스펙 수정 (기존 스펙 자동 감지)
     ↓
-/sdd.impact   → 영향도 분석
+/sdd-impact   → 영향도 분석
     ↓
-/sdd.apply    → 변경 적용
+/sdd-apply    → 변경 적용
 ```
 
 ## 파일 구조

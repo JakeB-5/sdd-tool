@@ -3,6 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { generateAgentsMd, validateAgentsMdFormat } from '../../../src/generators/agents-md.js';
+import { generateClaudeSkills } from '../../../src/generators/claude-skills.js';
 
 describe('generateAgentsMd', () => {
   it('프로젝트 이름을 포함한다', () => {
@@ -60,12 +61,39 @@ describe('generateAgentsMd', () => {
     expect(result).toContain('변경 워크플로우');
   });
 
-  it('슬래시 커맨드 목록을 포함한다', () => {
+  it('생성되는 스킬 이름과 실제 CLI 명령어를 안내한다', () => {
     const result = generateAgentsMd({ projectName: 'test' });
 
-    expect(result).toContain('/sdd.new');
-    expect(result).toContain('/sdd.plan');
-    expect(result).toContain('/sdd.validate');
+    expect(result).toContain('/sdd-spec');
+    expect(result).toContain('/sdd-plan');
+    expect(result).toContain('/sdd-validate');
+    expect(result).toContain('sdd change apply <id>');
+    expect(result).toContain('sdd change archive <id>');
+  });
+
+  it('존재하지 않는 dot 표기 커맨드를 안내하지 않는다', () => {
+    const result = generateAgentsMd({ projectName: 'test' });
+
+    expect(result).not.toMatch(/\/sdd\.[a-z]/);
+    expect(result).not.toContain('/sdd-new');
+    expect(result).not.toContain('/sdd-change');
+  });
+
+  it('스킬 이름은 모두 실제로 생성되는 스킬이다', () => {
+    const result = generateAgentsMd({ projectName: 'test' });
+    const skillNames = new Set(generateClaudeSkills().map((s) => s.name));
+    const referenced = [...result.matchAll(/`\/(sdd-[a-z-]+)/g)].map((m) => m[1]);
+
+    expect(referenced.length).toBeGreaterThan(0);
+    for (const name of referenced) {
+      expect(skillNames.has(name)).toBe(true);
+    }
+  });
+
+  it('domains.yml은 선택 항목으로 안내한다', () => {
+    const result = generateAgentsMd({ projectName: 'test' });
+
+    expect(result).toContain('domains.yml        # 도메인 정의 (선택, sdd init --with-domains)');
   });
 });
 

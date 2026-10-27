@@ -19,7 +19,7 @@ features:
     details: 코드 작성 전 명세를 작성하여 요구사항을 명확히 합니다
   - icon: 🤖
     title: AI 협업
-    details: Claude Code 슬래시 커맨드로 워크플로우를 자동화합니다
+    details: Claude Code 스킬로 워크플로우를 자동화합니다
   - icon: ✅
     title: RFC 2119
     details: SHALL, MUST, SHOULD, MAY로 요구사항을 명확하게 정의합니다
@@ -30,8 +30,8 @@ features:
     title: 헌법(Constitution)
     details: 프로젝트의 핵심 원칙을 정의하고 일관성을 유지합니다
   - icon: 🚀
-    title: 32개 슬래시 커맨드 & 스킬 2.0
-    details: 완전한 SDD 워크플로우를 위한 32개 슬래시 커맨드와 32개 sdd-* 스킬 2.0 제공
+    title: 30개 스킬 (슬래시 커맨드)
+    details: 완전한 SDD 워크플로우를 위한 30개 sdd-* 스킬 제공 (/sdd-start, /sdd-spec, ...)
 ---
 
 ## 빠른 시작
@@ -40,14 +40,14 @@ features:
 # 설치
 npm install -g sdd-tool
 
-# 프로젝트 초기화 (슬래시 커맨드 + 스킬 2.0 생성)
+# 프로젝트 초기화 (스킬 생성)
 sdd init
 
 # Claude Code에서 워크플로우 시작
-/sdd.start
+/sdd-start
 ```
 
-`sdd init`은 32개의 슬래시 커맨드(`.claude/commands/`)와 32개의 sdd-* 스킬 2.0(`.claude/skills/sdd-*/`)을 함께 생성합니다. 각 `sdd.foo` 슬래시 커맨드는 대응하는 `sdd-foo` 스킬 2.0을 가집니다.
+`sdd init`은 30개의 sdd-* 스킬(`.claude/skills/sdd-*/`)을 생성하며, Claude Code는 각 스킬을 `/sdd-*` 슬래시 커맨드로 노출합니다. 레거시 `.claude/commands/` 파일은 `sdd init --legacy-commands`를 사용할 때만 생성됩니다.
 
 ## 왜 SDD인가?
 

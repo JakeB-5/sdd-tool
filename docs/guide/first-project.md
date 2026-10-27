@@ -22,7 +22,7 @@ claude
 Define the core principles of your project:
 
 ```
-/sdd.constitution React-based todo management app
+/sdd-constitution React-based todo management app
 ```
 
 The AI will help you write the project principles through conversation.
@@ -47,7 +47,7 @@ The AI will help you write the project principles through conversation.
 ## 4. Write Feature Spec
 
 ```
-/sdd.spec Add todo feature
+/sdd-spec Add todo feature
 ```
 
 The AI will help you write the spec through conversation.
@@ -80,7 +80,7 @@ status: draft
 ## 5. Implementation Plan
 
 ```
-/sdd.plan
+/sdd-plan
 ```
 
 The AI will create a technical implementation plan.
@@ -88,7 +88,7 @@ The AI will create a technical implementation plan.
 ## 6. Task Breakdown
 
 ```
-/sdd.tasks
+/sdd-tasks
 ```
 
 The AI will break down the work into executable task units.
@@ -96,7 +96,7 @@ The AI will break down the work into executable task units.
 ## 7. Tool Check
 
 ```
-/sdd.prepare
+/sdd-prepare
 ```
 
 Verify and create necessary subagents and skills.
@@ -104,7 +104,7 @@ Verify and create necessary subagents and skills.
 ## 8. Implementation
 
 ```
-/sdd.implement
+/sdd-implement
 ```
 
 The AI guides sequential TDD-style implementation:
@@ -117,7 +117,7 @@ The AI guides sequential TDD-style implementation:
 ## 9. Validation
 
 ```
-/sdd.validate
+/sdd-validate
 ```
 
 Validate that the spec is correctly written.

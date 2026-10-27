@@ -5,9 +5,9 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddConstitutionSkill: SkillDefinition = {
   name: 'sdd-constitution',
-  description: 'Create or edit the project constitution — core principles, technical standards, forbidden practices',
-  allowedTools: ['Read', 'Write', 'Edit'],
-  context: 'inline',
+  description:
+    'Create or edit .sdd/constitution.md (core principles, tech standards, forbidden practices) and bump its version. Use when the user wants to define or change project-wide principles or rules.',
+  allowedTools: ['Read', 'Write', 'Edit', 'Bash(sdd constitution*)'],
   content: `# SDD Constitution
 
 ## Overview

@@ -33,40 +33,49 @@ import { registerCacheCommand } from './commands/cache.js';
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
 
-const program = new Command();
+/**
+ * 모든 명령어가 등록된 commander 프로그램 생성 (부수 효과 없음, 테스트 가능)
+ */
+export function createProgram(): Command {
+  const program = new Command();
 
-program
-  .name('sdd')
-  .description(pkg.description)
-  .version(pkg.version);
+  program
+    .name('sdd')
+    .description(pkg.description)
+    .version(pkg.version);
 
-// Commands
-registerInitCommand(program);
-registerValidateCommand(program);
-registerPromptCommand(program);
-registerChangeCommand(program);
-registerImpactCommand(program);
-registerNewCommand(program);
-registerStatusCommand(program);
-registerListCommand(program);
-registerConstitutionCommand(program);
-registerStartCommand(program);
-registerMigrateCommand(program);
-registerCicdCommand(program);
-registerTransitionCommand(program);
-registerWatchCommand(program);
-registerQualityCommand(program);
-registerReportCommand(program);
-registerSearchCommand(program);
-registerPrepareCommand(program);
-registerSyncCommand(program);
-registerDiffCommand(program);
-registerExportCommand(program);
-registerGitCommand(program);
-registerDomainCommand(program);
-registerContextCommand(program);
-registerReverseCommand(program);
-registerCacheCommand(program);
+  // Commands
+  registerInitCommand(program);
+  registerValidateCommand(program);
+  registerPromptCommand(program);
+  registerChangeCommand(program);
+  registerImpactCommand(program);
+  registerNewCommand(program);
+  registerStatusCommand(program);
+  registerListCommand(program);
+  registerConstitutionCommand(program);
+  registerStartCommand(program);
+  registerMigrateCommand(program);
+  registerCicdCommand(program);
+  registerTransitionCommand(program);
+  registerWatchCommand(program);
+  registerQualityCommand(program);
+  registerReportCommand(program);
+  registerSearchCommand(program);
+  registerPrepareCommand(program);
+  registerSyncCommand(program);
+  registerDiffCommand(program);
+  registerExportCommand(program);
+  registerGitCommand(program);
+  registerDomainCommand(program);
+  registerContextCommand(program);
+  registerReverseCommand(program);
+  registerCacheCommand(program);
+
+  return program;
+}
+
+const program = createProgram();
 
 /**
  * CLI 실행

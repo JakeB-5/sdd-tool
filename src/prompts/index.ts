@@ -33,9 +33,9 @@ export const FORMAT_GUIDE = `## 형식 규칙 (필수)
 `;
 
 /**
- * /sdd:change 프롬프트
+ * change 프롬프트 (관련 스킬: /sdd-spec)
  */
-export const CHANGE_PROMPT = `# /sdd:change - 변경 제안
+export const CHANGE_PROMPT = `# /sdd-spec - 변경 제안
 
 > 기존 스펙에 대한 변경을 제안합니다.
 
@@ -110,9 +110,9 @@ created: {TODAY}
 `;
 
 /**
- * /sdd:apply 프롬프트
+ * apply 프롬프트 (관련 CLI: sdd change apply)
  */
-export const APPLY_PROMPT = `# /sdd:apply - 변경 적용
+export const APPLY_PROMPT = `# sdd change apply - 변경 적용
 
 > 승인된 변경 제안을 스펙에 적용합니다.
 
@@ -141,13 +141,13 @@ export const APPLY_PROMPT = `# /sdd:apply - 변경 적용
 
 - [ ] \`sdd validate\` 실행하여 모든 스펙 검증
 - [ ] 변경된 스펙 파일 목록 확인
-- [ ] 다음 단계: \`/sdd:archive\` 실행
+- [ ] 다음 단계: \`sdd change archive <id>\` 실행
 `;
 
 /**
- * /sdd:archive 프롬프트
+ * archive 프롬프트 (관련 CLI: sdd change archive)
  */
-export const ARCHIVE_PROMPT = `# /sdd:archive - 변경 아카이브
+export const ARCHIVE_PROMPT = `# sdd change archive - 변경 아카이브
 
 > 완료된 변경 제안을 아카이브합니다.
 
@@ -177,9 +177,9 @@ export const ARCHIVE_PROMPT = `# /sdd:archive - 변경 아카이브
 `;
 
 /**
- * /sdd:impact 프롬프트
+ * impact 프롬프트 (관련 스킬: /sdd-impact)
  */
-export const IMPACT_PROMPT = `# /sdd:impact - 영향도 분석
+export const IMPACT_PROMPT = `# /sdd-impact - 영향도 분석
 
 > 스펙 변경 시 관련 스펙 및 코드에 미치는 영향을 분석합니다.
 
@@ -242,9 +242,9 @@ sdd impact <feature-name> --json
 `;
 
 /**
- * /sdd:new 프롬프트
+ * new 프롬프트 (관련 스킬: /sdd-spec)
  */
-export const NEW_PROMPT = `# /sdd:new - 신규 기능 명세
+export const NEW_PROMPT = `# /sdd-spec - 신규 기능 명세
 
 > 새로운 기능의 명세를 작성합니다.
 
@@ -339,13 +339,13 @@ sdd new <feature-name> --no-branch
 - [ ] \`sdd validate .sdd/specs/<domain>/{FEATURE_ID}/spec.md\` 실행 (도메인 미지정 시 \`common\`)
 - [ ] RFC 2119 키워드 사용 확인
 - [ ] GIVEN-WHEN-THEN 시나리오 포함 확인
-- [ ] 다음 단계: \`/sdd:plan\` 실행
+- [ ] 다음 단계: \`/sdd-plan\` 실행
 `;
 
 /**
- * /sdd:plan 프롬프트
+ * plan 프롬프트 (관련 스킬: /sdd-plan)
  */
-export const PLAN_PROMPT = `# /sdd:plan - 구현 계획
+export const PLAN_PROMPT = `# /sdd-plan - 구현 계획
 
 > 기능 명세에 대한 구현 계획을 작성합니다.
 
@@ -442,13 +442,13 @@ sdd new plan <feature-id> --title "구현 계획"
 - [ ] 기술 결정 근거 확인
 - [ ] 구현 단계 정의
 - [ ] 리스크 분석 완료
-- [ ] 다음 단계: \`/sdd:tasks\` 실행
+- [ ] 다음 단계: \`/sdd-tasks\` 실행
 `;
 
 /**
- * /sdd:tasks 프롬프트
+ * tasks 프롬프트 (관련 스킬: /sdd-tasks)
  */
-export const TASKS_PROMPT = `# /sdd:tasks - 작업 분해
+export const TASKS_PROMPT = `# /sdd-tasks - 작업 분해
 
 > 구현 계획을 실행 가능한 작업으로 분해합니다.
 
@@ -532,13 +532,13 @@ sdd new tasks <feature-id>
 
 1. 첫 번째 작업부터 순차적으로 진행
 2. 각 작업 완료 후 상태 업데이트
-3. 모든 작업 완료 시 \`/sdd:archive\` 실행
+3. 변경 제안의 작업이 모두 완료되면 \`sdd change archive <id>\` 실행
 `;
 
 /**
- * /sdd:validate 프롬프트
+ * validate 프롬프트 (관련 스킬: /sdd-validate)
  */
-export const VALIDATE_PROMPT = `# /sdd:validate - 스펙 검증
+export const VALIDATE_PROMPT = `# /sdd-validate - 스펙 검증
 
 > 스펙 파일의 형식과 내용을 검증합니다.
 
@@ -608,6 +608,20 @@ export const PROMPTS: Record<string, string> = {
   new: NEW_PROMPT,
   plan: PLAN_PROMPT,
   tasks: TASKS_PROMPT,
+};
+
+/**
+ * 프롬프트별 관련 Claude Code 스킬 또는 CLI 명령어
+ */
+export const PROMPT_TARGETS: Record<string, string> = {
+  change: '/sdd-spec',
+  apply: 'sdd change apply <id>',
+  archive: 'sdd change archive <id>',
+  impact: '/sdd-impact',
+  validate: '/sdd-validate',
+  new: '/sdd-spec',
+  plan: '/sdd-plan',
+  tasks: '/sdd-tasks',
 };
 
 /**

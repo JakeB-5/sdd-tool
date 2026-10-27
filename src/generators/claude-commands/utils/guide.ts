@@ -32,7 +32,7 @@ SDD(Spec-Driven Development) 방법론의 전체 워크플로우를 안내합니
 │  2. Constitution ─> /sdd.constitution          │
 │     │              (프로젝트 원칙 정의)           │
 │     ▼                                           │
-│  3. 새 기능 ────> /sdd.new                      │
+│  3. 새 기능 ────> /sdd.spec                     │
 │     │            (spec.md 작성)                 │
 │     ▼                                           │
 │  4. 계획 ─────> /sdd.plan                       │
@@ -57,7 +57,7 @@ SDD(Spec-Driven Development) 방법론의 전체 워크플로우를 안내합니
 기존 스펙을 수정할 때:
 
 \`\`\`
-1. /sdd.change ──> proposal.md 작성
+1. /sdd.spec (큰 변경) ──> proposal.md + delta.md 작성
        │
        ▼
 2. sdd change validate <id> ──> 검증
@@ -74,12 +74,11 @@ SDD(Spec-Driven Development) 방법론의 전체 워크플로우를 안내합니
 | 커맨드 | 설명 | 사용 시점 |
 |--------|------|----------|
 | /sdd.start | 통합 진입점 | 처음 시작 시 |
-| /sdd.new | 새 기능 명세 | 새 기능 개발 시 |
+| /sdd.spec | 명세 작성/수정 | 새 기능 개발 또는 스펙 수정 시 |
 | /sdd.plan | 구현 계획 | 명세 완료 후 |
 | /sdd.tasks | 작업 분해 | 계획 완료 후 |
 | /sdd.implement | 구현 | 작업 분해 후 |
 | /sdd.validate | 검증 | 구현 완료 후 |
-| /sdd.change | 변경 제안 | 기존 스펙 수정 시 |
 | /sdd.constitution | 헌법 관리 | 프로젝트 설정 시 |
 | /sdd.chat | 대화형 모드 | 언제든지 |
 | /sdd.analyze | 요청 분석 | 규모 판단 시 |

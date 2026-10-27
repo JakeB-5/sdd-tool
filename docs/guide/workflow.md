@@ -9,42 +9,42 @@ Understand the complete SDD Tool workflow.
 │                      SDD Workflow                           │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  1. /sdd.start        → Start workflow                      │
+│  1. /sdd-start        → Start workflow                      │
 │     │                                                       │
 │     ▼                                                       │
-│  2. /sdd.constitution → Define project principles           │
+│  2. /sdd-constitution → Define project principles           │
 │     │                                                       │
 │     ▼                                                       │
-│  3. /sdd.spec         → Write/modify feature spec (spec.md) │
+│  3. /sdd-spec         → Write/modify feature spec (spec.md) │
 │     │                                                       │
 │     ▼                                                       │
-│  4. /sdd.plan         → Create implementation plan (plan.md)│
+│  4. /sdd-plan         → Create implementation plan (plan.md)│
 │     │                                                       │
 │     ▼                                                       │
-│  5. /sdd.tasks        → Task breakdown (tasks.md)           │
+│  5. /sdd-tasks        → Task breakdown (tasks.md)           │
 │     │                                                       │
 │     ▼                                                       │
-│  6. /sdd.prepare      → Check subagents/skills              │
+│  6. /sdd-prepare      → Check subagents/skills              │
 │     │                                                       │
 │     ▼                                                       │
-│  7. /sdd.implement    → Sequential implementation           │
+│  7. /sdd-implement    → Sequential implementation           │
 │     │                                                       │
 │     ▼                                                       │
-│  8. /sdd.validate     → Spec validation                     │
+│  8. /sdd-validate     → Spec validation                     │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## Step Details
 
-### 1. /sdd.start
+### 1. /sdd-start
 
 Analyzes project status and guides the next action.
 
 - **New project**: Recommends Constitution creation
 - **Existing project**: Provides workflow selection menu
 
-### 2. /sdd.constitution
+### 2. /sdd-constitution
 
 Defines the core principles of your project.
 
@@ -52,7 +52,7 @@ Defines the core principles of your project.
 - Technical Principles
 - Forbidden
 
-### 3. /sdd.spec
+### 3. /sdd-spec
 
 Write or modify feature specs with AI assistance.
 
@@ -60,7 +60,7 @@ Write or modify feature specs with AI assistance.
 - Uses RFC 2119 keywords
 - GIVEN-WHEN-THEN scenarios
 
-### 4. /sdd.plan
+### 4. /sdd-plan
 
 Create an implementation plan.
 
@@ -68,7 +68,7 @@ Create an implementation plan.
 - Implementation phases definition
 - Risk analysis
 
-### 5. /sdd.tasks
+### 5. /sdd-tasks
 
 Break down work into executable units.
 
@@ -76,7 +76,7 @@ Break down work into executable units.
 - Task dependencies indicated
 - Priority settings
 
-### 6. /sdd.prepare
+### 6. /sdd-prepare
 
 Check required implementation tools.
 
@@ -84,7 +84,7 @@ Check required implementation tools.
 - Verify skills
 - Auto-generate missing tools
 
-### 7. /sdd.implement
+### 7. /sdd-implement
 
 TDD-style sequential implementation.
 
@@ -93,7 +93,7 @@ TDD-style sequential implementation.
 3. Implement code
 4. Change task status to "complete"
 
-### 8. /sdd.validate
+### 8. /sdd-validate
 
 Perform spec validation.
 
@@ -106,11 +106,11 @@ Perform spec validation.
 When modifying existing features:
 
 ```
-/sdd.spec     → Modify spec (auto-detects existing spec)
+/sdd-spec     → Modify spec (auto-detects existing spec)
     ↓
-/sdd.impact   → Impact analysis
+/sdd-impact   → Impact analysis
     ↓
-/sdd.apply    → Apply changes
+/sdd-apply    → Apply changes
 ```
 
 ## File Structure

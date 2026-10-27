@@ -1,11 +1,11 @@
-# /sdd.plan
+# /sdd-plan
 
 구현 계획을 수립합니다.
 
 ## 사용법
 
 ```
-/sdd.plan [feature-id]
+/sdd-plan [feature-id]
 ```
 
 ## 인수
@@ -32,7 +32,7 @@ AI가 기술적 구현 계획을 수립합니다:
 ## 예시
 
 ```
-/sdd.plan user-auth
+/sdd-plan user-auth
 
 AI: user-auth 스펙을 분석하여 구현 계획을 수립합니다.
 
@@ -87,5 +87,5 @@ created: 2025-12-24
 계획 수립 후:
 
 ```
-/sdd.tasks  → 작업 분해
+/sdd-tasks  → 작업 분해
 ```

@@ -5,9 +5,10 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddDataModelSkill: SkillDefinition = {
   name: 'sdd-data-model',
-  description: 'Generate or update a data model document from a spec',
+  description:
+    'Write or update a data model document (entities, fields, relationships, Mermaid ERD, constraints) for a spec. Use when the user needs to design or document data structures for a feature.',
+  argumentHint: '[feature-id]',
   allowedTools: ['Read', 'Write', 'Edit', 'Glob'],
-  context: 'inline',
   content: `# SDD Data Model
 
 ## Overview

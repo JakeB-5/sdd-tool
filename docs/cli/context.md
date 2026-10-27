@@ -22,7 +22,7 @@ sdd context set <domain...> [options]
 
 | Option | Description |
 |--------|-------------|
-| `--include-deps` | Include dependent domains |
+| `--no-include-deps` | Exclude dependent domains (included by default) |
 | `--read-only` | Set as read-only |
 
 **Examples:**
@@ -35,7 +35,7 @@ sdd context set auth
 sdd context set auth order payment
 
 # Include dependencies
-sdd context set auth --include-deps
+sdd context set auth
 ```
 
 ### show
@@ -181,7 +181,7 @@ sdd context history [options]
 
 1. 2025-12-29 10:30:00  set auth, order
 2. 2025-12-29 09:15:00  add payment
-3. 2025-12-29 09:00:00  set core --include-deps
+3. 2025-12-29 09:00:00  set core
 4. 2025-12-28 16:00:00  clear
 ```
 

@@ -17,19 +17,20 @@ export const contextCommand: ClaudeCommand = {
 \`\`\`
 /sdd.context set <domain...>  # 컨텍스트 설정
 /sdd.context show             # 현재 컨텍스트
+/sdd.context add <domain>     # 도메인 추가
+/sdd.context remove <domain>  # 도메인 제거
 /sdd.context clear            # 컨텍스트 해제
 /sdd.context specs            # 컨텍스트 내 스펙 목록
-/sdd.context export           # 프롬프트 내보내기
 \`\`\`
 
 ### set
 
-작업 컨텍스트를 설정합니다.
+작업 컨텍스트를 설정합니다. 의존 도메인은 기본으로 포함됩니다.
 
 \`\`\`bash
 sdd context set auth
 sdd context set auth payment order
-sdd context set auth --include-deps  # 의존 도메인 포함
+sdd context set auth --no-include-deps  # 의존 도메인 제외
 \`\`\`
 
 ### show
@@ -59,33 +60,25 @@ sdd context clear
 
 ### specs
 
-컨텍스트 내 스펙 목록을 표시합니다.
+컨텍스트 내 스펙 목록을 표시합니다. 다른 도구에 넘길 때는 \`--json\`을 사용하세요.
 
 \`\`\`bash
 sdd context specs
-\`\`\`
-
-### export
-
-컨텍스트 기반 프롬프트를 내보냅니다.
-
-\`\`\`bash
-sdd context export
-sdd context export --format markdown
+sdd context specs --json
 \`\`\`
 
 ## 컨텍스트 효과
 
 컨텍스트가 설정되면:
 
-1. **스펙 생성**: \`/sdd.new\`에서 도메인 자동 감지
+1. **스펙 생성**: \`/sdd.spec\`에서 도메인 자동 감지
 2. **검증**: \`/sdd.validate\`에서 해당 도메인만 검증
 3. **목록**: \`/sdd.list\`에서 컨텍스트 스펙만 표시
 4. **구현**: 구현 시 관련 스펙 참조
 
 ## 다음 단계
 
-- 컨텍스트 설정 후: \`/sdd.new\`로 스펙 작성
+- 컨텍스트 설정 후: \`/sdd.spec\`으로 스펙 작성
 - 작업 완료 후: \`/sdd.context clear\`로 해제
 `,
 };
