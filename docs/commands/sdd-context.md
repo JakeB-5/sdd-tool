@@ -1,16 +1,23 @@
 # /sdd-context
 
-A slash command for managing working context.
+A skill for managing the working context (active domains).
 
 ## Overview
 
-`/sdd-context` sets the scope of domains you're currently working with. Use it to focus on related specs in large projects.
+`/sdd-context` sets the scope of domains you're currently working with. In large projects, narrowing the context to one or more domains lets you focus on the relevant specs without noise from other parts of the project. The skill runs the matching `sdd context` CLI command.
 
 ## Usage
 
 ```
+/sdd-context [set|show|add|remove|clear|specs] [domain...]   # Claude Code
+$sdd-context [set|show|add|remove|clear|specs] [domain...]   # Codex
+```
+
+```
 /sdd-context set <domain...>  # Set context
 /sdd-context show             # Show current context
+/sdd-context add <domain>     # Add a domain
+/sdd-context remove <domain>  # Remove a domain
 /sdd-context clear            # Clear context
 /sdd-context specs            # List specs in context
 ```
@@ -19,119 +26,76 @@ A slash command for managing working context.
 
 ### set
 
-Set the working context.
+Set the active domain context. Dependent domains are included by default (as read-only domains).
 
+```bash
+sdd context set auth
+sdd context set auth payment order
+sdd context set auth --no-include-deps   # Exclude dependent domains
 ```
-/sdd-context set auth
-/sdd-context set auth payment order
-/sdd-context set auth --no-include-deps  # Exclude dependent domains
-```
-
-Dependent domains are included by default.
 
 ### show
 
-Display the currently set context.
+Display the currently active context.
 
-```
-/sdd-context show
-```
-
-**Output:**
-```
-Current context: auth, payment
-
-Included domains:
-  - auth (5 specs)
-  - payment (3 specs)
-
-Dependent domains:
-  - core (auto-included)
+```bash
+sdd context show
+sdd context show --json
 ```
 
 ### add / remove
 
-Add or remove domains from the context.
+Add or remove a domain from the active context.
 
-```
-/sdd-context add order
-/sdd-context remove payment
+```bash
+sdd context add order
+sdd context add order --no-include-deps
+sdd context remove payment
 ```
 
 ### clear
 
-Clear the context.
+Clear the active context entirely.
 
-```
-/sdd-context clear
+```bash
+sdd context clear
 ```
 
 ### specs
 
-Display list of specs within the context.
+List all specs within the active context. Use `--json` to pass the list to other tools.
 
-```
-/sdd-context specs
-```
-
-**Output:**
-```
-Context specs (8):
-
-auth/
-  - user-login
-  - user-registration
-  - token-management
-
-payment/
-  - checkout
-  - refund
+```bash
+sdd context specs
+sdd context specs --json
 ```
 
 ## Context Effects
 
-When context is set:
+Once a context is active, scoped operations apply automatically:
 
-1. **Spec creation**: `/sdd-spec` auto-detects domain
-2. **Validation**: `/sdd-validate` validates only those domains
-3. **Listing**: `/sdd-list` shows only context specs
-4. **Implementation**: `/sdd-implement` references related specs
+1. **Spec creation**: `/sdd-spec` auto-detects the domain from the context
+2. **Validation**: `/sdd-validate` validates only the domains in the context
+3. **Listing**: `/sdd-list` shows only specs within the context
+4. **Implementation**: relevant specs are surfaced automatically during implementation
 
 ## Example
 
 ```
-User: /sdd-context set auth payment
+/sdd-context set payment
 
-Claude: Context set successfully!
+AI: $ sdd context set payment
 
-Current context: auth, payment
-
-Included specs:
-  auth/
-    - user-login
-    - user-registration
-  payment/
-    - checkout
-    - payment-methods
-
-Now working with these domains.
-
----
-
-User: /sdd-context specs
-
-Claude: Context spec list:
-
-auth/ (3 specs)
-  Complete: user-login
-  In progress: user-registration
-  Pending: password-reset
-
-payment/ (2 specs)
-  Complete: checkout
-  Pending: refund
-
+    Active domains (editable):
+      payment (3 specs)
+    Read-only domains (dependencies):
+      auth (5 specs)
 ```
+
+## Next Steps
+
+- After setting context: run `/sdd-spec` to author specs within scope
+- After finishing work: run `/sdd-context clear` to reset the scope
 
 ## Related Commands
 

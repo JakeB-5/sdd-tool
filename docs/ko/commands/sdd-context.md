@@ -1,16 +1,23 @@
 # /sdd-context
 
-작업 컨텍스트를 관리하는 슬래시 커맨드입니다.
+작업 컨텍스트(활성 도메인)를 관리하는 스킬입니다.
 
 ## 개요
 
-`/sdd-context`는 현재 작업 중인 도메인 범위를 설정합니다. 대규모 프로젝트에서 관련 스펙만 집중하여 작업할 때 사용합니다.
+`/sdd-context`는 현재 작업 중인 도메인 범위를 설정합니다. 대규모 프로젝트에서 컨텍스트를 하나 이상의 도메인으로 좁히면 프로젝트의 다른 부분에 방해받지 않고 관련 스펙에 집중할 수 있습니다. 스킬은 해당하는 `sdd context` CLI 명령어를 실행합니다.
 
 ## 사용법
 
 ```
+/sdd-context [set|show|add|remove|clear|specs] [domain...]   # Claude Code
+$sdd-context [set|show|add|remove|clear|specs] [domain...]   # Codex
+```
+
+```
 /sdd-context set <domain...>  # 컨텍스트 설정
-/sdd-context show             # 현재 컨텍스트
+/sdd-context show             # 현재 컨텍스트 표시
+/sdd-context add <domain>     # 도메인 추가
+/sdd-context remove <domain>  # 도메인 제거
 /sdd-context clear            # 컨텍스트 해제
 /sdd-context specs            # 컨텍스트 내 스펙 목록
 ```
@@ -19,122 +26,79 @@
 
 ### set
 
-작업 컨텍스트를 설정합니다.
+활성 도메인 컨텍스트를 설정합니다. 의존하는 도메인은 기본으로 (읽기 전용 도메인으로) 포함됩니다.
 
+```bash
+sdd context set auth
+sdd context set auth payment order
+sdd context set auth --no-include-deps   # 의존 도메인 제외
 ```
-/sdd-context set auth
-/sdd-context set auth payment order
-/sdd-context set auth --no-include-deps  # 의존 도메인 제외
-```
-
-의존 도메인은 기본적으로 포함됩니다.
 
 ### show
 
-현재 설정된 컨텍스트를 표시합니다.
+현재 활성 컨텍스트를 표시합니다.
 
-```
-/sdd-context show
-```
-
-**출력:**
-```
-🎯 현재 컨텍스트: auth, payment
-
-포함된 도메인:
-  - auth (5 specs)
-  - payment (3 specs)
-
-의존 도메인:
-  - core (자동 포함)
+```bash
+sdd context show
+sdd context show --json
 ```
 
 ### add / remove
 
-컨텍스트에 도메인을 추가하거나 제거합니다.
+활성 컨텍스트에 도메인을 추가하거나 제거합니다.
 
-```
-/sdd-context add order
-/sdd-context remove payment
+```bash
+sdd context add order
+sdd context add order --no-include-deps
+sdd context remove payment
 ```
 
 ### clear
 
-컨텍스트를 해제합니다.
+활성 컨텍스트를 모두 해제합니다.
 
-```
-/sdd-context clear
+```bash
+sdd context clear
 ```
 
 ### specs
 
-컨텍스트 내 스펙 목록을 표시합니다.
+활성 컨텍스트에 포함된 모든 스펙을 나열합니다. `--json`으로 다른 도구에 넘길 수 있습니다.
 
-```
-/sdd-context specs
-```
-
-**출력:**
-```
-📋 컨텍스트 스펙 (8개):
-
-auth/
-  - user-login
-  - user-registration
-  - token-management
-
-payment/
-  - checkout
-  - refund
+```bash
+sdd context specs
+sdd context specs --json
 ```
 
 ## 컨텍스트 효과
 
-컨텍스트가 설정되면:
+컨텍스트가 활성화되면 범위 지정 작업이 자동으로 적용됩니다:
 
-1. **스펙 생성**: `/sdd-spec`에서 도메인 자동 감지
-2. **검증**: `/sdd-validate`에서 해당 도메인만 검증
-3. **목록**: `/sdd-list`에서 컨텍스트 스펙만 표시
-4. **구현**: `/sdd-implement`에서 관련 스펙 참조
+1. **스펙 생성**: `/sdd-spec`이 컨텍스트에서 도메인을 자동 감지
+2. **검증**: `/sdd-validate`가 컨텍스트의 도메인만 검증
+3. **목록**: `/sdd-list`가 컨텍스트 내 스펙만 표시
+4. **구현**: 구현 중 관련 스펙이 자동으로 표시
 
 ## 예시
 
 ```
-User: /sdd-context set auth payment
+/sdd-context set payment
 
-Claude: 🎯 컨텍스트 설정 완료!
+AI: $ sdd context set payment
 
-현재 컨텍스트: auth, payment
-
-포함된 스펙:
-  auth/
-    - user-login
-    - user-registration
-  payment/
-    - checkout
-    - payment-methods
-
-이제 이 도메인들을 중심으로 작업합니다.
-
----
-
-User: /sdd-context specs
-
-Claude: 📋 컨텍스트 스펙 목록:
-
-auth/ (3 specs)
-  ✅ user-login [완료]
-  🔄 user-registration [진행중]
-  ⏳ password-reset [대기]
-
-payment/ (2 specs)
-  ✅ checkout [완료]
-  ⏳ refund [대기]
-
+    활성 도메인 (편집 가능):
+      payment (스펙 3개)
+    읽기 전용 도메인 (의존성):
+      auth (스펙 5개)
 ```
+
+## 다음 단계
+
+- 컨텍스트 설정 후: `/sdd-spec`으로 범위 내 스펙 작성
+- 작업 종료 후: `/sdd-context clear`로 범위 초기화
 
 ## 관련 명령어
 
-- [`sdd context`](/cli/context) - CLI 버전
-- [`/sdd-domain`](/commands/sdd-domain) - 도메인 관리
-- [컨텍스트 가이드](/guide/context)
+- [`sdd context`](/ko/cli/context) - CLI 버전
+- [`/sdd-domain`](/ko/commands/sdd-domain) - 도메인 관리
+- [컨텍스트 가이드](/ko/guide/context)
