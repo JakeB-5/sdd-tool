@@ -19,6 +19,7 @@ import {
 import { Result, success, failure } from '../../types/index.js';
 import { analyzeProject, generateSuggestions, formatAnalysis } from '../../utils/project-analyzer.js';
 import { setupGit } from './git.js';
+import { getToolVersion } from '../../utils/version.js';
 
 /**
  * 초기화 옵션
@@ -452,9 +453,12 @@ export function generateSpecTemplate(): string {
   const today = new Date().toISOString().split('T')[0];
 
   return `---
+id: "{{FEATURE_ID}}"
+title: "{{FEATURE_NAME}}"
 status: draft
 created: ${today}
 depends: null
+constitution_version: "{{CONSTITUTION_VERSION}}"
 ---
 
 # {{FEATURE_NAME}}
@@ -903,7 +907,7 @@ async function promptGitSetup(projectPath: string, autoApprove: boolean): Promis
 /**
  * GitHub Actions 검증 워크플로우 생성
  */
-function generateGitHubValidateWorkflow(): string {
+export function generateGitHubValidateWorkflow(): string {
   return `# SDD 스펙 검증 워크플로우
 # 이 파일은 sdd init으로 생성되었습니다.
 
@@ -923,6 +927,8 @@ jobs:
   validate:
     name: Validate Specs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -935,7 +941,7 @@ jobs:
 
       # Only the global CLI is needed; project dependencies (and a lockfile) are not required
       - name: Install SDD Tool
-        run: npm install -g sdd-tool
+        run: npm install -g sdd-tool@${getToolVersion()}
 
       - name: Validate specifications
         run: sdd validate
@@ -945,7 +951,7 @@ jobs:
 /**
  * GitHub Actions 라벨러 워크플로우 생성
  */
-function generateGitHubLabelerWorkflow(): string {
+export function generateGitHubLabelerWorkflow(): string {
   return `# SDD PR 라벨러 워크플로우
 # 변경된 도메인에 따라 자동으로 라벨을 추가합니다
 
@@ -961,6 +967,10 @@ jobs:
   label:
     name: Add Labels
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
 
     steps:
       - name: Checkout
@@ -973,20 +983,22 @@ jobs:
         env:
           BASE_REF: \${{ github.base_ref }}
         run: |
-          # 변경된 도메인 감지
-          DOMAINS=$(git diff --name-only "origin/$BASE_REF" | \\
-            grep "^\\.sdd/specs/" | \\
+          CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF")
+
+          # 변경된 도메인 감지 (일치하는 파일이 없어도 단계가 실패하지 않도록 grep 종료 코드를 무시)
+          DOMAINS=$(printf '%s\\n' "$CHANGED_FILES" | \\
+            { grep "^\\.sdd/specs/" || true; } | \\
             cut -d'/' -f3 | \\
             sort -u | \\
             tr '\\n' ' ')
           echo "domains=$DOMAINS" >> $GITHUB_OUTPUT
 
           # Constitution 변경 감지
-          if git diff --name-only "origin/$BASE_REF" | grep -q "constitution.md"; then
-            echo "constitution=true" >> $GITHUB_OUTPUT
-          else
-            echo "constitution=false" >> $GITHUB_OUTPUT
-          fi
+          # (case 사용: grep -q가 일찍 종료하면 pipefail 아래에서 SIGPIPE로 오탐이 발생함)
+          case "$CHANGED_FILES" in
+            *constitution.md*) echo "constitution=true" >> $GITHUB_OUTPUT ;;
+            *) echo "constitution=false" >> $GITHUB_OUTPUT ;;
+          esac
 
       - name: Apply Labels
         uses: actions/github-script@v7

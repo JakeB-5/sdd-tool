@@ -244,6 +244,18 @@ created: 2024-01-01
     expect(updated).toContain('status: applied');
   });
 
+  it('frontmatter가 없는 proposal.md는 원인을 포함한 오류를 반환한다', async () => {
+    await fs.writeFile(path.join(changePath, 'proposal.md'), '# 변경 제안: frontmatter 없음\n');
+
+    const result = await applyChange(changePath);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('proposal.md를 업데이트할 수 없습니다');
+      expect(result.error.message).toContain('frontmatter');
+    }
+  });
+
   it('proposal.md를 저장할 수 없으면 실패를 반환한다', async () => {
     const proposalPath = path.join(changePath, 'proposal.md');
     await fs.writeFile(proposalPath, '---\nid: CHG-001\nstatus: draft\ncreated: 2024-01-01\n---\n# t\n');

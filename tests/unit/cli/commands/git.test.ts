@@ -119,7 +119,7 @@ describe('Git Hook Generators', () => {
         expect(bad.code).toBe(1);
         expect(bad.stdout).not.toContain('\\033');
         expect(bad.stdout).not.toContain('docs/guide/commit-convention.md');
-        expect(bad.stdout).toContain('https://jakeb-5.github.io/sdd-tool/guide/commit-convention');
+        expect(bad.stdout).toContain('https://jakeb-5.github.io/sdd-tool/ko/guide/commit-convention');
       } finally {
         await fs.rm(dir, { recursive: true, force: true });
       }

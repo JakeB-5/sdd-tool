@@ -282,6 +282,35 @@ depends: auth
       }
     });
 
+    it.each([
+      ['no-scenario-ko', '### 시나리오 없음'],
+      ['no-scenario-tbd', '#### Scenario (TBD)'],
+      ['no-scenario-na', '### Scenario: N/A'],
+      ['no-scenario-glued', '### Scenario(TBD)'],
+    ])('자리표시자 제목(%s)은 시나리오 섹션으로 인정하지 않는다', async (name, heading) => {
+      const item = await structureItem(name, `# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n${heading}\n`);
+
+      expect(item.suggestions.join()).toContain('시나리오 섹션');
+    });
+
+    it('코드 블록 안의 Scenario 제목은 무시한다', async () => {
+      const item = await structureItem(
+        'fenced',
+        `# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n\`\`\`markdown\n#### Scenario: 예시\n\`\`\`\n`
+      );
+
+      expect(item.suggestions.join()).toContain('시나리오 섹션');
+    });
+
+    it('코드 블록이 닫힌 뒤의 Scenario 제목은 인정한다', async () => {
+      const item = await structureItem(
+        'after-fence',
+        `# 스펙\n\n\`\`\`\ncode\n\`\`\`\n\n## 요구사항\n\n### Scenario 1: 성공\n\n${scenario}`
+      );
+
+      expect(item.suggestions.join()).not.toContain('시나리오 섹션');
+    });
+
     it('시나리오가 전혀 없으면 여전히 누락으로 보고한다', async () => {
       const item = await structureItem('none', '# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n시스템은 동작해야 한다(SHALL).\n');
 

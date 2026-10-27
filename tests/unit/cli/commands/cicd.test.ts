@@ -147,6 +147,53 @@ describe('generateGitHubWorkflow', () => {
   });
 });
 
+/**
+ * Run the labeler's "Detect Changes" step under `bash -e -o pipefail` against a repo whose
+ * diff against origin/main contains `files`; returns the resulting GITHUB_OUTPUT.
+ */
+async function runDetectChanges(labeler: string, files: Record<string, string>): Promise<string> {
+  const block = labeler.match(/run: \|\n([\s\S]*?)\n\n {6}- name: Apply Labels/)?.[1];
+  expect(block).toBeDefined();
+  const script = block!
+    .split('\n')
+    .map((line) => line.replace(/^ {10}/, ''))
+    .join('\n');
+
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-labeler-test-'));
+  try {
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, encoding: 'utf-8' });
+    git('init', '-q', '-b', 'main');
+    git('config', 'user.email', 't@example.com');
+    git('config', 'user.name', 't');
+    git('config', 'commit.gpgsign', 'false');
+    await fs.writeFile(path.join(dir, 'a.txt'), 'a');
+    git('add', '.');
+    git('commit', '-q', '-m', 'base');
+    git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+
+    for (const [file, content] of Object.entries(files)) {
+      await fs.mkdir(path.dirname(path.join(dir, file)), { recursive: true });
+      await fs.writeFile(path.join(dir, file), content);
+    }
+    // Untracked files are invisible to `git diff`; stage everything so it shows up against origin/main
+    git('add', '-A');
+
+    const outputFile = path.join(dir, '..', `gh-output-${path.basename(dir)}`);
+    await fs.writeFile(outputFile, '');
+    try {
+      execFileSync('bash', ['-e', '-o', 'pipefail', '-c', script], {
+        cwd: dir,
+        env: { ...process.env, BASE_REF: 'main', GITHUB_OUTPUT: outputFile },
+      });
+      return await fs.readFile(outputFile, 'utf-8');
+    } finally {
+      await fs.rm(outputFile, { force: true });
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
+
 describe('생성된 CI 안정성', () => {
   const version = (JSON.parse(readFileSync('package.json', 'utf-8')) as { version: string }).version;
 
@@ -166,42 +213,24 @@ describe('생성된 CI 안정성', () => {
   });
 
   it('라벨러 변경 감지 스크립트가 일치하는 파일이 없어도 bash -e -o pipefail에서 실패하지 않는다', async () => {
-    const labeler = generateGitHubLabeler();
-    const block = labeler.match(/run: \|\n([\s\S]*?)\n\n {6}- name: Apply Labels/)?.[1];
-    expect(block).toBeDefined();
-    const script = block!
-      .split('\n')
-      .map((line) => line.replace(/^ {10}/, ''))
-      .join('\n');
+    const out = await runDetectChanges(generateGitHubLabeler(), { 'a.txt': 'b' });
 
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-labeler-test-'));
-    try {
-      const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, encoding: 'utf-8' });
-      git('init', '-q', '-b', 'main');
-      git('config', 'user.email', 't@example.com');
-      git('config', 'user.name', 't');
-      git('config', 'commit.gpgsign', 'false');
-      await fs.writeFile(path.join(dir, 'a.txt'), 'a');
-      git('add', '.');
-      git('commit', '-q', '-m', 'base');
-      git('update-ref', 'refs/remotes/origin/main', 'HEAD');
-      // Change touches no .sdd/specs/ file, so `grep` matches nothing
-      await fs.writeFile(path.join(dir, 'a.txt'), 'b');
-
-      const outputFile = path.join(dir, 'gh-output');
-      await fs.writeFile(outputFile, '');
-      execFileSync('bash', ['-e', '-o', 'pipefail', '-c', script], {
-        cwd: dir,
-        env: { ...process.env, BASE_REF: 'main', GITHUB_OUTPUT: outputFile },
-      });
-
-      const out = await fs.readFile(outputFile, 'utf-8');
-      expect(out).toContain('domains=');
-      expect(out).toContain('constitution=false');
-    } finally {
-      await fs.rm(dir, { recursive: true, force: true });
-    }
+    expect(out).toContain('domains=');
+    expect(out).toContain('constitution=false');
   });
+
+  it('변경 파일 목록이 매우 커도 constitution 변경을 놓치지 않는다 (SIGPIPE 오탐 방지)', async () => {
+    // The constitution file sorts first, so a `grep -q` pipeline would exit early while printf is still writing
+    const files: Record<string, string> = { '.sdd/constitution.md': 'c' };
+    for (let i = 0; i < 20000; i++) {
+      files[`.sdd/specs/dom${i % 7}/feature-with-a-long-name-${i}/spec.md`] = 'x';
+    }
+
+    const out = await runDetectChanges(generateGitHubLabeler(), files);
+
+    expect(out).toContain('constitution=true');
+    expect(out).toMatch(/domains=dom0 dom1 /);
+  }, 60000);
 });
 
 describe('generateGitLabCI', () => {

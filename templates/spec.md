@@ -1,7 +1,10 @@
 ---
+id: "{{FEATURE_ID}}"
+title: "{{FEATURE_NAME}}"
 status: draft
 created: {{DATE}}
 depends: null
+constitution_version: "{{CONSTITUTION_VERSION}}"
 ---
 
 # {{FEATURE_NAME}}

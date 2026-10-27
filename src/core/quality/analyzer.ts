@@ -220,6 +220,34 @@ function scoreDependencies(spec: ParsedSpec): QualityScoreItem {
   };
 }
 
+/** `## 시나리오`, `### Scenario: 이름`, `#### Scenario 1: 이름` (level 2-6); group 1 = text after the keyword */
+const SCENARIO_HEADING = /^#{2,6}[ \t]*(?:Scenarios?|시나리오)(?=$|[:：\s])(.*)$/i;
+/** Placeholder headings such as `### 시나리오 없음` or `#### Scenario (TBD)` */
+const EMPTY_SCENARIO_NAME = /^[\s:：\-–—]*[([]?\s*(?:없음|미정|tbd|n\/?a|none)/i;
+
+/**
+ * Whether the document has a real scenario heading, outside fenced code blocks
+ */
+function hasScenarioHeading(content: string): boolean {
+  let fence: string | null = null;
+  for (const line of content.split('\n')) {
+    const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
+    if (fenceMatch) {
+      if (fence === null) {
+        fence = fenceMatch[1];
+      } else if (fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length) {
+        fence = null;
+      }
+      continue;
+    }
+    if (fence !== null) continue;
+
+    const match = line.match(SCENARIO_HEADING);
+    if (match !== null && !EMPTY_SCENARIO_NAME.test(match[1])) return true;
+  }
+  return false;
+}
+
 /**
  * 문서 구조 점수 (15점)
  */
@@ -228,11 +256,11 @@ function scoreStructure(content: string): QualityScoreItem {
   const details: string[] = [];
   const suggestions: string[] = [];
 
-  const requiredSections = [
-    { pattern: /^#\s+.+/m, name: '제목 (H1)' },
-    { pattern: /^##\s*(요구사항|Requirements)/im, name: '요구사항 섹션' },
+  const requiredSections: Array<{ matches: (text: string) => boolean; name: string }> = [
+    { matches: (text) => /^#\s+.+/m.test(text), name: '제목 (H1)' },
+    { matches: (text) => /^##\s*(요구사항|Requirements)/im.test(text), name: '요구사항 섹션' },
     // Scenarios may be one `## 시나리오` section or written under each requirement (`### Scenario:`, `#### Scenario:`)
-    { pattern: /^#{2,6}\s*(시나리오|Scenario)/im, name: '시나리오 섹션' },
+    { matches: hasScenarioHeading, name: '시나리오 섹션' },
   ];
 
   const optionalSections = [
@@ -246,7 +274,7 @@ function scoreStructure(content: string): QualityScoreItem {
   const missingRequired: string[] = [];
 
   for (const section of requiredSections) {
-    if (section.pattern.test(content)) {
+    if (section.matches(content)) {
       foundRequired.push(section.name);
       score += 4;
     } else {

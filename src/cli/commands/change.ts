@@ -208,7 +208,7 @@ export async function applyChange(changePath: string): Promise<Result<void, Erro
 
   const updateResult = updateProposalStatus(contentResult.data, 'applied');
   if (!updateResult.success) {
-    return failure(new Error('proposal.md를 업데이트할 수 없습니다.'));
+    return failure(new Error(`proposal.md를 업데이트할 수 없습니다: ${updateResult.error.message}`));
   }
 
   const writeResult = await writeFile(proposalPath, updateResult.data);

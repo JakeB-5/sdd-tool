@@ -121,7 +121,7 @@ else
   echo "스펙 타입: spec, spec-update, spec-status, plan, tasks, constitution, sdd-config"
   echo "일반 타입: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
   echo ""
-  echo "자세한 내용: https://jakeb-5.github.io/sdd-tool/guide/commit-convention"
+  echo "자세한 내용: https://jakeb-5.github.io/sdd-tool/ko/guide/commit-convention"
   exit 1
 fi
 `;

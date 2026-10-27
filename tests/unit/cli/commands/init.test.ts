@@ -2,13 +2,15 @@
  * init 명령어 핵심 로직 테스트
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { promises as fs } from 'node:fs';
+import { promises as fs, readFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {
   getInitDirectories,
   generateConstitutionContent,
   generateSpecTemplate,
+  generateGitHubValidateWorkflow,
+  generateGitHubLabelerWorkflow,
   executeInit,
   buildClaudeMdContent,
 } from '../../../../src/cli/commands/init.js';
@@ -154,6 +156,14 @@ describe('generateSpecTemplate', () => {
     expect(template).toContain('{{DESCRIPTION}}');
   });
 
+  it('sdd new가 쓰는 id, title, constitution_version 메타데이터를 포함한다', () => {
+    const { data } = matter(generateSpecTemplate());
+
+    expect(data.id).toBe('{{FEATURE_ID}}');
+    expect(data.title).toBe('{{FEATURE_NAME}}');
+    expect(data.constitution_version).toBe('{{CONSTITUTION_VERSION}}');
+  });
+
   it('sdd new가 생성하는 스펙과 같은 REQ-01 + 시나리오 구조를 사용한다', () => {
     const template = generateSpecTemplate();
 
@@ -169,6 +179,26 @@ describe('generateSpecTemplate', () => {
     expect(template).toContain('**GIVEN**');
     expect(template).toContain('**WHEN**');
     expect(template).toContain('**THEN**');
+  });
+});
+
+describe('init이 생성하는 GitHub 워크플로우', () => {
+  it('sdd-tool 버전을 고정하고 최소 권한을 선언한다', () => {
+    const version = (JSON.parse(readFileSync('package.json', 'utf-8')) as { version: string }).version;
+    const validate = generateGitHubValidateWorkflow();
+    const labeler = generateGitHubLabelerWorkflow();
+
+    expect(validate).toContain(`npm install -g sdd-tool@${version}`);
+    expect(validate).toMatch(/permissions:\n\s+contents: read\n/);
+    expect(labeler).toMatch(/permissions:\n\s+contents: read\n\s+pull-requests: write\n\s+issues: write/);
+  });
+
+  it('라벨러가 pipefail에서 실패하거나 오탐하는 grep 파이프라인을 쓰지 않는다', () => {
+    const labeler = generateGitHubLabelerWorkflow();
+
+    expect(labeler).not.toMatch(/\| grep -q/);
+    expect(labeler).toContain('{ grep "^\\.sdd/specs/" || true; }');
+    expect(labeler).toContain('case "$CHANGED_FILES" in');
   });
 });
 

@@ -5,37 +5,11 @@
  */
 import { Command } from 'commander';
 import path from 'node:path';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
 import { findSddRoot, ensureDir, writeFile, fileExists, directoryExists } from '../../utils/fs.js';
 import { validateSpecs } from '../../core/spec/validator.js';
-
-/**
- * Version of the running tool (same package.json the CLI's --version reports).
- * Walks up from this module because its depth differs between src/ and the bundled dist/.
- */
-function readToolVersion(): string {
-  let dir = path.dirname(fileURLToPath(import.meta.url));
-  for (;;) {
-    try {
-      const pkg = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf-8')) as {
-        name?: string;
-        version?: string;
-      };
-      if (pkg.name === 'sdd-tool' && pkg.version) return pkg.version;
-    } catch {
-      // no readable package.json at this level; keep walking up
-    }
-    const parent = path.dirname(dir);
-    if (parent === dir) return 'latest';
-    dir = parent;
-  }
-}
-
-/** Generated CI installs the version of the tool that generated it, so results are reproducible */
-const SDD_INSTALL_SPEC = `sdd-tool@${readToolVersion()}`;
+import { getToolVersion } from '../../utils/version.js';
 
 /**
  * 지원하는 CI 플랫폼
@@ -194,6 +168,8 @@ async function setupGitLabCI(projectRoot: string, strict: boolean): Promise<void
  */
 export function generateGitHubWorkflow(strict: boolean): string {
   const strictFlag = strict ? ' --strict' : '';
+  // Pinned to the generating tool's version so CI results are reproducible
+  const installSpec = `sdd-tool@${getToolVersion()}`;
 
   return `# SDD 스펙 검증 워크플로우
 # 이 파일은 sdd cicd setup으로 생성되었습니다.
@@ -228,7 +204,7 @@ jobs:
 
       # Only the global CLI is needed; project dependencies (and a lockfile) are not required
       - name: Install SDD Tool
-        run: npm install -g ${SDD_INSTALL_SPEC}
+        run: npm install -g ${installSpec}
 
       - name: Validate specifications
         run: sdd validate${strictFlag}
@@ -293,11 +269,11 @@ jobs:
           echo "domains=$DOMAINS" >> $GITHUB_OUTPUT
 
           # Constitution 변경 감지
-          if printf '%s\\n' "$CHANGED_FILES" | grep -q "constitution.md"; then
-            echo "constitution=true" >> $GITHUB_OUTPUT
-          else
-            echo "constitution=false" >> $GITHUB_OUTPUT
-          fi
+          # (case 사용: grep -q가 일찍 종료하면 pipefail 아래에서 SIGPIPE로 오탐이 발생함)
+          case "$CHANGED_FILES" in
+            *constitution.md*) echo "constitution=true" >> $GITHUB_OUTPUT ;;
+            *) echo "constitution=false" >> $GITHUB_OUTPUT ;;
+          esac
 
       - name: Apply Labels
         uses: actions/github-script@v7
@@ -330,6 +306,7 @@ jobs:
  */
 export function generateGitLabCI(strict: boolean): string {
   const strictFlag = strict ? ' --strict' : '';
+  const installSpec = `sdd-tool@${getToolVersion()}`;
 
   return `# SDD 스펙 검증 파이프라인
 # 이 파일은 sdd cicd setup으로 생성되었습니다.
@@ -346,7 +323,7 @@ sdd:validate:
       changes:
         - .sdd/**/*
   before_script:
-    - npm install -g ${SDD_INSTALL_SPEC}
+    - npm install -g ${installSpec}
   script:
     - sdd validate${strictFlag}
     - sdd constitution validate
