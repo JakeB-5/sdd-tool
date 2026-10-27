@@ -7,6 +7,7 @@ import {
   parseSpecMetadata,
   updateSpecStatus,
 } from '../../../../src/core/new/spec-generator.js';
+import { parseSpec } from '../../../../src/core/spec/parser.js';
 
 describe('generateSpec', () => {
   it('기본 명세 파일을 생성한다', () => {
@@ -17,10 +18,45 @@ describe('generateSpec', () => {
     });
 
     expect(content).toContain('id: auth-login');
-    expect(content).toContain('title: "로그인 기능"');
+    expect(content).toContain('title: 로그인 기능');
     expect(content).toContain('status: draft');
     expect(content).toContain('# 로그인 기능');
     expect(content).toContain('사용자 로그인 기능을 제공합니다.');
+  });
+
+  it('따옴표와 콜론이 포함된 제목을 YAML로 안전하게 기록한다', () => {
+    const title = 'Auth: "Login" #1';
+    const content = generateSpec({ id: 'login', title, description: '설명' });
+
+    const metadata = parseSpecMetadata(content);
+    expect(metadata?.title).toBe(title);
+    const parsed = parseSpec(content);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.metadata.title).toBe(title);
+    }
+  });
+
+  it('depends 목록과 constitution_version을 포함한 명세가 메타데이터 검증을 통과한다', () => {
+    const content = generateSpec({
+      id: 'payment',
+      title: '결제',
+      description: '설명',
+      depends: ['auth', 'database'],
+      constitutionVersion: '1.0.0',
+    });
+
+    const parsed = parseSpec(content);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.metadata.depends).toEqual(['auth', 'database']);
+      expect(parsed.data.metadata.constitution_version).toBe('1.0.0');
+    }
+  });
+
+  it('레거시 상태 옵션은 표준 상태로 기록한다', () => {
+    const content = generateSpec({ id: 'x', title: 'X', description: 'd', status: 'completed' as never });
+    expect(content).toContain('status: implemented');
   });
 
   it('요구사항을 포함할 수 있다', () => {
@@ -120,6 +156,25 @@ depends:
     const content = '# 제목만 있는 파일';
     expect(parseSpecMetadata(content)).toBeNull();
   });
+
+  it('CRLF 줄바꿈과 인라인 배열을 파싱한다', () => {
+    const content = '---\r\nid: auth\r\ntitle: "인증"\r\nstatus: implemented\r\ndepends: [db, cache]\r\n---\r\n\r\n# 인증\r\n';
+
+    const metadata = parseSpecMetadata(content);
+
+    expect(metadata?.title).toBe('인증');
+    expect(metadata?.status).toBe('implemented');
+    expect(metadata?.depends).toEqual(['db', 'cache']);
+  });
+
+  it('레거시 상태를 표준 상태로 정규화한다', () => {
+    expect(parseSpecMetadata('---\nstatus: specified\n---\n')?.status).toBe('review');
+    expect(parseSpecMetadata('---\nstatus: completed\n---\n')?.status).toBe('implemented');
+  });
+
+  it('알 수 없는 상태는 그대로 유지한다', () => {
+    expect(parseSpecMetadata('---\nstatus: weird\n---\n')?.status).toBe('weird');
+  });
 });
 
 describe('updateSpecStatus', () => {
@@ -133,10 +188,43 @@ created: 2025-12-21
 # 인증
 `;
 
-    const updated = updateSpecStatus(content, 'specified');
+    const updated = updateSpecStatus(content, 'review');
 
-    expect(updated).toContain('status: specified');
+    expect(updated).toContain('status: review');
     expect(updated).toContain('updated:');
+    expect(updated).toContain('# 인증');
+  });
+
+  it('레거시 상태 입력도 표준 상태로 기록한다', () => {
+    const content = `---
+id: auth
+status: draft
+---
+
+# 인증
+`;
+
+    expect(updateSpecStatus(content, 'specified')).toContain('status: review');
+    expect(updateSpecStatus(content, 'completed')).toContain('status: implemented');
+  });
+
+  it('갱신된 명세가 스펙 파서 메타데이터 검증을 통과한다', () => {
+    const content = `---
+id: auth
+status: draft
+created: 2025-12-21
+---
+
+# 인증
+`;
+
+    for (const status of ['review', 'approved', 'planned', 'tasked', 'implementing', 'implemented', 'deprecated'] as const) {
+      const parsed = parseSpec(updateSpecStatus(content, status));
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        expect(parsed.data.metadata.status).toBe(status);
+      }
+    }
   });
 
   it('기존 updated 필드를 업데이트한다', () => {

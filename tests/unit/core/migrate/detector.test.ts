@@ -10,6 +10,7 @@ import {
   migrateFromOpenSpec,
   migrateFromSpecKit,
 } from '../../../../src/core/migrate/detector.js';
+import { readFrontmatter } from '../../../../src/utils/frontmatter.js';
 
 describe('detectExternalTools', () => {
   let tempDir: string;
@@ -289,6 +290,24 @@ status: approved
       expect(content).toContain('phase: migrated');
       expect(content).toContain('source: openspec');
     }
+  });
+
+  it('frontmatter가 없는 스펙의 제목(콜론/따옴표 포함)을 유효한 YAML로 기록한다', async () => {
+    await fs.mkdir(path.join(sourcePath, 'specs', 'login'), { recursive: true });
+    await fs.writeFile(
+      path.join(sourcePath, 'specs', 'login', 'spec.md'),
+      '# Auth: "Login" flow\r\n\r\n본문\r\n'
+    );
+
+    const result = await migrateFromOpenSpec(sourcePath, targetPath);
+    expect(result.success).toBe(true);
+
+    const content = await fs.readFile(path.join(targetPath, 'specs', 'login', 'spec.md'), 'utf-8');
+    const { data, body } = readFrontmatter(content);
+    expect(data.title).toBe('Auth: "Login" flow');
+    expect(data.id).toBe('login');
+    expect(data.source).toBe('openspec');
+    expect(body).toContain('# Auth: "Login" flow');
   });
 
   it('dryRun 모드에서 파일을 생성하지 않는다', async () => {

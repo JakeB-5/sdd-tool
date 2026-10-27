@@ -122,6 +122,19 @@ depends: null
     }
   });
 
+  it('쉼표로 구분된 문자열 의존성을 스펙 스키마와 같은 규칙으로 분리한다', async () => {
+    await writeSpec('payment', 'depends: auth, database', '결제 기능');
+    await writeSpec('auth', 'depends: null', '인증');
+    await writeSpec('database', 'depends: null', '데이터베이스');
+
+    const result = await buildDependencyGraph(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.nodes.get('payment')?.dependsOn).toEqual(['auth', 'database']);
+    }
+  });
+
   it('spec.md만 노드로 만들고 plan/tasks/checklist는 제외한다', async () => {
     await writeSpec('auth/login', 'depends: null', '로그인');
     for (const name of ['plan.md', 'tasks.md', 'checklist.md', 'prepare.md']) {

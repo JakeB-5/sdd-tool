@@ -2,7 +2,7 @@
  * 스펙 검증기
  */
 import path from 'node:path';
-import { parseSpec } from './parser.js';
+import { parseSpec, findTemplatePlaceholders, findLowercaseRfc2119Keywords } from './parser.js';
 import { readFile, directoryExists, fileExists } from '../../utils/fs.js';
 import { listSpecsUnder, resolveSpecRef, type SpecLocation } from './locator.js';
 import { ValidationError, ErrorCode } from '../../errors/index.js';
@@ -117,6 +117,16 @@ export async function validateSpecFile(
       message: 'Requirement에 RFC 2119 키워드(SHALL, MUST, SHOULD, MAY)가 없습니다',
       location: { file: filePath },
     });
+
+    // Keywords are matched in uppercase only; explain why lowercase ones were ignored
+    const lowercase = findLowercaseRfc2119Keywords(content);
+    if (lowercase.length > 0) {
+      result.warnings.push({
+        code: 'W008',
+        message: `RFC 2119 키워드는 대문자로 작성하세요 (소문자 발견: ${lowercase.join(', ')} → ${lowercase.map((k) => k.toUpperCase()).join(', ')})`,
+        location: { file: filePath },
+      });
+    }
   }
 
   // GIVEN-WHEN-THEN 형식 검증
@@ -134,6 +144,27 @@ export async function validateSpecFile(
     result.warnings.push({
       code: 'W001',
       message: 'YAML frontmatter에 created 날짜가 없습니다',
+      location: { file: filePath },
+    });
+  }
+
+  // 레거시 상태 별칭 (허용하되 표준 상태로 안내)
+  if (spec.legacyStatus) {
+    result.warnings.push({
+      code: 'W006',
+      message: `status '${spec.legacyStatus}'는 더 이상 사용되지 않습니다. '${spec.metadata.status}'를 사용하세요`,
+      location: { file: filePath },
+    });
+  }
+
+  // 템플릿 플레이스홀더 잔존 경고
+  const placeholders = findTemplatePlaceholders(content);
+  if (placeholders.length > 0) {
+    const shown = placeholders.slice(0, 5).join(', ');
+    const more = placeholders.length > 5 ? ` 외 ${placeholders.length - 5}개` : '';
+    result.warnings.push({
+      code: 'W005',
+      message: `템플릿 플레이스홀더가 남아 있습니다: ${shown}${more}`,
       location: { file: filePath },
     });
   }
@@ -161,13 +192,18 @@ export async function validateSpecFile(
     if (constReadResult.success) {
       const constParseResult = parseConstitution(constReadResult.data);
 
-      if (constParseResult.success) {
+      if (!constParseResult.success) {
+        result.warnings.push({
+          code: 'W007',
+          message: `Constitution 파싱 실패로 Constitution 검사를 건너뜁니다: ${constParseResult.error.message}`,
+          location: { file: constitutionPath },
+        });
+      } else {
         const constitution = constParseResult.data;
-        const specConstitutionVersion = spec.metadata.constitution_version as string | undefined;
 
         const checkResult = checkConstitutionViolations(
           content,
-          specConstitutionVersion,
+          spec.metadata.constitution_version,
           constitution
         );
 
@@ -191,7 +227,7 @@ export async function validateSpecFile(
           }
         }
 
-        // 버전 불일치 경고/에러
+        // 버전 불일치: major → 에러, minor → 경고, patch → 정보 (constitutionCheck에만 기록)
         if (checkResult.versionMismatch) {
           const vm = checkResult.versionMismatch;
           if (vm.severity === 'critical') {
@@ -201,7 +237,7 @@ export async function validateSpecFile(
               message: vm.message,
               location: { file: filePath },
             });
-          } else {
+          } else if (vm.severity === 'warning') {
             result.warnings.push({
               code: 'W004',
               message: vm.message,

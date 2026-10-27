@@ -95,6 +95,17 @@ export function parseVersion(version: string): { major: number; minor: number; p
 }
 
 /**
+ * 버전 값을 X.Y.Z로 정규화 (`1` → 1.0.0, `1.2`/YAML 숫자 1.2 → 1.2.0, `v1.2.3` → 1.2.3)
+ * 해석할 수 없으면 undefined
+ */
+export function normalizeVersion(value: unknown): string | undefined {
+  if (typeof value !== 'string' && typeof value !== 'number') return undefined;
+  const match = String(value).trim().match(/^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?$/);
+  if (!match) return undefined;
+  return `${parseInt(match[1], 10)}.${parseInt(match[2] ?? '0', 10)}.${parseInt(match[3] ?? '0', 10)}`;
+}
+
+/**
  * 버전 범프
  */
 export function bumpVersion(version: string, type: VersionBumpType): string {

@@ -7,6 +7,8 @@ import { Result, success, failure } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { directoryExists } from '../../utils/fs.js';
 import { listSpecs } from '../spec/locator.js';
+import { getSpecStatusIcon, normalizeSpecStatus } from '../spec/status.js';
+import { normalizeLineEndings, readFrontmatter } from '../../utils/frontmatter.js';
 import {
   SearchOptions,
   SearchResult,
@@ -107,8 +109,8 @@ async function collectSpecs(
 
   for (const location of await listSpecs(sddPath)) {
     const fullPath = location.specPath;
-    const content = await fs.readFile(fullPath, 'utf-8');
-    const metadata = parseMetadata(content);
+    const content = normalizeLineEndings(await fs.readFile(fullPath, 'utf-8'));
+    const metadata = readFrontmatter(content).data;
     const stat = await fs.stat(fullPath);
 
     index.push({
@@ -116,7 +118,7 @@ async function collectSpecs(
       path: path.relative(specsPath, fullPath),
       title: String(metadata.title || location.id),
       content,
-      status: String(metadata.status || 'unknown'),
+      status: normalizeSpecStatus(metadata.status) ?? String(metadata.status || 'unknown'),
       phase: String(metadata.phase || 'unknown'),
       author: String(metadata.author || ''),
       created: String(metadata.created || ''),
@@ -128,43 +130,11 @@ async function collectSpecs(
 }
 
 /**
- * 메타데이터 파싱
- */
-function parseMetadata(content: string): Record<string, unknown> {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) return {};
-
-  const metadata: Record<string, unknown> = {};
-  const lines = match[1].split('\n');
-
-  for (const line of lines) {
-    const kvMatch = line.match(/^(\w+):\s*(.*)$/);
-    if (kvMatch) {
-      let value: unknown = kvMatch[2].trim();
-      // 따옴표 제거
-      if (
-        (value as string).startsWith('"') &&
-        (value as string).endsWith('"')
-      ) {
-        value = (value as string).slice(1, -1);
-      }
-      // null 처리
-      if (value === 'null' || value === '~') {
-        value = null;
-      }
-      metadata[kvMatch[1]] = value;
-    }
-  }
-
-  return metadata;
-}
-
-/**
  * 의존성 파싱
  */
 function parseDependencies(depends: unknown): string[] {
   if (!depends) return [];
-  if (Array.isArray(depends)) return depends.filter(Boolean);
+  if (Array.isArray(depends)) return depends.filter(Boolean).map(String);
   if (typeof depends === 'string' && depends !== 'null') {
     return depends.split(',').map((d) => d.trim()).filter(Boolean);
   }
@@ -176,7 +146,7 @@ function parseDependencies(depends: unknown): string[] {
  */
 function parseTags(tags: unknown): string[] {
   if (!tags) return [];
-  if (Array.isArray(tags)) return tags.filter(Boolean);
+  if (Array.isArray(tags)) return tags.filter(Boolean).map(String);
   if (typeof tags === 'string') {
     return tags.split(',').map((t) => t.trim()).filter(Boolean);
   }
@@ -193,9 +163,10 @@ function filterByOptions(
   return index.filter((item) => {
     // 상태 필터
     if (options.status) {
-      const statuses = Array.isArray(options.status)
+      const statuses = (Array.isArray(options.status)
         ? options.status
-        : [options.status];
+        : [options.status]
+      ).map((s) => normalizeSpecStatus(s) ?? s);
       if (!statuses.includes(item.status)) return false;
     }
 
@@ -415,20 +386,7 @@ export function formatSearchResult(result: SearchResult): string {
  * 상태 아이콘
  */
 function getStatusIcon(status?: string): string {
-  switch (status) {
-    case 'draft':
-      return '📝';
-    case 'review':
-      return '👀';
-    case 'approved':
-      return '✅';
-    case 'implemented':
-      return '🚀';
-    case 'deprecated':
-      return '⚠️';
-    default:
-      return '📄';
-  }
+  return getSpecStatusIcon(status);
 }
 
 /**

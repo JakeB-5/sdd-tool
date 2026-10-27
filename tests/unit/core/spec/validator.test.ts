@@ -496,3 +496,143 @@ depends: null
     expect(specRefs.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe('validateSpecFile - 상태/플레이스홀더/Constitution', () => {
+  let tempDir: string;
+
+  const specWith = (frontmatter: string, body = ''): string => `---
+${frontmatter}
+---
+
+# 스펙
+
+## 요구사항
+
+- 시스템은 기능을 제공해야 한다(SHALL).
+${body}
+### Scenario: 확인
+
+- **GIVEN** 조건
+- **WHEN** 행동
+- **THEN** 결과
+`;
+
+  const writeConstitution = async (content: string): Promise<void> => {
+    await fs.mkdir(path.join(tempDir, '.sdd'), { recursive: true });
+    await fs.writeFile(path.join(tempDir, '.sdd', 'constitution.md'), content);
+  };
+
+  const constitutionV = (version: string): string =>
+    `---\nversion: ${version}\ncreated: 2025-01-01\n---\n\n# Constitution: 테스트\n`;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-validator-ext-'));
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('implementing 등 모든 표준 상태가 검증을 통과한다', async () => {
+    for (const status of ['review', 'planned', 'tasked', 'implementing', 'implemented', 'deprecated']) {
+      const filePath = path.join(tempDir, `${status}.md`);
+      await fs.writeFile(filePath, specWith(`status: ${status}\ncreated: 2025-12-21`));
+      const result = await validateSpecFile(filePath, { strict: true });
+      expect(result.errors).toEqual([]);
+      expect(result.valid).toBe(true);
+    }
+  });
+
+  it('레거시 상태 별칭은 에러가 아니라 W006 경고로 처리한다', async () => {
+    const filePath = path.join(tempDir, 'legacy.md');
+    await fs.writeFile(filePath, specWith('status: completed\ncreated: 2025-12-21'));
+    const result = await validateSpecFile(filePath);
+    expect(result.valid).toBe(true);
+    expect(result.warnings.map((w) => w.code)).toEqual(['W006']);
+    expect(result.warnings[0].message).toContain('implemented');
+  });
+
+  it('depends 목록, 숫자 constitution_version, title을 가진 스펙이 통과한다', async () => {
+    const filePath = path.join(tempDir, 'meta.md');
+    await fs.writeFile(
+      filePath,
+      specWith('id: meta\ntitle: "Auth: \\"Login\\""\nstatus: draft\ncreated: 2025-12-21\ndepends:\n  - auth\n  - db\nconstitution_version: 1.0')
+    );
+    const result = await validateSpecFile(filePath, { strict: true });
+    expect(result.errors).toEqual([]);
+  });
+
+  it('템플릿 플레이스홀더가 남아 있으면 W005 경고를 낸다', async () => {
+    const filePath = path.join(tempDir, 'placeholder.md');
+    await fs.writeFile(
+      filePath,
+      specWith('status: draft\ncreated: 2025-12-21', '\n[요구사항 상세 설명]\n- **GIVEN** [전제 조건]\n')
+    );
+    const result = await validateSpecFile(filePath);
+    const w005 = result.warnings.find((w) => w.code === 'W005');
+    expect(w005?.message).toContain('[요구사항 상세 설명]');
+    expect(w005?.message).toContain('[전제 조건]');
+  });
+
+  it('constitution_version이 없으면 스펙별 경고를 내지 않는다', async () => {
+    await writeConstitution(constitutionV('1.2.0'));
+    const filePath = path.join(tempDir, 'nover.md');
+    await fs.writeFile(filePath, specWith('status: draft\ncreated: 2025-12-21'));
+    const result = await validateSpecFile(filePath, { checkConstitution: true, sddRoot: tempDir, strict: true });
+    expect(result.warnings).toEqual([]);
+    expect(result.valid).toBe(true);
+    expect(result.constitutionCheck?.specVersionMissing).toBe(true);
+  });
+
+  it('patch 버전 차이는 정보로만 남고 --strict에서도 실패하지 않는다', async () => {
+    await writeConstitution(constitutionV('1.2.1'));
+    const filePath = path.join(tempDir, 'patch.md');
+    await fs.writeFile(filePath, specWith('status: draft\ncreated: 2025-12-21\nconstitution_version: 1.2.0'));
+    const result = await validateSpecFile(filePath, { checkConstitution: true, sddRoot: tempDir, strict: true });
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toEqual([]);
+    expect(result.constitutionCheck?.versionMismatch?.severity).toBe('info');
+  });
+
+  it('숫자 constitution_version: 1.0은 Constitution 3.0.0 대비 Major 불일치로 실패한다', async () => {
+    await writeConstitution(constitutionV('3.0.0'));
+    const filePath = path.join(tempDir, 'short.md');
+    await fs.writeFile(filePath, specWith('status: draft\ncreated: 2025-12-21\nconstitution_version: 1.0'));
+    const result = await validateSpecFile(filePath, { checkConstitution: true, sddRoot: tempDir });
+    expect(result.valid).toBe(false);
+    expect(result.constitutionCheck?.passed).toBe(false);
+    expect(result.constitutionCheck?.versionMismatch?.specVersion).toBe('1.0.0');
+  });
+
+  it('소문자 RFC 2119 키워드만 있으면 에러와 함께 대문자 안내(W008)를 낸다', async () => {
+    const filePath = path.join(tempDir, 'lower.md');
+    await fs.writeFile(
+      filePath,
+      '---\nstatus: draft\ncreated: 2025-12-21\n---\n\n# 스펙\n\n## 요구사항\n\n- The system must log in users.\n\n### Scenario: 확인\n\n- **GIVEN** 조건\n- **WHEN** 행동\n- **THEN** 결과\n'
+    );
+    const result = await validateSpecFile(filePath);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('RFC 2119'))).toBe(true);
+    const w008 = result.warnings.find((w) => w.code === 'W008');
+    expect(w008?.message).toContain('대문자로 작성하세요');
+    expect(w008?.message).toContain('MUST');
+  });
+
+  it('minor 버전 차이는 W004 경고로 남는다', async () => {
+    await writeConstitution(constitutionV('1.3.0'));
+    const filePath = path.join(tempDir, 'minor.md');
+    await fs.writeFile(filePath, specWith('status: draft\ncreated: 2025-12-21\nconstitution_version: 1.2.0'));
+    const result = await validateSpecFile(filePath, { checkConstitution: true, sddRoot: tempDir });
+    expect(result.warnings.map((w) => w.code)).toEqual(['W004']);
+  });
+
+  it('Constitution 파싱 실패를 W007 경고로 노출한다', async () => {
+    await writeConstitution('---\nversion: 1.0.0\n---\n\n# 제목 형식이 잘못됨\n');
+    const filePath = path.join(tempDir, 'broken.md');
+    await fs.writeFile(filePath, specWith('status: draft\ncreated: 2025-12-21'));
+    const result = await validateSpecFile(filePath, { checkConstitution: true, sddRoot: tempDir });
+    const w007 = result.warnings.find((w) => w.code === 'W007');
+    expect(w007?.message).toContain('Constitution 파싱 실패');
+    expect(result.constitutionCheck).toBeUndefined();
+  });
+});

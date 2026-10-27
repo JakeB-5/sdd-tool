@@ -13,6 +13,7 @@ import { generateClaudeSkills, serializeSkill } from '../../generators/claude-sk
 import { Result, success, failure } from '../../types/index.js';
 import { analyzeProject, generateSuggestions, formatAnalysis } from '../../utils/project-analyzer.js';
 import { setupGit } from './git.js';
+import { SPEC_STATUSES, SPEC_STATUS_INFO } from '../../core/spec/status.js';
 
 /**
  * 초기화 옵션
@@ -439,9 +440,7 @@ allowed-tools: Read, Glob, Grep, Bash
 ### 2. 상태 분석
 
 각 스펙의 frontmatter에서 상태 확인:
-- \`status: draft\` - 미구현
-- \`status: implemented\` - 구현 완료
-- \`status: review\` - 리뷰 중
+${SPEC_STATUSES.map((s) => `- \`status: ${s}\` - ${SPEC_STATUS_INFO[s].label}`).join('\n')}
 
 ### 3. 의존성 그래프 분석
 

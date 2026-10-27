@@ -18,8 +18,12 @@ describe('getStatusIcon', () => {
     expect(getStatusIcon('draft')).toBe('📝');
   });
 
-  it('specified 상태 아이콘을 반환한다', () => {
-    expect(getStatusIcon('specified')).toBe('📄');
+  it('레거시 specified 상태는 review 아이콘을 반환한다', () => {
+    expect(getStatusIcon('specified')).toBe('👀');
+  });
+
+  it('implemented 상태는 ❓가 아닌 아이콘을 반환한다', () => {
+    expect(getStatusIcon('implemented')).toBe('✅');
   });
 
   it('planned 상태 아이콘을 반환한다', () => {

@@ -3,6 +3,7 @@
  *
  * AI 코딩 도구용 명령어 프롬프트를 제공합니다.
  */
+import { SPEC_STATUSES } from '../core/spec/status.js';
 
 /**
  * 형식 규칙 가이드 (공통)
@@ -555,7 +556,7 @@ export const VALIDATE_PROMPT = `# /sdd:validate - 스펙 검증
 ### 필수 형식
 
 1. YAML frontmatter 존재
-   - status: draft | active | deprecated
+   - status: ${SPEC_STATUSES.join(' | ')}
    - created: YYYY-MM-DD
    - depends: null | [spec-id, ...]
 

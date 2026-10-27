@@ -9,6 +9,7 @@ import { Result, success, failure } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { directoryExists, fileExists } from '../../utils/fs.js';
 import { listSpecs } from '../spec/locator.js';
+import { readFrontmatter, stringifyFrontmatter, updateFrontmatter } from '../../utils/frontmatter.js';
 
 /**
  * 도구 종류
@@ -307,7 +308,7 @@ export async function migrateFromOpenSpec(
 
               // SDD 형식에 맞게 변환 (phase 추가 등)
               if (file === 'spec.md') {
-                content = convertOpenSpecToSdd(content, entry.name);
+                content = convertToSdd(content, entry.name, 'openspec');
               }
 
               await fs.writeFile(targetFile, content);
@@ -385,7 +386,7 @@ export async function migrateFromSpecKit(
 
               // SDD 형식에 맞게 변환
               if (file === 'spec.md') {
-                content = convertSpecKitToSdd(content, entry.name);
+                content = convertToSdd(content, entry.name, 'speckit');
               }
 
               await fs.writeFile(targetFile, content);
@@ -412,93 +413,50 @@ export async function migrateFromSpecKit(
 }
 
 /**
- * OpenSpec 형식을 SDD 형식으로 변환
+ * 외부 형식(OpenSpec/Spec Kit)을 SDD 형식으로 변환
+ * Frontmatter is parsed and re-serialized as YAML so titles containing ':' or quotes stay valid.
  */
-function convertOpenSpecToSdd(content: string, specId: string): string {
-  // frontmatter 추출
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+function convertToSdd(content: string, specId: string, source: 'openspec' | 'speckit'): string {
+  const { data, body, hasFrontmatter, malformed } = readFrontmatter(content);
+  const migratedAt = new Date().toISOString();
 
-  if (!frontmatterMatch) {
+  if (malformed) {
+    throw new Error('spec.md frontmatter가 닫히지 않았거나 YAML 형식이 올바르지 않습니다');
+  }
+
+  if (!hasFrontmatter) {
     // frontmatter 없으면 추가
-    const title = extractTitle(content) || specId;
-    return `---
-id: ${specId}
-title: ${title}
-phase: migrated
-status: draft
-source: openspec
-migrated_at: ${new Date().toISOString()}
----
-
-${content}`;
+    return stringifyFrontmatter(
+      {
+        id: specId,
+        title: extractTitle(content) || specId,
+        phase: 'migrated',
+        status: 'draft',
+        source,
+        migrated_at: migratedAt,
+      },
+      `\n${body}`
+    );
   }
 
-  // 기존 frontmatter에 필드 추가
-  let newFrontmatter = frontmatterMatch[1];
-
-  if (!newFrontmatter.includes('phase:')) {
-    newFrontmatter += '\nphase: migrated';
-  }
-  if (!newFrontmatter.includes('source:')) {
-    newFrontmatter += '\nsource: openspec';
-  }
-  if (!newFrontmatter.includes('migrated_at:')) {
-    newFrontmatter += `\nmigrated_at: ${new Date().toISOString()}`;
-  }
-
-  return content.replace(/^---\n[\s\S]*?\n---/, `---\n${newFrontmatter}\n---`);
+  // 기존 frontmatter에 누락된 필드만 추가 (기존 값/형식은 그대로)
+  return updateFrontmatter(content, {
+    phase: data.phase === undefined ? 'migrated' : undefined,
+    source: data.source === undefined ? source : undefined,
+    migrated_at: data.migrated_at === undefined ? migratedAt : undefined,
+  });
 }
 
 /**
- * Spec Kit 형식을 SDD 형식으로 변환
- */
-function convertSpecKitToSdd(content: string, specId: string): string {
-  // frontmatter 추출
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-
-  if (!frontmatterMatch) {
-    // frontmatter 없으면 추가
-    const title = extractTitle(content) || specId;
-    return `---
-id: ${specId}
-title: ${title}
-phase: migrated
-status: draft
-source: speckit
-migrated_at: ${new Date().toISOString()}
----
-
-${content}`;
-  }
-
-  // 기존 frontmatter에 필드 추가
-  let newFrontmatter = frontmatterMatch[1];
-
-  if (!newFrontmatter.includes('phase:')) {
-    newFrontmatter += '\nphase: migrated';
-  }
-  if (!newFrontmatter.includes('source:')) {
-    newFrontmatter += '\nsource: speckit';
-  }
-  if (!newFrontmatter.includes('migrated_at:')) {
-    newFrontmatter += `\nmigrated_at: ${new Date().toISOString()}`;
-  }
-
-  return content.replace(/^---\n[\s\S]*?\n---/, `---\n${newFrontmatter}\n---`);
-}
-
-/**
- * 제목 추출
+ * 제목 추출 (frontmatter title → 첫 번째 h1 헤딩)
  */
 function extractTitle(content: string): string | undefined {
-  // frontmatter에서 title 추출
-  const fmMatch = content.match(/^---\n[\s\S]*?title:\s*['"]?([^'"\n]+)['"]?\n[\s\S]*?\n---/);
-  if (fmMatch) {
-    return fmMatch[1].trim();
+  const { data, body } = readFrontmatter(content);
+  if (data.title !== undefined && data.title !== null && String(data.title).trim() !== '') {
+    return String(data.title).trim();
   }
 
-  // 첫 번째 h1 헤딩 추출
-  const h1Match = content.match(/^#\s+(.+)$/m);
+  const h1Match = body.match(/^#\s+(.+)$/m);
   if (h1Match) {
     return h1Match[1].trim();
   }
@@ -510,7 +468,6 @@ function extractTitle(content: string): string | undefined {
  * frontmatter 필드 추출
  */
 function extractFrontmatterField(content: string, field: string): string | undefined {
-  const regex = new RegExp(`^---\\n[\\s\\S]*?${field}:\\s*['"]?([^'"\\n]+)['"]?\\n[\\s\\S]*?\\n---`);
-  const match = content.match(regex);
-  return match ? match[1].trim() : undefined;
+  const value = readFrontmatter(content).data[field];
+  return value === undefined || value === null ? undefined : String(value);
 }

@@ -2,6 +2,7 @@
  * 구현 계획 생성기
  */
 import { Plan } from './schemas.js';
+import { readFrontmatter, updateFrontmatter } from '../../utils/frontmatter.js';
 
 /**
  * 계획 생성 옵션
@@ -259,8 +260,10 @@ export function parsePlan(content: string): Plan | null {
  * 계획 상태 업데이트
  */
 export function updatePlanStatus(content: string, newStatus: string): string {
-  return content.replace(
-    /^(---\n[\s\S]*?)status:\s*\w+/m,
-    `$1status: ${newStatus}`
-  );
+  const { hasFrontmatter, malformed } = readFrontmatter(content);
+  if (!hasFrontmatter && !malformed) {
+    return content;
+  }
+  // Throws on unclosed/invalid frontmatter instead of truncating the body
+  return updateFrontmatter(content, { status: newStatus });
 }

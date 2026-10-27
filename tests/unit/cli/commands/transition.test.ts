@@ -12,6 +12,9 @@ import {
   transitionChangeToNew,
   getTransitionGuide,
 } from '../../../../src/cli/commands/transition.js';
+import { parseSpec } from '../../../../src/core/spec/parser.js';
+import { validateSpecs } from '../../../../src/core/spec/validator.js';
+import { readFrontmatter } from '../../../../src/utils/frontmatter.js';
 
 describe('getExistingChangeIds', () => {
   let tempDir: string;
@@ -128,6 +131,24 @@ describe('transitionNewToChange', () => {
       expect(proposalExists).toBe(true);
     }
   });
+
+  it('proposal.md frontmatter는 따옴표/콜론이 있는 제목도 유효한 YAML로 기록한다', async () => {
+    const specPath = path.join(sddPath, 'specs', 'test-spec');
+    await fs.mkdir(specPath, { recursive: true });
+    await fs.writeFile(path.join(specPath, 'spec.md'), '# Test Spec');
+
+    const title = 'Auth: "Login" 확장';
+    const result = await transitionNewToChange(sddPath, 'test-spec', { title, reason: 'a: b' });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const proposal = await fs.readFile(path.join(result.data.changePath, 'proposal.md'), 'utf-8');
+    const { data } = readFrontmatter(proposal);
+    expect(data.title).toBe(title);
+    expect(data.transition_reason).toBe('a: b');
+    expect(data.created).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(data.created_at).toBeUndefined();
+  });
 });
 
 describe('transitionChangeToNew', () => {
@@ -182,6 +203,40 @@ describe('transitionChangeToNew', () => {
         .then(() => true)
         .catch(() => false);
       expect(specExists).toBe(true);
+    }
+  });
+
+  it('생성된 spec.md는 validateSpecs를 에러 없이 통과한다 (제목의 따옴표/콜론 포함)', async () => {
+    const changePath = path.join(sddPath, 'changes', 'CHG-001');
+    await fs.mkdir(changePath, { recursive: true });
+    await fs.writeFile(path.join(changePath, 'proposal.md'), '# Auth: "Login" 개선\n\n## 배경');
+
+    const result = await transitionChangeToNew(sddPath, 'CHG-001', {
+      name: 'auth-login',
+      reason: '사유: "분리"',
+    });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const specFile = path.join(result.data.featurePath, 'spec.md');
+    const content = await fs.readFile(specFile, 'utf-8');
+    const parsed = parseSpec(content);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.metadata.title).toBe('Auth: "Login" 개선');
+      expect(parsed.data.metadata.transition_reason).toBe('사유: "분리"');
+      expect(parsed.data.metadata.created).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(parsed.data.scenarios).toHaveLength(1);
+    }
+
+    const validation = await validateSpecs(specFile);
+    expect(validation.success).toBe(true);
+    if (validation.success) {
+      const [file] = validation.data.files;
+      expect(file.errors).toEqual([]);
+      expect(file.valid).toBe(true);
+      // created_at is no longer emitted, so no W001; the unfilled template only yields W005
+      expect(file.warnings.map((w) => w.code)).toEqual(['W005']);
     }
   });
 

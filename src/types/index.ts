@@ -1,6 +1,7 @@
 /**
  * 공통 타입 정의
  */
+import type { SpecStatus } from '../core/spec/status.js';
 
 // ============================================================
 // 스펙 관련 타입
@@ -19,7 +20,8 @@ export interface Spec {
   metadata: SpecMetadata;
 }
 
-export type SpecStatus = 'draft' | 'approved' | 'implemented';
+// Canonical lifecycle lives in core/spec/status.ts
+export type { SpecStatus };
 
 export interface SpecMetadata {
   created?: string;

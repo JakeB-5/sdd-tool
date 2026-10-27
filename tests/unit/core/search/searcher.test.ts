@@ -458,7 +458,7 @@ describe('formatSearchResult', () => {
     };
 
     const formatted = formatSearchResult(result);
-    expect(formatted).toContain('🚀');
+    expect(formatted).toContain('✅');
   });
 });
 

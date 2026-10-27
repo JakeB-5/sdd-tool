@@ -3,7 +3,7 @@
  *
  * 스펙 내용이 Constitution 원칙을 위반하는지 검사합니다.
  */
-import { ParsedConstitution, compareVersions } from './schemas.js';
+import { ParsedConstitution, compareVersions, normalizeVersion, parseVersion } from './schemas.js';
 
 /**
  * 위반 심각도
@@ -48,16 +48,20 @@ export interface ConstitutionCheckResult {
   violations: Violation[];
   /** 버전 불일치 (있는 경우) */
   versionMismatch?: VersionMismatch;
-  /** 검사한 규칙 수 */
+  /** 현재 Constitution 버전 */
+  constitutionVersion: string;
+  /** 스펙에 constitution_version이 없어 버전 확인을 하지 못함 (정보) */
+  specVersionMissing: boolean;
+  /** 실제로 평가한 규칙 수 (키워드 규칙 검사가 비활성화되어 현재 0) */
   rulesChecked: number;
 }
 
 /**
- * Constitution 위반 검사
+ * Constitution 검사
  *
  * NOTE: 키워드 기반 위반 검사는 false positive가 많아 비활성화됨
  * - "코드", "테스트" 같은 일반 단어가 위반으로 감지되는 버그
- * - 버전 호환성 검사만 유지
+ * - 현재는 버전 호환성만 확인하며, 평가하지 않은 규칙은 rulesChecked에 포함하지 않음
  * - 향후 명시적 패턴 기반 검사로 대체 예정
  */
 export function checkConstitutionViolations(
@@ -66,31 +70,19 @@ export function checkConstitutionViolations(
   constitution: ParsedConstitution
 ): ConstitutionCheckResult {
   const violations: Violation[] = [];
-  let rulesChecked = 0;
+  const constitutionVersion = constitution.metadata.version;
 
-  // 1. 버전 불일치 검사 (유지)
-  const versionMismatch = checkVersionMismatch(specConstitutionVersion, constitution.metadata.version);
-
-  // 2. 금지 사항 규칙 수 카운트 (검사는 비활성화)
-  rulesChecked += constitution.forbidden.length;
-
-  // 3. 원칙 규칙 수 카운트 (검사는 비활성화)
-  for (const principle of constitution.principles) {
-    rulesChecked += principle.rules.length;
-  }
-
-  // NOTE: 키워드 기반 위반 검사 비활성화
-  // - extractForbiddenPattern/checkForbiddenViolation 로직이 일반 단어를 위반으로 감지
-  // - 향후 명시적 패턴 시스템으로 대체 시 재활성화
-
-  // 4. 결과 반환 (버전 검사 결과만 반영)
-  const hasVersionIssue = versionMismatch && versionMismatch.severity === 'critical';
+  const versionMismatch = specConstitutionVersion
+    ? checkVersionMismatch(specConstitutionVersion, constitutionVersion)
+    : undefined;
 
   return {
-    passed: !hasVersionIssue,
+    passed: versionMismatch?.severity !== 'critical',
     violations,
     versionMismatch,
-    rulesChecked,
+    constitutionVersion,
+    specVersionMissing: !specConstitutionVersion,
+    rulesChecked: 0,
   };
 }
 
@@ -98,16 +90,19 @@ export function checkConstitutionViolations(
  * 버전 불일치 검사
  */
 function checkVersionMismatch(
-  specVersion: string | undefined,
+  rawSpecVersion: string,
   constitutionVersion: string
 ): VersionMismatch | undefined {
-  // 스펙에 버전이 없으면 경고
-  if (!specVersion) {
+  // Short forms (`1`, `1.2`) are compared as X.Y.Z; an unparseable version is never a silent pass
+  const specVersion = normalizeVersion(rawSpecVersion);
+  if (!specVersion || !parseVersion(constitutionVersion)) {
     return {
-      specVersion: '(없음)',
+      specVersion: rawSpecVersion,
       constitutionVersion,
       severity: 'warning',
-      message: `스펙에 constitution_version이 지정되지 않았습니다. 현재 Constitution 버전: ${constitutionVersion}`,
+      message: !specVersion
+        ? `constitution_version 형식을 해석할 수 없습니다: ${rawSpecVersion} (형식: X.Y.Z). 현재 Constitution 버전: ${constitutionVersion}`
+        : `Constitution 버전 형식을 해석할 수 없습니다: ${constitutionVersion} (형식: X.Y.Z)`,
     };
   }
 
@@ -157,16 +152,20 @@ function checkVersionMismatch(
 export function formatViolationReport(result: ConstitutionCheckResult): string {
   const lines: string[] = [];
 
-  lines.push('=== Constitution 위반 검사 결과 ===');
+  lines.push('=== Constitution 검사 결과 ===');
   lines.push('');
 
-  if (result.passed) {
-    lines.push('✅ 검사 통과: 위반 사항 없음');
+  if (!result.passed) {
+    lines.push('❌ 검사 실패');
+  } else if (result.specVersionMissing) {
+    lines.push(`ℹ️ 스펙에 constitution_version이 없어 버전 확인을 건너뜀 (현재 v${result.constitutionVersion})`);
   } else {
-    lines.push('❌ 검사 실패: 위반 사항 발견');
+    lines.push(`✅ 검사 통과: Constitution 버전 확인 (v${result.constitutionVersion})`);
   }
 
-  lines.push(`검사한 규칙 수: ${result.rulesChecked}`);
+  if (result.rulesChecked > 0) {
+    lines.push(`검사한 규칙 수: ${result.rulesChecked}`);
+  }
   lines.push('');
 
   // 버전 불일치

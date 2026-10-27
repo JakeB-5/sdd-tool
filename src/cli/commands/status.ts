@@ -9,6 +9,7 @@ import { fileExists, findSddRoot } from '../../utils/fs.js';
 import { ExitCode } from '../../errors/index.js';
 import { listSpecs, resolveDomainSpecRef } from '../../core/spec/locator.js';
 import { parseSpecMetadata } from '../../core/new/spec-generator.js';
+import { getSpecStatusIcon, getSpecStatusLabel } from '../../core/spec/status.js';
 import { parseTasks } from '../../core/new/task-generator.js';
 import { listPendingChanges, listArchives, type PendingChange } from '../../core/change/archive.js';
 import { getCurrentBranch, listFeatureBranches } from '../../core/new/branch.js';
@@ -73,7 +74,7 @@ export async function getFeatureInfo(id: string, featurePath: string): Promise<F
     const content = await fs.readFile(specPath, 'utf-8');
     const metadata = parseSpecMetadata(content);
     if (metadata) {
-      info.title = metadata.title;
+      info.title = metadata.title || id;
       info.status = metadata.status;
     }
   }
@@ -161,22 +162,7 @@ export async function getProjectStatus(projectPath: string): Promise<ProjectStat
  * 상태 아이콘
  */
 export function getStatusIcon(status: string): string {
-  switch (status) {
-    case 'draft':
-      return '📝';
-    case 'specified':
-      return '📄';
-    case 'planned':
-      return '📋';
-    case 'tasked':
-      return '✏️';
-    case 'implementing':
-      return '🔨';
-    case 'completed':
-      return '✅';
-    default:
-      return '❓';
-  }
+  return getSpecStatusIcon(status);
 }
 
 /**
@@ -293,7 +279,7 @@ function printStatus(status: ProjectStatus, verbose?: boolean): void {
 
       console.log(`   ${statusIcon} ${feature.title} (${feature.id})`);
       if (verbose) {
-        console.log(`      상태: ${feature.status}, 파일: ${files}${progressStr}`);
+        console.log(`      상태: ${feature.status} (${getSpecStatusLabel(feature.status)}), 파일: ${files}${progressStr}`);
       }
     }
     console.log('');

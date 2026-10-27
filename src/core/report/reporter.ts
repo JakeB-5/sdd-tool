@@ -10,7 +10,9 @@ import { ChangeError } from '../../errors/index.js';
 import { analyzeProjectQuality, ProjectQualityResult } from '../quality/index.js';
 import { validateSpecs, ValidateResult } from '../spec/index.js';
 import { listSpecs } from '../spec/locator.js';
+import { normalizeSpecStatus, type SpecStatus } from '../spec/status.js';
 import { fileExists } from '../../utils/fs.js';
+import { readFrontmatter } from '../../utils/frontmatter.js';
 
 /**
  * 스펙 목록 아이템
@@ -107,25 +109,17 @@ function parseSpecMetadata(content: string): {
   status?: string;
   description?: string;
 } | null {
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!frontmatterMatch) return null;
+  const { data, hasFrontmatter } = readFrontmatter(content);
+  if (!hasFrontmatter) return null;
 
-  const frontmatter = frontmatterMatch[1];
-  const result: Record<string, string> = {};
-
-  const lines = frontmatter.split('\n');
-  for (const line of lines) {
-    const match = line.match(/^(\w+):\s*['"]?([^'"]+)['"]?$/);
-    if (match) {
-      result[match[1]] = match[2].trim();
-    }
-  }
+  const optionalString = (value: unknown): string | undefined =>
+    value === undefined || value === null ? undefined : String(value);
 
   return {
-    title: result.title,
-    phase: result.phase,
-    status: result.status,
-    description: result.description,
+    title: optionalString(data.title),
+    phase: optionalString(data.phase),
+    status: normalizeSpecStatus(data.status) ?? optionalString(data.status),
+    description: optionalString(data.description),
   };
 }
 
@@ -249,14 +243,18 @@ function renderHtmlReport(data: ReportData): string {
   };
 
   const statusBadge = (status: string): string => {
-    const colors: Record<string, string> = {
+    const colors: Record<SpecStatus, string> = {
       draft: '#6b7280',
       review: '#3b82f6',
       approved: '#22c55e',
+      planned: '#0ea5e9',
+      tasked: '#14b8a6',
+      implementing: '#f59e0b',
       implemented: '#8b5cf6',
       deprecated: '#ef4444',
     };
-    const color = colors[status] || '#6b7280';
+    const canonical = normalizeSpecStatus(status);
+    const color = canonical ? colors[canonical] : '#6b7280';
     return `<span style="background:${color};color:white;padding:2px 8px;border-radius:4px;font-size:12px;">${escapeHtml(status)}</span>`;
   };
 

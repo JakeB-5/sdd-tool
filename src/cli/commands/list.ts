@@ -9,6 +9,7 @@ import { fileExists, readDir, findSddRoot } from '../../utils/fs.js';
 import { ExitCode } from '../../errors/index.js';
 import { listSpecs as listSpecLocations } from '../../core/spec/locator.js';
 import { parseSpecMetadata } from '../../core/new/spec-generator.js';
+import { SPEC_STATUSES, getSpecStatusIcon, normalizeSpecStatus } from '../../core/spec/status.js';
 import { listPendingChanges, listArchives } from '../../core/change/archive.js';
 
 /**
@@ -66,22 +67,7 @@ export interface ProjectSummary {
  * 상태 아이콘 반환 (테스트 가능)
  */
 export function getListStatusIcon(status: string): string {
-  switch (status) {
-    case 'draft':
-      return '📝';
-    case 'specified':
-      return '📄';
-    case 'planned':
-      return '📋';
-    case 'tasked':
-      return '✏️';
-    case 'implementing':
-      return '🔨';
-    case 'completed':
-      return '✅';
-    default:
-      return '❓';
-  }
+  return getSpecStatusIcon(status);
 }
 
 /**
@@ -113,10 +99,12 @@ async function parseFeatureSpec(
   const content = await fs.readFile(specPath, 'utf-8');
   const metadata = parseSpecMetadata(content);
   if (metadata) {
-    if (!statusFilter || metadata.status === statusFilter) {
+    // Filter by canonical status (legacy aliases in the filter are accepted)
+    const wanted = statusFilter ? (normalizeSpecStatus(statusFilter) ?? statusFilter) : undefined;
+    if (!wanted || metadata.status === wanted) {
       return {
         id: featureId,
-        title: metadata.title,
+        title: metadata.title || featureId,
         status: metadata.status,
       };
     }
@@ -264,7 +252,7 @@ export function registerListCommand(program: Command): void {
     .command('features')
     .alias('f')
     .description('기능 목록 조회')
-    .option('--status <status>', '상태별 필터 (draft, specified, planned, etc.)')
+    .option('--status <status>', `상태별 필터 (${SPEC_STATUSES.join(', ')})`)
     .action(async (options) => {
       await listFeatures(options);
     });
