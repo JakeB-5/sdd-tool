@@ -335,7 +335,7 @@ sdd new <feature-name> --no-branch
 
 ## 생성 후 확인
 
-- [ ] \`sdd validate .sdd/specs/{FEATURE_ID}/spec.md\` 실행
+- [ ] \`sdd validate .sdd/specs/<domain>/{FEATURE_ID}/spec.md\` 실행 (도메인 미지정 시 \`common\`)
 - [ ] RFC 2119 키워드 사용 확인
 - [ ] GIVEN-WHEN-THEN 시나리오 포함 확인
 - [ ] 다음 단계: \`/sdd:plan\` 실행
@@ -574,7 +574,10 @@ export const VALIDATE_PROMPT = `# /sdd:validate - 스펙 검증
 sdd validate
 
 # 특정 경로 검증
-sdd validate .sdd/specs/feature/spec.md
+sdd validate .sdd/specs/<domain>/<feature>/spec.md
+
+# 특정 도메인 스펙만 검증
+sdd validate --domain <domain>
 
 # 엄격 모드 (경고도 에러로 처리)
 sdd validate --strict

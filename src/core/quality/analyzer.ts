@@ -4,10 +4,10 @@
  * 스펙 파일의 품질을 분석하고 점수를 산출합니다.
  */
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { directoryExists, fileExists, readFile } from '../../utils/fs.js';
+import { listSpecs } from '../spec/locator.js';
 import { parseSpec, ParsedSpec } from '../spec/index.js';
 
 /**
@@ -475,9 +475,8 @@ export async function analyzeProjectQuality(
       return failure(new ChangeError('스펙 디렉토리를 찾을 수 없습니다.'));
     }
 
-    // 모든 spec.md 파일 찾기
-    const specFiles: string[] = [];
-    await findSpecFiles(specsPath, specFiles);
+    // 모든 spec.md 파일 찾기 (도메인/평면 레이아웃 모두)
+    const specFiles = (await listSpecs(sddPath)).map((l) => l.specPath);
 
     if (specFiles.length === 0) {
       return failure(new ChangeError('스펙 파일이 없습니다.'));
@@ -520,23 +519,6 @@ export async function analyzeProjectQuality(
         `프로젝트 품질 분석 실패: ${error instanceof Error ? error.message : String(error)}`
       )
     );
-  }
-}
-
-/**
- * spec.md 파일 재귀 검색
- */
-async function findSpecFiles(dir: string, files: string[]): Promise<void> {
-  const entries = await fs.readdir(dir, { withFileTypes: true });
-
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-
-    if (entry.isDirectory()) {
-      await findSpecFiles(fullPath, files);
-    } else if (entry.name === 'spec.md') {
-      files.push(fullPath);
-    }
   }
 }
 

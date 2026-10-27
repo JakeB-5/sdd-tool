@@ -13,7 +13,8 @@ import {
   type QualityResult,
   type ProjectQualityResult,
 } from '../../core/quality/index.js';
-import { findSddRoot, findSpecPath } from '../../utils/fs.js';
+import { findSddRoot } from '../../utils/fs.js';
+import { resolveSpec } from '../../core/spec/locator.js';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
 import { Result, success, failure } from '../../types/index.js';
@@ -69,11 +70,11 @@ export async function executeQuality(
   }
 
   // 개별 스펙 분석 (도메인 기반 경로 탐색)
-  const specDir = await findSpecPath(sddPath, feature);
-  if (!specDir) {
-    return failure(new Error(`스펙을 찾을 수 없습니다: ${feature}`));
+  const resolved = await resolveSpec(sddPath, feature);
+  if (!resolved.success) {
+    return failure(resolved.error);
   }
-  const specPath = path.join(specDir, 'spec.md');
+  const specPath = resolved.data.specPath;
   const result = await analyzeSpecQuality(specPath, sddPath);
 
   if (!result.success) {

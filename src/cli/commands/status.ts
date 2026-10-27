@@ -5,7 +5,9 @@ import { Command } from 'commander';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { logger } from '../../utils/index.js';
-import { fileExists, readDir } from '../../utils/fs.js';
+import { fileExists, findSddRoot } from '../../utils/fs.js';
+import { ExitCode } from '../../errors/index.js';
+import { listSpecs, resolveDomainSpecRef } from '../../core/spec/locator.js';
 import { parseSpecMetadata } from '../../core/new/spec-generator.js';
 import { parseTasks } from '../../core/new/task-generator.js';
 import { listPendingChanges, listArchives, type PendingChange } from '../../core/change/archive.js';
@@ -125,41 +127,8 @@ export async function getProjectStatus(projectPath: string): Promise<ProjectStat
   status.hasAgents = await fileExists(path.join(sddPath, 'AGENTS.md'));
 
   // 기능 스펙 조회 (도메인 기반 구조 지원)
-  const specsPath = path.join(sddPath, 'specs');
-  if (await fileExists(specsPath)) {
-    const specsResult = await readDir(specsPath);
-    if (specsResult.success) {
-      for (const entry of specsResult.data) {
-        const entryPath = path.join(specsPath, entry);
-        const stat = await fs.stat(entryPath);
-
-        if (stat.isDirectory()) {
-          // 직접 하위에 spec.md가 있는지 확인 (기존 구조 호환)
-          const directSpecPath = path.join(entryPath, 'spec.md');
-          if (await fileExists(directSpecPath)) {
-            const featureInfo = await getFeatureInfo(entry, entryPath);
-            status.features.push(featureInfo);
-          } else {
-            // 도메인 폴더로 간주하고 하위 디렉토리 탐색
-            const domainResult = await readDir(entryPath);
-            if (domainResult.success) {
-              for (const featureEntry of domainResult.data) {
-                const featurePath = path.join(entryPath, featureEntry);
-                const featureStat = await fs.stat(featurePath);
-                if (featureStat.isDirectory()) {
-                  const specPath = path.join(featurePath, 'spec.md');
-                  if (await fileExists(specPath)) {
-                    const featureId = `${entry}/${featureEntry}`;
-                    const featureInfo = await getFeatureInfo(featureId, featurePath);
-                    status.features.push(featureInfo);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+  for (const location of await listSpecs(sddPath)) {
+    status.features.push(await getFeatureInfo(location.id, location.dir));
   }
 
   // 대기 중인 변경 조회
@@ -229,22 +198,22 @@ export function registerStatusCommand(program: Command): void {
  * status 명령어 핸들러 (CLI 래퍼)
  */
 async function handleStatus(options: StatusOptions): Promise<void> {
-  const cwd = process.cwd();
-  let status = await getProjectStatus(cwd);
+  const projectRoot = await findSddRoot();
+  let status = await getProjectStatus(projectRoot ?? process.cwd());
 
-  if (!status.initialized) {
+  if (!projectRoot || !status.initialized) {
     if (options.json) {
       console.log(JSON.stringify(status, null, 2));
     } else {
       logger.warn('SDD 프로젝트가 초기화되지 않았습니다.');
       logger.info('sdd init 명령어로 초기화하세요.');
     }
-    return;
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
   // 도메인 필터
   if (options.domain) {
-    const domainService = createDomainService(cwd);
+    const domainService = createDomainService(projectRoot);
     const domainResult = await domainService.get(options.domain);
 
     if (!domainResult.success || !domainResult.data) {
@@ -252,7 +221,14 @@ async function handleStatus(options: StatusOptions): Promise<void> {
       return;
     }
 
-    const domainSpecs = new Set(domainResult.data.specs || []);
+    // domains.yml 스펙 참조를 spec locator로 해석하여 canonical id로 비교
+    const allSpecs = await listSpecs(path.join(projectRoot, '.sdd'));
+    const domainId = options.domain;
+    const domainSpecs = new Set(
+      (domainResult.data.specs || [])
+        .map((ref) => resolveDomainSpecRef(allSpecs, domainId, ref)?.id)
+        .filter((id): id is string => id !== undefined)
+    );
 
     // 도메인 스펙만 필터링
     status = {

@@ -118,6 +118,22 @@ describe('DomainValidator', () => {
       expect(result.warnings.some((w) => w.code === 'ORPHAN_SPEC')).toBe(true);
     });
 
+    it('orphanExemptSpecs에 포함된 스펙은 고아로 보고하지 않아야 함', () => {
+      const config = createConfig({
+        auth: { description: '인증', specs: ['auth/login'] },
+      });
+
+      const result = validateDomains(config, {
+        validateSpecs: true,
+        existingSpecs: ['auth/login', 'common/signup', 'legacy'],
+        detectOrphanSpecs: true,
+        orphanExemptSpecs: ['common/signup'],
+      });
+
+      const orphans = result.warnings.filter((w) => w.code === 'ORPHAN_SPEC').map((w) => w.spec);
+      expect(orphans).toEqual(['legacy']);
+    });
+
     it('중복 스펙 할당을 감지해야 함', () => {
       const config = createConfig({
         auth: { description: '인증', specs: ['shared-spec'] },

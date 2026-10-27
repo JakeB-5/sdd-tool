@@ -8,7 +8,8 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
-import { findSddRoot, fileExists, readFile, ensureDir, writeFile, directoryExists, findSpecPath } from '../../utils/fs.js';
+import { findSddRoot, fileExists, readFile, ensureDir, writeFile, directoryExists } from '../../utils/fs.js';
+import { resolveSpec } from '../../core/spec/locator.js';
 import { generateChangeId, isValidChangeId } from '../../core/change/index.js';
 import { Result, success, failure } from '../../types/index.js';
 import { isSafePathSegment } from '../../utils/path.js';
@@ -89,15 +90,10 @@ export async function transitionNewToChange(
   specId: string,
   options: NewToChangeOptions
 ): Promise<Result<NewToChangeResult, Error>> {
-  // 도메인 기반 경로 탐색
-  const specDir = await findSpecPath(sddPath, specId);
-  if (!specDir) {
-    return failure(new Error(`스펙을 찾을 수 없습니다: ${specId}`));
-  }
-
-  const specPath = path.join(specDir, 'spec.md');
-  if (!(await fileExists(specPath))) {
-    return failure(new Error(`스펙을 찾을 수 없습니다: ${specId}`));
+  // 스펙 존재 확인 (도메인/평면 레이아웃, 모호성은 후보와 함께 실패)
+  const resolved = await resolveSpec(sddPath, specId);
+  if (!resolved.success) {
+    return failure(resolved.error);
   }
 
   // 기존 변경 ID 목록 가져오기

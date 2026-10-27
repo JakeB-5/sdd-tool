@@ -9,6 +9,7 @@ import { promises as fs } from 'node:fs';
 import chalk from 'chalk';
 import { Result, success, failure } from '../../types/index.js';
 import { fileExists, ensureDir } from '../../utils/fs.js';
+import { listSpecs } from '../spec/locator.js';
 import type { ExtractedSpec } from './spec-generator.js';
 import { getApprovedSpecs } from './review.js';
 import { updateExtractionStatus } from './meta.js';
@@ -444,61 +445,21 @@ export async function getFinalizedSpecs(
   const specs: FinalizedSpec[] = [];
 
   try {
-    const domainEntries = await fs.readdir(specsDir);
+    // 도메인/평면 레이아웃 모두 spec locator로 탐색
+    for (const location of await listSpecs(path.join(sddRoot, '.sdd'))) {
+      const content = await fs.readFile(location.specPath, 'utf-8');
 
-    for (const domainEntry of domainEntries) {
-      const domainPath = path.join(specsDir, domainEntry);
-      const domainStat = await fs.stat(domainPath);
-      if (!domainStat.isDirectory()) continue;
+      // 메타데이터 파싱
+      const idMatch = content.match(/id:\s*(.+)/);
+      const domainMatch = content.match(/domain:\s*(.+)/);
 
-      // 직접 spec.md가 있는지 확인 (기존 구조 호환)
-      const directSpecPath = path.join(domainPath, 'spec.md');
-      if (await fileExists(directSpecPath)) {
-        const content = await fs.readFile(directSpecPath, 'utf-8');
-        const idMatch = content.match(/id:\s*(.+)/);
-        const domainMatch = content.match(/domain:\s*(.+)/);
-
-        const id = idMatch ? idMatch[1].trim() : domainEntry;
-        const domain = domainMatch ? domainMatch[1].trim() : 'unknown';
-
-        specs.push({
-          id,
-          domain,
-          specPath: path.relative(sddRoot, directSpecPath),
-          original: {} as ExtractedSpec,
-          finalizedAt: (await fs.stat(directSpecPath)).mtime,
-        });
-        continue;
-      }
-
-      // 도메인 기반 구조: specs/<domain>/<feature>/spec.md
-      const featureEntries = await fs.readdir(domainPath);
-
-      for (const featureEntry of featureEntries) {
-        const featurePath = path.join(domainPath, featureEntry);
-        const featureStat = await fs.stat(featurePath);
-        if (!featureStat.isDirectory()) continue;
-
-        const specPath = path.join(featurePath, 'spec.md');
-        if (!await fileExists(specPath)) continue;
-
-        const content = await fs.readFile(specPath, 'utf-8');
-
-        // 메타데이터 파싱
-        const idMatch = content.match(/id:\s*(.+)/);
-        const domainMatch = content.match(/domain:\s*(.+)/);
-
-        const id = idMatch ? idMatch[1].trim() : `${domainEntry}/${featureEntry}`;
-        const domain = domainMatch ? domainMatch[1].trim() : domainEntry;
-
-        specs.push({
-          id,
-          domain,
-          specPath: path.relative(sddRoot, specPath),
-          original: {} as ExtractedSpec, // 원본은 로드하지 않음
-          finalizedAt: (await fs.stat(specPath)).mtime,
-        });
-      }
+      specs.push({
+        id: idMatch ? idMatch[1].trim() : location.id,
+        domain: domainMatch ? domainMatch[1].trim() : (location.domain ?? 'unknown'),
+        specPath: path.relative(sddRoot, location.specPath),
+        original: {} as ExtractedSpec, // 원본은 로드하지 않음
+        finalizedAt: (await fs.stat(location.specPath)).mtime,
+      });
     }
 
     return success(specs);

@@ -23,13 +23,15 @@ describe('sdd status', () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
-  it('초기화되지 않은 프로젝트를 감지한다', async () => {
-    const { stdout } = await execAsync(
-      `node "${cliPath}" status`,
-      { cwd: tempDir }
+  it('초기화되지 않은 프로젝트를 감지하고 0이 아닌 코드로 종료한다', async () => {
+    const error = await execAsync(`node "${cliPath}" status`, { cwd: tempDir }).then(
+      () => null,
+      (err: { code?: number; stdout?: string; stderr?: string }) => err
     );
 
-    expect(stdout).toContain('초기화되지 않았습니다');
+    expect(error).not.toBeNull();
+    expect(error?.code).not.toBe(0);
+    expect(`${error?.stdout}${error?.stderr}`).toContain('초기화되지 않았습니다');
   });
 
   it('초기화된 프로젝트 상태를 표시한다', async () => {

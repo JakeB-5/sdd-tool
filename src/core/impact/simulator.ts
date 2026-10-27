@@ -15,6 +15,12 @@ import { buildDependencyGraph } from './graph.js';
 import { Result, success, failure } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { fileExists } from '../../utils/fs.js';
+import {
+  listSpecsUnder,
+  resolveSpecIn,
+  resolveSpecRef,
+  type SpecLocation,
+} from '../spec/locator.js';
 
 /**
  * 델타 변경 유형
@@ -230,10 +236,19 @@ function extractDependencyChanges(content: string, deltas: DeltaItem[]): void {
  */
 export async function runSimulation(
   specsPath: string,
-  targetSpec: string,
-  deltas: DeltaItem[]
+  targetRef: string,
+  rawDeltas: DeltaItem[]
 ): Promise<Result<SimulationResult, ChangeError>> {
   try {
+    // 0. 대상 스펙 및 델타의 스펙 참조를 canonical id로 해석
+    const allSpecs = await listSpecsUnder(specsPath);
+    const resolvedTarget = resolveSpecIn(allSpecs, targetRef);
+    if (!resolvedTarget.success) {
+      return failure(new ChangeError(resolvedTarget.error.message));
+    }
+    const targetSpec = resolvedTarget.data.id;
+    const deltas = rawDeltas.map((delta) => resolveDeltaRefs(allSpecs, delta));
+
     // 1. 현재 그래프 구축
     const currentGraphResult = await buildDependencyGraph(specsPath);
     if (!currentGraphResult.success) {
@@ -328,6 +343,22 @@ export async function runSimulation(
       new ChangeError(`시뮬레이션 실패: ${error instanceof Error ? error.message : String(error)}`)
     );
   }
+}
+
+/**
+ * 델타의 스펙 id와 의존성 참조를 canonical id로 해석 (해석 불가 시 원래 값 유지: 신규 스펙 등)
+ */
+function resolveDeltaRefs(allSpecs: SpecLocation[], delta: DeltaItem): DeltaItem {
+  const own = resolveSpecRef(allSpecs, delta.specId);
+  const fromDomain = own ? own.domain : undefined;
+  const resolveDep = (dep: string): string => resolveSpecRef(allSpecs, dep, fromDomain)?.id ?? dep;
+
+  return {
+    ...delta,
+    specId: own?.id ?? delta.specId,
+    newDependencies: delta.newDependencies?.map(resolveDep),
+    removedDependencies: delta.removedDependencies?.map(resolveDep),
+  };
 }
 
 /**

@@ -5,6 +5,11 @@ import { promises as fs, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseFrontmatter } from '../../utils/frontmatter.js';
 import type { ExtractedRequirement } from './schemas.js';
+import {
+  listSpecs as listSpecLocations,
+  resolveSpec,
+  type SpecLocation,
+} from '../spec/locator.js';
 
 /**
  * 요구사항 ID 패턴
@@ -33,58 +38,42 @@ export class SpecParser {
   }
 
   /**
-   * 특정 스펙에서 요구사항 추출
+   * 특정 스펙에서 요구사항 추출 (ref: <domain>/<feature>, bare feature, 레거시 id)
    */
-  async parseSpec(specId: string): Promise<ExtractedRequirement[]> {
-    const specPath = path.join(this.specsDir, specId, 'spec.md');
-
-    try {
-      const content = await fs.readFile(specPath, 'utf-8');
-      return this.extractRequirements(content, specId);
-    } catch {
-      // spec.md가 없으면 디렉토리의 다른 md 파일 시도
-      const specDir = path.join(this.specsDir, specId);
-      try {
-        const files = await fs.readdir(specDir);
-        const mdFiles = files.filter(f => f.endsWith('.md'));
-
-        const requirements: ExtractedRequirement[] = [];
-        for (const file of mdFiles) {
-          const filePath = path.join(specDir, file);
-          const content = await fs.readFile(filePath, 'utf-8');
-          requirements.push(...this.extractRequirements(content, specId));
-        }
-        return requirements;
-      } catch {
-        return [];
-      }
+  async parseSpec(specRef: string): Promise<ExtractedRequirement[]> {
+    const resolved = await resolveSpec(path.join(this.projectRoot, '.sdd'), specRef);
+    if (!resolved.success) {
+      return [];
     }
+    return this.parseLocation(resolved.data);
   }
 
   /**
    * 모든 스펙에서 요구사항 추출
    */
   async parseAllSpecs(): Promise<ExtractedRequirement[]> {
-    const specIds = await this.listSpecs();
+    const locations = await listSpecLocations(path.join(this.projectRoot, '.sdd'));
     const allRequirements: ExtractedRequirement[] = [];
 
-    for (const specId of specIds) {
-      const requirements = await this.parseSpec(specId);
-      allRequirements.push(...requirements);
+    for (const location of locations) {
+      allRequirements.push(...(await this.parseLocation(location)));
     }
 
     return allRequirements;
   }
 
   /**
-   * 스펙 목록 조회
+   * 스펙 목록 조회 (canonical id)
    */
   async listSpecs(): Promise<string[]> {
+    const locations = await listSpecLocations(path.join(this.projectRoot, '.sdd'));
+    return locations.map(l => l.id);
+  }
+
+  private async parseLocation(location: SpecLocation): Promise<ExtractedRequirement[]> {
     try {
-      const entries = await fs.readdir(this.specsDir, { withFileTypes: true });
-      return entries
-        .filter(e => e.isDirectory())
-        .map(e => e.name);
+      const content = await fs.readFile(location.specPath, 'utf-8');
+      return this.extractRequirements(content, location.id);
     } catch {
       return [];
     }

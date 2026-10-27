@@ -7,6 +7,7 @@ import * as path from 'node:path';
 import { PrepareReport, ToolCheckResult } from './schemas.js';
 import { GeneratedAgent } from './agent-generator.js';
 import { GeneratedSkill } from './skill-generator.js';
+import { resolveSpec } from '../spec/locator.js';
 
 /**
  * 보고서 생성 입력
@@ -160,7 +161,10 @@ export class PrepareReportGenerator {
    * 보고서 파일 저장
    */
   async writeReport(feature: string, report: PrepareReport): Promise<string> {
-    const featureDir = path.join(this.sddDir, 'specs', feature);
+    const resolved = await resolveSpec(this.sddDir, feature);
+    const featureDir = resolved.success
+      ? resolved.data.dir
+      : path.join(this.sddDir, 'specs', feature);
 
     if (!fs.existsSync(featureDir)) {
       fs.mkdirSync(featureDir, { recursive: true });

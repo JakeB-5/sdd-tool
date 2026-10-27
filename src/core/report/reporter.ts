@@ -9,7 +9,8 @@ import { Result, success, failure } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { analyzeProjectQuality, ProjectQualityResult } from '../quality/index.js';
 import { validateSpecs, ValidateResult } from '../spec/index.js';
-import { readDir, fileExists } from '../../utils/fs.js';
+import { listSpecs } from '../spec/locator.js';
+import { fileExists } from '../../utils/fs.js';
 
 /**
  * 스펙 목록 아이템
@@ -70,38 +71,25 @@ export interface ReportResult {
 /**
  * 스펙 목록 로드
  */
-async function loadSpecList(specsPath: string): Promise<Result<SpecListItem[], ChangeError>> {
+async function loadSpecList(sddPath: string): Promise<Result<SpecListItem[], ChangeError>> {
   try {
-    if (!(await fileExists(specsPath))) {
+    if (!(await fileExists(path.join(sddPath, 'specs')))) {
       return failure(new ChangeError('스펙 디렉토리를 찾을 수 없습니다.'));
-    }
-
-    const result = await readDir(specsPath);
-    if (!result.success) {
-      return failure(new ChangeError('스펙 디렉토리를 읽을 수 없습니다.'));
     }
 
     const specs: SpecListItem[] = [];
 
-    for (const entry of result.data) {
-      const featurePath = path.join(specsPath, entry);
-      const stat = await fs.stat(featurePath);
+    for (const location of await listSpecs(sddPath)) {
+      const content = await fs.readFile(location.specPath, 'utf-8');
+      const metadata = parseSpecMetadata(content);
 
-      if (stat.isDirectory()) {
-        const specFile = path.join(featurePath, 'spec.md');
-        if (await fileExists(specFile)) {
-          const content = await fs.readFile(specFile, 'utf-8');
-          const metadata = parseSpecMetadata(content);
-
-          specs.push({
-            id: entry,
-            title: metadata?.title,
-            phase: metadata?.phase,
-            status: metadata?.status,
-            description: metadata?.description,
-          });
-        }
-      }
+      specs.push({
+        id: location.id,
+        title: metadata?.title,
+        phase: metadata?.phase,
+        status: metadata?.status,
+        description: metadata?.description,
+      });
     }
 
     return success(specs);
@@ -151,7 +139,7 @@ export async function generateReport(
   try {
     // 스펙 목록 로드
     const specsPath = path.join(sddPath, 'specs');
-    const specsResult = await loadSpecList(specsPath);
+    const specsResult = await loadSpecList(sddPath);
 
     if (!specsResult.success) {
       return failure(specsResult.error);
@@ -192,7 +180,8 @@ export async function generateReport(
 
     // 검증 결과 포함
     if (options.includeValidation !== false) {
-      const validationResult = await validateSpecs(sddPath, { strict: false });
+      // Validate spec.md files only (not constitution/templates under .sdd)
+      const validationResult = await validateSpecs(specsPath, { strict: false });
       if (validationResult.success) {
         reportData.validation = validationResult.data;
         reportData.summary.validationErrors = validationResult.data.failed;

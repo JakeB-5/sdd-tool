@@ -16,7 +16,8 @@ import {
   getFeatureHistory,
 } from '../../core/new/index.js';
 import { logger } from '../../utils/index.js';
-import { ensureDir, fileExists, readFile, writeFile, findSpecPath } from '../../utils/fs.js';
+import { ensureDir, fileExists, readFile, writeFile, findSddRoot } from '../../utils/fs.js';
+import { resolveSpec } from '../../core/spec/locator.js';
 import { parseConstitution } from '../../core/constitution/index.js';
 import { Result, success, failure } from '../../types/index.js';
 import { createDomainService } from '../../core/domain/service.js';
@@ -439,6 +440,18 @@ export function registerNewCommand(program: Command): void {
 }
 
 /**
+ * SDD 프로젝트 루트 조회 (없으면 에러 종료)
+ */
+async function requireProjectRoot(): Promise<string> {
+  const projectRoot = await findSddRoot();
+  if (!projectRoot) {
+    logger.error('.sdd 디렉토리가 없습니다. 먼저 sdd init을 실행해주세요.');
+    process.exit(1);
+  }
+  return projectRoot;
+}
+
+/**
  * new 명령어 핸들러
  */
 async function handleNew(
@@ -465,14 +478,8 @@ async function handleNew(
     process.exit(1);
   }
 
-  const cwd = process.cwd();
+  const cwd = await requireProjectRoot();
   const sddPath = path.join(cwd, '.sdd');
-
-  // .sdd 디렉토리 확인
-  if (!(await fileExists(sddPath))) {
-    logger.error('.sdd 디렉토리가 없습니다. 먼저 sdd init을 실행해주세요.');
-    process.exit(1);
-  }
 
   // 기능 생성
   const result = await createFeature(sddPath, name, options);
@@ -541,12 +548,15 @@ async function handlePlan(
   feature: string,
   options: { title?: string }
 ): Promise<void> {
-  const cwd = process.cwd();
-  const sddPath = path.join(cwd, '.sdd');
-  const featurePath = await findSpecPath(sddPath, feature);
+  const sddPath = path.join(await requireProjectRoot(), '.sdd');
+  const resolved = await resolveSpec(sddPath, feature);
 
-  if (!featurePath) {
-    logger.error(`기능 '${feature}'을 찾을 수 없습니다.`);
+  if (!resolved.success) {
+    logger.error(
+      resolved.error.reason === 'ambiguous'
+        ? resolved.error.message
+        : `기능 '${feature}'을 찾을 수 없습니다.`
+    );
     logger.info('');
     logger.info('사용법:');
     logger.info('  sdd new plan <domain>/<feature>  도메인/기능 형식');
@@ -554,7 +564,8 @@ async function handlePlan(
     process.exit(1);
   }
 
-  const featureId = path.basename(featurePath);
+  const featurePath = resolved.data.dir;
+  const featureId = resolved.data.feature;
   const result = await createPlan(featurePath, featureId, options.title);
   if (!result.success) {
     logger.error(result.error.message);
@@ -572,12 +583,15 @@ async function handlePlan(
  * tasks 서브커맨드 핸들러
  */
 async function handleTasks(feature: string): Promise<void> {
-  const cwd = process.cwd();
-  const sddPath = path.join(cwd, '.sdd');
-  const featurePath = await findSpecPath(sddPath, feature);
+  const sddPath = path.join(await requireProjectRoot(), '.sdd');
+  const resolved = await resolveSpec(sddPath, feature);
 
-  if (!featurePath) {
-    logger.error(`기능 '${feature}'을 찾을 수 없습니다.`);
+  if (!resolved.success) {
+    logger.error(
+      resolved.error.reason === 'ambiguous'
+        ? resolved.error.message
+        : `기능 '${feature}'을 찾을 수 없습니다.`
+    );
     logger.info('');
     logger.info('사용법:');
     logger.info('  sdd new tasks <domain>/<feature>  도메인/기능 형식');
@@ -585,7 +599,8 @@ async function handleTasks(feature: string): Promise<void> {
     process.exit(1);
   }
 
-  const featureId = path.basename(featurePath);
+  const featurePath = resolved.data.dir;
+  const featureId = resolved.data.feature;
   const result = await createTasks(featurePath, featureId);
   if (!result.success) {
     logger.error(result.error.message);
@@ -603,8 +618,7 @@ async function handleTasks(feature: string): Promise<void> {
  * checklist 서브커맨드 핸들러
  */
 async function handleChecklist(): Promise<void> {
-  const cwd = process.cwd();
-  const sddPath = path.join(cwd, '.sdd');
+  const sddPath = path.join(await requireProjectRoot(), '.sdd');
 
   const result = await createChecklist(sddPath);
   if (!result.success) {
@@ -623,13 +637,7 @@ async function handleCounter(options: {
   history?: boolean;
   set?: string;
 }): Promise<void> {
-  const cwd = process.cwd();
-  const sddPath = path.join(cwd, '.sdd');
-
-  if (!(await fileExists(sddPath))) {
-    logger.error('.sdd 디렉토리가 없습니다. 먼저 sdd init을 실행해주세요.');
-    process.exit(1);
-  }
+  const sddPath = path.join(await requireProjectRoot(), '.sdd');
 
   // 다음 번호 확인
   if (options.peek) {

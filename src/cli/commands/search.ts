@@ -4,7 +4,8 @@
 import { Command } from 'commander';
 import path from 'node:path';
 import { logger } from '../../utils/index.js';
-import { fileExists } from '../../utils/fs.js';
+import { findSddRoot } from '../../utils/fs.js';
+import { ExitCode } from '../../errors/index.js';
 import {
   searchSpecs,
   formatSearchResult,
@@ -151,12 +152,14 @@ export async function executeSearch(
   query: string | undefined,
   options: SearchCliOptions
 ): Promise<void> {
-  const sddPath = path.join(process.cwd(), '.sdd');
+  const projectRoot = await findSddRoot();
 
-  if (!(await fileExists(sddPath))) {
+  if (!projectRoot) {
     logger.error('.sdd 디렉토리가 없습니다. sdd init을 먼저 실행하세요.');
-    return;
+    process.exit(ExitCode.GENERAL_ERROR);
   }
+
+  const sddPath = path.join(projectRoot, '.sdd');
 
   const searchOptions = parseSearchCliOptions(query, options);
   const result = await searchSpecs(sddPath, searchOptions);

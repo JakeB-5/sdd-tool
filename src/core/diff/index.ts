@@ -7,7 +7,9 @@ export { compareSpecs } from './structural-diff.js';
 export { extractKeywords, getKeywordImpact, analyzeKeywordChanges } from './keyword-diff.js';
 export { DiffFormatter } from './formatter.js';
 
+import path from 'node:path';
 import { GitDiff } from './git-diff.js';
+import { resolveSpec } from '../spec/locator.js';
 import { compareSpecs } from './structural-diff.js';
 import { DiffFormatter } from './formatter.js';
 import type { DiffResult, DiffOptions, SpecDiff } from './schemas.js';
@@ -45,12 +47,27 @@ export async function executeDiff(
     };
   }
 
+  // 스펙 참조 해석 (<domain>/<feature>, bare feature, 레거시 id)
+  let specPath = options.specId;
+  if (options.specId) {
+    const resolved = await resolveSpec(path.join(projectRoot, '.sdd'), options.specId);
+    if (resolved.success) {
+      specPath = resolved.data.id;
+    } else if (resolved.error.reason === 'ambiguous') {
+      return {
+        success: false,
+        error: { code: 'AMBIGUOUS_SPEC', message: resolved.error.message },
+      };
+    }
+    // not_found: keep the raw ref so deleted specs can still be diffed in git history
+  }
+
   // 변경된 스펙 파일 조회
   const changedResult = await gitDiff.getChangedSpecFiles({
     staged: options.staged,
     commit1: options.commit1,
     commit2: options.commit2,
-    specPath: options.specId,
+    specPath,
   });
   if (!changedResult.success) {
     return {

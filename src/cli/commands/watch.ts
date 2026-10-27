@@ -98,7 +98,8 @@ async function runWatch(options: {
       logger.newline();
       logger.info('🔍 검증 실행 중...');
 
-      const result = await validateSpecs(sddPath, { strict: false });
+      // Validate spec.md files only (not constitution/templates under .sdd)
+      const result = await validateSpecs(specsPath, { strict: false });
 
       validationCount++;
 

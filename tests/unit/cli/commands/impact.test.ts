@@ -7,6 +7,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {
   resolveProposalPath,
+  executeGraphAnalysis,
   formatChangeImpactOutput,
   type ChangeImpactAnalysis,
 } from '../../../../src/cli/commands/impact.js';
@@ -116,5 +117,55 @@ describe('formatChangeImpactOutput', () => {
     expect(output).toContain('권장사항');
     expect(output).toContain('테스트 추가');
     expect(output).toContain('문서 업데이트');
+  });
+});
+
+describe('executeGraphAnalysis (도메인 레이아웃)', () => {
+  let tempDir: string;
+  let specsPath: string;
+
+  async function writeSpec(id: string, depends: string): Promise<void> {
+    await fs.mkdir(path.join(specsPath, id), { recursive: true });
+    await fs.writeFile(
+      path.join(specsPath, id, 'spec.md'),
+      `---\nstatus: draft\ndepends: ${depends}\n---\n\n# ${id}\n`
+    );
+  }
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-impact-graph-cli-'));
+    specsPath = path.join(tempDir, 'specs');
+    await writeSpec('auth/login', 'missing-spec');
+    await writeSpec('common/signup', 'login');
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('bare 참조를 canonical id로 해석해 강조한다', async () => {
+    const result = await executeGraphAnalysis(specsPath, 'login');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.mermaid).toContain('style auth_login fill:#ff9');
+    }
+  });
+
+  it('해석되지 않는 강조 대상은 에러를 반환한다', async () => {
+    const result = await executeGraphAnalysis(specsPath, 'nope');
+    expect(result.success).toBe(false);
+  });
+
+  it('JSON 결과에 dangling 의존성을 포함한다', async () => {
+    const result = await executeGraphAnalysis(specsPath, undefined, true);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dangling).toEqual([{ from: 'auth/login', to: 'missing-spec' }]);
+      expect(result.data.edges).toEqual([
+        expect.objectContaining({ from: 'common/signup', to: 'auth/login' }),
+      ]);
+    }
   });
 });

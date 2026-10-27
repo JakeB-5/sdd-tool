@@ -11,6 +11,7 @@ import {
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { directoryExists } from '../../utils/fs.js';
+import { listSpecsUnder, resolveSpecRef } from '../spec/locator.js';
 
 /**
  * 스펙 디렉토리에서 의존성 그래프 구축
@@ -19,55 +20,67 @@ export async function buildDependencyGraph(
   specsPath: string
 ): Promise<Result<DependencyGraph, ChangeError>> {
   try {
+    const dangling: Array<{ from: string; to: string }> = [];
     const graph: DependencyGraph = {
       nodes: new Map(),
       edges: [],
+      dangling,
     };
 
     if (!(await directoryExists(specsPath))) {
       return success(graph);
     }
 
-    // 스펙 파일 수집
-    const specFiles = await collectSpecFiles(specsPath);
+    // 스펙 수집 (spec.md만, canonical id 기준)
+    const locations = await listSpecsUnder(specsPath);
+    const allSpecIds = locations.map((l) => l.id);
 
     // 각 스펙 파일 분석
-    for (const filePath of specFiles) {
-      const content = await fs.readFile(filePath, 'utf-8');
-      const relativePath = path.relative(specsPath, filePath);
-      const specId = getSpecId(relativePath);
+    for (const location of locations) {
+      const content = await fs.readFile(location.specPath, 'utf-8');
+      const specId = location.id;
 
       // 노드 생성
       const node: DependencyNode = {
         id: specId,
-        path: relativePath,
+        path: path.relative(specsPath, location.specPath),
         title: extractTitle(content),
         dependsOn: [],
         dependedBy: [],
       };
 
-      // frontmatter에서 명시적 의존성 추출
+      // frontmatter에서 명시적 의존성 추출 (문자열 또는 YAML 리스트)
       const { data: frontmatter } = parseFrontmatter(content);
       if (frontmatter.depends) {
-        const explicitDeps = Array.isArray(frontmatter.depends)
+        const explicitDeps: unknown[] = Array.isArray(frontmatter.depends)
           ? frontmatter.depends
           : [frontmatter.depends];
 
-        for (const dep of explicitDeps) {
-          if (dep && dep !== 'null') {
-            node.dependsOn.push(dep);
-            graph.edges.push({
-              from: specId,
-              to: dep,
-              type: 'explicit',
-              description: 'frontmatter depends 필드',
-            });
+        for (const rawDep of explicitDeps) {
+          if (rawDep === null || rawDep === undefined) continue;
+          const dep = String(rawDep).trim();
+          if (!dep || dep === 'null') continue;
+
+          const target = resolveSpecRef(locations, dep, location.domain);
+          if (!target) {
+            // Unresolved dependency: record as dangling, never as an edge
+            dangling.push({ from: specId, to: dep });
+            continue;
           }
+          if (target.id === specId || node.dependsOn.includes(target.id)) continue;
+
+          node.dependsOn.push(target.id);
+          graph.edges.push({
+            from: specId,
+            to: target.id,
+            type: 'explicit',
+            description: 'frontmatter depends 필드',
+          });
         }
       }
 
       // 내용에서 참조 추출
-      const references = extractReferences(content, specFiles.map((f) => getSpecId(path.relative(specsPath, f))));
+      const references = extractReferences(content, allSpecIds);
       for (const ref of references) {
         if (ref !== specId && !node.dependsOn.includes(ref)) {
           node.dependsOn.push(ref);
@@ -99,37 +112,6 @@ export async function buildDependencyGraph(
       )
     );
   }
-}
-
-/**
- * 스펙 파일 수집 (재귀)
- */
-async function collectSpecFiles(dirPath: string): Promise<string[]> {
-  const files: string[] = [];
-
-  const entries = await fs.readdir(dirPath, { withFileTypes: true });
-
-  for (const entry of entries) {
-    const fullPath = path.join(dirPath, entry.name);
-
-    if (entry.isDirectory()) {
-      files.push(...(await collectSpecFiles(fullPath)));
-    } else if (entry.name.endsWith('.md') && entry.name !== 'AGENTS.md') {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-}
-
-/**
- * 파일 경로에서 스펙 ID 추출
- */
-function getSpecId(relativePath: string): string {
-  return relativePath
-    .replace(/\\/g, '/')
-    .replace(/\.md$/, '')
-    .replace(/\/spec$/, '');
 }
 
 /**

@@ -8,6 +8,7 @@ import fs from 'node:fs/promises';
 import { Result, success, failure } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { directoryExists, fileExists } from '../../utils/fs.js';
+import { listSpecs } from '../spec/locator.js';
 
 /**
  * 도구 종류
@@ -233,25 +234,16 @@ async function detectSdd(projectRoot: string): Promise<DetectionResult | null> {
   // 스펙 수집
   const specs: SpecInfo[] = [];
 
-  const specDirs = await fs.readdir(specsPath, { withFileTypes: true });
-  for (const entry of specDirs) {
-    if (entry.isDirectory()) {
-      const specPath = path.join(specsPath, entry.name);
-      const specFile = path.join(specPath, 'spec.md');
+  // 도메인/평면 레이아웃 모두 spec locator로 탐색
+  for (const location of await listSpecs(sddPath)) {
+    const content = await fs.readFile(location.specPath, 'utf-8');
 
-      if (await fileExists(specFile)) {
-        const content = await fs.readFile(specFile, 'utf-8');
-        const title = extractTitle(content);
-        const status = extractFrontmatterField(content, 'status');
-
-        specs.push({
-          id: entry.name,
-          title,
-          path: specPath,
-          status,
-        });
-      }
-    }
+    specs.push({
+      id: location.id,
+      title: extractTitle(content),
+      path: location.dir,
+      status: extractFrontmatterField(content, 'status'),
+    });
   }
 
   return {

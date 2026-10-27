@@ -5,7 +5,9 @@ import { Command } from 'commander';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { logger } from '../../utils/index.js';
-import { fileExists, readDir } from '../../utils/fs.js';
+import { fileExists, readDir, findSddRoot } from '../../utils/fs.js';
+import { ExitCode } from '../../errors/index.js';
+import { listSpecs as listSpecLocations } from '../../core/spec/locator.js';
 import { parseSpecMetadata } from '../../core/new/spec-generator.js';
 import { listPendingChanges, listArchives } from '../../core/change/archive.js';
 
@@ -90,48 +92,11 @@ export async function getFeatureList(
   projectPath: string,
   options: FeatureListOptions = {}
 ): Promise<FeatureListItem[]> {
-  const specsPath = path.join(projectPath, '.sdd', 'specs');
-
-  if (!(await fileExists(specsPath))) {
-    return [];
-  }
-
-  const result = await readDir(specsPath);
-  if (!result.success) {
-    return [];
-  }
-
   const features: FeatureListItem[] = [];
 
-  for (const entry of result.data) {
-    const entryPath = path.join(specsPath, entry);
-    const stat = await fs.stat(entryPath);
-
-    if (stat.isDirectory()) {
-      // 직접 하위에 spec.md가 있는지 확인 (기존 구조 호환)
-      const directSpecPath = path.join(entryPath, 'spec.md');
-      if (await fileExists(directSpecPath)) {
-        const feature = await parseFeatureSpec(directSpecPath, entry, options.status);
-        if (feature) features.push(feature);
-      } else {
-        // 도메인 폴더로 간주하고 하위 디렉토리 탐색
-        const domainResult = await readDir(entryPath);
-        if (domainResult.success) {
-          for (const featureEntry of domainResult.data) {
-            const featurePath = path.join(entryPath, featureEntry);
-            const featureStat = await fs.stat(featurePath);
-            if (featureStat.isDirectory()) {
-              const specPath = path.join(featurePath, 'spec.md');
-              if (await fileExists(specPath)) {
-                const featureId = `${entry}/${featureEntry}`;
-                const feature = await parseFeatureSpec(specPath, featureId, options.status);
-                if (feature) features.push(feature);
-              }
-            }
-          }
-        }
-      }
-    }
+  for (const location of await listSpecLocations(path.join(projectPath, '.sdd'))) {
+    const feature = await parseFeatureSpec(location.specPath, location.id, options.status);
+    if (feature) features.push(feature);
   }
 
   return features;
@@ -340,10 +305,22 @@ export function registerListCommand(program: Command): void {
 }
 
 /**
+ * SDD 프로젝트 루트 조회 (없으면 에러 종료)
+ */
+async function requireProjectRoot(): Promise<string> {
+  const projectRoot = await findSddRoot();
+  if (!projectRoot) {
+    logger.warn('.sdd 디렉토리가 없습니다. sdd init을 먼저 실행하세요.');
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+  return projectRoot;
+}
+
+/**
  * 기능 목록 조회 (CLI 래퍼)
  */
 async function listFeatures(options: { status?: string }): Promise<void> {
-  const features = await getFeatureList(process.cwd(), options);
+  const features = await getFeatureList(await requireProjectRoot(), options);
 
   if (features.length === 0) {
     logger.info('기능이 없습니다.');
@@ -364,7 +341,7 @@ async function listFeatures(options: { status?: string }): Promise<void> {
  * 변경 목록 조회 (CLI 래퍼)
  */
 async function listChanges(options: { pending?: boolean; archived?: boolean }): Promise<void> {
-  const result = await getChangeList(process.cwd(), options);
+  const result = await getChangeList(await requireProjectRoot(), options);
 
   console.log('');
 
@@ -399,7 +376,7 @@ async function listChanges(options: { pending?: boolean; archived?: boolean }): 
  * 스펙 파일 목록 (CLI 래퍼)
  */
 async function listSpecs(): Promise<void> {
-  const specsPath = path.join(process.cwd(), '.sdd', 'specs');
+  const specsPath = path.join(await requireProjectRoot(), '.sdd', 'specs');
   const tree = await getSpecFileTree(specsPath);
 
   if (tree.length === 0) {
@@ -435,7 +412,7 @@ function printSpecTree(items: SpecFileItem[], prefix: string): void {
  * 템플릿 목록 (CLI 래퍼)
  */
 async function listTemplates(): Promise<void> {
-  const templates = await getTemplateList(process.cwd());
+  const templates = await getTemplateList(await requireProjectRoot());
 
   if (templates.length === 0) {
     logger.warn('템플릿 디렉토리가 없습니다.');
@@ -455,11 +432,11 @@ async function listTemplates(): Promise<void> {
  * 전체 요약 (CLI 래퍼)
  */
 async function listSummary(): Promise<void> {
-  const summary = await getProjectSummary(process.cwd());
+  const summary = await getProjectSummary(await requireProjectRoot());
 
   if (!summary) {
     logger.warn('.sdd 디렉토리가 없습니다. sdd init을 먼저 실행하세요.');
-    return;
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
   console.log('');

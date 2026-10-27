@@ -15,7 +15,7 @@ import {
   formatValidationResult,
   type DomainValidationResult,
 } from '../../core/validators/domain-validator.js';
-import { promises as fs } from 'node:fs';
+import { listSpecs, resolveDomainSpecRef } from '../../core/spec/locator.js';
 import { setCacheOptions, getCacheOptions } from '../../core/cache/index.js';
 
 /**
@@ -134,14 +134,14 @@ export async function executeValidate(
         });
       }
 
-      // 도메인의 스펙들만 검증 (각 스펙 경로 해석)
-      const specsRoot = path.join(context.sddRoot, '.sdd', 'specs');
+      // 도메인의 스펙들만 검증 (spec locator로 각 스펙 경로 해석)
+      const allSpecs = await listSpecs(path.join(context.sddRoot, '.sdd'));
       const specPaths: string[] = [];
 
       for (const specId of specs) {
-        const specPath = path.join(specsRoot, specId, 'spec.md');
-        if (await fileExists(specPath)) {
-          specPaths.push(specPath);
+        const location = resolveDomainSpecRef(allSpecs, context.domainFilter, specId);
+        if (location && !specPaths.includes(location.specPath)) {
+          specPaths.push(location.specPath);
         }
       }
 
@@ -231,26 +231,29 @@ export async function executeDomainValidation(
     });
   }
 
-  // 스펙 ID 목록 수집
-  const specsRoot = path.join(sddRoot, '.sdd', 'specs');
-  const existingSpecs: string[] = [];
+  // 스펙 ID 목록 수집 (canonical id) 및 domains.yml 스펙 참조를 canonical id로 정규화
+  const allSpecs = await listSpecs(path.join(sddRoot, '.sdd'));
+  const existingSpecs = allSpecs.map((s) => s.id);
 
-  try {
-    const entries = await fs.readdir(specsRoot, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const specPath = path.join(specsRoot, entry.name, 'spec.md');
-        if (await fileExists(specPath)) {
-          existingSpecs.push(entry.name);
-        }
-      }
-    }
-  } catch {
-    // specs 디렉토리가 없으면 빈 목록
+  const normalizedDomains: typeof domains = {};
+  for (const [domainId, def] of Object.entries(domains)) {
+    normalizedDomains[domainId] = {
+      ...def,
+      specs: (def.specs ?? []).map(
+        (ref) => resolveDomainSpecRef(allSpecs, domainId, ref)?.id ?? ref
+      ),
+    };
   }
 
-  const result = validateDomains(configResult.data, {
+  // `sdd new` without --domain writes to the implicit `common` bucket; unless `common`
+  // is a declared domain, those specs are not orphans
+  const orphanExemptSpecs = 'common' in domains
+    ? []
+    : allSpecs.filter((s) => s.domain === 'common').map((s) => s.id);
+
+  const result = validateDomains({ ...configResult.data, domains: normalizedDomains }, {
     existingSpecs,
+    orphanExemptSpecs,
     detectOrphanSpecs: options.orphanSpecs,
     cyclesAsErrors: options.strict,
   });

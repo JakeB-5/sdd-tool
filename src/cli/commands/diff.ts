@@ -5,6 +5,7 @@ import { Command } from 'commander';
 import { executeDiff } from '../../core/diff/index.js';
 import * as logger from '../../utils/logger.js';
 import { ExitCode, getErrorMessage } from '../../errors/index.js';
+import { findSddRoot } from '../../utils/fs.js';
 
 export function registerDiffCommand(program: Command): void {
   program
@@ -17,7 +18,11 @@ export function registerDiffCommand(program: Command): void {
     .option('--no-color', '컬러 출력 비활성화')
     .option('-s, --spec <id>', '특정 스펙만 비교')
     .action(async (commit1: string | undefined, commit2: string | undefined, options) => {
-      const projectRoot = process.cwd();
+      const projectRoot = await findSddRoot();
+      if (!projectRoot) {
+        logger.error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.');
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
 
       const result = await executeDiff(projectRoot, {
         staged: options.staged,

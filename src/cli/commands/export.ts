@@ -6,6 +6,7 @@ import { executeExport, formatExportResult } from '../../core/export/index.js';
 import type { ExportFormat, Theme } from '../../core/export/schemas.js';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
+import { findSddRoot } from '../../utils/fs.js';
 
 export function registerExportCommand(program: Command): void {
   program
@@ -21,7 +22,11 @@ export function registerExportCommand(program: Command): void {
     .option('--include-changes', '변경 제안 포함', false)
     .option('--json', 'JSON 형식 출력 (결과 메타정보)')
     .action(async (specIds: string[], options) => {
-      const projectRoot = process.cwd();
+      const projectRoot = await findSddRoot();
+      if (!projectRoot) {
+        logger.error('SDD 프로젝트를 찾을 수 없습니다. `sdd init`을 먼저 실행하세요.');
+        process.exit(ExitCode.GENERAL_ERROR);
+      }
 
       const result = await executeExport(projectRoot, {
         format: options.format as ExportFormat,

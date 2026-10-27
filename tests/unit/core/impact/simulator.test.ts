@@ -233,6 +233,60 @@ A에 의존하는 기능
   });
 });
 
+describe('runSimulation (도메인 레이아웃)', () => {
+  let tempDir: string;
+  let specsPath: string;
+
+  async function writeSpec(id: string, depends: string): Promise<void> {
+    await fs.mkdir(path.join(specsPath, id), { recursive: true });
+    await fs.writeFile(
+      path.join(specsPath, id, 'spec.md'),
+      `---\nstatus: draft\ndepends: ${depends}\n---\n\n# ${id}\n`
+    );
+  }
+
+  beforeAll(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-simulator-domain-'));
+    specsPath = path.join(tempDir, 'specs');
+    await writeSpec('auth/login', 'null');
+    await writeSpec('auth/core', 'null');
+    await writeSpec('billing/core', 'null');
+    await writeSpec('common/signup', 'login');
+  });
+
+  afterAll(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('bare 대상과 델타 의존성을 canonical id로 해석한다', async () => {
+    const deltas: DeltaItem[] = [
+      { type: 'ADDED', specId: 'profile', description: '프로필', newDependencies: ['login'] },
+    ];
+
+    const result = await runSimulation(specsPath, 'login', deltas);
+
+    expect(result.success).toBe(true);
+    const data = result.data!;
+    expect(data.current.targetRiskScore).toBeGreaterThan(0);
+    expect(data.projected.targetRiskScore).toBeGreaterThanOrEqual(data.current.targetRiskScore);
+    expect(data.newlyAffected.map((s) => s.id)).toEqual(['profile']);
+  });
+
+  it('찾을 수 없는 대상은 에러를 반환한다', async () => {
+    const result = await runSimulation(specsPath, 'nope', []);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.message).toContain('스펙을 찾을 수 없습니다');
+  });
+
+  it('모호한 대상은 후보와 함께 에러를 반환한다', async () => {
+    const result = await runSimulation(specsPath, 'core', []);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.message).toContain('auth/core, billing/core');
+  });
+});
+
 describe('formatSimulationResult', () => {
   it('시뮬레이션 결과를 포맷한다', () => {
     const result = {
