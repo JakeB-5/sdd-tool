@@ -49,19 +49,19 @@ NC='\\033[0m' # No Color
 CHANGED_SPECS=$(git diff --cached --name-only | grep "^\\.sdd/specs/")
 
 if [ -n "$CHANGED_SPECS" ]; then
-  echo "\${YELLOW}🔍 스펙 검증 중...\${NC}"
+  printf "\${YELLOW}🔍 스펙 검증 중...\${NC}\\n"
 
   # sdd validate 실행
   if command -v sdd >/dev/null 2>&1; then
     sdd validate
     if [ $? -ne 0 ]; then
-      echo "\${RED}❌ 스펙 검증 실패. 커밋이 취소됩니다.\${NC}"
+      printf "\${RED}❌ 스펙 검증 실패. 커밋이 취소됩니다.\${NC}\\n"
       echo "오류를 수정하고 다시 시도하세요."
       exit 1
     fi
-    echo "\${GREEN}✅ 스펙 검증 통과\${NC}"
+    printf "\${GREEN}✅ 스펙 검증 통과\${NC}\\n"
   else
-    echo "\${YELLOW}⚠️  sdd 명령어를 찾을 수 없습니다. 검증을 건너뜁니다.\${NC}"
+    printf "\${YELLOW}⚠️  sdd 명령어를 찾을 수 없습니다. 검증을 건너뜁니다.\${NC}\\n"
   fi
 fi
 
@@ -86,7 +86,7 @@ COMMIT_MSG_FILE=$1
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
 # 빈 줄과 주석 제거
-COMMIT_MSG_CLEAN=$(echo "$COMMIT_MSG" | grep -v "^#" | grep -v "^$" | head -1)
+COMMIT_MSG_CLEAN=$(printf '%s\\n' "$COMMIT_MSG" | grep -v "^#" | grep -v "^$" | head -1)
 
 # 스펙 커밋 패턴
 SPEC_PATTERN="^(spec|spec-update|spec-status|plan|tasks|constitution|sdd-config)(\\(.+\\))?: .+"
@@ -101,18 +101,18 @@ MERGE_PATTERN="^Merge "
 REVERT_PATTERN="^Revert "
 
 # 패턴 검사
-if echo "$COMMIT_MSG_CLEAN" | grep -qE "$SPEC_PATTERN"; then
-  echo "\${GREEN}✅ 스펙 커밋 형식 확인됨\${NC}"
+if printf '%s\\n' "$COMMIT_MSG_CLEAN" | grep -qE "$SPEC_PATTERN"; then
+  printf "\${GREEN}✅ 스펙 커밋 형식 확인됨\${NC}\\n"
   exit 0
-elif echo "$COMMIT_MSG_CLEAN" | grep -qE "$GENERAL_PATTERN"; then
-  echo "\${GREEN}✅ Conventional Commit 형식 확인됨\${NC}"
+elif printf '%s\\n' "$COMMIT_MSG_CLEAN" | grep -qE "$GENERAL_PATTERN"; then
+  printf "\${GREEN}✅ Conventional Commit 형식 확인됨\${NC}\\n"
   exit 0
-elif echo "$COMMIT_MSG_CLEAN" | grep -qE "$MERGE_PATTERN"; then
+elif printf '%s\\n' "$COMMIT_MSG_CLEAN" | grep -qE "$MERGE_PATTERN"; then
   exit 0
-elif echo "$COMMIT_MSG_CLEAN" | grep -qE "$REVERT_PATTERN"; then
+elif printf '%s\\n' "$COMMIT_MSG_CLEAN" | grep -qE "$REVERT_PATTERN"; then
   exit 0
 else
-  echo "\${RED}❌ 커밋 메시지 형식 오류\${NC}"
+  printf "\${RED}❌ 커밋 메시지 형식 오류\${NC}\\n"
   echo ""
   echo "올바른 형식:"
   echo "  스펙 커밋: spec(<scope>): <message>"
@@ -121,7 +121,7 @@ else
   echo "스펙 타입: spec, spec-update, spec-status, plan, tasks, constitution, sdd-config"
   echo "일반 타입: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
   echo ""
-  echo "자세한 내용: docs/guide/commit-convention.md"
+  echo "자세한 내용: https://jakeb-5.github.io/sdd-tool/ko/guide/commit-convention"
   exit 1
 fi
 `;
@@ -141,11 +141,11 @@ GREEN='\\033[0;32m'
 YELLOW='\\033[1;33m'
 NC='\\033[0m'
 
-echo "\${YELLOW}🔍 푸시 전 검증 중...\${NC}"
+printf "\${YELLOW}🔍 푸시 전 검증 중...\${NC}\\n"
 
 # sdd 명령어 확인
 if ! command -v sdd >/dev/null 2>&1; then
-  echo "\${YELLOW}⚠️  sdd 명령어를 찾을 수 없습니다. 검증을 건너뜁니다.\${NC}"
+  printf "\${YELLOW}⚠️  sdd 명령어를 찾을 수 없습니다. 검증을 건너뜁니다.\${NC}\\n"
   exit 0
 fi
 
@@ -153,7 +153,7 @@ fi
 echo "스펙 검증 중..."
 sdd validate
 if [ $? -ne 0 ]; then
-  echo "\${RED}❌ 스펙 검증 실패. 푸시가 취소됩니다.\${NC}"
+  printf "\${RED}❌ 스펙 검증 실패. 푸시가 취소됩니다.\${NC}\\n"
   exit 1
 fi
 
@@ -161,10 +161,10 @@ fi
 echo "Constitution 정합성 확인 중..."
 sdd validate --constitution 2>/dev/null
 if [ $? -ne 0 ]; then
-  echo "\${YELLOW}⚠️  Constitution 검증 경고 (계속 진행)\${NC}"
+  printf "\${YELLOW}⚠️  Constitution 검증 경고 (계속 진행)\${NC}\\n"
 fi
 
-echo "\${GREEN}✅ 검증 완료\${NC}"
+printf "\${GREEN}✅ 검증 완료\${NC}\\n"
 exit 0
 `;
 }

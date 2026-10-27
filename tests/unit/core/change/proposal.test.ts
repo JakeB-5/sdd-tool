@@ -154,4 +154,23 @@ created: 2025-12-21
       expect(result.data).toContain('updated:');
     }
   });
+
+  it('created 등 기존 필드의 날짜 형식을 유지한다', () => {
+    const content = '---\nid: CHG-001\nstatus: draft\ncreated: 2026-10-27\n---\n\n# 변경 제안: 테스트\n';
+
+    const result = updateProposalStatus(content, 'applied');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toContain('created: 2026-10-27\n');
+      expect(result.data).not.toContain('T00:00:00');
+      expect(result.data).toContain('# 변경 제안: 테스트');
+    }
+  });
+
+  it('frontmatter가 없으면 실패를 반환한다', () => {
+    const result = updateProposalStatus('# 제목만 있음\n', 'applied');
+
+    expect(result.success).toBe(false);
+  });
 });

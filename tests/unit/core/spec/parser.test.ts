@@ -341,6 +341,25 @@ describe('findTemplatePlaceholders', () => {
     expect(findTemplatePlaceholders('# {{FEATURE_NAME}}\n')).toEqual(['{{FEATURE_NAME}}']);
   });
 
+  it('frontmatter 값에 남은 {{PLACEHOLDER}}도 찾는다', () => {
+    const content = '---\nid: "{{FEATURE_ID}}"\ntitle: "{{FEATURE_NAME}}"\nstatus: draft\nconstitution_version: "{{CONSTITUTION_VERSION}}"\n---\n\n# {{FEATURE_NAME}}\n';
+    expect(findTemplatePlaceholders(content)).toEqual([
+      '{{FEATURE_ID}}',
+      '{{FEATURE_NAME}}',
+      '{{CONSTITUTION_VERSION}}',
+    ]);
+  });
+
+  it('따옴표 없는 frontmatter {{DATE}}와 CRLF frontmatter도 찾는다', () => {
+    const content = '---\r\nstatus: draft\r\ncreated: {{DATE}}\r\n---\r\n\r\n# 제목\r\n';
+    expect(findTemplatePlaceholders(content)).toEqual(['{{DATE}}']);
+  });
+
+  it('채워진 frontmatter와 frontmatter 주석은 플레이스홀더로 보지 않는다', () => {
+    const content = '---\n# id: "{{FEATURE_ID}}"\nid: login\ntitle: 로그인\ndepends: [auth, "[a]"]\n---\n\n# 로그인\n';
+    expect(findTemplatePlaceholders(content)).toEqual([]);
+  });
+
   it('참조 스타일 링크와 링크 정의는 플레이스홀더로 보지 않는다', () => {
     const content = '# X\n\n[기능][1] 과 [기능][] 참고, [N] 참조\n\n[1]: https://example.com\n[N]: https://example.com/n\n[기능]: ./a.md\n';
     expect(findTemplatePlaceholders(content)).toEqual([]);

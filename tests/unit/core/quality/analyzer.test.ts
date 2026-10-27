@@ -210,6 +210,155 @@ depends: auth
     }
   });
 
+  describe('의존성 필드 인식', () => {
+    const analyzeWithFrontmatter = async (name: string, extra: string) => {
+      const specDir = path.join(specsDir, name);
+      await fs.mkdir(specDir);
+      const specPath = path.join(specDir, 'spec.md');
+      await fs.writeFile(
+        specPath,
+        `---\nstatus: draft\ncreated: 2025-01-01\n${extra}---\n\n# 스펙\n\n시스템은 동작해야 한다(SHALL).\n`
+      );
+      const result = await analyzeSpecQuality(specPath, tempDir);
+      expect(result.success).toBe(true);
+      if (!result.success) throw result.error;
+      return result.data.items.find((i) => i.name.includes('의존성'))!;
+    };
+
+    it.each([
+      ['목록', 'depends: [cart]\n', '의존성: cart'],
+      ['쉼표 구분 문자열', 'depends: cart, coupon\n', '의존성: cart, coupon'],
+      ['dependencies 별칭', 'dependencies: [cart]\n', '의존성: cart'],
+      ['빈 목록', 'depends: []\n', '의존성 없음 (명시적 선언)'],
+      ['null', 'depends: null\n', '의존성 없음 (명시적 선언)'],
+    ])('%s 형태의 선언을 인식한다', async (name, extra, detail) => {
+      const item = await analyzeWithFrontmatter(`deps-${name.length}-${extra.length}`, extra);
+
+      expect(item.score).toBe(item.maxScore);
+      expect(item.details).toContain(detail);
+      expect(item.details.join()).not.toContain('필드 없음');
+    });
+
+    it('필드가 없을 때만 필드 없음으로 보고하고 추가를 제안한다', async () => {
+      const item = await analyzeWithFrontmatter('deps-missing', '');
+
+      expect(item.score).toBeLessThan(item.maxScore);
+      expect(item.details.join()).toContain('의존성 필드 없음');
+      expect(item.suggestions.join()).toContain('depends');
+    });
+  });
+
+  describe('시나리오 섹션 인식', () => {
+    const structureItem = async (name: string, body: string) => {
+      const specDir = path.join(specsDir, name);
+      await fs.mkdir(specDir);
+      const specPath = path.join(specDir, 'spec.md');
+      await fs.writeFile(specPath, `---\nstatus: draft\ncreated: 2025-01-01\ndepends: []\n---\n\n${body}`);
+      const result = await analyzeSpecQuality(specPath, tempDir);
+      expect(result.success).toBe(true);
+      if (!result.success) throw result.error;
+      return result.data.items.find((i) => i.name === '문서 구조')!;
+    };
+
+    const scenario = '- **GIVEN** 조건\n- **WHEN** 동작\n- **THEN** 결과\n';
+
+    it('요구사항 하위의 #### Scenario를 시나리오 섹션으로 인정한다', async () => {
+      const item = await structureItem(
+        'per-req-h4',
+        `# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n시스템은 동작해야 한다(SHALL).\n\n#### Scenario: 성공\n\n${scenario}`
+      );
+
+      expect(item.suggestions.join()).not.toContain('시나리오 섹션');
+      expect(item.details.join()).toContain('시나리오 섹션');
+    });
+
+    it('### Scenario와 ### 시나리오 제목도 인정한다', async () => {
+      for (const [name, heading] of [['h3-en', '### Scenario: 성공'], ['h3-ko', '### 시나리오: 성공']]) {
+        const item = await structureItem(
+          name,
+          `# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n${heading}\n\n${scenario}`
+        );
+        expect(item.suggestions.join()).not.toContain('시나리오 섹션');
+      }
+    });
+
+    it.each([
+      ['no-scenario-ko', '### 시나리오 없음'],
+      ['no-scenario-tbd', '#### Scenario (TBD)'],
+      ['no-scenario-na', '### Scenario: N/A'],
+      ['no-scenario-glued', '### Scenario(TBD)'],
+      ['no-scenario-ko-colon', '### 시나리오: 없음'],
+      ['no-scenario-bracket', '#### Scenario: [none]'],
+    ])('자리표시자 제목(%s)은 시나리오 섹션으로 인정하지 않는다', async (name, heading) => {
+      const item = await structureItem(name, `# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n${heading}\n`);
+
+      expect(item.suggestions.join()).toContain('시나리오 섹션');
+    });
+
+    it.each([
+      ['Scenario: Navigation menu opens'],
+      ['Scenario: Name validation'],
+      ['Scenario: None selected shows error'],
+      ['Scenario: Nonexistent user'],
+      ['Scenario: tbd-flag enabled'],
+      ['Scenario: N/A handling for empty cart'],
+      ['시나리오: 없음 상태에서 조회'],
+      ['시나리오 미정 항목 처리'],
+    ])('이름이 자리표시자로 시작할 뿐인 실제 시나리오(%s)는 인정한다', async (title) => {
+      const item = await structureItem(
+        `real-${title.length}-${title.charCodeAt(title.length - 1)}`,
+        `# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n#### ${title}\n\n${scenario}`
+      );
+
+      expect(item.suggestions.join()).not.toContain('시나리오 섹션');
+    });
+
+    it('CRLF 줄바꿈 스펙도 LF 스펙과 같은 구조 점수를 받는다', async () => {
+      const body = `# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n시스템은 동작해야 한다(SHALL).\n\n#### Scenario: 성공\n\n${scenario}`;
+      const lf = await structureItem('eol-lf', body);
+
+      const specDir = path.join(specsDir, 'eol-crlf');
+      await fs.mkdir(specDir);
+      const specPath = path.join(specDir, 'spec.md');
+      await fs.writeFile(
+        specPath,
+        `---\nstatus: draft\ncreated: 2025-01-01\ndepends: []\n---\n\n${body}`.replace(/\n/g, '\r\n')
+      );
+      const result = await analyzeSpecQuality(specPath, tempDir);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const crlf = result.data.items.find((i) => i.name === '문서 구조')!;
+        expect(crlf.suggestions.join()).not.toContain('시나리오 섹션');
+        expect(crlf.score).toBe(lf.score);
+      }
+    });
+
+    it('코드 블록 안의 Scenario 제목은 무시한다', async () => {
+      const item = await structureItem(
+        'fenced',
+        `# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n\`\`\`markdown\n#### Scenario: 예시\n\`\`\`\n`
+      );
+
+      expect(item.suggestions.join()).toContain('시나리오 섹션');
+    });
+
+    it('코드 블록이 닫힌 뒤의 Scenario 제목은 인정한다', async () => {
+      const item = await structureItem(
+        'after-fence',
+        `# 스펙\n\n\`\`\`\ncode\n\`\`\`\n\n## 요구사항\n\n### Scenario 1: 성공\n\n${scenario}`
+      );
+
+      expect(item.suggestions.join()).not.toContain('시나리오 섹션');
+    });
+
+    it('시나리오가 전혀 없으면 여전히 누락으로 보고한다', async () => {
+      const item = await structureItem('none', '# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n시스템은 동작해야 한다(SHALL).\n');
+
+      expect(item.suggestions.join()).toContain('시나리오 섹션');
+    });
+  });
+
   it('등급을 올바르게 산출한다', async () => {
     // 완전한 스펙으로 높은 등급 기대
     const specDir = path.join(specsDir, 'complete');

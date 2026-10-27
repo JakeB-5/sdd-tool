@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `sdd change -s` accepts several specs, either repeated (`-s a -s b`) or comma-separated (`-s a,b`); the proposal lists all of them and `delta.md` gets one MODIFIED block per spec
+
 ### Fixed
 
 - `sdd sync`: requirements are now only the REQ IDs a spec *defines* with a heading (`### REQ-01: Title`, `### REQ-01 Title`, `` ### `REQ-01`: Title ``, `### [REQ-01] Title`; fenced code is ignored; CRLF specs work). REQ IDs merely mentioned in prose (e.g. "see `pricing/checkout` REQ-05") no longer create phantom, permanently "unimplemented" requirements, and a mention placed before the real heading no longer hides that requirement's title. A spec that mentions REQ IDs but defines none with a heading now yields a warning (text and `--json` `warnings`) instead of silently counting 0 requirements
@@ -21,6 +25,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `sdd new <domain>/<feature>` (or `-d <domain>`) no longer fails with `도메인을 찾을 수 없습니다` when the domain is missing: the domain is created as with `sdd domain create <domain>` and an `ℹ` notice is printed. An unregistered `common` is still treated as "no domain" (not registered, spec not linked)
 - `sdd new <domain>/` and `sdd new /<feature>` are rejected instead of writing a spec at the domain root and an empty spec id into domains.yml
 - Generated plan.md / tasks.md no longer point at non-existent `/sdd:tasks` / `/sdd:archive`; they name `sdd new tasks <feature>`, `/sdd-tasks` / `$sdd-tasks`, and finish with `sdd validate` + `sdd sync` (`/sdd-validate` / `$sdd-validate`)
+- `sdd change -t <title> -s <spec>` no longer leaves an unsubstituted `### {{SPEC_PATH}}` heading in `delta.md` (the placeholder is kept only when no spec is given)
+- `sdd change apply` / `archive` no longer rewrite the proposal's `created: 2026-10-27` as an ISO timestamp (`2026-10-27T00:00:00.000Z`); the frontmatter is edited in place
+- Generated commit-msg hook points to the published commit-convention page instead of `docs/guide/commit-convention.md`, which does not exist in user projects
+- Generated git hooks print colors with `printf` so macOS `/bin/sh` no longer shows raw `\033[...` escape codes
+- Generated CI (GitHub Actions and GitLab) installs `sdd-tool@<running version>` instead of an unpinned `sdd-tool`
+- Generated labeler workflow declares `permissions` (`contents: read`, `pull-requests: write`, `issues: write`), the validation workflow requests `contents: read`, and the labeler's changed-spec detection no longer fails under `bash -e -o pipefail` when no spec file changed
+- The workflows written by `sdd init` get the same CI fixes (pinned install, `permissions`, pipefail-safe change detection); the labeler's constitution check no longer misreports when the changed-file list is large (`grep -q` closing the pipe early under `pipefail`)
+- `sdd change apply` reports why `proposal.md` could not be updated; the commit-msg hook links the Korean commit-convention page
+- `sdd quality` ignores placeholder scenario headings (`### 시나리오 없음`, `#### Scenario (TBD)`) and headings inside code fences, still accepts real scenarios whose name merely starts with such a word (`Scenario: Name validation`), and scores CRLF specs like LF specs
+- `sdd validate` reports unfilled `{{PLACEHOLDER}}` values in the frontmatter (`id: "{{FEATURE_ID}}"`) like body placeholders, so `--strict` fails on an unfilled spec template
+- `sdd quality` accepts scenarios written under each requirement (`### Scenario:` / `#### Scenario:`) as a scenario section, and recognises `depends: [..]`, `depends: []`, `depends: null` and `dependencies` as a declared dependency field
+- `templates/spec.md` and the `.sdd/templates/spec.md` written by `sdd init` use the same `### REQ-01` + `## 시나리오` structure that `sdd new` generates
 
 ### Changed
 

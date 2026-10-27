@@ -9,6 +9,7 @@ import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
 import { findSddRoot, ensureDir, writeFile, fileExists, directoryExists } from '../../utils/fs.js';
 import { validateSpecs } from '../../core/spec/validator.js';
+import { getToolVersion } from '../../utils/version.js';
 
 /**
  * 지원하는 CI 플랫폼
@@ -167,6 +168,8 @@ async function setupGitLabCI(projectRoot: string, strict: boolean): Promise<void
  */
 export function generateGitHubWorkflow(strict: boolean): string {
   const strictFlag = strict ? ' --strict' : '';
+  // Pinned to the generating tool's version so CI results are reproducible
+  const installSpec = `sdd-tool@${getToolVersion()}`;
 
   return `# SDD 스펙 검증 워크플로우
 # 이 파일은 sdd cicd setup으로 생성되었습니다.
@@ -187,6 +190,8 @@ jobs:
   validate:
     name: Validate Specs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -199,7 +204,7 @@ jobs:
 
       # Only the global CLI is needed; project dependencies (and a lockfile) are not required
       - name: Install SDD Tool
-        run: npm install -g sdd-tool
+        run: npm install -g ${installSpec}
 
       - name: Validate specifications
         run: sdd validate${strictFlag}
@@ -221,7 +226,7 @@ jobs:
 /**
  * GitHub Actions 라벨러 생성
  */
-function generateGitHubLabeler(): string {
+export function generateGitHubLabeler(): string {
   return `# SDD PR 라벨러 워크플로우
 # 변경된 도메인에 따라 자동으로 라벨을 추가합니다
 
@@ -237,6 +242,10 @@ jobs:
   label:
     name: Add Labels
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
 
     steps:
       - name: Checkout
@@ -249,20 +258,22 @@ jobs:
         env:
           BASE_REF: \${{ github.base_ref }}
         run: |
-          # 변경된 도메인 감지
-          DOMAINS=$(git diff --name-only "origin/$BASE_REF" | \\
-            grep "^\\.sdd/specs/" | \\
+          CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF")
+
+          # 변경된 도메인 감지 (일치하는 파일이 없어도 단계가 실패하지 않도록 grep 종료 코드를 무시)
+          DOMAINS=$(printf '%s\\n' "$CHANGED_FILES" | \\
+            { grep "^\\.sdd/specs/" || true; } | \\
             cut -d'/' -f3 | \\
             sort -u | \\
             tr '\\n' ' ')
           echo "domains=$DOMAINS" >> $GITHUB_OUTPUT
 
           # Constitution 변경 감지
-          if git diff --name-only "origin/$BASE_REF" | grep -q "constitution.md"; then
-            echo "constitution=true" >> $GITHUB_OUTPUT
-          else
-            echo "constitution=false" >> $GITHUB_OUTPUT
-          fi
+          # (case 사용: grep -q가 일찍 종료하면 pipefail 아래에서 SIGPIPE로 오탐이 발생함)
+          case "$CHANGED_FILES" in
+            *constitution.md*) echo "constitution=true" >> $GITHUB_OUTPUT ;;
+            *) echo "constitution=false" >> $GITHUB_OUTPUT ;;
+          esac
 
       - name: Apply Labels
         uses: actions/github-script@v7
@@ -295,6 +306,7 @@ jobs:
  */
 export function generateGitLabCI(strict: boolean): string {
   const strictFlag = strict ? ' --strict' : '';
+  const installSpec = `sdd-tool@${getToolVersion()}`;
 
   return `# SDD 스펙 검증 파이프라인
 # 이 파일은 sdd cicd setup으로 생성되었습니다.
@@ -311,7 +323,7 @@ sdd:validate:
       changes:
         - .sdd/**/*
   before_script:
-    - npm install -g sdd-tool
+    - npm install -g ${installSpec}
   script:
     - sdd validate${strictFlag}
     - sdd constitution validate

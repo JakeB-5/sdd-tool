@@ -1,7 +1,6 @@
 /**
  * Proposal 파서 및 생성기
  */
-import matter from 'gray-matter';
 import { z } from 'zod';
 import {
   ChangeStatus,
@@ -11,7 +10,7 @@ import {
 } from './schemas.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
-import { parseFrontmatter } from '../../utils/frontmatter.js';
+import { parseFrontmatter, updateFrontmatter } from '../../utils/frontmatter.js';
 
 /**
  * Proposal 파싱 결과
@@ -238,16 +237,8 @@ export function updateProposalStatus(
   newStatus: ChangeStatus
 ): Result<string, ChangeError> {
   try {
-    const { data: frontmatter, content: body } = parseFrontmatter(content);
-    const today = localDateString();
-
-    const updatedFrontmatter = {
-      ...frontmatter,
-      status: newStatus,
-      updated: today,
-    };
-
-    return success(matter.stringify(body, updatedFrontmatter));
+    // Edit the YAML in place so untouched fields (e.g. created: 2026-10-27) keep their original format
+    return success(updateFrontmatter(content, { status: newStatus, updated: localDateString() }));
   } catch (error) {
     return failure(
       new ChangeError(

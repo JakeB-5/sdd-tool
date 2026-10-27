@@ -41,6 +41,37 @@ describe('sdd change', () => {
       expect(changes.length).toBeGreaterThan(0);
     });
 
+    it('-s를 반복하거나 쉼표로 구분해 여러 스펙을 지정하면 delta.md에 모두 반영된다', async () => {
+      await execAsync(
+        `node "${cliPath}" change -t "다중 스펙" -s auth/login -s auth/signup,cart/item`,
+        { cwd: tempDir }
+      );
+
+      const changeDir = path.join(tempDir, '.sdd', 'changes', 'CHG-001');
+      const delta = await fs.readFile(path.join(changeDir, 'delta.md'), 'utf-8');
+      const proposal = await fs.readFile(path.join(changeDir, 'proposal.md'), 'utf-8');
+      expect(delta).not.toContain('{{SPEC_PATH}}');
+      for (const spec of ['auth/login', 'auth/signup', 'cart/item']) {
+        expect(delta).toContain(`### ${spec}\n`);
+        expect(proposal).toContain(`\`${spec}\``);
+      }
+    });
+
+    it('change apply가 created 날짜 형식을 유지한다', async () => {
+      await execAsync(`node "${cliPath}" change -t "날짜 보존"`, { cwd: tempDir });
+      const proposalPath = path.join(tempDir, '.sdd', 'changes', 'CHG-001', 'proposal.md');
+      const before = await fs.readFile(proposalPath, 'utf-8');
+      const created = before.match(/^created: (\d{4}-\d{2}-\d{2})$/m)?.[1];
+      expect(created).toBeDefined();
+
+      await execAsync(`node "${cliPath}" change apply CHG-001`, { cwd: tempDir });
+
+      const after = await fs.readFile(proposalPath, 'utf-8');
+      expect(after).toContain(`created: ${created}\n`);
+      expect(after).not.toContain('T00:00:00');
+      expect(after).toContain('status: applied');
+    });
+
     it('제목 없이 실행하면 기본 제목을 사용한다', async () => {
       const { stdout } = await execAsync(
         `node "${cliPath}" change`,
@@ -80,7 +111,7 @@ describe('sdd change', () => {
   describe('특정 변경 조회', () => {
     it('변경 ID로 상세 정보를 조회한다', async () => {
       // 변경 제안 생성
-      const { stdout: createOutput } = await execAsync(
+      await execAsync(
         `node "${cliPath}" change -t "조회 테스트"`,
         { cwd: tempDir }
       );

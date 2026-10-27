@@ -9,6 +9,7 @@ import { ChangeError } from '../../errors/index.js';
 import { directoryExists, fileExists, readFile } from '../../utils/fs.js';
 import { listSpecs } from '../spec/locator.js';
 import { parseSpec, ParsedSpec } from '../spec/index.js';
+import { normalizeLineEndings } from '../../utils/frontmatter.js';
 
 /**
  * 품질 점수 항목
@@ -188,23 +189,26 @@ function scoreDependencies(spec: ParsedSpec): QualityScoreItem {
   const details: string[] = [];
   const suggestions: string[] = [];
 
+  // `depends` is the canonical field; `dependencies` is accepted as an alias
+  const fields = [spec.metadata.depends, spec.metadata.dependencies];
+  const declared = fields.some((value) => value !== undefined);
+  const deps = fields
+    .flatMap((value) => (Array.isArray(value) ? value : value ? [value] : []))
+    .filter((dep) => dep !== null && dep !== '');
+
   let score = 0;
 
-  if (spec.metadata.depends) {
-    const deps = Array.isArray(spec.metadata.depends)
-      ? spec.metadata.depends
-      : [spec.metadata.depends];
-
-    if (deps.length > 0 && deps[0] !== null) {
-      score = maxScore;
-      details.push(`의존성: ${deps.join(', ')}`);
-    } else {
-      score = 5; // null로 명시적 선언
-      details.push('의존성 없음 (명시적 선언)');
-    }
+  if (deps.length > 0) {
+    score = maxScore;
+    details.push(`의존성: ${[...new Set(deps)].join(', ')}`);
+  } else if (declared) {
+    // `depends: null` / `depends: []` explicitly states there are no dependencies
+    score = maxScore;
+    details.push('의존성 없음 (명시적 선언)');
   } else {
-    score = 5; // depends 필드가 없으면 기본 점수
+    score = 5; // 필드가 없으면 기본 점수
     details.push('의존성 필드 없음 (암시적 없음)');
+    suggestions.push('frontmatter에 depends 필드를 추가하세요 (의존성이 없으면 depends: [])');
   }
 
   return {
@@ -217,6 +221,34 @@ function scoreDependencies(spec: ParsedSpec): QualityScoreItem {
   };
 }
 
+/** `## 시나리오`, `### Scenario: 이름`, `#### Scenario 1: 이름` (level 2-6); group 1 = text after the keyword */
+const SCENARIO_HEADING = /^#{2,6}[ \t]*(?:Scenarios?|시나리오)(?=$|[:：\s])(.*)$/i;
+/** Placeholder headings such as `### 시나리오 없음` or `#### Scenario (TBD)` */
+const EMPTY_SCENARIO_NAME = /^[\s:：\-–—]*[([]?\s*(?:없음|미정|tbd|n\/?a|none)\s*[)\]]?\s*$/i;
+
+/**
+ * Whether the document has a real scenario heading, outside fenced code blocks
+ */
+function hasScenarioHeading(content: string): boolean {
+  let fence: string | null = null;
+  for (const line of content.split('\n')) {
+    const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
+    if (fenceMatch) {
+      if (fence === null) {
+        fence = fenceMatch[1];
+      } else if (fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length) {
+        fence = null;
+      }
+      continue;
+    }
+    if (fence !== null) continue;
+
+    const match = line.match(SCENARIO_HEADING);
+    if (match !== null && !EMPTY_SCENARIO_NAME.test(match[1])) return true;
+  }
+  return false;
+}
+
 /**
  * 문서 구조 점수 (15점)
  */
@@ -225,10 +257,11 @@ function scoreStructure(content: string): QualityScoreItem {
   const details: string[] = [];
   const suggestions: string[] = [];
 
-  const requiredSections = [
-    { pattern: /^#\s+.+/m, name: '제목 (H1)' },
-    { pattern: /^##\s*(요구사항|Requirements)/im, name: '요구사항 섹션' },
-    { pattern: /^##\s*(시나리오|Scenario)/im, name: '시나리오 섹션' },
+  const requiredSections: Array<{ matches: (text: string) => boolean; name: string }> = [
+    { matches: (text) => /^#\s+.+/m.test(text), name: '제목 (H1)' },
+    { matches: (text) => /^##\s*(요구사항|Requirements)/im.test(text), name: '요구사항 섹션' },
+    // Scenarios may be one `## 시나리오` section or written under each requirement (`### Scenario:`, `#### Scenario:`)
+    { matches: hasScenarioHeading, name: '시나리오 섹션' },
   ];
 
   const optionalSections = [
@@ -242,7 +275,7 @@ function scoreStructure(content: string): QualityScoreItem {
   const missingRequired: string[] = [];
 
   for (const section of requiredSections) {
-    if (section.pattern.test(content)) {
+    if (section.matches(content)) {
       foundRequired.push(section.name);
       score += 4;
     } else {
@@ -404,7 +437,8 @@ export async function analyzeSpecQuality(
       return failure(new ChangeError('스펙 파일을 읽을 수 없습니다.'));
     }
 
-    const content = contentResult.data;
+    // CRLF specs must score the same as LF specs (line-based heading checks)
+    const content = normalizeLineEndings(contentResult.data);
     const parseResult = parseSpec(content);
     if (!parseResult.success) {
       return failure(new ChangeError(`스펙 파싱 실패: ${parseResult.error.message}`));

@@ -82,6 +82,47 @@ describe('Git Hook Generators', () => {
         encoding: 'utf-8',
       });
       expect(output).toContain('sdd 명령어를 찾을 수 없습니다');
+      // Colors must be real escape bytes, not the literal text "\033" that `echo` prints under some /bin/sh
+      expect(output).not.toContain('\\033');
+      expect(output).toContain('\u001b[1;33m');
+    });
+
+    it('색상 출력에 echo 대신 printf를 사용한다', () => {
+      for (const hook of hooks) {
+        expect(hook).not.toMatch(/echo\s+"\$\{(RED|GREEN|YELLOW)\}/);
+      }
+    });
+
+    it('commit-msg 훅이 이스케이프 문자를 깨뜨리지 않고 존재하는 안내 링크를 출력한다', async () => {
+      const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-commitmsg-test-'));
+      try {
+        const msgFile = path.join(dir, 'MSG');
+        const run = async (message: string) => {
+          await fs.writeFile(msgFile, message);
+          try {
+            const stdout = execFileSync('/bin/sh', ['-c', generateCommitMsgHook(), 'commit-msg', msgFile], {
+              encoding: 'utf-8',
+            });
+            return { code: 0, stdout };
+          } catch (error) {
+            const e = error as { status: number; stdout: string };
+            return { code: e.status, stdout: e.stdout };
+          }
+        };
+
+        const ok = await run('feat(auth): add login\n');
+        expect(ok.code).toBe(0);
+        expect(ok.stdout).not.toContain('\\033');
+        expect(ok.stdout).toContain('\u001b[0;32m');
+
+        const bad = await run('wip stuff\n');
+        expect(bad.code).toBe(1);
+        expect(bad.stdout).not.toContain('\\033');
+        expect(bad.stdout).not.toContain('docs/guide/commit-convention.md');
+        expect(bad.stdout).toContain('https://jakeb-5.github.io/sdd-tool/ko/guide/commit-convention');
+      } finally {
+        await fs.rm(dir, { recursive: true, force: true });
+      }
     });
   });
 

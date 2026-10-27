@@ -2,7 +2,6 @@
  * CLI 진입점
  */
 import { Command } from 'commander';
-import { createRequire } from 'node:module';
 import { registerInitCommand } from './commands/init.js';
 import { registerValidateCommand } from './commands/validate.js';
 import { registerPromptCommand } from './commands/prompt.js';
@@ -29,9 +28,9 @@ import { registerDomainCommand } from './commands/domain.js';
 import { registerContextCommand } from './commands/context.js';
 import { registerReverseCommand } from './commands/reverse.js';
 import { setJsonMode } from '../utils/logger.js';
+import { getToolPackage } from '../utils/version.js';
 
-const require = createRequire(import.meta.url);
-const pkg = require('../../package.json') as { version: string; description: string };
+const pkg = getToolPackage();
 
 /**
  * 명령어가 stdout으로 JSON을 출력하는지 판단

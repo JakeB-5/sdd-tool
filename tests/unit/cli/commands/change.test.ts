@@ -6,9 +6,9 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {
-  getChangeListItems,
   getChangeInfo,
   createChange,
+  normalizeSpecOption,
   applyChange,
   getDeltaInfo,
   validateChange,
@@ -121,6 +121,68 @@ created: 2024-01-01
   });
 });
 
+describe('normalizeSpecOption', () => {
+  it('단일 값, 반복 값, 쉼표 구분 값을 중복 없이 목록으로 만든다', () => {
+    expect(normalizeSpecOption(undefined)).toEqual([]);
+    expect(normalizeSpecOption('auth/login')).toEqual(['auth/login']);
+    expect(normalizeSpecOption(['a/x', 'b/y'])).toEqual(['a/x', 'b/y']);
+    expect(normalizeSpecOption(['a/x, b/y', 'a/x', ' ', 'c/z'])).toEqual(['a/x', 'b/y', 'c/z']);
+  });
+});
+
+describe('createChange - 스펙 지정', () => {
+  let tempDir: string;
+  let sddPath: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-change-spec-test-'));
+    sddPath = path.join(tempDir, '.sdd');
+    await fs.mkdir(sddPath, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('스펙 1개를 지정하면 delta.md에 플레이스홀더 없이 해당 스펙이 들어간다', async () => {
+    const result = await createChange(sddPath, { title: '변경', spec: 'auth/login' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const delta = await fs.readFile(result.data.deltaPath, 'utf-8');
+      expect(delta).not.toContain('{{SPEC_PATH}}');
+      expect(delta).toContain('### auth/login');
+      const proposal = await fs.readFile(result.data.proposalPath, 'utf-8');
+      expect(proposal).toContain('`auth/login`');
+    }
+  });
+
+  it('스펙을 여러 개 지정하면 proposal과 delta에 모두 반영된다', async () => {
+    const result = await createChange(sddPath, { title: '변경', spec: ['auth/login', 'cart/item,cart/coupon'] });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const delta = await fs.readFile(result.data.deltaPath, 'utf-8');
+      const proposal = await fs.readFile(result.data.proposalPath, 'utf-8');
+      for (const spec of ['auth/login', 'cart/item', 'cart/coupon']) {
+        expect(delta).toContain(`### ${spec}\n`);
+        expect(proposal).toContain(`- \`${spec}\``);
+      }
+      expect(delta).not.toContain('{{SPEC_PATH}}');
+    }
+  });
+
+  it('스펙을 지정하지 않으면 플레이스홀더를 유지한다', async () => {
+    const result = await createChange(sddPath, { title: '변경' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const delta = await fs.readFile(result.data.deltaPath, 'utf-8');
+      expect(delta).toContain('### {{SPEC_PATH}}');
+    }
+  });
+});
+
 describe('applyChange', () => {
   let tempDir: string;
   let changePath: string;
@@ -165,6 +227,33 @@ created: 2024-01-01
       'utf-8'
     );
     expect(updatedContent).toContain('status: applied');
+  });
+
+  it('created 날짜 형식을 ISO 타임스탬프로 바꾸지 않는다', async () => {
+    await fs.writeFile(
+      path.join(changePath, 'proposal.md'),
+      '---\nid: CHG-001\nstatus: draft\ncreated: 2026-10-27\n---\n\n# 변경 제안: 테스트\n'
+    );
+
+    const result = await applyChange(changePath);
+
+    expect(result.success).toBe(true);
+    const updated = await fs.readFile(path.join(changePath, 'proposal.md'), 'utf-8');
+    expect(updated).toContain('created: 2026-10-27\n');
+    expect(updated).not.toContain('T00:00:00');
+    expect(updated).toContain('status: applied');
+  });
+
+  it('frontmatter가 없는 proposal.md는 원인을 포함한 오류를 반환한다', async () => {
+    await fs.writeFile(path.join(changePath, 'proposal.md'), '# 변경 제안: frontmatter 없음\n');
+
+    const result = await applyChange(changePath);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('proposal.md를 업데이트할 수 없습니다');
+      expect(result.error.message).toContain('frontmatter');
+    }
   });
 
   it('proposal.md를 저장할 수 없으면 실패를 반환한다', async () => {

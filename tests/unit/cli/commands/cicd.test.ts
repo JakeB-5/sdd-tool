@@ -6,8 +6,11 @@ import { Command } from 'commander';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import {
   registerCicdCommand,
+  generateGitHubLabeler,
   generateGitHubWorkflow,
   generateGitLabCI,
   generateHookScript,
@@ -142,6 +145,92 @@ describe('generateGitHubWorkflow', () => {
     expect(workflow).toContain('actions/upload-artifact@v4');
     expect(workflow).toContain('name: impact-report');
   });
+});
+
+/**
+ * Run the labeler's "Detect Changes" step under `bash -e -o pipefail` against a repo whose
+ * diff against origin/main contains `files`; returns the resulting GITHUB_OUTPUT.
+ */
+async function runDetectChanges(labeler: string, files: Record<string, string>): Promise<string> {
+  const block = labeler.match(/run: \|\n([\s\S]*?)\n\n {6}- name: Apply Labels/)?.[1];
+  expect(block).toBeDefined();
+  const script = block!
+    .split('\n')
+    .map((line) => line.replace(/^ {10}/, ''))
+    .join('\n');
+
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-labeler-test-'));
+  try {
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, encoding: 'utf-8' });
+    git('init', '-q', '-b', 'main');
+    git('config', 'user.email', 't@example.com');
+    git('config', 'user.name', 't');
+    git('config', 'commit.gpgsign', 'false');
+    await fs.writeFile(path.join(dir, 'a.txt'), 'a');
+    git('add', '.');
+    git('commit', '-q', '-m', 'base');
+    git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+
+    for (const [file, content] of Object.entries(files)) {
+      await fs.mkdir(path.dirname(path.join(dir, file)), { recursive: true });
+      await fs.writeFile(path.join(dir, file), content);
+    }
+    // Untracked files are invisible to `git diff`; stage everything so it shows up against origin/main
+    git('add', '-A');
+
+    const outputFile = path.join(dir, '..', `gh-output-${path.basename(dir)}`);
+    await fs.writeFile(outputFile, '');
+    try {
+      execFileSync('bash', ['-e', '-o', 'pipefail', '-c', script], {
+        cwd: dir,
+        env: { ...process.env, BASE_REF: 'main', GITHUB_OUTPUT: outputFile },
+      });
+      return await fs.readFile(outputFile, 'utf-8');
+    } finally {
+      await fs.rm(outputFile, { force: true });
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
+
+describe('생성된 CI 안정성', () => {
+  const version = (JSON.parse(readFileSync('package.json', 'utf-8')) as { version: string }).version;
+
+  it('GitHub 워크플로우와 GitLab CI가 실행 중인 도구 버전으로 sdd-tool을 고정 설치한다', () => {
+    expect(generateGitHubWorkflow(false)).toContain(`npm install -g sdd-tool@${version}`);
+    expect(generateGitLabCI(false)).toContain(`npm install -g sdd-tool@${version}`);
+  });
+
+  it('라벨러 워크플로우가 필요한 최소 권한만 명시한다', () => {
+    const labeler = generateGitHubLabeler();
+
+    expect(labeler).toMatch(/permissions:\n\s+contents: read\n\s+pull-requests: write\n\s+issues: write/);
+  });
+
+  it('검증 워크플로우는 읽기 권한만 요청한다', () => {
+    expect(generateGitHubWorkflow(false)).toMatch(/permissions:\n\s+contents: read\n/);
+  });
+
+  it('라벨러 변경 감지 스크립트가 일치하는 파일이 없어도 bash -e -o pipefail에서 실패하지 않는다', async () => {
+    const out = await runDetectChanges(generateGitHubLabeler(), { 'a.txt': 'b' });
+
+    expect(out).toContain('domains=');
+    expect(out).toContain('constitution=false');
+  });
+
+  it('변경 파일 목록이 매우 커도 constitution 변경을 놓치지 않는다 (SIGPIPE 오탐 방지)', async () => {
+    // The constitution file sorts first, so a `grep -q` pipeline would exit early while printf is still writing
+    const files: Record<string, string> = { '.sdd/constitution.md': 'c' };
+    for (let i = 0; i < 20000; i++) {
+      files[`.sdd/specs/dom${i % 7}/feature-with-a-long-name-${i}/spec.md`] = 'x';
+    }
+
+    const out = await runDetectChanges(generateGitHubLabeler(), files);
+
+    expect(out).toContain('constitution=true');
+    expect(out).toMatch(/domains=dom0 dom1 /);
+  }, 60000);
 });
 
 describe('generateGitLabCI', () => {

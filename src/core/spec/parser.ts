@@ -6,6 +6,7 @@ import {
   normalizeLineEndings,
   readFrontmatter,
   detectFrontmatter,
+  extractFrontmatterText,
 } from '../../utils/frontmatter.js';
 import {
   ParsedSpec,
@@ -62,10 +63,22 @@ export function stripNonContent(text: string): string {
     .replace(/^(```|~~~)[^\n]*\n[\s\S]*?^\1[^\n]*$/gm, blank);
 }
 
+/** `{{FEATURE_ID}}`-style placeholders from templates/spec.md */
+const FRONTMATTER_PLACEHOLDER_PATTERN = /\{\{[A-Z][A-Z0-9_]*\}\}/g;
+
 /**
- * 스펙 본문에 남아 있는 템플릿 플레이스홀더 목록 (중복 제거, frontmatter/주석/코드 블록 제외)
+ * 스펙에 남아 있는 템플릿 플레이스홀더 목록 (중복 제거, 주석/코드 블록 제외)
+ *
+ * Body: bracket and `{{X}}` placeholders. Frontmatter: only `{{X}}` placeholders
+ * (e.g. `id: "{{FEATURE_ID}}"`), since bracket values like `[a, b]` are valid YAML.
  */
 export function findTemplatePlaceholders(content: string): string[] {
+  const frontmatterText = extractFrontmatterText(normalizeLineEndings(content)) ?? '';
+  const frontmatterFound = frontmatterText
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
+    .flatMap((line) => line.match(FRONTMATTER_PLACEHOLDER_PATTERN) ?? []);
+
   const body = stripNonContent(readFrontmatter(content).body);
   // Shortcut reference links `[x]` whose definition `[x]: url` exists are real links
   const definedLabels = new Set(
@@ -74,7 +87,7 @@ export function findTemplatePlaceholders(content: string): string[] {
   const found = (body.match(TEMPLATE_PLACEHOLDER_PATTERN) ?? []).filter(
     (p) => !definedLabels.has(p.toLowerCase())
   );
-  return [...new Set(found)];
+  return [...new Set([...frontmatterFound, ...found])];
 }
 
 /**
