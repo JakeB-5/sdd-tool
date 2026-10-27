@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [2.0.0] - 2026-10-27
+
+> Major release after a full code review. It includes the 1.6.0 changes below, which were never published to npm (the previous npm release is 1.5.1). Several CLI behaviours changed incompatibly — see the **BREAKING** entries.
+
+### Security
+
+- Spec, constitution, change and agent/skill files no longer execute code: gray-matter's executable `---js` / `---coffee` frontmatter engines are rejected (previously `sdd validate` on an untrusted repo could run arbitrary code)
+- Git calls in `sdd diff` and branch creation use `execFile` instead of shell-interpolated strings (command injection via refs/paths)
+- Domain ids, change ids (`CHG-<n>`), transition names, impact proposal paths and `new --domain` are validated before path joins (path traversal)
+- Generated GitHub workflows pass step outputs and `base_ref` via `env:` instead of interpolating them into `github-script` / `run:`
+- HTML report/export output escapes text and attributes and blocks `javascript:` / `data:` / `vbscript:` links
+- Generated git hooks are POSIX-sh safe, `uninstall` only removes SDD-marked hooks, repeated `--force` installs keep the user's original hook backup, and hooks outside the repository (`core.hooksPath`) are refused
+- `JSON.parse` of user-controlled cache/draft files is validated; dependencies patched within existing ranges (yaml, minimatch, js-yaml)
+
 ### Added
 
 - **OpenAI Codex support in `sdd init`.** Every `sdd init` now writes both Claude Code and Codex files (no target flag)
@@ -20,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING: `sdd init` generates Claude Code skills only.** `.claude/commands/` is written only with `--legacy-commands` (`--no-commands` is a hidden no-op); the deprecated `sdd-new` / `sdd-change` skills and `sdd.new` / `sdd.change` commands are removed (use `/sdd-spec`); this repository's internal `dev-*` skills are no longer copied into user projects. Skill frontmatter follows the current Claude Code spec (no `context: inline`, `argument-hint`, split `allowed-tools` rules, descriptions state when to use), and nonexistent CLI flags in skill bodies were fixed. Re-running init warns about stale files from older versions
+- **Specs are resolved through a single locator for both layouts.** `sdd new` writes `.sdd/specs/<domain>/<feature>/spec.md`, but `sync`, `export`, `start`, `report`, `validate --domain` / `--orphan-specs`, `diff -s`, `impact`, `status --domain`, `prepare`, `quality`, `search` and `watch` only looked at the flat layout and silently found nothing. Spec ids in output are now `<domain>/<feature>`; ambiguous bare ids fail with candidates; only directories containing `spec.md` are specs; `list` / `status` / `search` / `new` / `export` / `diff` work from subdirectories and exit non-zero outside a project
+- **Spec status lifecycle unified**: `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated` (legacy `specified` / `completed` are read as `review` / `implemented` with warning W006)
+- **Parser and schema fixes**: `SHALL NOT` / `MUST NOT` are no longer classified as `MAY`; RFC 2119 keywords must be uppercase (W008 hint for lowercase-only specs); keywords in HTML comments and code fences are ignored; the last scenario is kept without a trailing newline; leftover template placeholders warn (W005); `depends` accepts a list; numeric `constitution_version` is normalized; CRLF files and inline YAML arrays parse correctly; frontmatter rewrites only touch the changed fields; `sdd transition` output validates; the constitution check reports what it actually checks and `constitution bump` fails without a version
 - **The SDD guide lives in the root `AGENTS.md` block; `.sdd/AGENTS.md` is no longer generated.** An existing `.sdd/AGENTS.md` is left untouched and reported as no longer generated. `CLAUDE.md` now imports `@AGENTS.md` (`@../AGENTS.md` from `.claude/CLAUDE.md`); re-running `sdd init` replaces an old `@.sdd/AGENTS.md` import line in place without duplicating it. `sdd status` checks the root `AGENTS.md` block
 - Skill bodies are target-neutral (no Claude-only tool names such as `AskUserQuestion` or Read/Glob/Grep as requirements); `sdd-implement` and `sdd-validate` mention delegating to the new subagents
 - **`sdd reverse` is now AI-driven.** The CLI keeps only deterministic steps; the `sdd-reverse` skill / `/sdd.reverse` command reads the code and writes drafts
@@ -40,6 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed (CLI output, flags, exit codes)
 
+- Generated pre-commit / pre-push hooks no longer call the nonexistent `sdd validate --ci` (#2); `validate --ci` is accepted as a hidden no-op for hooks installed by older versions
+- `sdd new --numbered` no longer creates `feature/feature/<n>-x` branches; `sdd change apply` no longer prints a literal `${id}`; delta sections are no longer truncated at `###` headings
 - `sdd list changes` prints id/title/status instead of `[object Object]`
 - `sdd cicd setup <unknown>` / `sdd cicd hooks <unknown>` fail without writing files; generated GitHub/GitLab pipelines install only the global CLI (no `npm ci` / npm cache) and GitLab no longer declares the JSON report as a dotenv report
 - `sdd watch --impact` reports impact for changed specs; validation errors print their messages; chokidar ignores use a path matcher; double `start()` creates a single watcher
