@@ -48,6 +48,11 @@ describe('Git Hook Generators', () => {
       expect(hook).toContain('pre-push');
       expect(hook).toContain('sdd validate');
     });
+
+    it('validate에 존재하지 않는 --ci 옵션을 넘기지 않는다 (#2)', () => {
+      expect(generatePreCommitHook()).not.toMatch(/sdd validate[^\n]*--ci/);
+      expect(generatePrePushHook()).not.toMatch(/sdd validate[^\n]*--ci/);
+    });
   });
 
   describe('generateGitMessageTemplate', () => {
