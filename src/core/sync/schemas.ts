@@ -83,6 +83,8 @@ export type SyncOptions = z.infer<typeof SyncOptionsSchema>;
 export const ExtractedRequirementSchema = z.object({
   id: z.string(),
   specId: z.string(),
+  /** Title of the spec document itself (frontmatter `title` or first H1), not of this requirement */
+  specTitle: z.string().optional(),
   title: z.string().optional(),
   description: z.string().optional(),
   keyword: z.enum(['SHALL', 'MUST', 'SHOULD', 'MAY', 'SHALL NOT', 'MUST NOT']).optional(),
@@ -98,6 +100,11 @@ export const CodeReferenceSchema = z.object({
   reqId: z.string(), // REQ-001
   /** Spec qualifier from `<spec>#REQ-001` (canonical id or bare feature), absent for bare refs */
   specRef: z.string().optional(),
+  /**
+   * Spec qualifiers of qualified refs in the same file that cover this bare ref (see
+   * markCoveredBareRefs). The matcher ignores the bare ref only if one of them resolves.
+   */
+  coveredBy: z.array(z.string()).optional(),
   file: z.string(),
   line: z.number(),
   type: z.enum(['code', 'test']),

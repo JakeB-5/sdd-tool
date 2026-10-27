@@ -32,6 +32,79 @@ export function extractSpecRefs(text: string): Array<{ reqId: string; specRef?: 
   }));
 }
 
+const COMMENT_OR_BLANK_LINE = /^\s*(?:$|\/\/|\/\*|\*)/;
+const STRING_LITERAL = /(['"`])(?:\\.|(?!\1).)*\1/g;
+
+/**
+ * Last line (0-based, inclusive) of the code a qualified annotation applies to.
+ *
+ * The annotation applies to the statement it sits on, or - when it is in a comment -
+ * to the first non-comment statement below it. If that statement opens brackets
+ * (`describe(..., () => {`, `function f() {`) the scope extends to the matching close.
+ *
+ * This is a conservative line-based heuristic, not a parser: only single-line string
+ * literals are ignored while counting, so template literals spanning lines, regex literals
+ * or brackets inside comments can skew the count. Unbalanced input falls back to covering
+ * just the annotated statement's first line.
+ */
+function annotatedScopeEnd(lines: string[], annotationIdx: number): number {
+  let stmtIdx = annotationIdx;
+  while (stmtIdx < lines.length && COMMENT_OR_BLANK_LINE.test(lines[stmtIdx])) stmtIdx++;
+  if (stmtIdx >= lines.length) return annotationIdx;
+
+  let depth = 0;
+  for (let j = stmtIdx; j < lines.length; j++) {
+    const code = lines[j].replace(STRING_LITERAL, '');
+    for (const ch of code) {
+      if (ch === '{' || ch === '(' || ch === '[') depth++;
+      else if (ch === '}' || ch === ')' || ch === ']') depth--;
+    }
+    if (depth <= 0) return j;
+  }
+  return stmtIdx; // unbalanced brackets: do not guess a larger scope
+}
+
+/**
+ * Annotate unqualified `REQ-xx` references that a qualified `<spec>#REQ-xx` reference covers.
+ *
+ * Without this, a test titled `it('REQ-01: ...')` under `// @spec auth/login#REQ-01` is
+ * reported as an ambiguous bare reference even though the author already named the spec.
+ *
+ * A qualified reference covers a bare reference when, in the same file, both use the same
+ * REQ number and the bare one sits on the qualified reference's line or inside the scope
+ * it annotates (see annotatedScopeEnd): the declaration right below a `@spec` comment
+ * (with blank/comment lines in between) including that declaration's whole block, so the
+ * enclosing `describe` annotation covers the `it` titles within it.
+ *
+ * Covered bare references get `coveredBy` (the covering spec qualifiers). The scanner cannot
+ * know whether a qualifier names a real spec, so the matcher decides: it ignores the bare
+ * reference only if a covering qualifier resolves to a known requirement, otherwise it
+ * treats it as a normal bare reference. Bare references outside any scope are untouched.
+ */
+export function markCoveredBareRefs(refs: CodeReference[], lines: string[]): CodeReference[] {
+  const scopes = refs
+    .filter((r) => r.specRef)
+    .map((r) => ({
+      reqId: r.reqId,
+      specRef: r.specRef as string,
+      start: r.line,
+      end: annotatedScopeEnd(lines, r.line - 1) + 1,
+    }));
+  if (scopes.length === 0) return refs;
+
+  return refs.map((r) => {
+    if (r.specRef) return r;
+    const coveredBy = [
+      ...new Set(
+        scopes
+          .filter((s) => s.reqId === r.reqId && r.line >= s.start && r.line <= s.end)
+          .map((s) => s.specRef)
+      ),
+    ];
+    return coveredBy.length > 0 ? { ...r, coveredBy } : r;
+  });
+}
+
 /**
  * 기본 제외 패턴
  */
@@ -113,7 +186,7 @@ export class CodeScanner {
         }
       }
 
-      return references;
+      return markCoveredBareRefs(references, lines);
     } catch {
       return [];
     }

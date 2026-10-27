@@ -58,7 +58,7 @@ export class SyncReporter {
 
     // 모호한 참조 경고
     if (result.warnings && result.warnings.length > 0) {
-      lines.push(this.warning(`⚠ 무시된 참조 (${result.warnings.length}개)`));
+      lines.push(this.warning(`⚠ 경고 (${result.warnings.length}개)`));
       for (const warning of result.warnings) {
         lines.push(`  - ${warning}`);
       }
@@ -157,7 +157,7 @@ export class SyncReporter {
 
     // 모호한 참조 경고
     if (result.warnings && result.warnings.length > 0) {
-      lines.push('## 무시된 참조');
+      lines.push('## 경고');
       lines.push('');
       for (const warning of result.warnings) {
         lines.push(`- ${warning}`);

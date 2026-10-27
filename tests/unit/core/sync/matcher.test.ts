@@ -31,6 +31,18 @@ describe('SyncMatcher', () => {
       expect(result.syncRate).toBe(50);
     });
 
+    it('스펙 요약 제목은 첫 요구사항 제목이 아니라 스펙 제목이다', () => {
+      const requirements: ExtractedRequirement[] = [
+        { id: 'REQ-01', specId: 'pricing/cart', specTitle: '카트', title: '빈 카트 생성', line: 10 },
+        { id: 'REQ-02', specId: 'pricing/cart', specTitle: '카트', title: '상품 추가', line: 20 },
+      ];
+
+      const result = new SyncMatcher().match(requirements, [], []);
+
+      expect(result.specs[0].title).toBe('카트');
+      expect(result.requirements[0].title).toBe('빈 카트 생성');
+    });
+
     it('모두 구현되면 동기화율 100%', () => {
       const requirements: ExtractedRequirement[] = [
         { id: 'REQ-001', specId: 'feature', line: 10 },

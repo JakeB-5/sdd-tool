@@ -190,4 +190,36 @@ export function login() {}
     expect(result.success).toBe(true);
     expect(result.data!.result.orphans.length).toBeGreaterThan(0);
   });
+
+  describe('정의 헤딩이 없는 스펙', () => {
+    beforeEach(async () => {
+      await fs.mkdir(path.join(specsDir, 'tabular'));
+      await fs.writeFile(
+        path.join(specsDir, 'tabular', 'spec.md'),
+        '# 표\n\n| ID | 설명 |\n|----|------|\n| REQ-01 | 로그인 |\n'
+      );
+    });
+
+    it('요구사항이 하나도 없으면 텍스트와 JSON 모두에 경고를 싣는다', async () => {
+      const text = await executeSync(tempDir, { srcDir });
+      const json = await executeSync(tempDir, { srcDir, json: true });
+
+      expect(text.data!.output).toContain('tabular: REQ 정의 헤딩이 없어');
+      expect(JSON.parse(json.data!.output).warnings).toEqual([
+        expect.stringContaining('tabular: REQ 정의 헤딩이 없어'),
+      ]);
+    });
+
+    it('다른 스펙에 요구사항이 있어도 경고가 리포트에 포함된다', async () => {
+      await fs.mkdir(path.join(specsDir, 'good'));
+      await fs.writeFile(path.join(specsDir, 'good', 'spec.md'), '### REQ-01: 정상\n');
+
+      const text = await executeSync(tempDir, { srcDir });
+      const json = await executeSync(tempDir, { srcDir, json: true });
+
+      expect(text.data!.output).toContain('⚠ 경고 (1개)');
+      expect(text.data!.output).toContain('tabular: REQ 정의 헤딩이 없어');
+      expect(JSON.parse(json.data!.output).warnings).toHaveLength(1);
+    });
+  });
 });

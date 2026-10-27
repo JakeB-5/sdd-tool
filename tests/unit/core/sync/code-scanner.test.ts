@@ -160,6 +160,48 @@ export const x = 1;
       expect(refs).toHaveLength(2);
     });
 
+    it('같은 @spec 줄의 한정 참조가 같은 번호의 bare 참조를 덮는다', async () => {
+      const filePath = path.join(srcDir, 'covered.ts');
+      await fs.writeFile(
+        filePath,
+        `// @spec REQ-01, auth/login#REQ-01, REQ-02
+export const x = 1;
+`
+      );
+
+      const refs = await new CodeScanner(tempDir, { srcDir }).scanFile(filePath);
+
+      expect(
+        refs.map((r) => `${r.specRef ?? ''}#${r.reqId}${r.coveredBy ? `[${r.coveredBy}]` : ''}`)
+      ).toEqual(['#REQ-01[auth/login]', 'auth/login#REQ-01', '#REQ-02']);
+    });
+
+    it('한정된 @spec이 감싸는 함수 본문의 bare @spec을 덮고 밖은 유지한다', async () => {
+      const filePath = path.join(srcDir, 'scope.ts');
+      await fs.writeFile(
+        filePath,
+        `/**
+ * @spec auth/login#REQ-01
+ */
+export function login() {
+  // @spec REQ-01
+  return 1;
+}
+
+// @spec REQ-01
+export const other = 2;
+`
+      );
+
+      const refs = await new CodeScanner(tempDir, { srcDir }).scanFile(filePath);
+
+      expect(
+        refs.map(
+          (r) => `${r.line}:${r.specRef ?? ''}#${r.reqId}${r.coveredBy ? `[${r.coveredBy}]` : ''}`
+        )
+      ).toEqual(['2:auth/login#REQ-01', '5:#REQ-01[auth/login]', '9:#REQ-01']);
+    });
+
     it('존재하지 않는 파일은 빈 배열을 반환한다', async () => {
       const scanner = new CodeScanner(tempDir, { srcDir });
       const refs = await scanner.scanFile('/nonexistent/file.ts');

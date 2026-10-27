@@ -6,6 +6,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { TestScanner } from '../../../../src/core/sync/test-scanner.js';
+import { SyncMatcher } from '../../../../src/core/sync/matcher.js';
 
 describe('TestScanner', () => {
   let tempDir: string;
@@ -119,6 +120,127 @@ it('should work', () => {});
 
       expect(refs).toHaveLength(1);
       expect(refs[0].reqId).toBe('REQ-020');
+    });
+  });
+
+  describe('한정된 @spec이 덮는 bare REQ 참조', () => {
+    const scanTitles = async (source: string) => {
+      const filePath = path.join(testsDir, 'covered.test.ts');
+      await fs.writeFile(filePath, source);
+      const refs = await new TestScanner(tempDir).scanFile(filePath);
+      // `<line>:<specRef>#<reqId>`, plus `[<covering specRefs>]` for covered bare refs
+      return refs.map(
+        (r) =>
+          `${r.line}:${r.specRef ?? ''}#${r.reqId}${r.coveredBy ? `[${r.coveredBy.join(',')}]` : ''}`
+      );
+    };
+
+    it('바로 위 @spec 주석이 다음 describe 제목의 bare REQ를 덮는다', async () => {
+      const refs = await scanTitles(`// @spec pricing/shipping#REQ-01
+describe('REQ-01: 무료배송 기준', () => {
+  it('정확히 50,000원', () => {});
+});
+`);
+      expect(refs).toEqual(['1:pricing/shipping#REQ-01', '2:#REQ-01[pricing/shipping]']);
+    });
+
+    it('주석/빈 줄이 사이에 있어도 덮고, 감싼 describe의 중첩 it도 덮는다', async () => {
+      const refs = await scanTitles(`/**
+ * @spec pricing/cart#REQ-02
+ */
+
+describe('cart', () => {
+  it('REQ-02: 상품 추가', () => {});
+  it('REQ-02 again', () => {});
+});
+`);
+      expect(refs).toEqual([
+        '2:pricing/cart#REQ-02',
+        '6:#REQ-02[pricing/cart]',
+        '7:#REQ-02[pricing/cart]',
+      ]);
+    });
+
+    it('같은 줄의 한정 참조가 bare 참조를 덮는다', async () => {
+      const refs = await scanTitles(`it('pricing/cart#REQ-03: REQ-03 검증', () => {});
+`);
+      expect(refs).toEqual(['1:pricing/cart#REQ-03', '1:#REQ-03[pricing/cart]']);
+    });
+
+    it('덮이는 범위 밖의 bare 참조는 유지한다', async () => {
+      const refs = await scanTitles(`// @spec pricing/cart#REQ-01
+describe('REQ-01: 카트', () => {
+  it('내부', () => {});
+});
+
+describe('REQ-01: 다른 블록', () => {});
+`);
+      expect(refs).toEqual([
+        '1:pricing/cart#REQ-01',
+        '2:#REQ-01[pricing/cart]',
+        '6:#REQ-01',
+      ]);
+    });
+
+    it('다른 REQ 번호는 덮지 않는다', async () => {
+      const refs = await scanTitles(`// @spec pricing/cart#REQ-01
+describe('REQ-02: 다른 요구사항', () => {});
+`);
+      expect(refs).toEqual(['1:pricing/cart#REQ-01', '2:#REQ-02']);
+    });
+
+    it('덮는 한정 참조가 실제 스펙으로 해석되지 않으면(오타) bare 참조를 유지한다', async () => {
+      const filePath = path.join(testsDir, 'typo.test.ts');
+      await fs.writeFile(
+        filePath,
+        `// @spec a/typo#REQ-01
+describe('REQ-01: 오타 주석', () => {});
+`
+      );
+      const testRefs = await new TestScanner(tempDir).scanFile(filePath);
+
+      // Only one spec has REQ-01: the bare title ref still counts, the typo ref is an orphan
+      const unique = new SyncMatcher().match([{ id: 'REQ-01', specId: 'a/one', line: 1 }], [], testRefs);
+      expect(unique.implemented).toEqual(['REQ-01']);
+      expect(unique.orphans.map((o) => o.line)).toEqual([1]);
+
+      // Several specs have REQ-01: the bare title ref is still reported as ambiguous
+      const ambiguous = new SyncMatcher().match(
+        [
+          { id: 'REQ-01', specId: 'a/one', line: 1 },
+          { id: 'REQ-01', specId: 'a/two', line: 1 },
+        ],
+        [],
+        testRefs
+      );
+      expect(ambiguous.warnings).toHaveLength(1);
+      expect(ambiguous.warnings?.[0]).toContain('typo.test.ts:2');
+      expect(ambiguous.implemented).toEqual([]);
+    });
+
+    it('덮이지 않은 bare 참조는 여전히 모호성 경고를 낸다', async () => {
+      const filePath = path.join(testsDir, 'mixed.test.ts');
+      await fs.writeFile(
+        filePath,
+        `// @spec a/one#REQ-01
+describe('REQ-01: 덮임', () => {});
+
+it('REQ-01: 덮이지 않음', () => {});
+`
+      );
+      const testRefs = await new TestScanner(tempDir).scanFile(filePath);
+      const result = new SyncMatcher().match(
+        [
+          { id: 'REQ-01', specId: 'a/one', line: 1 },
+          { id: 'REQ-01', specId: 'a/two', line: 1 },
+        ],
+        [],
+        testRefs
+      );
+
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings?.[0]).toContain('mixed.test.ts:4');
+      expect(result.implemented).toEqual(['REQ-01']);
     });
   });
 
