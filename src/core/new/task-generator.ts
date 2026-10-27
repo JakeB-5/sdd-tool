@@ -260,12 +260,13 @@ export function updateTaskStatus(
 
 /**
  * `## 진행 상황` block, matched at the heading position (sticky): the heading, blank lines,
- * then consecutive `- 대기|진행 중|완료|차단됨: N` lines. Anything after the count lines
- * (notes, code fences, other sections) is left untouched.
+ * then consecutive `- 대기|진행 중|완료|차단됨: N` lines (a trailing note on a count line is
+ * replaced with the count). Anything after the count lines (notes, code fences, other
+ * sections) is left untouched.
  * Group 1 = the count lines.
  */
 const PROGRESS_BLOCK_PATTERN =
-  /## 진행 상황[ \t]*(?:\r?\n|$)(?:[ \t]*\r?\n)*((?:- (?:대기|진행 중|완료|차단됨): \d+[ \t]*(?:\r?\n|$))*)/y;
+  /## 진행 상황[ \t]*(?:\r?\n|$)(?:[ \t]*\r?\n)*((?:- (?:대기|진행 중|완료|차단됨): \d+[^\r\n]*(?:\r?\n|$))*)/y;
 
 /**
  * Offset of the first `## 진행 상황` heading outside fenced code blocks, or -1.

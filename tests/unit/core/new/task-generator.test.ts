@@ -645,6 +645,15 @@ completed: 0
     );
   });
 
+  it('카운트 줄에 메모가 붙어 있어도 블록을 중복 삽입하지 않고 교체한다', () => {
+    const content = '## 진행 상황\n\n- 대기: 7 (메모)\n- 진행 중: 0\n- 완료: 0\n- 차단됨: 0\n\n### t-001: A\n\n- **상태:** 대기\n';
+
+    const updated = updateTaskStatus(content, 't-001', 'completed');
+
+    expect(updated).toContain('## 진행 상황\n\n- 대기: 0\n- 진행 중: 0\n- 완료: 1\n- 차단됨: 0\n\n### t-001: A\n');
+    expect(updated.match(/- 대기:/g)).toHaveLength(1);
+  });
+
   it('진행 상황 블록 바로 뒤의 코드 펜스를 깨뜨리지 않는다', () => {
     const content = '## 진행 상황\n\n- 대기: 1\n- 진행 중: 0\n- 완료: 0\n- 차단됨: 0\n\n```bash\n# run\nnpm test\n```\n\n### t-001: A\n\n- **상태:** 대기\n';
 
