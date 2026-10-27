@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `sdd sync`: requirements are now only the REQ IDs a spec *defines* with a heading (`### REQ-01: Title` or `### REQ-01 Title`). REQ IDs merely mentioned in prose (e.g. "see `pricing/checkout` REQ-05") no longer create phantom, permanently "unimplemented" requirements, and a mention placed before the real heading no longer hides that requirement's title
+- `sdd sync`: an unqualified `REQ-xx` in a test title or `@spec` line no longer triggers the "여러 스펙에 해당하여 무시되었습니다" warning when a qualified `@spec <domain>/<feature>#REQ-xx` for the same REQ number covers it (same line, or the declaration/block directly below the annotation); genuinely ambiguous bare references still warn
+- `sdd sync --json`: a spec's `title` is now the spec's own title (frontmatter `title`, else first H1) instead of its first requirement's title
+
 ---
 
 ## [2.0.0] - 2026-10-27

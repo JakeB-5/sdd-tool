@@ -66,7 +66,7 @@ title: "사용자 인증"
       expect(requirements).toEqual([]);
     });
 
-    it('본문에서 REQ-xxx 패턴을 찾는다', async () => {
+    it('본문에서 언급만 된 REQ-xxx는 요구사항으로 집계하지 않는다', async () => {
       const featureDir = path.join(specsDir, 'feature');
       await fs.mkdir(featureDir);
       await fs.writeFile(
@@ -79,11 +79,127 @@ REQ-002는 선택적이다(MAY).
       );
 
       const parser = new SpecParser(tempDir);
+      expect(await parser.parseSpec('feature')).toEqual([]);
+    });
+
+    it('다른 스펙의 REQ를 언급해도 phantom 요구사항이 생기지 않는다', async () => {
+      const shippingDir = path.join(specsDir, 'pricing', 'shipping');
+      await fs.mkdir(shippingDir, { recursive: true });
+      await fs.writeFile(
+        path.join(shippingDir, 'spec.md'),
+        `# 배송비
+
+### REQ-01: 무료배송 기준
+
+빈 카트의 배송비 면제는 \`pricing/checkout\` REQ-05가 적용해야 한다(SHALL).
+`
+      );
+
+      const parser = new SpecParser(tempDir);
+      const requirements = await parser.parseSpec('pricing/shipping');
+
+      expect(requirements.map(r => r.id)).toEqual(['REQ-01']);
+    });
+
+    it('정의 앞에서 언급된 REQ가 이후 정의를 가리지 않는다', async () => {
+      const featureDir = path.join(specsDir, 'coupon');
+      await fs.mkdir(featureDir);
+      await fs.writeFile(
+        path.join(featureDir, 'spec.md'),
+        `### REQ-04: 정액 할인
+
+정액 쿠폰의 amount를 할인액으로 한다(SHALL) (상한은 REQ-05).
+
+### REQ-05: 할인액 상한
+
+할인액은 소계를 넘지 않는다(MUST).
+`
+      );
+
+      const parser = new SpecParser(tempDir);
+      const requirements = await parser.parseSpec('coupon');
+
+      expect(requirements.map(r => [r.id, r.title])).toEqual([
+        ['REQ-04', '정액 할인'],
+        ['REQ-05', '할인액 상한'],
+      ]);
+      expect(requirements[1].keyword).toBe('MUST');
+    });
+
+    it('콜론 없는 헤더와 다양한 헤더 깊이를 정의로 인정한다', async () => {
+      const featureDir = path.join(specsDir, 'feature');
+      await fs.mkdir(featureDir);
+      await fs.writeFile(
+        path.join(featureDir, 'spec.md'),
+        `## REQ-01 로그인
+내용(SHALL).
+
+#### REQ-02: 로그아웃
+내용(SHOULD).
+
+### REQ-03 - 세션
+내용(MAY).
+
+### REQ-04
+제목 없음.
+`
+      );
+
+      const parser = new SpecParser(tempDir);
       const requirements = await parser.parseSpec('feature');
 
-      expect(requirements).toHaveLength(2);
-      expect(requirements.map(r => r.id)).toContain('REQ-001');
-      expect(requirements.map(r => r.id)).toContain('REQ-002');
+      expect(requirements.map(r => [r.id, r.title])).toEqual([
+        ['REQ-01', '로그인'],
+        ['REQ-02', '로그아웃'],
+        ['REQ-03', '세션'],
+        ['REQ-04', undefined],
+      ]);
+    });
+
+    it('REQ 헤더가 아닌 제목(REQ-01x)과 5단계 이상 헤더는 정의가 아니다', async () => {
+      const featureDir = path.join(specsDir, 'feature');
+      await fs.mkdir(featureDir);
+      await fs.writeFile(
+        path.join(featureDir, 'spec.md'),
+        `### REQ-01x: 이상한 ID
+##### REQ-02: 너무 깊은 헤더
+`
+      );
+
+      const parser = new SpecParser(tempDir);
+      expect(await parser.parseSpec('feature')).toEqual([]);
+    });
+
+    it('스펙 제목은 frontmatter title을 우선하고 없으면 첫 H1을 쓴다', async () => {
+      await fs.mkdir(path.join(specsDir, 'with-fm'));
+      await fs.writeFile(
+        path.join(specsDir, 'with-fm', 'spec.md'),
+        `---
+id: with-fm
+title: "프론트매터 제목"
+---
+
+# 본문 제목
+
+### REQ-01: 요구사항 제목
+`
+      );
+      await fs.mkdir(path.join(specsDir, 'h1-only'));
+      await fs.writeFile(
+        path.join(specsDir, 'h1-only', 'spec.md'),
+        `# H1 제목
+
+### REQ-01: 요구사항 제목
+`
+      );
+
+      const parser = new SpecParser(tempDir);
+      const withFm = await parser.parseSpec('with-fm');
+      const h1Only = await parser.parseSpec('h1-only');
+
+      expect(withFm[0].specTitle).toBe('프론트매터 제목');
+      expect(withFm[0].title).toBe('요구사항 제목');
+      expect(h1Only[0].specTitle).toBe('H1 제목');
     });
 
     it('중복 REQ-xxx는 한 번만 추출한다', async () => {

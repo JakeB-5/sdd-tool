@@ -83,6 +83,8 @@ export type SyncOptions = z.infer<typeof SyncOptionsSchema>;
 export const ExtractedRequirementSchema = z.object({
   id: z.string(),
   specId: z.string(),
+  /** Title of the spec document itself (frontmatter `title` or first H1), not of this requirement */
+  specTitle: z.string().optional(),
   title: z.string().optional(),
   description: z.string().optional(),
   keyword: z.enum(['SHALL', 'MUST', 'SHOULD', 'MAY', 'SHALL NOT', 'MUST NOT']).optional(),

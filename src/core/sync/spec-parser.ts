@@ -12,23 +12,28 @@ import {
 } from '../spec/locator.js';
 
 /**
- * 요구사항 ID 패턴
- * - REQ-001, REQ-01, REQ-1
- * - req-001 (소문자도 허용)
- */
-const REQ_ID_PATTERN = /\b(REQ-\d+)\b/gi;
-
-/**
  * RFC 2119 키워드 패턴
  */
 const RFC_KEYWORD_PATTERN = /\((SHALL|MUST|SHOULD|MAY|SHALL NOT|MUST NOT)\)/i;
 
 /**
- * 요구사항 섹션 헤더 패턴
+ * 요구사항 정의 헤더 패턴
+ *
+ * A requirement is only counted when the spec *defines* it with a heading.
+ * REQ IDs merely mentioned in prose (e.g. "see `pricing/checkout` REQ-05") are
+ * references to other specs/requirements and must not become requirements.
+ *
  * - ### REQ-001: 제목
  * - #### REQ-01: 제목
+ * - ### REQ-01 제목   (콜론 없이 공백 구분)
+ * - ### REQ-01 - 제목 (대시 구분)
  */
-const REQ_HEADER_PATTERN = /^#{2,4}\s*(REQ-\d+):\s*(.+)$/i;
+const REQ_HEADER_PATTERN = /^#{2,4}\s*(REQ-\d+)(?![\w-])\s*[:\-\u2013\u2014]?\s*(.*)$/i;
+
+/**
+ * 스펙 제목용 H1 헤더 패턴
+ */
+const H1_PATTERN = /^#\s+(.+)$/;
 
 export class SpecParser {
   private specsDir: string;
@@ -83,60 +88,46 @@ export class SpecParser {
    * 마크다운 컨텐츠에서 요구사항 추출
    */
   private extractRequirements(content: string, specId: string): ExtractedRequirement[] {
-    const { content: body } = parseFrontmatter(content);
+    const { content: body, data } = parseFrontmatter(content);
     const lines = body.split('\n');
     const requirements: ExtractedRequirement[] = [];
     const seenIds = new Set<string>();
+    const specTitle = this.extractSpecTitle(data, lines);
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const lineNum = i + 1;
+      // Only requirement heading lines define a requirement; REQ IDs in prose are ignored.
+      const headerMatch = lines[i].match(REQ_HEADER_PATTERN);
+      if (!headerMatch) continue;
 
-      // 헤더 형식 체크: ### REQ-001: 제목
-      const headerMatch = line.match(REQ_HEADER_PATTERN);
-      if (headerMatch) {
-        const id = headerMatch[1].toUpperCase();
-        if (!seenIds.has(id)) {
-          seenIds.add(id);
+      const id = headerMatch[1].toUpperCase();
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
 
-          // 다음 줄들에서 키워드 찾기
-          const keyword = this.findKeywordInContext(lines, i);
-
-          requirements.push({
-            id,
-            specId,
-            title: headerMatch[2].trim(),
-            line: lineNum,
-            keyword,
-          });
-        }
-        continue;
-      }
-
-      // 본문에서 REQ-xxx 패턴 찾기
-      const matches = line.matchAll(REQ_ID_PATTERN);
-      for (const match of matches) {
-        const id = match[1].toUpperCase();
-        if (!seenIds.has(id)) {
-          seenIds.add(id);
-
-          // 같은 줄에서 키워드 찾기
-          const keywordMatch = line.match(RFC_KEYWORD_PATTERN);
-
-          requirements.push({
-            id,
-            specId,
-            line: lineNum,
-            description: line.trim(),
-            keyword: keywordMatch
-              ? (keywordMatch[1].toUpperCase() as ExtractedRequirement['keyword'])
-              : undefined,
-          });
-        }
-      }
+      requirements.push({
+        id,
+        specId,
+        specTitle,
+        title: headerMatch[2].trim() || undefined,
+        line: i + 1,
+        keyword: this.findKeywordInContext(lines, i),
+      });
     }
 
     return requirements;
+  }
+
+  /**
+   * 스펙 자체의 제목 (frontmatter `title` 우선, 없으면 첫 H1)
+   */
+  private extractSpecTitle(data: Record<string, unknown>, lines: string[]): string | undefined {
+    if (typeof data.title === 'string' && data.title.trim()) {
+      return data.title.trim();
+    }
+    for (const line of lines) {
+      const match = line.match(H1_PATTERN);
+      if (match) return match[1].trim();
+    }
+    return undefined;
   }
 
   /**

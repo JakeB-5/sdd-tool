@@ -172,12 +172,12 @@ export class SyncMatcher {
       const syncRate =
         requirementCount > 0 ? (implementedCount / requirementCount) * 100 : 100;
 
-      // 스펙 제목 찾기 (첫 번째 요구사항에서)
-      const firstReq = requirements.find(r => r.specId === specId);
+      // 스펙 제목은 스펙 문서의 제목 (요구사항 제목이 아님)
+      const specTitle = requirements.find(r => r.specId === specId)?.specTitle;
 
       return {
         id: specId,
-        title: firstReq?.title,
+        title: specTitle,
         requirementCount,
         implementedCount,
         missingCount,

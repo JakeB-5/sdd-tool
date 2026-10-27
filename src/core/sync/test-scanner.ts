@@ -5,7 +5,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { glob } from 'glob';
 import type { CodeReference } from './schemas.js';
-import { SPEC_ANNOTATION_PATTERN, extractSpecRefs } from './code-scanner.js';
+import { SPEC_ANNOTATION_PATTERN, dropCoveredBareRefs, extractSpecRefs } from './code-scanner.js';
 
 /**
  * 테스트 설명에서 REQ-xxx 패턴
@@ -119,7 +119,7 @@ export class TestScanner {
         }
       }
 
-      return references;
+      return dropCoveredBareRefs(references, lines);
     } catch {
       return [];
     }
