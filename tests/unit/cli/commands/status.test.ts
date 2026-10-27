@@ -12,6 +12,7 @@ import {
   buildStatusNextSteps,
   getProjectStatus,
   getStatusIcon,
+  formatPendingChange,
   type FeatureInfo,
 } from '../../../../src/cli/commands/status.js';
 
@@ -186,6 +187,20 @@ describe('getStatusIcon', () => {
   it('알 수 없는 상태에 기본 아이콘을 반환한다', () => {
     expect(getStatusIcon('unknown')).toBe('❓');
     expect(getStatusIcon('random')).toBe('❓');
+  });
+});
+
+describe('formatPendingChange', () => {
+  it('변경 ID, 제목, 상태를 한 줄로 표시한다', () => {
+    expect(
+      formatPendingChange({ id: 'CHG-001', path: '/p', status: 'draft', title: '쿠폰 정책 변경' })
+    ).toBe('CHG-001: 쿠폰 정책 변경 (draft)');
+  });
+
+  it('제목이 없으면 ID와 상태만 표시한다', () => {
+    expect(formatPendingChange({ id: 'CHG-002', path: '/p', status: 'proposed' })).toBe(
+      'CHG-002 (proposed)'
+    );
   });
 });
 
