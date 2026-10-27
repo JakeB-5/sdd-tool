@@ -23,18 +23,18 @@ The skill runs the CLI and walks you through the result:
 
 1. Run `sdd prepare <feature>`. The CLI reads the feature's `spec.md`, `plan.md` and `tasks.md` and matches keywords against them.
 2. Review the detected subagents and skills and whether each one already exists.
-3. Decide whether to generate the missing ones.
+3. Decide whether to generate the missing ones. A plain run does not prompt: it analyzes, writes the `prepare.md` report and prints a hint to re-run with `--auto-approve`.
 
 ```bash
-sdd prepare login                  # interactive
+sdd prepare login                  # analyze + write prepare.md (no prompt)
 sdd prepare login --dry-run        # preview only, no files created
-sdd prepare login --auto-approve   # generate missing tools without prompting
+sdd prepare login --auto-approve   # also generate the missing tools
 sdd prepare login --json           # JSON output
 ```
 
 ## Detection Keywords
 
-Keywords are matched case-insensitively in the feature's documents (English and Korean).
+Keywords are matched case-insensitively in the feature's documents. The table lists the English keywords; the CLI also matches Korean ones (e.g. 테스트, 문서, 컴포넌트).
 
 | Keywords | Subagent | Skill |
 |----------|----------|-------|

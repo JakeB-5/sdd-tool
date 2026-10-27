@@ -38,23 +38,25 @@ sdd validate --strict
 
 ## 검증 항목
 
-### 에러
+### 에러 (파일이 실패 처리됨)
 
-- YAML frontmatter 형식
-- 필수 메타데이터: id, title, status
-- 마크다운 문법
+- 닫히지 않았거나 잘못된 YAML frontmatter, 또는 메타데이터 타입/값 오류 (메타데이터 필드 자체, 즉 `id`, `title`, `status`는 선택이며 `status` 기본값은 `draft`)
+- `# 제목` 헤딩 없음
+- 대문자 RFC 2119 키워드(SHALL, MUST, SHOULD, MAY, ...)를 쓴 요구사항이 없음
+- GIVEN-WHEN-THEN 시나리오가 없음
+- 치명적(critical) Constitution 위반, `constitution_version`의 major 불일치
 
 ### 경고
 
-- RFC 2119 키워드 사용 (SHALL, MUST, SHOULD, MAY, ...)
-- GIVEN-WHEN-THEN 시나리오 형식
-- 요구사항 ID 형식 (`### REQ-01: 제목`)
-- `[요구사항 제목]` 같은 템플릿 플레이스홀더 잔존
+- `created` 날짜 없음 (W001)
+- 깨진 링크, `--check-links` 사용 시에만 (W002)
+- 치명적이지 않은 Constitution 위반 (W003), `constitution_version`의 minor 불일치 (W004)
+- `[요구사항 제목]` 같은 템플릿 플레이스홀더 잔존 (W005)
+- 더 이상 쓰지 않는 `status` 별칭 (W006)
+- Constitution 파싱 실패로 검사를 건너뜀 (W007)
+- 소문자 RFC 2119 키워드 (W008)
 
-### Constitution
-
-- `constitution_version` 일치
-- 금지 사항 위반 (`--no-constitution`으로 건너뜀)
+Constitution 검사는 기본으로 실행되며 `--no-constitution`으로 건너뜁니다.
 
 ## 예시
 
@@ -63,14 +65,15 @@ sdd validate --strict
 
 AI: sdd validate를 실행합니다.
 
-    ✓ auth/user-auth/spec.md
-    ⚠ auth/profile/spec.md
-      - RFC 2119 키워드 없음
-    ✗ common/settings/spec.md
-      - 필수 필드 'id' 없음
+    ✓ billing/invoice/spec.md
+    ✗ common/bad/spec.md
+      - Requirement에 RFC 2119 키워드(SHALL, MUST, SHOULD, MAY)가 없습니다
+      - Scenario에 GIVEN-WHEN-THEN 형식이 없습니다
+      ⚠ RFC 2119 키워드는 대문자로 작성하세요 (소문자 발견: shall → SHALL)
+      ⚠ YAML frontmatter에 created 날짜가 없습니다
 
     결과: 1개 통과, 1개 실패, 1개 경고
-    -> common/settings/spec.md와 auth/profile/spec.md를 수정하고 sdd validate를 다시 실행합니다.
+    -> common/bad/spec.md를 수정하고 sdd validate를 다시 실행합니다.
 ```
 
 ## 검증 통과 후
@@ -89,7 +92,7 @@ AI: sdd validate를 실행합니다.
 sdd validate --strict --quiet
 ```
 
-에러나 경고가 있으면 종료 코드 1을 반환합니다.
+검증에 실패한 파일이 있으면 종료 코드 2를 반환하며, `--strict`에서는 경고만 있어도 2를 반환합니다. 종료 코드 1은 일반 오류입니다.
 
 ## 관련 명령어
 

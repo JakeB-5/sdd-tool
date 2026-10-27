@@ -37,23 +37,25 @@ For a deeper read-only review (RFC 2119 usage, scenario coverage, constitution c
 
 ## Validation Checks
 
-### Errors
+### Errors (the file fails)
 
-- YAML frontmatter format
-- Required metadata: id, title, status
-- Markdown syntax
+- Unclosed or invalid YAML frontmatter, or invalid metadata types/values (the metadata fields themselves, including `id`, `title` and `status`, are optional; `status` defaults to `draft`)
+- Missing `# Title` heading
+- No requirement with an uppercase RFC 2119 keyword (SHALL, MUST, SHOULD, MAY, ...)
+- No GIVEN-WHEN-THEN scenario
+- Critical constitution violations and a major `constitution_version` mismatch
 
 ### Warnings
 
-- RFC 2119 keyword usage (SHALL, MUST, SHOULD, MAY, ...)
-- GIVEN-WHEN-THEN scenario format
-- Requirement ID format (`### REQ-01: Title`)
-- Leftover template placeholders such as `[requirement title]`
+- Missing `created` date (W001)
+- Broken links, only with `--check-links` (W002)
+- Non-critical constitution violations (W003) and a minor `constitution_version` mismatch (W004)
+- Leftover template placeholders such as `[requirement title]` (W005)
+- Deprecated `status` alias (W006)
+- Constitution could not be parsed, so the check is skipped (W007)
+- Lowercase RFC 2119 keywords (W008)
 
-### Constitution
-
-- `constitution_version` match
-- Forbidden practices violations (skip with `--no-constitution`)
+Constitution checks run by default; skip them with `--no-constitution`.
 
 ## Example
 
@@ -62,15 +64,18 @@ For a deeper read-only review (RFC 2119 usage, scenario coverage, constitution c
 
 AI: Running sdd validate.
 
-    ✓ auth/user-auth/spec.md
-    ⚠ auth/profile/spec.md
-      - RFC 2119 keywords missing
-    ✗ common/settings/spec.md
-      - Required field 'id' missing
+    ✓ billing/invoice/spec.md
+    ✗ common/bad/spec.md
+      - Requirement에 RFC 2119 키워드(SHALL, MUST, SHOULD, MAY)가 없습니다
+      - Scenario에 GIVEN-WHEN-THEN 형식이 없습니다
+      ⚠ RFC 2119 키워드는 대문자로 작성하세요 (소문자 발견: shall → SHALL)
+      ⚠ YAML frontmatter에 created 날짜가 없습니다
 
-    Result: 1 passed, 1 failed, 1 warning
-    -> Fixing common/settings/spec.md and auth/profile/spec.md, re-running sdd validate.
+    결과: 1개 통과, 1개 실패, 1개 경고
+    -> Fixing common/bad/spec.md, re-running sdd validate.
 ```
+
+(The CLI prints its messages in Korean.)
 
 ## After Validation Passes
 
@@ -88,7 +93,7 @@ Commit messages follow the commit-msg hook format `<type>(<scope>): <message>`. 
 sdd validate --strict --quiet
 ```
 
-Returns exit code 1 on errors or warnings.
+Exits with code 2 when any file fails validation, and with `--strict` also when there are only warnings. Exit code 1 is a generic error.
 
 ## Related Commands
 

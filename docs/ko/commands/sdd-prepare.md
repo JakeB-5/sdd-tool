@@ -23,18 +23,18 @@ Codex에서는 `$sdd-prepare <feature>`로 호출합니다.
 
 1. `sdd prepare <feature>` 실행. CLI가 기능의 `spec.md`, `plan.md`, `tasks.md`를 읽고 키워드를 매칭합니다.
 2. 감지된 서브에이전트/스킬과 각각의 존재 여부 확인
-3. 누락된 도구를 생성할지 결정
+3. 누락된 도구를 생성할지 결정. 기본 실행은 확인 질문을 하지 않습니다. 분석하고 `prepare.md` 보고서를 저장한 뒤 `--auto-approve`로 다시 실행하라는 안내를 출력합니다.
 
 ```bash
-sdd prepare login                  # 대화형
+sdd prepare login                  # 분석 + prepare.md 저장 (질문 없음)
 sdd prepare login --dry-run        # 미리보기 (파일 생성 안 함)
-sdd prepare login --auto-approve   # 누락된 도구를 묻지 않고 생성
+sdd prepare login --auto-approve   # 누락된 도구도 함께 생성
 sdd prepare login --json           # JSON 출력
 ```
 
 ## 감지 키워드
 
-키워드는 기능 문서에서 대소문자 구분 없이 매칭됩니다 (영어·한국어).
+키워드는 기능 문서에서 대소문자 구분 없이 매칭됩니다. 표에는 영어 키워드와 대표 한국어 키워드를 적었습니다.
 
 | 키워드 | 서브에이전트 | 스킬 |
 |--------|--------------|------|

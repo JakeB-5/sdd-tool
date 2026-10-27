@@ -5,6 +5,7 @@ Create or modify feature specifications. (Unified entry point)
 ## Overview
 
 `/sdd-spec` decides whether the request is a new feature or a change to an existing one and follows the matching workflow. Large modifications go through a change proposal under `.sdd/changes/CHG-xxx/`.
+
 ## Usage
 
 ```

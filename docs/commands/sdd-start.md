@@ -53,15 +53,15 @@ Brownfield is detected by source directories (`src/`, `lib/`, `app/`), few or no
 
 | Hook | Trigger | Function |
 |------|---------|----------|
-| pre-commit | Before commit | Validate changed specs |
-| commit-msg | After writing the message | Require `<type>(<scope>): <message>` with a spec type (`spec`, `plan`, `tasks`, `constitution`, ...) or a Conventional Commits type (`feat`, `fix`, ...) |
+| pre-commit | Before commit | When specs under `.sdd/specs/` are staged, run a full `sdd validate` |
+| commit-msg | After writing the message | Require `<type>(<scope>): <message>` (the scope is optional) with a spec type (`spec`, `plan`, `tasks`, `constitution`, ...) or a Conventional Commits type (`feat`, `fix`, ...) |
 | pre-push | Before push | Validate all specs |
 
 ## Generated GitHub Actions
 
 | Workflow | Function |
 |----------|----------|
-| `sdd-validate.yml` | Validate specs on PR / push |
+| `sdd-validate.yml` | On push / PR to `main`, `master` or `develop` that touches `.sdd/**`: installs the pinned `sdd-tool@<version>`, then runs `sdd validate`, `sdd constitution validate` and `sdd impact report` (uploaded as an artifact) |
 | `sdd-labeler.yml` | Add domain labels to PRs |
 
 ## Related Commands

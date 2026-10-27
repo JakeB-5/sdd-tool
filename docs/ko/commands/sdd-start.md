@@ -53,15 +53,15 @@ Codex에서는 `$sdd-start`로 호출합니다. 인수는 없습니다.
 
 | 훅 | 시점 | 기능 |
 |----|------|------|
-| pre-commit | 커밋 전 | 변경된 스펙 검증 |
-| commit-msg | 커밋 메시지 작성 후 | `<type>(<scope>): <message>` 형식 요구. type은 스펙 타입(`spec`, `plan`, `tasks`, `constitution`, ...) 또는 Conventional Commits 타입(`feat`, `fix`, ...) |
+| pre-commit | 커밋 전 | `.sdd/specs/` 아래 스펙이 스테이징되어 있으면 전체 `sdd validate` 실행 |
+| commit-msg | 커밋 메시지 작성 후 | `<type>(<scope>): <message>` 형식 요구 (scope는 생략 가능). type은 스펙 타입(`spec`, `plan`, `tasks`, `constitution`, ...) 또는 Conventional Commits 타입(`feat`, `fix`, ...) |
 | pre-push | 푸시 전 | 전체 스펙 검증 |
 
 ## 생성되는 GitHub Actions
 
 | 워크플로우 | 기능 |
 |------------|------|
-| `sdd-validate.yml` | PR / 푸시 시 스펙 자동 검증 |
+| `sdd-validate.yml` | `main`, `master`, `develop`으로의 푸시 / PR에서 `.sdd/**`가 바뀌면 실행: 버전을 고정한 `sdd-tool@<version>`을 설치하고 `sdd validate`, `sdd constitution validate`, `sdd impact report`(아티팩트로 업로드)를 실행 |
 | `sdd-labeler.yml` | PR에 도메인 라벨 자동 추가 |
 
 ## 관련 명령어
