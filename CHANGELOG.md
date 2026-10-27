@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [2.1.0] - 2026-10-27
+
+> Fixes found by running the full SDD workflow with Claude Code (Opus 5.5, Sonnet 5.5) and Codex (gpt-6.1-sol, gpt-6.1-terra). Skills and CLI now agree: no failed `sdd` commands, 100% `sdd sync` traceability and specs reaching `implemented` on all four agents. `sdd new` no longer silently overwrites existing files — pass `--force` to regenerate.
+
 ### Added
 
 - `sdd change -s` accepts several specs, either repeated (`-s a -s b`) or comma-separated (`-s a,b`); the proposal lists all of them and `delta.md` gets one MODIFIED block per spec
@@ -63,7 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **BREAKING:** `sdd new <name>`, `sdd new plan|tasks|checklist` and `--plan/--tasks/--checklist/--all` refuse to overwrite an existing spec.md / plan.md / tasks.md / checklist.md (exit code 1, message names the file). Pass the new `-f, --force` option to overwrite. With `--all`, nothing is written if any target file exists; when only spec.md exists the error points at `sdd new plan|tasks <domain>/<id>` / `sdd new checklist`. The `sdd-plan` / `sdd-tasks` skills and legacy commands now say to edit an existing plan.md / tasks.md and use `--force` only to regenerate
+- **Safety:** `sdd new <name>`, `sdd new plan|tasks|checklist` and `--plan/--tasks/--checklist/--all` refuse to overwrite an existing spec.md / plan.md / tasks.md / checklist.md (exit code 1, message names the file). Pass the new `-f, --force` option to overwrite. With `--all`, nothing is written if any target file exists; when only spec.md exists the error points at `sdd new plan|tasks <domain>/<id>` / `sdd new checklist`. The `sdd-plan` / `sdd-tasks` skills and legacy commands now say to edit an existing plan.md / tasks.md and use `--force` only to regenerate
 - Generated tasks.md is test-first: implementation tasks say to write failing tests before the implementation, the standalone after-the-fact "테스트 작성" task is removed, and the completion checklist follows Red → Green → Refactor
 - `sdd new --all` help text lists checklist alongside spec, plan and tasks
 - `sdd impact`: spec ids mentioned in a spec body are no longer dependencies, so projects that mention other specs in prose see fewer edges and cycles and a higher health score in `sdd impact report`, and fewer affected specs in `sdd impact <spec>` / `change` / `simulate`. JSON output only gains fields (`references` in `--graph --json`, `totalReferences` in `report`, `references` / `referencedBy` in `sdd impact <spec>`); nothing is removed. Declare real dependencies in frontmatter `depends`
