@@ -9,6 +9,7 @@ import { ChangeError } from '../../errors/index.js';
 import { directoryExists, fileExists, readFile } from '../../utils/fs.js';
 import { listSpecs } from '../spec/locator.js';
 import { parseSpec, ParsedSpec } from '../spec/index.js';
+import { normalizeLineEndings } from '../../utils/frontmatter.js';
 
 /**
  * 품질 점수 항목
@@ -223,7 +224,7 @@ function scoreDependencies(spec: ParsedSpec): QualityScoreItem {
 /** `## 시나리오`, `### Scenario: 이름`, `#### Scenario 1: 이름` (level 2-6); group 1 = text after the keyword */
 const SCENARIO_HEADING = /^#{2,6}[ \t]*(?:Scenarios?|시나리오)(?=$|[:：\s])(.*)$/i;
 /** Placeholder headings such as `### 시나리오 없음` or `#### Scenario (TBD)` */
-const EMPTY_SCENARIO_NAME = /^[\s:：\-–—]*[([]?\s*(?:없음|미정|tbd|n\/?a|none)/i;
+const EMPTY_SCENARIO_NAME = /^[\s:：\-–—]*[([]?\s*(?:없음|미정|tbd|n\/?a|none)\s*[)\]]?\s*$/i;
 
 /**
  * Whether the document has a real scenario heading, outside fenced code blocks
@@ -436,7 +437,8 @@ export async function analyzeSpecQuality(
       return failure(new ChangeError('스펙 파일을 읽을 수 없습니다.'));
     }
 
-    const content = contentResult.data;
+    // CRLF specs must score the same as LF specs (line-based heading checks)
+    const content = normalizeLineEndings(contentResult.data);
     const parseResult = parseSpec(content);
     if (!parseResult.success) {
       return failure(new ChangeError(`스펙 파싱 실패: ${parseResult.error.message}`));

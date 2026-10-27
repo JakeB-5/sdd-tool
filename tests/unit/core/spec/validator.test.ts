@@ -574,6 +574,35 @@ ${body}
     expect(w005?.message).toContain('[전제 조건]');
   });
 
+  it('frontmatter에 채우지 않은 {{PLACEHOLDER}}가 있으면 W005를 내고 strict에서 실패한다', async () => {
+    const filePath = path.join(tempDir, 'fm-placeholder.md');
+    await fs.writeFile(
+      filePath,
+      specWith('id: "{{FEATURE_ID}}"\ntitle: "{{FEATURE_NAME}}"\nstatus: draft\ncreated: 2025-12-21')
+    );
+
+    const lenient = await validateSpecFile(filePath);
+    const w005 = lenient.warnings.find((w) => w.code === 'W005');
+    expect(w005?.message).toContain('{{FEATURE_ID}}');
+    expect(w005?.message).toContain('{{FEATURE_NAME}}');
+
+    const strict = await validateSpecFile(filePath, { strict: true });
+    expect(strict.valid).toBe(false);
+  });
+
+  it('템플릿의 frontmatter를 채우면 strict를 통과한다', async () => {
+    const filePath = path.join(tempDir, 'fm-filled.md');
+    await fs.writeFile(
+      filePath,
+      specWith('id: login\ntitle: "로그인"\nstatus: draft\ncreated: 2025-12-21\ndepends: null\nconstitution_version: "1.0.0"')
+    );
+
+    const result = await validateSpecFile(filePath, { strict: true });
+
+    expect(result.warnings).toEqual([]);
+    expect(result.valid).toBe(true);
+  });
+
   it('constitution_version이 없으면 스펙별 경고를 내지 않는다', async () => {
     await writeConstitution(constitutionV('1.2.0'));
     const filePath = path.join(tempDir, 'nover.md');

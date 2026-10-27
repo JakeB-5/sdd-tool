@@ -33,7 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated labeler workflow declares `permissions` (`contents: read`, `pull-requests: write`, `issues: write`), the validation workflow requests `contents: read`, and the labeler's changed-spec detection no longer fails under `bash -e -o pipefail` when no spec file changed
 - The workflows written by `sdd init` get the same CI fixes (pinned install, `permissions`, pipefail-safe change detection); the labeler's constitution check no longer misreports when the changed-file list is large (`grep -q` closing the pipe early under `pipefail`)
 - `sdd change apply` reports why `proposal.md` could not be updated; the commit-msg hook links the Korean commit-convention page
-- `sdd quality` ignores placeholder scenario headings (`### 시나리오 없음`, `#### Scenario (TBD)`) and headings inside code fences
+- `sdd quality` ignores placeholder scenario headings (`### 시나리오 없음`, `#### Scenario (TBD)`) and headings inside code fences, still accepts real scenarios whose name merely starts with such a word (`Scenario: Name validation`), and scores CRLF specs like LF specs
+- `sdd validate` reports unfilled `{{PLACEHOLDER}}` values in the frontmatter (`id: "{{FEATURE_ID}}"`) like body placeholders, so `--strict` fails on an unfilled spec template
 - `sdd quality` accepts scenarios written under each requirement (`### Scenario:` / `#### Scenario:`) as a scenario section, and recognises `depends: [..]`, `depends: []`, `depends: null` and `dependencies` as a declared dependency field
 - `templates/spec.md` and the `.sdd/templates/spec.md` written by `sdd init` use the same `### REQ-01` + `## 시나리오` structure that `sdd new` generates
 

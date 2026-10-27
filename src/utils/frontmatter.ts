@@ -57,6 +57,15 @@ export interface FrontmatterDocument {
 const FRONTMATTER_BLOCK = /^---[ \t]*\n((?:[\s\S]*?\n)?)---[ \t]*(?:\n|$)/;
 
 /**
+ * Raw YAML text of a closed frontmatter block (LF-normalized input), or null when there is none.
+ * Unlike readFrontmatter this does not parse, so it also works for YAML that fails to parse
+ * (e.g. an unquoted `{{PLACEHOLDER}}`).
+ */
+export function extractFrontmatterText(normalized: string): string | null {
+  return normalized.match(FRONTMATTER_BLOCK)?.[1] ?? null;
+}
+
+/**
  * Frontmatter 블록 상태 (LF 정규화된 텍스트 기준)
  * - none: frontmatter 없음
  * - closed: 닫는 구분자까지 있는 블록

@@ -287,10 +287,51 @@ depends: auth
       ['no-scenario-tbd', '#### Scenario (TBD)'],
       ['no-scenario-na', '### Scenario: N/A'],
       ['no-scenario-glued', '### Scenario(TBD)'],
+      ['no-scenario-ko-colon', '### 시나리오: 없음'],
+      ['no-scenario-bracket', '#### Scenario: [none]'],
     ])('자리표시자 제목(%s)은 시나리오 섹션으로 인정하지 않는다', async (name, heading) => {
       const item = await structureItem(name, `# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n${heading}\n`);
 
       expect(item.suggestions.join()).toContain('시나리오 섹션');
+    });
+
+    it.each([
+      ['Scenario: Navigation menu opens'],
+      ['Scenario: Name validation'],
+      ['Scenario: None selected shows error'],
+      ['Scenario: Nonexistent user'],
+      ['Scenario: tbd-flag enabled'],
+      ['Scenario: N/A handling for empty cart'],
+      ['시나리오: 없음 상태에서 조회'],
+      ['시나리오 미정 항목 처리'],
+    ])('이름이 자리표시자로 시작할 뿐인 실제 시나리오(%s)는 인정한다', async (title) => {
+      const item = await structureItem(
+        `real-${title.length}-${title.charCodeAt(title.length - 1)}`,
+        `# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n#### ${title}\n\n${scenario}`
+      );
+
+      expect(item.suggestions.join()).not.toContain('시나리오 섹션');
+    });
+
+    it('CRLF 줄바꿈 스펙도 LF 스펙과 같은 구조 점수를 받는다', async () => {
+      const body = `# 스펙\n\n## 요구사항\n\n### REQ-01: 기능\n\n시스템은 동작해야 한다(SHALL).\n\n#### Scenario: 성공\n\n${scenario}`;
+      const lf = await structureItem('eol-lf', body);
+
+      const specDir = path.join(specsDir, 'eol-crlf');
+      await fs.mkdir(specDir);
+      const specPath = path.join(specDir, 'spec.md');
+      await fs.writeFile(
+        specPath,
+        `---\nstatus: draft\ncreated: 2025-01-01\ndepends: []\n---\n\n${body}`.replace(/\n/g, '\r\n')
+      );
+      const result = await analyzeSpecQuality(specPath, tempDir);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const crlf = result.data.items.find((i) => i.name === '문서 구조')!;
+        expect(crlf.suggestions.join()).not.toContain('시나리오 섹션');
+        expect(crlf.score).toBe(lf.score);
+      }
     });
 
     it('코드 블록 안의 Scenario 제목은 무시한다', async () => {
