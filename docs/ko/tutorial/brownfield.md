@@ -83,301 +83,157 @@ Claude가 기존 프로젝트를 분석합니다:
 💡 기존 코드에서 스펙을 추출하려면 /sdd.reverse 를 실행하세요.
 ```
 
-## Step 2: 코드베이스 분석
+## Step 2: 구조 스캔
+
+역추출은 AI 주도입니다. CLI가 구조를 스캔하고, Claude가 코드를 읽어 스펙 초안을 작성합니다.
 
 ```
-/sdd.reverse scan
+/sdd.reverse
 ```
 
-Claude가 코드베이스를 분석합니다:
+Claude는 먼저 결정적(deterministic) 스캔을 실행합니다:
 
-```
-🔍 코드베이스 스캔 중...
-
-분석 결과:
-
-파일: 12개
-언어: JavaScript (100%)
-복잡도: B (양호)
-
-추정 도메인:
-  📁 auth (높음) - 2개 파일
-     authController.js, authService.js
-  📁 user (높음) - 2개 파일
-     userController.js, userService.js
-  📁 order (높음) - 2개 파일
-     orderController.js, orderService.js
-  📁 core (중간) - 2개 파일
-     validation.js, models/
-
-스펙 후보: 12개
-  높은 신뢰도 (>80%): 8개
-  중간 신뢰도 (50-80%): 3개
-  낮은 신뢰도 (<50%): 1개
-
-메타데이터 저장: .sdd/.reverse-meta.json
-도메인 자동 생성: 4개 (core, auth, user, order)
-
-💡 다음 단계: /sdd.reverse extract
+```bash
+sdd reverse scan --json
 ```
 
-## Step 3: 도메인 생성
+스캔은 파일 수, 소스 파일 수, 실제 라인 수, 언어 분포, 디렉터리 기반 제안 도메인(파일 목록 포함), 어떤 도메인에도 속하지 않는 파일을 보고합니다. 도메인을 생성하지 않으며 메타데이터 파일도 쓰지 않습니다.
 
-분석 결과를 바탕으로 도메인을 설계합니다:
+이 프로젝트의 출력(요약):
 
-```
-/sdd.domain
-```
-
-```
-User: 스캔 결과를 바탕으로 도메인 구조를 만들어줘
-
-Claude: 📁 도메인 구조 제안
-
-분석 결과를 기반으로 다음 도메인을 생성합니다:
-
-1. core
-   설명: 공통 유틸리티
-   경로: src/utils/
-   의존성: 없음
-
-2. auth
-   설명: 인증/인가
-   경로: src/controllers/auth*, src/services/auth*
-   의존성: core
-
-3. user
-   설명: 사용자 관리
-   경로: src/controllers/user*, src/services/user*
-   의존성: core, auth
-
-4. order
-   설명: 주문 관리
-   경로: src/controllers/order*, src/services/order*
-   의존성: core, auth
-
-생성하시겠습니까? [Y/n]
-
-> Y
-
-✅ 도메인 생성 완료
-
-생성된 파일:
-  .sdd/domains.yml              ← 도메인 설정 (YAML 형식)
-  .sdd/domains/core/domain.md   ← 도메인별 문서
-  .sdd/domains/auth/domain.md
-  .sdd/domains/user/domain.md
-  .sdd/domains/order/domain.md
+```json
+{
+  "summary": { "fileCount": 12, "sourceFileCount": 12, "lines": 640, "languages": { "javascript": 12 } },
+  "domains": [
+    { "id": "controllers", "path": "src/controllers", "fileCount": 3 },
+    { "id": "services", "path": "src/services", "fileCount": 3 },
+    { "id": "models", "path": "src/models", "fileCount": 2 },
+    { "id": "utils", "path": "src/utils", "fileCount": 1 }
+  ],
+  "unassigned": []
+}
 ```
 
-## Step 4: 역추출 실행
+제안 도메인은 디렉터리 구조를 따르므로 출발점으로만 사용합니다. Claude는 초안을 쓰기 전에 업무 의미 기준으로 다시 묶습니다(여기서는 `core`, `auth`, `user`, `order`). 필요하면 `--include`, `--exclude`, `--language`, `--depth`로 범위를 좁힙니다. 예: `sdd reverse scan src --exclude '*.test.js'`
 
-### 스펙 추출
+## Step 3: 초안 작성 (AI)
 
-```
-/sdd.reverse extract
-```
-
-Claude가 코드에서 스펙을 추출합니다:
+Claude가 도메인별로 코드를 읽고 기능당 초안 하나를 작성합니다:
 
 ```
-📝 스펙 추출 중...
-
-## auth 도메인
-
-### login (신뢰도: 95%)
-코드 위치: authController.js:15-45, authService.js:10-35
-추출된 시나리오:
-  - 유효한 자격증명으로 로그인 성공
-  - 잘못된 비밀번호로 로그인 실패
-  - 존재하지 않는 사용자
-계약:
-  입력: { email: string, password: string }
-  출력: { token: string, user: User }
-
-### register (신뢰도: 92%)
-코드 위치: authController.js:47-80
-추출된 시나리오:
-  - 신규 사용자 등록 성공
-  - 이메일 중복 에러
-  - 비밀번호 형식 에러
-
-### logout (신뢰도: 88%)
-...
-
-## user 도메인
-
-### get-user (신뢰도: 90%)
-...
-
-## order 도메인
-
-### create-order (신뢰도: 88%)
-...
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-총 추출된 스펙: 11개
-초안 저장: .sdd/drafts/
-
-리뷰를 시작하시겠습니까? [Y/n]
+.sdd/.reverse-drafts/
+├── auth/
+│   ├── login/spec.md
+│   ├── register/spec.md
+│   └── logout/spec.md
+├── user/
+│   └── get-user/spec.md
+└── order/
+    └── create-order/spec.md
 ```
 
-## Step 5: 스펙 검토
+초안은 `sdd new`로 만든 스펙과 같은 형식입니다. frontmatter(`id`, `title`, `status: draft`, `created`, `domain`, `depends`), 대문자 RFC 2119 키워드 요구사항, GIVEN/WHEN/THEN 시나리오로 구성됩니다. 초안에는 관찰된 동작만 기록하며, 불확실한 부분은 추측하지 않고 개요에 명시합니다.
 
-```
-/sdd.reverse review
-```
+초안 예시(요약):
 
-Claude와 대화형으로 추출된 스펙을 검토합니다:
+```markdown
+---
+id: login
+title: User Login
+status: draft
+created: 2026-01-15
+domain: auth
+depends: null
+---
 
-```
-📋 스펙 검토: auth/login (1/11)
+# User Login
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-이름: login
-설명: 사용자 로그인 처리
-신뢰도: 95%
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+> Authenticates a user by email and password.
 
-추출된 시나리오:
+## Overview
 
-1. 정상 로그인
-   GIVEN: 유효한 이메일과 비밀번호
-   WHEN: POST /auth/login 요청
-   THEN: JWT 토큰과 사용자 정보 반환
+Implemented in `src/controllers/authController.js` and `src/services/authService.js`. The session expiration time could not be determined from the code.
 
-2. 비밀번호 불일치
-   GIVEN: 유효한 이메일, 잘못된 비밀번호
-   WHEN: POST /auth/login 요청
-   THEN: 401 에러 (INVALID_PASSWORD)
+## Requirements
 
-3. 사용자 없음
-   GIVEN: 존재하지 않는 이메일
-   WHEN: POST /auth/login 요청
-   THEN: 404 에러 (USER_NOT_FOUND)
+### REQ-01: Token issuance
 
-추출된 계약:
-  입력: { email: string, password: string }
-  출력: { token: string, user: User }
+The system SHALL return a JWT token and the user on valid credentials.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💡 AI 제안:
-  - 시나리오 추가: "계정 잠금 상태에서 로그인 시도"
-  - 계약 개선: refreshToken 추가 권장
+### REQ-02: Password check
 
-❓ 확인 필요:
-  - 로그인 실패 시 최대 시도 횟수 제한이 있나요?
-  - 세션 만료 시간은 어떻게 되나요?
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The system SHALL respond with 401 (INVALID_PASSWORD) when the password does not match.
 
-[a] 승인  [e] 편집  [s] 건너뛰기  [r] 거부
+## Scenarios
+
+### Scenario 1: Successful login
+
+- **GIVEN** a registered user with a valid email and password
+- **WHEN** POST /auth/login is requested
+- **THEN** a JWT token and the user info are returned
 ```
 
-### 편집 예시
+## Step 4: 초안 검증
+
+Claude가 일반 검증기로 초안을 검증하고 오류를 수정합니다:
+
+```bash
+sdd validate .sdd/.reverse-drafts
+```
+
+보고된 오류는 모두 수정한 뒤 다음 단계로 넘어갑니다.
+
+## Step 5: 초안 검토
+
+Claude가 모든 초안을 리뷰 상태(pending, approved, rejected)와 검증 결과와 함께 나열합니다:
+
+```bash
+sdd reverse review --list
+```
+
+참조(예: `auth/login`)로 초안 하나를 열어 사용자에게 보여줍니다:
+
+```bash
+sdd reverse review auth/login
+```
+
+초안을 시스템에 대한 사용자의 지식과 대조해 읽고, 틀린 부분은 Claude에게 수정을 요청합니다. 예:
 
 ```
-> e
-
-편집 모드 진입
-
 User: 계정 잠금 시나리오 추가해줘. 5회 실패 시 30분 잠금이야.
-
-Claude: 📝 시나리오 추가
-
-4. 계정 잠금
-   GIVEN: 5회 이상 로그인 실패한 계정
-   WHEN: POST /auth/login 요청
-   THEN: 423 에러 (ACCOUNT_LOCKED, 남은 시간: 30분)
-
-추가하시겠습니까? [Y/n]
-
-> Y
-
-User: refreshToken도 출력에 추가해
-
-Claude: 📝 계약 수정
-
-출력:
-  {
-    token: string,
-    refreshToken: string,  // 추가됨
-    user: User
-  }
-
-수정하시겠습니까? [Y/n]
-
-> Y
-
-✅ 수정 완료. [a]로 승인하세요.
-
-> a
-
-✅ auth/login 승인됨
-
-다음 스펙: auth/register (2/11)
 ```
 
-### 일괄 승인
+Claude가 `.sdd/.reverse-drafts/auth/login/spec.md`를 수정하고 다시 검증합니다. 리뷰 후 초안을 수정하면 pending으로 초기화되므로, 승인은 항상 현재 내용과 일치합니다.
 
+결정은 사용자가 확인한 뒤에만 기록합니다:
+
+```bash
+sdd reverse review auth/login --approve
+sdd reverse review user/delete-user --reject --reason "제거 예정인 동작"
 ```
-User: 나머지 중 신뢰도 85% 이상은 일괄 승인해줘
 
-Claude: 📋 일괄 승인 대상
-
-신뢰도 85% 이상:
-  ✓ auth/register (92%)
-  ✓ auth/logout (88%)
-  ✓ user/get-user (90%)
-  ✓ user/update-user (85%)
-  ✓ order/create-order (88%)
-  ✓ order/get-order (85%)
-
-6개 스펙을 승인하시겠습니까? [Y/n]
-
-> Y
-
-✅ 6개 스펙 승인됨
-
-남은 스펙: 4개 (수동 검토 필요)
-  - user/delete-user (82%)
-  - order/list-orders (80%)
-  - order/update-order (75%)
-  - order/cancel-order (72%)
-```
+결정은 `.sdd/.reverse-drafts/review.json`에 저장됩니다. 검증 오류가 있는 초안은 승인할 수 없습니다.
 
 ## Step 6: 스펙 확정
 
+```bash
+sdd reverse finalize            # 승인된 모든 초안
+sdd reverse finalize auth/login # 초안 하나
 ```
-/sdd.reverse finalize
-```
+
+확정하면 승인된 초안이 `.sdd/specs/<도메인>/<기능>/spec.md`로 이동하고, 없는 도메인은 `.sdd/domains.yml`에 등록되며, 스펙이 도메인에 연결되고, 초안은 삭제됩니다:
 
 ```
-📦 스펙 확정
-
-승인된 스펙: 8개
-수동 검토 필요: 4개
-
-승인된 스펙을 확정하시겠습니까? [Y/n]
-
-> Y
-
-✅ 스펙 확정 완료
-
-저장된 스펙:
-  .sdd/specs/login/spec.md (도메인: auth)
-  .sdd/specs/register/spec.md (도메인: auth)
-  .sdd/specs/logout/spec.md (도메인: auth)
-  .sdd/specs/get-user/spec.md (도메인: user)
-  .sdd/specs/update-user/spec.md (도메인: user)
-  .sdd/specs/create-order/spec.md (도메인: order)
-  .sdd/specs/get-order/spec.md (도메인: order)
-  .sdd/specs/validation/spec.md (도메인: core)
-
-domains.yml 업데이트됨
-초안 파일 정리됨
-
-남은 초안: .sdd/drafts/ (4개)
+.sdd/specs/
+├── auth/
+│   ├── login/spec.md
+│   ├── register/spec.md
+│   └── logout/spec.md
+├── user/get-user/spec.md
+└── order/create-order/spec.md
 ```
+
+이미 존재하는 스펙은 덮어쓰지 않으며, 건너뛴 항목이 있으면 0이 아닌 코드로 종료합니다. 덮어쓰려면 `--force`를 사용하세요. 승인되지 않은 초안은 `.sdd/.reverse-drafts/`에 남습니다.
 
 ## Step 7: 검증
 
@@ -451,10 +307,10 @@ login의 의존성에 user-model 추가
   order: 2/4 완료 ██████░░░░░░ 50%
 
 초안 (미확정): 4개
-  → /sdd.reverse review 로 검토 계속
+  → sdd reverse review --list 로 검토 계속
 
 다음 추천 작업:
-  1. 남은 초안 검토: /sdd.reverse review
+  1. 남은 초안 검토: sdd reverse review --list
   2. 테스트 추가: "auth/login 테스트 작성해줘"
   3. 새 기능: /sdd.spec
 ```
@@ -656,11 +512,11 @@ graph TB
 
 1. `sdd init`으로 프로젝트 초기화 (CLI)
 2. `/sdd.start`로 프로젝트 상태 확인 (Claude Code)
-3. `/sdd.reverse scan`으로 코드베이스 분석
-4. `/sdd.domain`으로 도메인 구조 생성
-5. `/sdd.reverse extract`로 스펙 추출
-6. `/sdd.reverse review`로 대화형 검토
-7. `/sdd.reverse finalize`로 확정
+3. `sdd reverse scan --json`으로 구조 스캔 (`/sdd.reverse`)
+4. AI가 코드를 읽고 `.sdd/.reverse-drafts/`에 초안 작성
+5. `sdd validate .sdd/.reverse-drafts`로 초안 검증
+6. `sdd reverse review --list`로 검토, 사용자 확인 후 `--approve`로 승인
+7. `sdd reverse finalize`로 확정
 8. `/sdd.validate`로 검증
 9. `/sdd.sync`로 코드-스펙 동기화 관리
 10. 점진적으로 테스트 추가 및 개선

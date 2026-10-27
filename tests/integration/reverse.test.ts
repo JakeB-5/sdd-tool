@@ -1,5 +1,5 @@
 /**
- * sdd reverse 통합 테스트
+ * sdd reverse 통합 테스트 (빌드된 CLI 사용)
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'node:fs';
@@ -21,20 +21,22 @@ async function rmWithRetry(dir: string, retries = 3, delay = 100): Promise<void>
       return;
     } catch (err) {
       if (i === retries - 1) throw err;
-      await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+      await new Promise((resolve) => setTimeout(resolve, delay * (i + 1)));
     }
   }
 }
 
 /**
- * CLI 실행 헬퍼
+ * CLI 실행 헬퍼 (shell 없이 실행하여 인자를 그대로 전달)
  */
 function runCli(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
-    const proc = spawn('node', [binPath, ...args], { cwd, shell: true });
+    const proc = spawn(process.execPath, [binPath, ...args], {
+      cwd,
+      env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+    });
     let stdout = '';
     let stderr = '';
-
     proc.stdout?.on('data', (data) => {
       stdout += data.toString();
     });
@@ -47,61 +49,42 @@ function runCli(args: string[], cwd: string): Promise<{ stdout: string; stderr: 
   });
 }
 
-/**
- * SDD 프로젝트 초기화 헬퍼
- */
-async function initSddProject(tempDir: string): Promise<void> {
-  await runCli(['init'], tempDir);
-}
+const DRAFT = `---
+id: login
+title: Login
+status: draft
+created: 2026-01-01
+domain: auth
+depends: null
+---
 
-/**
- * 샘플 소스 파일 생성 헬퍼
- */
-async function createSampleSourceFiles(tempDir: string): Promise<void> {
-  const srcDir = path.join(tempDir, 'src');
-  await fs.mkdir(srcDir, { recursive: true });
+# Login
 
-  // 샘플 TypeScript 파일 생성
-  const authFile = path.join(srcDir, 'auth.ts');
-  await fs.writeFile(
-    authFile,
-    `/**
- * 사용자 인증 처리
- */
-export function authenticate(username: string, password: string): boolean {
-  // 인증 로직
-  return true;
-}
+> Authenticates users with a username and password.
 
-/**
- * 사용자 로그아웃 처리
- */
-export function logout(userId: string): void {
-  // 로그아웃 로직
-}
-`,
-    'utf-8'
-  );
+## Overview
 
-  const userFile = path.join(srcDir, 'user.ts');
-  await fs.writeFile(
-    userFile,
-    `/**
- * 사용자 정보 조회
- */
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+Implemented in \`src/auth/login.ts\`.
 
-export function getUser(id: string): User | null {
-  // 사용자 조회 로직
-  return null;
-}
-`,
-    'utf-8'
-  );
+## Requirements
+
+### REQ-01: Credential check
+
+The system SHALL reject a login when the password does not match.
+
+## Scenarios
+
+### Scenario 1: Wrong password
+
+- **GIVEN** a registered user
+- **WHEN** the user submits a wrong password
+- **THEN** the login is rejected
+`;
+
+async function writeFile(root: string, rel: string, content: string): Promise<void> {
+  const full = path.join(root, rel);
+  await fs.mkdir(path.dirname(full), { recursive: true });
+  await fs.writeFile(full, content, 'utf-8');
 }
 
 describe('sdd reverse', () => {
@@ -109,101 +92,100 @@ describe('sdd reverse', () => {
 
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-reverse-test-'));
+    await runCli(['init'], tempDir);
+    await writeFile(
+      tempDir,
+      'src/auth/login.ts',
+      'export function login(user: string, password: string): boolean {\n  return password === "secret";\n}\n'
+    );
+    await writeFile(tempDir, 'src/billing/invoice.ts', 'export const total = (xs: number[]) => xs.reduce((a, b) => a + b, 0);\n');
+    await writeFile(tempDir, 'src/c++/engine.cpp', 'int main() { return 0; }\n');
   });
 
   afterEach(async () => {
     await rmWithRetry(tempDir);
   });
 
-  it('기본 scan 서브커맨드를 실행한다', async () => {
-    await initSddProject(tempDir);
-    await createSampleSourceFiles(tempDir);
-
-    const result = await runCli(['reverse', 'scan', '--skip-serena-check'], tempDir);
-
+  it('prints help for scan/review/finalize only', async () => {
+    const result = await runCli(['reverse', '--help'], tempDir);
     expect(result.code).toBe(0);
-    const output = result.stdout + result.stderr;
-    expect(output).toMatch(/스캔|scan/i);
+    expect(result.stdout).toContain('scan');
+    expect(result.stdout).toContain('review');
+    expect(result.stdout).toContain('finalize');
+    expect(result.stdout).not.toContain('extract');
   });
 
-  it('scan --json 옵션으로 JSON 출력을 제공한다', async () => {
-    await initSddProject(tempDir);
-    await createSampleSourceFiles(tempDir);
-
-    const result = await runCli(['reverse', 'scan', '--skip-serena-check', '--json'], tempDir);
-
+  it('scan --json emits pure JSON with suggested domains', async () => {
+    const result = await runCli(['reverse', 'scan', '--json'], tempDir);
     expect(result.code).toBe(0);
 
-    // JSON 파싱 가능 여부 확인
-    const jsonMatch = result.stdout.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      expect(parsed).toBeDefined();
-      expect(parsed.summary).toBeDefined();
-    }
+    const data = JSON.parse(result.stdout);
+    expect(data.domains.map((d: { id: string }) => d.id).sort()).toEqual(['auth', 'billing', 'c']);
+    expect(data.summary.languages).toEqual({ typescript: 2, cpp: 1 });
+    expect(data.domains.find((d: { id: string }) => d.id === 'auth').files).toEqual(['src/auth/login.ts']);
   });
 
-  it('extract 서브커맨드로 스펙을 추출한다', async () => {
-    await initSddProject(tempDir);
-    await createSampleSourceFiles(tempDir);
-
-    const result = await runCli(['reverse', 'extract', '--skip-serena-check'], tempDir);
-
-    // Serena MCP 없이는 extract가 제대로 작동하지 않을 수 있으므로
-    // 에러가 아닌지만 확인
-    const output = result.stdout + result.stderr;
-    expect(output).toMatch(/추출|extract|Serena/i);
-  });
-
-  it('review list 서브커맨드를 실행한다', async () => {
-    await initSddProject(tempDir);
-
-    const result = await runCli(['reverse', 'review'], tempDir);
-
-    // 추출된 스펙이 없으면 경고 메시지 출력
-    const output = result.stdout + result.stderr;
-    expect(output).toMatch(/리뷰|review|추출|extract/i);
-  });
-
-  it('finalize 서브커맨드를 실행한다', async () => {
-    await initSddProject(tempDir);
-
-    const result = await runCli(['reverse', 'finalize', '--all'], tempDir);
-
-    // 확정할 스펙이 없으면 적절한 메시지 출력
-    const output = result.stdout + result.stderr;
-    expect(output).toMatch(/확정|finalize|스펙/i);
-  });
-
-  it('--skip-serena-check 옵션을 지원한다', async () => {
-    await initSddProject(tempDir);
-    await createSampleSourceFiles(tempDir);
-
-    // Serena 체크를 건너뛰므로 에러가 발생하지 않아야 함
-    const result = await runCli(['reverse', 'scan', '--skip-serena-check', '--quiet'], tempDir);
-
+  it('scan accepts glob patterns with regex metacharacters', async () => {
+    const result = await runCli(['reverse', 'scan', '--json', '--include', 'src/c++/**'], tempDir);
     expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout).summary.fileCount).toBe(1);
   });
 
-  it('SDD 프로젝트가 없으면 에러를 반환한다', async () => {
-    // init 없이 reverse 실행
-    const result = await runCli(['reverse', 'scan', '--skip-serena-check'], tempDir);
+  it('runs the draft → review → finalize flow', async () => {
+    await writeFile(tempDir, '.sdd/.reverse-drafts/auth/login/spec.md', DRAFT);
 
-    expect(result.code).not.toBe(0);
-    const output = result.stdout + result.stderr;
-    expect(output).toMatch(/SDD 프로젝트|초기화|init/i);
+    const validateDrafts = await runCli(['validate', '.sdd/.reverse-drafts'], tempDir);
+    expect(validateDrafts.code).toBe(0);
+
+    const list = await runCli(['reverse', 'review', '--list'], tempDir);
+    expect(list.code).toBe(0);
+    expect(list.stdout).toContain('auth/login');
+
+    const approve = await runCli(['reverse', 'review', 'auth/login', '--approve'], tempDir);
+    expect(approve.code).toBe(0);
+
+    const finalize = await runCli(['reverse', 'finalize'], tempDir);
+    expect(finalize.code).toBe(0);
+
+    const specPath = path.join(tempDir, '.sdd', 'specs', 'auth', 'login', 'spec.md');
+    expect(await fs.readFile(specPath, 'utf-8')).toBe(DRAFT);
+
+    const domains = await fs.readFile(path.join(tempDir, '.sdd', 'domains.yml'), 'utf-8');
+    expect(domains).toContain('auth');
+
+    const validate = await runCli(['validate'], tempDir);
+    expect(validate.code).toBe(0);
+
+    // A second draft for the same spec must not overwrite it without --force
+    const changed = DRAFT.replace('Authenticates users', 'Authenticates accounts');
+    await writeFile(tempDir, '.sdd/.reverse-drafts/auth/login/spec.md', changed);
+    expect((await runCli(['reverse', 'review', 'auth/login', '--approve'], tempDir)).code).toBe(0);
+
+    const refused = await runCli(['reverse', 'finalize'], tempDir);
+    expect(refused.code).not.toBe(0);
+    expect(refused.stdout).toContain('--force');
+    expect(await fs.readFile(specPath, 'utf-8')).toBe(DRAFT);
+
+    const forced = await runCli(['reverse', 'finalize', '--force'], tempDir);
+    expect(forced.code).toBe(0);
+    expect(await fs.readFile(specPath, 'utf-8')).toBe(changed);
   });
 
-  it('소스 파일이 있는 프로젝트를 스캔한다', async () => {
-    await initSddProject(tempDir);
-    await createSampleSourceFiles(tempDir);
+  it('refuses to approve an invalid draft', async () => {
+    await writeFile(tempDir, '.sdd/.reverse-drafts/auth/broken/spec.md', '---\nid: broken\n---\n\n# Broken\n');
+    const approve = await runCli(['reverse', 'review', 'auth/broken', '--approve'], tempDir);
+    expect(approve.code).not.toBe(0);
+    expect(approve.stderr).toContain('검증에 실패한 초안');
+  });
 
-    const result = await runCli(['reverse', 'scan', '--skip-serena-check'], tempDir);
-
-    expect(result.code).toBe(0);
-    const output = result.stdout + result.stderr;
-
-    // 파일이 스캔되었는지 확인 (파일 수 또는 도메인 언급)
-    expect(output).toMatch(/파일|file|도메인|domain/i);
+  it('reports a corrupt review.json without crashing', async () => {
+    await writeFile(tempDir, '.sdd/.reverse-drafts/auth/login/spec.md', DRAFT);
+    await writeFile(tempDir, '.sdd/.reverse-drafts/review.json', '{oops');
+    const list = await runCli(['reverse', 'review', '--list'], tempDir);
+    expect(list.code).toBe(1);
+    expect(list.stderr).toContain('review.json');
+    expect(list.stderr).toContain('손상');
+    // No stack trace
+    expect(list.stderr).not.toMatch(/\n\s+at /);
   });
 });

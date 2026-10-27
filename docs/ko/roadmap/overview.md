@@ -108,8 +108,8 @@ Brownfield (레거시 프로젝트):
 └─────────┘    └─────────┘    └─────────┘    └─────────┘
                     │
                     ▼
-              Serena MCP 활용
-              (30+ 언어 지원)
+              AI 주도 초안 작성
+              (sdd-reverse 스킬)
 ```
 
 **핵심 인사이트**:
@@ -359,126 +359,44 @@ sdd new order/checkout
 ### Phase 1-R: Reverse Extraction (역방향 스펙 추출)
 
 > **레거시/브라운필드용 - 코드에서 스펙 자동 생성**
-> **핵심 전략: Serena MCP 활용**
+> **현재 방식: AI 주도.** 원래 계획했던 Serena MCP 기반 설계는 대체되었고 Serena 통합은 제거되었습니다. [역추출 가이드](../guide/reverse-extraction.md)를 참고하세요.
 
 **대상**:
 - 기존 코드베이스가 있는 프로젝트
 - 스펙 문서 없이 운영 중인 레거시
 - SDD 도입 장벽을 낮추고 싶은 팀
 
-**Serena MCP 활용**:
-
-[Serena](https://github.com/oraios/serena)는 코드 분석 MCP 서버로:
-
-```
-✅ 30개+ 언어 지원 (TS, Python, Java, Go, Rust, C++ 등)
-✅ 심볼 수준 코드 추출 (클래스, 함수, 변수)
-✅ 참조/의존성 관계 분석
-✅ IDE 수준의 시맨틱 분석
-✅ Claude Code/Desktop 네이티브 통합
-```
-
-**직접 구현 vs Serena 활용**:
-
-| 항목 | 직접 구현 | Serena 활용 |
-|------|----------|-------------|
-| 개발 기간 | 16-23주 | **4-7주** |
-| 지원 언어 | TS/JS만 | **30개+** |
-| AST 파싱 | 직접 구현 | 불필요 |
-| 유지보수 | 언어별 업데이트 | Serena 담당 |
-
 **워크플로우**:
 
 ```bash
-# 1. 코드베이스 스캔
-sdd reverse scan
+# 1. 구조 스캔 (결정적: 파일, 라인, 언어, 제안 도메인)
+sdd reverse scan --json
 
-# 출력:
-# 📁 src/
-# ├── 📁 auth/ (3 files, 450 LOC)
-# ├── 📁 order/ (5 files, 890 LOC)
-# └── 📁 core/ (8 files, 1200 LOC)
-# 💡 추천 도메인: auth, order, core
+# 2. AI(/sdd.reverse)가 코드를 읽고 초안을
+#    .sdd/.reverse-drafts/<도메인>/<기능>/spec.md 에 작성
 
-# 2. 스펙 추출 (Serena MCP 활용)
-sdd reverse extract --depth deep --ai
-
-# 출력:
-# .sdd/
-# ├── domains.yml (자동 생성)
-# └── specs/
-#     ├── auth/
-#     │   ├── domain.md
-#     │   └── user-authentication/
-#     │       └── spec.md (신뢰도: 72%)
-#     └── order/
-#         └── ...
-
-# 3. 검토 및 확정
-sdd reverse review              # 인터랙티브 검토
-sdd reverse finalize            # 확정
-```
-
-**추출 레벨**:
-
-| 레벨 | 추출 대상 | 자동화 | 신뢰도 |
-|------|----------|--------|--------|
-| 구조 | 디렉토리 → 도메인 | 100% | 높음 |
-| 인터페이스 | 함수 시그니처, 타입 | 90% | 높음 |
-| 동작 | 비즈니스 로직, 규칙 | 70% | 중간 |
-| 의도 | "왜 이렇게 구현?" | 50% | 낮음 (AI 필수) |
-
-**아키텍처**:
-
-```
-┌─────────────────────────────────────────────────────┐
-│                 sdd reverse extract                  │
-├─────────────────────────────────────────────────────┤
-│  SDD Tool        Serena MCP           SDD Tool      │
-│  ┌─────────┐     ┌─────────────┐     ┌───────────┐ │
-│  │ Scanner │────▶│ 심볼/참조   │────▶│ Generator │ │
-│  │(파일목록)│     │ 추출 (30+)  │     │(스펙 생성)│ │
-│  └─────────┘     └─────────────┘     └───────────┘ │
-│                        │                            │
-│                        ▼                            │
-│              Claude (의도 추론)                     │
-└─────────────────────────────────────────────────────┘
-```
-
-**리스크 완화**:
-
-```typescript
-// 추상화 레이어로 Serena 의존성 관리
-interface CodeAnalyzer {
-  findSymbols(query: string): Promise<Symbol[]>;
-  findReferences(symbol: string): Promise<Reference[]>;
-}
-
-class SerenaAnalyzer implements CodeAnalyzer { ... }
-class FallbackAnalyzer implements CodeAnalyzer { ... }  // TS만
+# 3. 검증, 검토, 확정
+sdd validate .sdd/.reverse-drafts
+sdd reverse review --list
+sdd reverse review <ref> --approve
+sdd reverse finalize
 ```
 
 **구현 체크리스트 (1-R)**:
 
 ```
-□ Serena MCP 클라이언트 통합
-□ sdd reverse scan 명령어
-□ sdd reverse extract 명령어
-  □ --depth (shallow/medium/deep)
-  □ --ai (Claude 의도 추론)
-□ sdd reverse review (인터랙티브)
-□ sdd reverse finalize
-□ 신뢰도 표시 시스템
-□ .reverse-meta.json 생성
-□ 추상화 레이어 (Serena 폴백)
+[x] sdd reverse scan 명령어
+[x] sdd reverse review (목록/조회/승인/거부)
+[x] sdd reverse finalize
+[x] AI 작성 초안 (sdd-reverse 스킬, /sdd.reverse)
 ```
 
 **우선순위 (1-R)**:
 
 ```
-난이도: 중 (Serena 덕분에 낮아짐)
+난이도: 중
 영향도: ⭐⭐⭐ 최상 (레거시 도입 장벽 해소)
-선행조건: Phase 0, Serena MCP 설치
+선행조건: Phase 0
 ```
 
 **상세 계획**: [역방향 스펙 추출 계획](./reverse-extraction.md)
@@ -501,12 +419,12 @@ class FallbackAnalyzer implements CodeAnalyzer { ... }  // TS만
 | 경로 | 대상 | 난이도 | 영향도 | 선행조건 |
 |------|------|--------|--------|----------|
 | **1-G** | Greenfield | 낮음 | 높음 | Phase 0 |
-| **1-R** | Brownfield | 중 | ⭐최상 | Phase 0 + Serena |
+| **1-R** | Brownfield | 중 | ⭐최상 | Phase 0 |
 
 **권장 구현 순서**:
 1. Phase 1 공통 (domains.yml, domain.md) - **먼저**
 2. Phase 1-G (수동 도메인 설정) - **그다음** (간단)
-3. Phase 1-R (역추출) - **마지막** (Serena 통합 필요)
+3. Phase 1-R (역추출) - **마지막**
 
 ---
 
@@ -988,7 +906,7 @@ Phase 1 공통 ◄───────────────┘
     ├──────────────────┐
     ▼                  ▼
 Phase 1-G          Phase 1-R
-(수동 설정)        (역추출, Serena)
+(수동 설정)        (역추출)
     │                  │
     └────────┬─────────┘
              ▼
@@ -1036,10 +954,8 @@ Phase 5            Phase 6
 ### v2.1: 레거시 도입 경로 (Phase 1-R)
 
 ```
-□ Serena MCP 통합
 □ Phase 1-R: 역방향 스펙 추출
-  □ sdd reverse scan/extract/review/finalize
-  □ 신뢰도 시스템
+  □ sdd reverse scan/review/finalize + AI 작성 초안
   □ 검토 워크플로우
 ```
 

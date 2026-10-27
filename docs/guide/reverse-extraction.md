@@ -1,295 +1,158 @@
 # Reverse Extraction Guide
 
-How to reverse extract SDD specs from legacy codebases.
+How to draft SDD specs from an existing (brownfield) codebase.
 
 ## Overview
 
-Reverse Extraction is the process of extracting specifications from existing code. It's useful when introducing SDD to brownfield projects.
+Reverse extraction turns the current behaviour of your code into SDD specs. It is split
+between two actors:
+
+| Actor | Responsibility |
+|-------|----------------|
+| `sdd reverse` CLI | Deterministic work: structure scan, draft validation, review state, finalization |
+| AI (`sdd-reverse` skill / `/sdd.reverse`) | Reads the code and writes spec drafts |
+| You | Approve or reject each draft |
+
+No external analysis server is required.
 
 ## Workflow
 
 ```
-scan → extract → review → finalize
+scan → read code → write drafts → validate → review → finalize
 ```
 
-1. **Scan**: Analyze codebase and identify spec candidates
-2. **Extract**: Generate spec drafts from candidates
-3. **Review**: Review and modify extracted specs
-4. **Finalize**: Finalize and save specs
+In Claude Code, run the `sdd-reverse` skill (or `/sdd.reverse`) and Claude walks through all
+steps, asking for your approval before anything is finalized. The steps below show what
+happens under the hood.
 
-## Scan
-
-### Basic Scan
+### 1. Scan
 
 ```bash
-sdd reverse scan
-sdd reverse scan src/
-sdd reverse scan --depth deep
+sdd reverse scan --json
 ```
 
-### Scan Results
+The scan reports real numbers only: file and line counts, language distribution, suggested
+domains with their file lists, and source files that could not be assigned to a domain.
+Domains are suggested from the children of `src/`, `lib/`, `packages/`, `modules/` or `apps/`
+and from any other top-level directory (e.g. `app/`). Treat them as a starting point:
+merge, split or rename domains when the code suggests better boundaries.
 
-```
-📊 Scan Results
-
-Files analyzed: 45
-Symbols found: 234
-
-Domain candidates:
-  - auth (confidence: 92%) - 15 files
-  - core (confidence: 88%) - 25 files
-  - api (confidence: 75%) - 5 files
-
-Spec candidates: 18
-  High confidence (>80%): 12
-  Medium confidence (50-80%): 4
-  Low confidence (<50%): 2
-```
-
-### Scan Options
-
-| Option | Description |
-|--------|-------------|
-| `--depth quick` | Quick analysis (directory structure based) |
-| `--depth normal` | Normal analysis (files + symbols) |
-| `--depth deep` | Deep analysis (dependencies + types) |
-| `--exclude <glob>` | Exclude pattern |
-| `--include <glob>` | Include pattern |
-
-## Extract
-
-### Full Extraction
+Useful options:
 
 ```bash
-sdd reverse extract
+sdd reverse scan src/payments/ --json          # one sub-tree
+sdd reverse scan --json --exclude "*.test.ts"  # skip tests in the file lists
+sdd reverse scan --json --language py          # one language
+sdd reverse scan --depth 2                     # shallow overview
 ```
 
-### Selective Extraction
+### 2. Read the code
+
+The AI reads each domain's entry points, public APIs, data models, validation and error
+handling — and especially existing tests, which are the best evidence of intended behaviour —
+and groups behaviour into features. One spec describes one feature.
+
+### 3. Write drafts
+
+Drafts live at `.sdd/.reverse-drafts/<domain>/<feature>/spec.md` and use the same format as
+`sdd new`:
+
+```markdown
+---
+id: login
+title: Login
+status: draft
+created: 2026-10-27
+domain: auth
+depends: null
+---
+
+# Login
+
+> Authenticates users with a username and password.
+
+## Overview
+
+Implemented in `src/auth/login.ts`. Uncertain: the lockout counter is never reset.
+
+## Requirements
+
+### REQ-01: Credential check
+
+The system SHALL reject a login when the password does not match.
+
+## Scenarios
+
+### Scenario 1: Wrong password
+
+- **GIVEN** a registered user
+- **WHEN** the user submits a wrong password
+- **THEN** the login is rejected
+```
+
+Rules for drafts:
+
+- Describe observed behaviour only; never invent requirements.
+- Mark unclear intent as uncertain in the overview instead of guessing.
+- `<domain>` must be a valid domain id (lowercase letter first; lowercase letters, digits, hyphens).
+- RFC 2119 keywords must be uppercase; at least one requirement and one GIVEN/WHEN/THEN scenario.
+
+You can also write or edit drafts by hand — the CLI treats them the same way.
+
+### 4. Validate
 
 ```bash
-sdd reverse extract --min-confidence 70
-sdd reverse extract --domain auth
-sdd reverse extract --interactive
+sdd validate .sdd/.reverse-drafts
 ```
 
-### Extraction Results
-
-```
-📝 Extracted specs: 12
-
-auth domain:
-  ✓ user-login (confidence: 95%)
-  ✓ oauth-google (confidence: 87%)
-  ✓ session-management (confidence: 82%)
-
-core domain:
-  ✓ data-model (confidence: 90%)
-  ✓ validation (confidence: 85%)
-
-Draft specs saved to: .sdd/drafts/
-```
-
-## Review
-
-### Interactive Review
+### 5. Review
 
 ```bash
-sdd reverse review
-sdd reverse review --spec user-login
+sdd reverse review --list               # every draft, its status and validation result
+sdd reverse review auth/login           # one draft with content
+sdd reverse review auth/login --approve
+sdd reverse review auth/logout --reject --reason "mixes two features"
 ```
 
-### Review Interface
+- Drafts with validation errors cannot be approved.
+- Rejected drafts are kept so they can be revised and reviewed again.
+- Approval is tied to a hash of the draft content: any change after review (even CRLF → LF
+  normalization) resets it to pending, so approvals always refer to the final text.
+- Decisions are stored in `.sdd/.reverse-drafts/review.json`.
 
-```
-📋 Spec Review: auth/user-login
-
-Name: user-login
-Description: User email/password login
-Confidence: 95%
-
-Scenarios:
-  1. Login success with valid credentials
-  2. Login failure with wrong password
-  3. Non-existent user
-
-[a] Approve  [e] Edit  [s] Skip  [r] Reject  [q] Quit
-```
-
-### Edit Mode
+### 6. Finalize
 
 ```bash
-sdd reverse review --edit user-login
+sdd reverse finalize                 # all approved drafts
+sdd reverse finalize auth/login      # one approved draft
+sdd reverse finalize --force         # overwrite existing specs
 ```
 
-Editable items:
-- Spec name and description
-- Scenario GIVEN/WHEN/THEN
-- Contracts (input/output types)
-- Domain assignment
-- Dependencies
-
-### AI-Assisted Review
-
-```bash
-sdd reverse review --ai-assist
-```
-
-AI provides:
-- Scenario improvement suggestions
-- Missing edge case identification
-- Naming convention review
-- Description clarification
-
-## Finalize
-
-### Finalize Approved Specs
-
-```bash
-sdd reverse finalize
-```
-
-### Selective Finalization
-
-```bash
-sdd reverse finalize --status approved
-sdd reverse finalize --domain auth
-```
-
-### Finalization Results
-
-```
-✅ Spec finalization complete
-
-Saved specs: 10
-  .sdd/specs/auth/user-login.md
-  .sdd/specs/auth/oauth-google.md
-  ...
-
-Created domains: 3
-  .sdd/domains.yml updated
-
-Next steps:
-  sdd list              # Check specs
-  sdd validate          # Run validation
-```
-
-## Data Files
-
-### Scan Results
-
-`.sdd/reverse/scan-result.json`:
-
-```json
-{
-  "scanned_at": "2025-12-29T10:00:00Z",
-  "files_analyzed": 45,
-  "symbols_found": 234,
-  "suggested_domains": [...],
-  "spec_candidates": [...]
-}
-```
-
-### Extracted Specs
-
-`.sdd/drafts/<spec-id>.json`:
-
-```json
-{
-  "id": "auth/user-login",
-  "name": "user-login",
-  "description": "User login",
-  "confidence": 0.95,
-  "status": "draft",
-  "scenarios": [...],
-  "source": {...}
-}
-```
-
-## Confidence System
-
-### Confidence Calculation
-
-- **Structure score** (30%): Clear function/class structure
-- **Documentation score** (25%): Comments, JSDoc, type definitions
-- **Test score** (25%): Existing tests
-- **Naming score** (20%): Naming convention consistency
-
-### Confidence Levels
-
-| Level | Range | Meaning |
-|-------|-------|---------|
-| High | 80-100% | Auto extraction recommended |
-| Medium | 50-79% | Review needed |
-| Low | 0-49% | Manual writing recommended |
+Finalize moves approved drafts to `.sdd/specs/<domain>/<feature>/spec.md`, registers missing
+domains in `.sdd/domains.yml`, links each spec to its domain and removes the draft. An existing
+spec is never overwritten without `--force`.
 
 ## Best Practices
 
-### 1. Incremental Approach
-
-```bash
-# 1. Quick scan for overview
-sdd reverse scan --depth quick
-
-# 2. Extract high confidence only
-sdd reverse extract --min-confidence 80
-
-# 3. Review and finalize
-sdd reverse review
-sdd reverse finalize
-
-# 4. Handle medium confidence
-sdd reverse extract --min-confidence 50
-```
-
-### 2. Domain-by-Domain
-
-```bash
-# Process core domain first
-sdd reverse scan src/core/
-sdd reverse extract --domain core
-sdd reverse finalize --domain core
-
-# Next domain
-sdd reverse scan src/auth/
-```
-
-### 3. Team Collaboration
-
-```bash
-# Share scan results
-sdd reverse scan --output scan-report.md
-
-# Each person reviews
-sdd reverse review --spec <assigned-spec>
-
-# Final finalization
-sdd reverse finalize --status approved
-```
+- **Go domain by domain.** Scan a sub-tree, draft, review and finalize one domain before the next.
+- **Prefer tests as evidence.** Requirements backed by tests are the most reliable.
+- **Keep specs small.** One feature per spec makes review and later changes easier.
+- **Record uncertainty.** An explicit "Uncertain: ..." note is better than a confident guess.
+- **Validate after finalizing.** Run `sdd validate` and adjust domains with `sdd domain`.
 
 ## Troubleshooting
 
-### Low Confidence
-
-- Add code comments
-- Enhance type definitions
-- Write specs manually
-
-### Incorrect Domain Inference
-
-```bash
-sdd reverse review --edit <spec>
-# Reassign domain
-```
-
-### Missing Specs
-
-```bash
-# Manual addition
-sdd new <domain>/<spec-name>
-```
+| Problem | Fix |
+|---------|-----|
+| `검증에 실패한 초안은 승인할 수 없습니다` | Run `sdd reverse review <ref>` to see the errors, fix the draft, approve again |
+| `이미 스펙이 존재합니다` on finalize | Merge the draft into the existing spec manually, or re-run with `--force` |
+| `review.json` reported as corrupt | Fix the JSON or delete the file (all drafts become pending) |
+| Wrong domain suggestion | Write the draft under the domain you want; finalize registers it |
+| Draft not listed | It must be at `.sdd/.reverse-drafts/<domain>/<feature>/spec.md` |
 
 ## Related Documentation
 
-- [Domain System](./domains.md)
-- [CLI: reverse](../cli/reverse.md)
-- [Tutorial: Brownfield](../tutorial/brownfield.md)
+- [sdd reverse CLI](/cli/reverse)
+- [/sdd.reverse](/commands/sdd-reverse)
+- [Brownfield tutorial](/tutorial/brownfield)
+- [Domains](/guide/domains)

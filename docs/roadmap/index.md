@@ -67,7 +67,7 @@ Start -> Phase 0 -> Phase 1-R -> Phase 2 -> Phase 3-4
 ```
 
 1. Set up [Git Workflow](./scaling.md)
-2. [Reverse Spec Extraction](./reverse-extraction.md) (using Serena MCP)
+2. [Reverse Spec Extraction](./reverse-extraction.md) (AI-driven)
 3. Review and finalize extracted specs
 4. Same as Greenfield afterwards
 
@@ -79,7 +79,7 @@ Start -> Phase 0 -> Phase 1-R -> Phase 2 -> Phase 3-4
 |---------|---------|--------|
 | v1.x | Basic CLI, Spec validation, Constitution | Complete |
 | v2.0 | Phase 0 + 1-G (Domain system) | Planned |
-| v2.1 | Phase 1-R (Reverse extraction, Serena) | Planned |
+| v2.1 | Phase 1-R (Reverse extraction) | Planned |
 | v2.5 | Phase 2 + 3 (Code connection, DAG) | Planned |
 | v3.0 | Phase 4 (Change-based work) | Planned |
 

@@ -108,8 +108,8 @@ Brownfield (Legacy Projects):
 +---------+    +---------+    +---------+    +---------+
                     |
                     v
-              Serena MCP Usage
-              (30+ language support)
+              AI-driven drafts
+              (sdd-reverse skill)
 ```
 
 **Key Insight**:
@@ -359,126 +359,44 @@ Prerequisites: Phase 0
 ### Phase 1-R: Reverse Extraction (Reverse Spec Extraction)
 
 > **For legacy/brownfield - Auto-generate specs from code**
-> **Core Strategy: Serena MCP Usage**
+> **Current approach: AI-driven.** The Serena MCP-based design originally planned here was superseded and the Serena integration has been removed. See the [Reverse Extraction Guide](../guide/reverse-extraction.md).
 
 **Target**:
 - Projects with existing codebase
 - Legacy operating without spec documents
 - Teams wanting to lower SDD adoption barrier
 
-**Serena MCP Usage**:
-
-[Serena](https://github.com/oraios/serena) is an MCP server for code analysis:
-
-```
-  30+ language support (Python, TS, Java, Go, Rust, C++ etc.)
-  Symbol-level code extraction (classes, functions, variables)
-  Reference/dependency relationship analysis
-  IDE-level semantic analysis
-  Native Claude Code/Desktop integration
-```
-
-**Direct Implementation vs Serena Usage**:
-
-| Item | Direct Implementation | Serena Usage |
-|------|----------------------|--------------|
-| Development period | 16-23 weeks | **4-7 weeks** |
-| Supported languages | TS/JS only | **30+** |
-| AST parsing | Implement directly | Not needed |
-| Maintenance | Language-specific updates | Serena handles |
-
 **Workflow**:
 
 ```bash
-# 1. Scan codebase
-sdd reverse scan
+# 1. Scan structure (deterministic: files, lines, languages, suggested domains)
+sdd reverse scan --json
 
-# Output:
-# src/
-# +-- auth/ (3 files, 450 LOC)
-# +-- order/ (5 files, 890 LOC)
-# +-- core/ (8 files, 1200 LOC)
-# Suggested domains: auth, order, core
+# 2. The AI (/sdd.reverse) reads the code and writes drafts to
+#    .sdd/.reverse-drafts/<domain>/<feature>/spec.md
 
-# 2. Extract specs (using Serena MCP)
-sdd reverse extract --depth deep --ai
-
-# Output:
-# .sdd/
-# +-- domains.yml (auto-generated)
-# +-- specs/
-#     +-- auth/
-#     |   +-- domain.md
-#     |   +-- user-authentication/
-#     |       +-- spec.md (confidence: 72%)
-#     +-- order/
-#         +-- ...
-
-# 3. Review and finalize
-sdd reverse review              # Interactive review
-sdd reverse finalize            # Finalize
-```
-
-**Extraction Levels**:
-
-| Level | Target | Automation | Confidence |
-|-------|--------|------------|------------|
-| Structure | Directory -> Domain | 100% | High |
-| Interface | Function signatures, types | 90% | High |
-| Behavior | Business logic, rules | 70% | Medium |
-| Intent | "Why implemented this way?" | 50% | Low (AI required) |
-
-**Architecture**:
-
-```
-+-----------------------------------------------------+
-|                 sdd reverse extract                   |
-+-----------------------------------------------------+
-|  SDD Tool        Serena MCP           SDD Tool       |
-|  +---------+     +-------------+     +-----------+   |
-|  | Scanner |--->| Symbol/Ref  |--->| Generator |   |
-|  |(file    |     | Extract(30+)|     |(Spec gen) |   |
-|  | list)   |     +-------------+     +-----------+   |
-|  +---------+           |                             |
-|                        v                             |
-|              Claude (Intent inference)               |
-+-----------------------------------------------------+
-```
-
-**Risk Mitigation**:
-
-```typescript
-// Abstraction layer to manage Serena dependency
-interface CodeAnalyzer {
-  findSymbols(query: string): Promise<Symbol[]>;
-  findReferences(symbol: string): Promise<Reference[]>;
-}
-
-class SerenaAnalyzer implements CodeAnalyzer { ... }
-class FallbackAnalyzer implements CodeAnalyzer { ... }  // TS only
+# 3. Validate, review, and finalize
+sdd validate .sdd/.reverse-drafts
+sdd reverse review --list
+sdd reverse review <ref> --approve
+sdd reverse finalize
 ```
 
 **Implementation Checklist (1-R)**:
 
 ```
-[ ] Serena MCP client integration
-[ ] sdd reverse scan command
-[ ] sdd reverse extract command
-  [ ] --depth (shallow/medium/deep)
-  [ ] --ai (Claude intent inference)
-[ ] sdd reverse review (interactive)
-[ ] sdd reverse finalize
-[ ] Confidence display system
-[ ] .reverse-meta.json generation
-[ ] Abstraction layer (Serena fallback)
+[x] sdd reverse scan command
+[x] sdd reverse review (list/show/approve/reject)
+[x] sdd reverse finalize
+[x] AI-written drafts (sdd-reverse skill, /sdd.reverse)
 ```
 
 **Priority (1-R)**:
 
 ```
-Difficulty: Medium (reduced thanks to Serena)
+Difficulty: Medium
 Impact: *** Highest (removes legacy adoption barrier)
-Prerequisites: Phase 0, Serena MCP installation
+Prerequisites: Phase 0
 ```
 
 **Detailed Plan**: [Reverse Spec Extraction Plan](./reverse-extraction.md)
@@ -501,12 +419,12 @@ Prerequisites: Phase 0, Serena MCP installation
 | Path | Target | Difficulty | Impact | Prerequisites |
 |------|--------|------------|--------|---------------|
 | **1-G** | Greenfield | Low | High | Phase 0 |
-| **1-R** | Brownfield | Medium | *** Highest | Phase 0 + Serena |
+| **1-R** | Brownfield | Medium | *** Highest | Phase 0 |
 
 **Recommended Implementation Order**:
 1. Phase 1 Common (domains.yml, domain.md) - **First**
 2. Phase 1-G (manual domain setup) - **Next** (simple)
-3. Phase 1-R (reverse extraction) - **Last** (requires Serena integration)
+3. Phase 1-R (reverse extraction) - **Last**
 
 ---
 
@@ -988,7 +906,7 @@ Phase 1 Common <-------------+
     +------------------+
     v                  v
 Phase 1-G          Phase 1-R
-(manual setup)     (reverse, Serena)
+(manual setup)     (reverse)
     |                  |
     +--------+---------+
              v
@@ -1037,10 +955,8 @@ Phase 5            Phase 6
 ### v2.1: Legacy Adoption Path (Phase 1-R)
 
 ```
-[ ] Serena MCP integration
 [ ] Phase 1-R: Reverse spec extraction
-  [ ] sdd reverse scan/extract/review/finalize
-  [ ] Confidence system
+  [ ] sdd reverse scan/review/finalize + AI-written drafts
   [ ] Review workflow
 ```
 

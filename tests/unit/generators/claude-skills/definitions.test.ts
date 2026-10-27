@@ -103,7 +103,7 @@ describe('generateClaudeSkills', () => {
     }
   });
 
-  it('exactly 7 skills use context: fork', () => {
+  it('exactly 6 skills use context: fork', () => {
     const forkSkills = skills.filter((s) => s.context === 'fork').map((s) => s.name);
     expect(forkSkills.sort()).toEqual(
       [
@@ -111,11 +111,30 @@ describe('generateClaudeSkills', () => {
         'sdd-impact',
         'sdd-report',
         'sdd-research',
-        'sdd-reverse',
         'sdd-search',
         'sdd-sync',
       ].sort()
     );
+  });
+
+  it('sdd-reverse runs inline with draft-writing tools', () => {
+    const reverse = skills.find((s) => s.name === 'sdd-reverse');
+    expect(reverse).toBeDefined();
+    expect(reverse!.context).toBeUndefined();
+    expect(reverse!.allowedTools).toEqual([
+      'Read',
+      'Glob',
+      'Grep',
+      'Write',
+      'Edit',
+      'Bash(sdd reverse *)',
+      'Bash(sdd validate *)',
+    ]);
+    expect(reverse!.content).toContain('.sdd/.reverse-drafts/<domain>/<feature>/spec.md');
+    expect(reverse!.content).not.toContain('extract');
+    expect(reverse!.content).not.toContain('/sdd-new');
+    expect(reverse!.description).toContain('Use when');
+    expect(reverse!.argumentHint).toBe('[scan|review|finalize] [args]');
   });
 
   it('sdd-watch is manual-only via disable-model-invocation (no context field)', () => {

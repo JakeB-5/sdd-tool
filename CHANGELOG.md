@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **`sdd reverse` is now AI-driven.** The CLI keeps only deterministic steps; the `sdd-reverse` skill / `/sdd.reverse` command reads the code and writes drafts
+  - `sdd reverse scan` reports real file/line counts, language distribution and directory-based domain suggestions with per-domain file lists; `--include`/`--exclude` are globs (repeatable), `--language` accepts ids or extensions, `--depth 0` is honoured, `--json` prints pure JSON. Scan no longer creates domains
+  - Drafts are `sdd new`-format `spec.md` files at `.sdd/.reverse-drafts/<domain>/<feature>/spec.md`
+  - `sdd reverse review` lists drafts of every status with validation results, refuses to approve invalid drafts, stores decisions in a schema-validated `review.json` and resets approvals when a draft changes
+  - `sdd reverse finalize` refuses to overwrite existing specs without `--force` and registers domains through the domain service
+  - The `sdd-reverse` skill no longer runs in a forked context and may write drafts (`Write`, `Edit`, `Bash(sdd reverse *)`, `Bash(sdd validate *)`)
+
+### Removed
+
+- Serena MCP integration (`src/integrations/serena`), `sdd reverse extract`, `--check-serena`, `--skip-serena-check`, `--ai`, `--compare`, `--no-create-domains`, `finalize --domain`, confidence scoring, `.sdd/.reverse-meta.json`, and the Serena setup guide
+- Unused reverse modules (AI assistant, editor, intent inferrer, cleanup, diff, domain generator, reporter, confidence)
+
+---
+
 ## [1.6.0] - 2026-04-09
 
 ### Added

@@ -83,301 +83,157 @@ Existing codebase detected:
 Tip: Run /sdd.reverse to extract specs from existing code.
 ```
 
-## Step 2: Codebase Analysis
+## Step 2: Structure Scan
+
+Reverse extraction is AI-driven. The CLI scans the structure; Claude reads the code and writes the spec drafts.
 
 ```
-/sdd.reverse scan
+/sdd.reverse
 ```
 
-Claude analyzes the codebase:
+Claude starts by running the deterministic scan:
 
-```
-Scanning codebase...
-
-Analysis results:
-
-Files: 12
-Language: JavaScript (100%)
-Complexity: B (Good)
-
-Inferred domains:
-  auth (high confidence) - 2 files
-     authController.js, authService.js
-  user (high confidence) - 2 files
-     userController.js, userService.js
-  order (high confidence) - 2 files
-     orderController.js, orderService.js
-  core (medium confidence) - 2 files
-     validation.js, models/
-
-Spec candidates: 12
-  High confidence (>80%): 8
-  Medium confidence (50-80%): 3
-  Low confidence (<50%): 1
-
-Metadata saved: .sdd/.reverse-meta.json
-Auto-generated domains: 4 (core, auth, user, order)
-
-Tip: Next step: /sdd.reverse extract
+```bash
+sdd reverse scan --json
 ```
 
-## Step 3: Domain Creation
+The scan reports the file count, source file count, real line counts, the language distribution, directory-based suggested domains with their file lists, and files that belong to no domain. It does not create domains and writes no metadata file.
 
-Design domains based on analysis results:
+Abbreviated output for this project:
 
-```
-/sdd.domain
-```
-
-```
-User: Create domain structure based on scan results
-
-Claude: Domain Structure Proposal
-
-Creating the following domains based on analysis results:
-
-1. core
-   Description: Common utilities
-   Path: src/utils/
-   Dependencies: none
-
-2. auth
-   Description: Authentication/authorization
-   Path: src/controllers/auth*, src/services/auth*
-   Dependencies: core
-
-3. user
-   Description: User management
-   Path: src/controllers/user*, src/services/user*
-   Dependencies: core, auth
-
-4. order
-   Description: Order management
-   Path: src/controllers/order*, src/services/order*
-   Dependencies: core, auth
-
-Create these? [Y/n]
-
-> Y
-
-Domains created
-
-Created files:
-  .sdd/domains.yml              <- Domain configuration (YAML format)
-  .sdd/domains/core/domain.md   <- Per-domain documentation
-  .sdd/domains/auth/domain.md
-  .sdd/domains/user/domain.md
-  .sdd/domains/order/domain.md
+```json
+{
+  "summary": { "fileCount": 12, "sourceFileCount": 12, "lines": 640, "languages": { "javascript": 12 } },
+  "domains": [
+    { "id": "controllers", "path": "src/controllers", "fileCount": 3 },
+    { "id": "services", "path": "src/services", "fileCount": 3 },
+    { "id": "models", "path": "src/models", "fileCount": 2 },
+    { "id": "utils", "path": "src/utils", "fileCount": 1 }
+  ],
+  "unassigned": []
+}
 ```
 
-## Step 4: Reverse Extraction
+Suggested domains follow the directory layout, so treat them as a starting point. Claude regroups them by business meaning (here: `core`, `auth`, `user`, `order`) before writing drafts. Narrow the scan with `--include`, `--exclude`, `--language`, or `--depth` when needed, for example `sdd reverse scan src --exclude '*.test.js'`.
 
-### Extract Specs
+## Step 3: Draft Writing (AI)
 
-```
-/sdd.reverse extract
-```
-
-Claude extracts specs from code:
+Claude reads the code of each domain and writes one draft per feature:
 
 ```
-Extracting specs...
-
-## auth domain
-
-### login (confidence: 95%)
-Code location: authController.js:15-45, authService.js:10-35
-Extracted scenarios:
-  - Successful login with valid credentials
-  - Failed login with wrong password
-  - Non-existent user
-Contract:
-  Input: { email: string, password: string }
-  Output: { token: string, user: User }
-
-### register (confidence: 92%)
-Code location: authController.js:47-80
-Extracted scenarios:
-  - Successful new user registration
-  - Email duplicate error
-  - Password format error
-
-### logout (confidence: 88%)
-...
-
-## user domain
-
-### get-user (confidence: 90%)
-...
-
-## order domain
-
-### create-order (confidence: 88%)
-...
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total extracted specs: 11
-Drafts saved: .sdd/drafts/
-
-Start review? [Y/n]
+.sdd/.reverse-drafts/
+├── auth/
+│   ├── login/spec.md
+│   ├── register/spec.md
+│   └── logout/spec.md
+├── user/
+│   └── get-user/spec.md
+└── order/
+    └── create-order/spec.md
 ```
 
-## Step 5: Review Specs
+Drafts use the same format as specs created with `sdd new`: frontmatter (`id`, `title`, `status: draft`, `created`, `domain`, `depends`), uppercase RFC 2119 requirements, and GIVEN/WHEN/THEN scenarios. Drafts describe observed behavior only. Anything uncertain is noted in the overview, not guessed.
 
-```
-/sdd.reverse review
-```
+Example draft (abbreviated):
 
-Review extracted specs interactively with Claude:
+```markdown
+---
+id: login
+title: User Login
+status: draft
+created: 2026-01-15
+domain: auth
+depends: null
+---
 
-```
-Spec Review: auth/login (1/11)
+# User Login
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Name: login
-Description: User login handling
-Confidence: 95%
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+> Authenticates a user by email and password.
 
-Extracted scenarios:
+## Overview
 
-1. Normal login
-   GIVEN: Valid email and password
-   WHEN: POST /auth/login request
-   THEN: Return JWT token and user info
+Implemented in `src/controllers/authController.js` and `src/services/authService.js`. The session expiration time could not be determined from the code.
 
-2. Password mismatch
-   GIVEN: Valid email, wrong password
-   WHEN: POST /auth/login request
-   THEN: 401 error (INVALID_PASSWORD)
+## Requirements
 
-3. User not found
-   GIVEN: Non-existent email
-   WHEN: POST /auth/login request
-   THEN: 404 error (USER_NOT_FOUND)
+### REQ-01: Token issuance
 
-Extracted contract:
-  Input: { email: string, password: string }
-  Output: { token: string, user: User }
+The system SHALL return a JWT token and the user on valid credentials.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-AI Suggestions:
-  - Add scenario: "Login attempt with locked account"
-  - Contract improvement: Consider adding refreshToken
+### REQ-02: Password check
 
-Needs clarification:
-  - Is there a max login attempt limit?
-  - What is the session expiration time?
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The system SHALL respond with 401 (INVALID_PASSWORD) when the password does not match.
 
-[a] Approve  [e] Edit  [s] Skip  [r] Reject
+## Scenarios
+
+### Scenario 1: Successful login
+
+- **GIVEN** a registered user with a valid email and password
+- **WHEN** POST /auth/login is requested
+- **THEN** a JWT token and the user info are returned
 ```
 
-### Edit Example
+## Step 4: Validate Drafts
 
-```
-> e
+Claude validates the drafts with the normal validator and fixes any errors:
 
-Entering edit mode
-
-User: Add account lockout scenario. Lock for 30 minutes after 5 failures.
-
-Claude: Scenario added
-
-4. Account lockout
-   GIVEN: Account with 5+ failed login attempts
-   WHEN: POST /auth/login request
-   THEN: 423 error (ACCOUNT_LOCKED, remaining time: 30 min)
-
-Add this? [Y/n]
-
-> Y
-
-User: Also add refreshToken to output
-
-Claude: Contract modified
-
-Output:
-  {
-    token: string,
-    refreshToken: string,  // Added
-    user: User
-  }
-
-Apply this change? [Y/n]
-
-> Y
-
-Modification complete. Press [a] to approve.
-
-> a
-
-auth/login approved
-
-Next spec: auth/register (2/11)
+```bash
+sdd validate .sdd/.reverse-drafts
 ```
 
-### Bulk Approval
+Fix every reported error in the drafts before moving on.
+
+## Step 5: Review Drafts
+
+Claude lists all drafts with their review status (pending, approved, rejected) and validation results:
+
+```bash
+sdd reverse review --list
+```
+
+Show one draft by its reference (for example `auth/login`) and present it to you:
+
+```bash
+sdd reverse review auth/login
+```
+
+Read the draft against your knowledge of the system. Ask Claude to correct anything wrong, for example:
 
 ```
-User: Bulk approve all remaining with 85%+ confidence
-
-Claude: Bulk approval targets
-
-85%+ confidence:
-  - auth/register (92%)
-  - auth/logout (88%)
-  - user/get-user (90%)
-  - user/update-user (85%)
-  - order/create-order (88%)
-  - order/get-order (85%)
-
-Approve 6 specs? [Y/n]
-
-> Y
-
-6 specs approved
-
-Remaining specs: 4 (manual review needed)
-  - user/delete-user (82%)
-  - order/list-orders (80%)
-  - order/update-order (75%)
-  - order/cancel-order (72%)
+User: Add an account lockout scenario. Lock for 30 minutes after 5 failures.
 ```
+
+Claude edits `.sdd/.reverse-drafts/auth/login/spec.md` and re-validates. Editing a draft after review resets it to pending, so approvals always match the current content.
+
+Record your decision only after you confirm:
+
+```bash
+sdd reverse review auth/login --approve
+sdd reverse review user/delete-user --reject --reason "Behavior is being removed"
+```
+
+Decisions are stored in `.sdd/.reverse-drafts/review.json`. Approval is refused for drafts that have validation errors.
 
 ## Step 6: Finalize Specs
 
+```bash
+sdd reverse finalize            # all approved drafts
+sdd reverse finalize auth/login # one draft
 ```
-/sdd.reverse finalize
-```
+
+Finalize moves each approved draft to `.sdd/specs/<domain>/<feature>/spec.md`, registers the domain in `.sdd/domains.yml` if it is missing, links the spec to its domain, and removes the draft:
 
 ```
-Spec Finalization
-
-Approved specs: 8
-Manual review needed: 4
-
-Finalize approved specs? [Y/n]
-
-> Y
-
-Specs finalized
-
-Saved specs:
-  .sdd/specs/login/spec.md (domain: auth)
-  .sdd/specs/register/spec.md (domain: auth)
-  .sdd/specs/logout/spec.md (domain: auth)
-  .sdd/specs/get-user/spec.md (domain: user)
-  .sdd/specs/update-user/spec.md (domain: user)
-  .sdd/specs/create-order/spec.md (domain: order)
-  .sdd/specs/get-order/spec.md (domain: order)
-  .sdd/specs/validation/spec.md (domain: core)
-
-domains.yml updated
-Draft files cleaned up
-
-Remaining drafts: .sdd/drafts/ (4)
+.sdd/specs/
+├── auth/
+│   ├── login/spec.md
+│   ├── register/spec.md
+│   └── logout/spec.md
+├── user/get-user/spec.md
+└── order/create-order/spec.md
 ```
+
+Finalize refuses to overwrite an existing spec and exits non-zero when it skips something. Pass `--force` to overwrite. Drafts that are not approved stay in `.sdd/.reverse-drafts/`.
 
 ## Step 7: Validation
 
@@ -451,10 +307,10 @@ Domains:
   order: 2/4 complete  50%
 
 Drafts (unfinalized): 4
-  -> Continue review with /sdd.reverse review
+  -> Continue review with sdd reverse review --list
 
 Recommended next actions:
-  1. Review remaining drafts: /sdd.reverse review
+  1. Review remaining drafts: sdd reverse review --list
   2. Add tests: "Write tests for auth/login"
   3. New features: /sdd.spec
 ```
@@ -656,11 +512,11 @@ graph TB
 
 1. Initialize project with `sdd init` (CLI)
 2. Check project status with `/sdd.start` (Claude Code)
-3. Analyze codebase with `/sdd.reverse scan`
-4. Create domain structure with `/sdd.domain`
-5. Extract specs with `/sdd.reverse extract`
-6. Interactive review with `/sdd.reverse review`
-7. Finalize with `/sdd.reverse finalize`
+3. Scan the structure with `sdd reverse scan --json` (via `/sdd.reverse`)
+4. The AI reads the code and writes drafts to `.sdd/.reverse-drafts/`
+5. Validate drafts with `sdd validate .sdd/.reverse-drafts`
+6. Review with `sdd reverse review --list` and approve with `--approve` after confirming
+7. Finalize with `sdd reverse finalize`
 8. Validate with `/sdd.validate`
 9. Manage code-spec sync with `/sdd.sync`
 10. Gradually add tests and improvements

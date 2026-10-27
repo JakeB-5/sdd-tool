@@ -450,15 +450,16 @@ sdd context specs                   # List specs in context
 sdd context clear                   # Clear context
 ```
 
-### Reverse Extraction (v1.2.0)
+### Reverse Extraction
+
+The CLI scans structure, validates drafts, and records review decisions. The AI (the `sdd-reverse` skill or `/sdd.reverse` in Claude Code) reads the code and writes the drafts to `.sdd/.reverse-drafts/<domain>/<feature>/spec.md`.
 
 ```bash
-sdd reverse scan                    # Scan project structure
-sdd reverse scan --depth deep       # Deep analysis
-sdd reverse extract                 # Extract spec drafts
-sdd reverse extract --ai            # AI-powered intent inference
-sdd reverse review                  # Review extracted specs
-sdd reverse finalize                # Finalize approved specs
+sdd reverse scan --json             # Scan structure (files, lines, languages, suggested domains)
+sdd validate .sdd/.reverse-drafts   # Validate AI-written drafts
+sdd reverse review --list           # List drafts with status and validation results
+sdd reverse review <ref> --approve  # Approve a draft (or --reject --reason "...")
+sdd reverse finalize                # Move approved drafts to .sdd/specs/
 ```
 
 ### Git Workflow (v1.0.0)

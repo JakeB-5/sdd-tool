@@ -50,12 +50,6 @@ export const enConfig: LocaleSpecificConfig<DefaultTheme.Config> = {
             { text: 'Large Projects', link: '/guide/large-projects' },
           ],
         },
-        {
-          text: 'Serena Integration',
-          items: [
-            { text: 'Serena Setup', link: '/guide/serena-setup' },
-          ],
-        },
       ],
       '/tutorial/': [
         {

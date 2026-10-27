@@ -1,146 +1,129 @@
 # sdd reverse
 
-Extracts SDD specs from legacy codebases.
+Drafts SDD specs from an existing codebase.
 
 ## Overview
 
-`sdd reverse` analyzes existing code and automatically generates SDD spec drafts. Useful when introducing SDD to legacy projects.
+`sdd reverse` supports brownfield onboarding. The CLI only does the deterministic parts —
+structure scan, draft validation, review state and finalization. Reading the code and writing
+the spec drafts is done by the AI through the `sdd-reverse` skill (or `/sdd.reverse` command).
 
 ## Workflow
 
 ```
-scan → extract → review → finalize
+scan → (AI reads code and writes drafts) → validate → review → finalize
 ```
+
+1. `sdd reverse scan --json` — structure scan and suggested domains
+2. The AI reads the code of each domain and writes `.sdd/.reverse-drafts/<domain>/<feature>/spec.md`
+3. `sdd validate .sdd/.reverse-drafts` — fix errors
+4. `sdd reverse review --list` — present drafts to the user
+5. `sdd reverse review <ref> --approve` — only after the user confirms
+6. `sdd reverse finalize` — move approved drafts to `.sdd/specs/`
 
 ## Subcommands
 
 ### scan
 
-Scans and analyzes project structure.
-
 ```bash
-sdd reverse scan                    # Scan entire project
-sdd reverse scan src/               # Scan specific directory only
-sdd reverse scan --json             # Output as JSON
+sdd reverse scan [path] [options]
 ```
 
-**Output:**
-- Directory structure
-- Language distribution statistics
-- Estimated domain list
-- File/symbol counts
-
-### extract
-
-Extracts spec drafts from code based on scan results.
-
-```bash
-sdd reverse extract                 # Extract all
-sdd reverse extract --domain auth   # Extract specific domain only
-sdd reverse extract --depth deep    # Deep analysis (includes scenarios)
-sdd reverse extract --dry-run       # Preview only
-```
-
-**Options:**
+Scans the directory structure and prints real numbers only: file count, source file count,
+line count, language distribution, suggested domains (directory-based) with per-domain file
+lists, and source files that were not assigned to a domain. Scan does not modify the project.
 
 | Option | Description |
 |--------|-------------|
-| `--domain <name>` | Extract specific domain only |
-| `--depth <level>` | Analysis depth (shallow, medium, deep) |
-| `--min-confidence <n>` | Minimum confidence (0-100) |
-| `--dry-run` | Preview without creating files |
+| `-i, --include <glob>` | Keep only files matching the glob (repeatable) |
+| `-e, --exclude <glob>` | Drop files matching the glob (repeatable) |
+| `-l, --language <lang>` | Only one language, by id or extension (`typescript`, `ts`) |
+| `-d, --depth <n>` | Max directory depth below the scan root (`0` = root files only, default unlimited) |
+| `-o, --output <file>` | Also write the JSON result to a file |
+| `--json` | Print pure JSON to stdout |
+
+Globs without a slash match the file name anywhere (`*.test.ts`); globs with a slash match the
+path relative to the scan root (`src/legacy/**`); backslashes are treated as `/`. Hidden
+directories and `node_modules`, `bower_components`, `dist`, `build`, `out`, `target`,
+`coverage`, `vendor`, `__pycache__`, `venv` are skipped.
+
+Domains are suggested from the children of `src/`, `lib/`, `packages/`, `modules/` or `apps/`,
+and from any other top-level directory of the scan root (e.g. `app/`). Directory names
+are converted to valid domain ids (`userProfile` → `user-profile`).
+
+```bash
+sdd reverse scan --json
+sdd reverse scan src/ --exclude "*.test.ts" --language ts
+```
+
+JSON shape:
+
+```json
+{
+  "root": ".",
+  "scannedAt": "2026-10-27T00:00:00.000Z",
+  "options": {},
+  "summary": { "fileCount": 42, "sourceFileCount": 38, "lines": 5120, "languages": { "typescript": 38 } },
+  "domains": [
+    { "id": "auth", "path": "src/auth", "fileCount": 6, "lines": 840,
+      "languages": { "typescript": 6 }, "files": ["src/auth/login.ts", "..."] }
+  ],
+  "unassigned": ["src/index.ts"]
+}
+```
 
 ### review
 
-Reviews and approves/rejects extracted spec drafts.
-
 ```bash
-sdd reverse review                  # Show pending review list
-sdd reverse review auth/login       # View specific spec details
+sdd reverse review [ref] [--list] [--approve | --reject [--reason <text>]]
 ```
 
-**Review statuses:**
-- `pending`: Awaiting review
-- `approved`: Approved
-- `rejected`: Rejected
-- `needs_revision`: Needs revision
+| Usage | Description |
+|-------|-------------|
+| `sdd reverse review` / `--list` | List every draft (pending, approved, rejected) with validation results |
+| `sdd reverse review <ref>` | Show one draft with its validation result and content |
+| `sdd reverse review <ref> --approve` | Approve; refused while the draft has validation errors |
+| `sdd reverse review <ref> --reject --reason "..."` | Reject; the draft file is kept so it can be revised |
+
+`<ref>` is `<domain>/<feature>` or a unique `<feature>`. Decisions are stored in
+`.sdd/.reverse-drafts/review.json`. Approval is tied to a hash of the draft content, so any
+change to the file after review — even line-ending normalization (CRLF → LF) — resets it to pending.
+
+Draft rules checked by `review`: `<domain>` must be a valid domain id, `<feature>` must be a
+canonical feature id (lowercase letters, digits, hyphens), the frontmatter `id` must equal
+`<feature>` and `domain` (if set) must equal `<domain>`, and drafts must be real files inside
+`.sdd/.reverse-drafts` (symlinked drafts are rejected).
+A corrupt `review.json` is reported as an error; fix or delete the file.
 
 ### finalize
 
-Converts approved specs to official SDD specs.
-
 ```bash
-sdd reverse finalize --all          # Finalize all approved specs
-sdd reverse finalize auth/login     # Finalize specific spec only
+sdd reverse finalize [ref] [--all] [--force]
 ```
 
-## Output Files
+Moves approved drafts to `.sdd/specs/<domain>/<feature>/spec.md`, registers the domain in
+`.sdd/domains.yml` (same as `sdd domain create`) when it does not exist yet, links the spec to
+the domain and removes the draft. Without a ref, all approved drafts are finalized.
 
-| File | Description | Created By |
-|------|-------------|------------|
-| `.sdd/.reverse-meta.json` | Scan result metadata | `scan` |
-| `.sdd/.reverse-drafts/<domain>/<spec>.json` | Spec drafts | `extract` |
-| `.sdd/specs/<domain>/<spec>/spec.md` | Finalized specs (v1.3.0) | `finalize` |
+| Option | Description |
+|--------|-------------|
+| `-a, --all` | Finalize all approved drafts (default) |
+| `-f, --force` | Overwrite an existing spec |
 
-::: tip v1.3.0 Path Change
-Finalized specs are now saved in `<domain>/<feature>/spec.md` format.
-Example: `.sdd/specs/auth/login/spec.md`
-:::
+An existing spec is never overwritten without `--force`; such drafts are skipped and the
+command exits with a non-zero code.
 
-## Usage Examples
+## Files
 
-### Basic Workflow
+| Path | Description |
+|------|-------------|
+| `.sdd/.reverse-drafts/<domain>/<feature>/spec.md` | Drafts written by the AI |
+| `.sdd/.reverse-drafts/review.json` | Review decisions |
+| `.sdd/specs/<domain>/<feature>/spec.md` | Finalized specs |
+| `.sdd/domains.yml` | Domain registry (updated by finalize) |
 
-```bash
-# 1. Scan project
-sdd reverse scan
-# → Directory structure, language distribution, domain estimation
+## Related
 
-# 2. Extract specs
-sdd reverse extract --depth deep
-# → Drafts created in .sdd/.reverse-drafts/
-
-# 3. Review
-sdd reverse review
-# → Approve/reject/revise each spec
-
-# 4. Finalize
-sdd reverse finalize --all
-# → Official specs created in .sdd/specs/<domain>/<feature>/spec.md
-```
-
-### Extract Specific Domain Only
-
-```bash
-sdd reverse scan src/auth/
-sdd reverse extract --domain auth
-sdd reverse review auth/login
-sdd reverse finalize auth/login
-```
-
-## Confidence Scores
-
-Extracted specs include confidence scores:
-
-| Factor | Weight | Description |
-|--------|--------|-------------|
-| documentation | 25% | JSDoc/comment quality |
-| naming | 20% | Naming convention compliance |
-| structure | 20% | Code structure quality |
-| testCoverage | 20% | Estimated test coverage |
-| typing | 15% | Type information quality |
-
-## Serena MCP Integration
-
-When Serena MCP is connected, precise symbol-level analysis is available:
-
-- Class/function/interface extraction
-- Reference relationship analysis
-- Dependency graph generation
-
-Basic file scanning works even without Serena.
-
-## References
-
-- [Reverse Spec Extraction Guide](/roadmap/reverse-extraction)
-- [Domain Management](/guide/workflow-constitution)
+- [Reverse Extraction Guide](/guide/reverse-extraction)
+- [/sdd.reverse](/commands/sdd-reverse)
+- [sdd validate](/cli/validate)

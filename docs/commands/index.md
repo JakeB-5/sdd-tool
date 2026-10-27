@@ -106,9 +106,17 @@ When arguments are needed:
 
 ### Reverse Engineering Workflow
 
-Automatically extract SDD specs from legacy code:
+Extract SDD specs from legacy code. The AI reads the code and writes drafts; the CLI scans, validates, reviews, and finalizes:
 
 Run `/sdd-reverse`; it guides you through scanning the project, drafting specs from the code, reviewing the drafts, and finalizing them. See [/sdd-reverse](/commands/sdd-reverse) for details.
+
+```
+/sdd-reverse                              # AI-driven: scan, read code, write drafts
+sdd validate .sdd/.reverse-drafts         # Validate drafts
+sdd reverse review --list                 # Review drafts
+sdd reverse review <ref> --approve        # Approve (after confirmation)
+sdd reverse finalize                      # Move approved drafts to .sdd/specs/
+```
 
 ### Domain System
 
