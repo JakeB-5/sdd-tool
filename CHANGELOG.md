@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.1] - 2026-10-27
+
+> Documentation release: README, quick reference, getting-started, skill pages, guides, tutorials and CLI reference now describe 2.1.0 behaviour, with every example checked against the CLI.
+
+### Fixed
+
+- `sdd status` printed `[object Object]` for each pending change proposal; it now prints `CHG-001: <title> (<status>)`
+- Generated skill text: `sdd-context` no longer claims the context scopes `sdd validate` / `sdd list` (it only sets `sdd new`'s default domain when exactly one domain is active); `sdd-domain` no longer claims `sdd domain validate` detects orphan specs (use `sdd validate --orphan-specs`); `sdd-prepare` no longer describes an interactive prompt (a plain run writes `prepare.md` and hints `--auto-approve`) and lists the real keyword mappings; `sdd-validate` lists the real errors, warnings (W001–W008) and exit code 2
+
+### Documentation
+
+- README / README.ko / QUICK_REFERENCE / getting-started: `sdd new <domain>/<feature>` (domain auto-create, default branch and `--no-branch`, `--all` four files, overwrite guard and `--force`), `sdd new status` / `sdd new task`, `### REQ-01` headings and `@spec` traceability, `depends` syntax, the CLI used at each workflow step, 6 forked skills, and `sdd init --force` for regenerating skills
+- Skill pages (`docs/commands`): rewritten from the generated skills, with Claude Code `/sdd-x` and Codex `$sdd-x` invocation
+- Guides, spec-writing, tutorials and CLI pages: removed invented options and outputs (`sdd list --all`, `sdd validate --all`, `sdd search --domain`, `sdd domain lock`, `/sdd.reverse` as default), real constitution format (frontmatter `version:` + `# Constitution: <name>`), validate errors vs warnings and exit codes, tasks.md format, real sample outputs
+
+---
+
 ## [2.1.0] - 2026-10-27
 
 > Fixes found by running the full SDD workflow with Claude Code (Opus 5.5, Sonnet 5.5) and Codex (gpt-6.1-sol, gpt-6.1-terra). Skills and CLI now agree: no failed `sdd` commands, 100% `sdd sync` traceability and specs reaching `implemented` on all four agents. `sdd new` no longer silently overwrites existing files — pass `--force` to regenerate.
