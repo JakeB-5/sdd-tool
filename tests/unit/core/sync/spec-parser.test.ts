@@ -156,6 +156,125 @@ REQ-002는 선택적이다(MAY).
       ]);
     });
 
+    it('CRLF 줄바꿈 스펙도 요구사항·스펙 제목(H1 폴백)을 올바르게 추출한다', async () => {
+      const featureDir = path.join(specsDir, 'crlf');
+      await fs.mkdir(featureDir);
+      await fs.writeFile(
+        path.join(featureDir, 'spec.md'),
+        '# CRLF 스펙\r\n\r\n### REQ-01: 로그인\r\n\r\n시스템은 로그인을 지원해야 한다(SHALL).\r\n'
+      );
+      await fs.mkdir(path.join(specsDir, 'crlf-fm'));
+      await fs.writeFile(
+        path.join(specsDir, 'crlf-fm', 'spec.md'),
+        '---\r\nid: crlf-fm\r\ntitle: FM 제목\r\n---\r\n\r\n### REQ-01 세션\r\n'
+      );
+
+      const parser = new SpecParser(tempDir);
+      const crlf = await parser.parseSpec('crlf');
+      const crlfFm = await parser.parseSpec('crlf-fm');
+
+      expect(crlf).toHaveLength(1);
+      expect(crlf[0]).toMatchObject({
+        id: 'REQ-01',
+        title: '로그인',
+        specTitle: 'CRLF 스펙',
+        keyword: 'SHALL',
+      });
+      expect(crlfFm[0]).toMatchObject({ title: '세션', specTitle: 'FM 제목' });
+    });
+
+    it('`REQ-01`, [REQ-01] 헤딩과 . ) 구분자를 정의로 인정하고 구분자는 제목에서 제외한다', async () => {
+      const featureDir = path.join(specsDir, 'variants');
+      await fs.mkdir(featureDir);
+      await fs.writeFile(
+        path.join(featureDir, 'spec.md'),
+        `### \`REQ-01\`: 백틱
+### [REQ-02] 대괄호
+### REQ-03. 마침표
+### REQ-04) 괄호
+`
+      );
+
+      const requirements = await new SpecParser(tempDir).parseSpec('variants');
+
+      expect(requirements.map(r => [r.id, r.title])).toEqual([
+        ['REQ-01', '백틱'],
+        ['REQ-02', '대괄호'],
+        ['REQ-03', '마침표'],
+        ['REQ-04', '괄호'],
+      ]);
+    });
+
+    it('코드 펜스 안의 REQ 헤딩과 H1은 무시한다', async () => {
+      const featureDir = path.join(specsDir, 'fenced');
+      await fs.mkdir(featureDir);
+      await fs.writeFile(
+        path.join(featureDir, 'spec.md'),
+        `# 진짜 제목
+
+\`\`\`md
+# 예시 제목
+### REQ-99: 예시일 뿐
+\`\`\`
+
+### REQ-01: 진짜
+`
+      );
+
+      const requirements = await new SpecParser(tempDir).parseSpec('fenced');
+
+      expect(requirements.map(r => r.id)).toEqual(['REQ-01']);
+      expect(requirements[0].specTitle).toBe('진짜 제목');
+    });
+
+    it('키워드 탐색은 다음 헤딩을 넘어가지 않는다', async () => {
+      const featureDir = path.join(specsDir, 'window');
+      await fs.mkdir(featureDir);
+      await fs.writeFile(
+        path.join(featureDir, 'spec.md'),
+        `### REQ-01: 키워드 없음
+설명만 있다.
+### REQ-02: 키워드 있음
+내용(MUST).
+`
+      );
+
+      const requirements = await new SpecParser(tempDir).parseSpec('window');
+
+      expect(requirements[0].keyword).toBeUndefined();
+      expect(requirements[1].keyword).toBe('MUST');
+    });
+
+    it('REQ를 언급하지만 정의 헤딩이 없는 스펙은 경고한다', async () => {
+      await fs.mkdir(path.join(specsDir, 'tabular'));
+      await fs.writeFile(
+        path.join(specsDir, 'tabular', 'spec.md'),
+        `# 표 형식
+
+| ID | 설명 |
+|----|------|
+| REQ-01 | 로그인 |
+
+- REQ-02: 로그아웃
+`
+      );
+      await fs.mkdir(path.join(specsDir, 'plain'));
+      await fs.writeFile(path.join(specsDir, 'plain', 'spec.md'), '# REQ 언급 없음\n');
+      await fs.mkdir(path.join(specsDir, 'good'));
+      await fs.writeFile(path.join(specsDir, 'good', 'spec.md'), '### REQ-01: 정상\n');
+
+      const parser = new SpecParser(tempDir);
+      const all = await parser.parseAllSpecsWithWarnings();
+      const single = await parser.parseSpecWithWarnings('tabular');
+
+      expect(all.requirements.map(r => r.specId)).toEqual(['good']);
+      expect(all.warnings).toHaveLength(1);
+      expect(all.warnings[0]).toContain('tabular');
+      expect(all.warnings[0]).toContain('### REQ-01: 제목');
+      expect(single.warnings).toEqual(all.warnings);
+      expect((await parser.parseSpecWithWarnings('good')).warnings).toEqual([]);
+    });
+
     it('REQ 헤더가 아닌 제목(REQ-01x)과 5단계 이상 헤더는 정의가 아니다', async () => {
       const featureDir = path.join(specsDir, 'feature');
       await fs.mkdir(featureDir);

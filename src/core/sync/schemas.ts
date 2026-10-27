@@ -100,6 +100,11 @@ export const CodeReferenceSchema = z.object({
   reqId: z.string(), // REQ-001
   /** Spec qualifier from `<spec>#REQ-001` (canonical id or bare feature), absent for bare refs */
   specRef: z.string().optional(),
+  /**
+   * Spec qualifiers of qualified refs in the same file that cover this bare ref (see
+   * markCoveredBareRefs). The matcher ignores the bare ref only if one of them resolves.
+   */
+  coveredBy: z.array(z.string()).optional(),
   file: z.string(),
   line: z.number(),
   type: z.enum(['code', 'test']),

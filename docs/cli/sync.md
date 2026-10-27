@@ -34,6 +34,25 @@ sdd sync [specId] [options]
 | Sync rate < threshold | 2 (`VALIDATION_FAILED`) — the report is always printed first |
 | Invalid `--threshold` (not a number, outside 0-100) | non-zero error |
 
+## How requirements are defined
+
+A spec's requirements are the REQ IDs it **defines with a heading** (levels 2-4):
+
+```markdown
+### REQ-01: Login
+### REQ-02 Logout
+### REQ-03 - Session
+### `REQ-04`: Token
+### [REQ-05] Refresh
+```
+
+- REQ IDs that only appear in prose, tables or lists (e.g. "see `pricing/checkout` REQ-05") are
+  references, not definitions, and are not counted as requirements of that spec.
+- Headings inside fenced code blocks and HTML comments are ignored.
+- A spec that mentions REQ IDs but has no definition heading yields 0 requirements and a warning
+  (`<spec>: REQ 정의 헤딩이 없어 …`, shown in the report and in JSON `warnings`).
+- In `--json`, a spec's `title` is the spec's own title (frontmatter `title`, else the first `# ` heading).
+
 ## Reference Syntax
 
 Requirement IDs (`REQ-xx`) are numbered per spec, so when several specs share an ID use a
@@ -55,6 +74,10 @@ describe('auth/login#REQ-01: Login', () => {
 
 - A bare reference `@spec REQ-01` matches only when **exactly one** spec has that ID.
   Otherwise it is ignored and reported as an ignored-reference warning (JSON: `warnings`).
+- A bare reference that a qualified reference of the same REQ number covers is not ambiguous:
+  same line, or the declaration directly below a `@spec <spec>#REQ-xx` comment including its whole
+  block (so an annotated `describe` covers the `it('REQ-xx ...')` titles inside). This only applies
+  when the qualified reference matches a real requirement; with a typo it stays a normal bare reference.
 - Ambiguity is judged against all specs even when checking a single spec (`sdd sync auth/login`).
 - References that match no spec are reported as code without a spec (JSON: `orphans`).
 - A requirement counts as implemented when it is referenced by **code or a test** (either is enough).

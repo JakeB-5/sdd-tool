@@ -171,10 +171,9 @@ export const x = 1;
 
       const refs = await new CodeScanner(tempDir, { srcDir }).scanFile(filePath);
 
-      expect(refs.map((r) => `${r.specRef ?? ''}#${r.reqId}`)).toEqual([
-        'auth/login#REQ-01',
-        '#REQ-02',
-      ]);
+      expect(
+        refs.map((r) => `${r.specRef ?? ''}#${r.reqId}${r.coveredBy ? `[${r.coveredBy}]` : ''}`)
+      ).toEqual(['#REQ-01[auth/login]', 'auth/login#REQ-01', '#REQ-02']);
     });
 
     it('한정된 @spec이 감싸는 함수 본문의 bare @spec을 덮고 밖은 유지한다', async () => {
@@ -196,10 +195,11 @@ export const other = 2;
 
       const refs = await new CodeScanner(tempDir, { srcDir }).scanFile(filePath);
 
-      expect(refs.map((r) => `${r.line}:${r.specRef ?? ''}#${r.reqId}`)).toEqual([
-        '2:auth/login#REQ-01',
-        '9:#REQ-01',
-      ]);
+      expect(
+        refs.map(
+          (r) => `${r.line}:${r.specRef ?? ''}#${r.reqId}${r.coveredBy ? `[${r.coveredBy}]` : ''}`
+        )
+      ).toEqual(['2:auth/login#REQ-01', '5:#REQ-01[auth/login]', '9:#REQ-01']);
     });
 
     it('존재하지 않는 파일은 빈 배열을 반환한다', async () => {

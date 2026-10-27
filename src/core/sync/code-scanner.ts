@@ -41,6 +41,11 @@ const STRING_LITERAL = /(['"`])(?:\\.|(?!\1).)*\1/g;
  * The annotation applies to the statement it sits on, or - when it is in a comment -
  * to the first non-comment statement below it. If that statement opens brackets
  * (`describe(..., () => {`, `function f() {`) the scope extends to the matching close.
+ *
+ * This is a conservative line-based heuristic, not a parser: only single-line string
+ * literals are ignored while counting, so template literals spanning lines, regex literals
+ * or brackets inside comments can skew the count. Unbalanced input falls back to covering
+ * just the annotated statement's first line.
  */
 function annotatedScopeEnd(lines: string[], annotationIdx: number): number {
   let stmtIdx = annotationIdx;
@@ -60,7 +65,7 @@ function annotatedScopeEnd(lines: string[], annotationIdx: number): number {
 }
 
 /**
- * Drop unqualified `REQ-xx` references that a qualified `<spec>#REQ-xx` reference covers.
+ * Annotate unqualified `REQ-xx` references that a qualified `<spec>#REQ-xx` reference covers.
  *
  * Without this, a test titled `it('REQ-01: ...')` under `// @spec auth/login#REQ-01` is
  * reported as an ambiguous bare reference even though the author already named the spec.
@@ -70,19 +75,34 @@ function annotatedScopeEnd(lines: string[], annotationIdx: number): number {
  * it annotates (see annotatedScopeEnd): the declaration right below a `@spec` comment
  * (with blank/comment lines in between) including that declaration's whole block, so the
  * enclosing `describe` annotation covers the `it` titles within it.
- * Bare references outside any such scope are kept and stay subject to the ambiguity warning.
+ *
+ * Covered bare references get `coveredBy` (the covering spec qualifiers). The scanner cannot
+ * know whether a qualifier names a real spec, so the matcher decides: it ignores the bare
+ * reference only if a covering qualifier resolves to a known requirement, otherwise it
+ * treats it as a normal bare reference. Bare references outside any scope are untouched.
  */
-export function dropCoveredBareRefs(refs: CodeReference[], lines: string[]): CodeReference[] {
+export function markCoveredBareRefs(refs: CodeReference[], lines: string[]): CodeReference[] {
   const scopes = refs
     .filter((r) => r.specRef)
-    .map((r) => ({ reqId: r.reqId, start: r.line, end: annotatedScopeEnd(lines, r.line - 1) + 1 }));
+    .map((r) => ({
+      reqId: r.reqId,
+      specRef: r.specRef as string,
+      start: r.line,
+      end: annotatedScopeEnd(lines, r.line - 1) + 1,
+    }));
   if (scopes.length === 0) return refs;
 
-  return refs.filter(
-    (r) =>
-      r.specRef ||
-      !scopes.some((s) => s.reqId === r.reqId && r.line >= s.start && r.line <= s.end)
-  );
+  return refs.map((r) => {
+    if (r.specRef) return r;
+    const coveredBy = [
+      ...new Set(
+        scopes
+          .filter((s) => s.reqId === r.reqId && r.line >= s.start && r.line <= s.end)
+          .map((s) => s.specRef)
+      ),
+    ];
+    return coveredBy.length > 0 ? { ...r, coveredBy } : r;
+  });
 }
 
 /**
@@ -166,7 +186,7 @@ export class CodeScanner {
         }
       }
 
-      return dropCoveredBareRefs(references, lines);
+      return markCoveredBareRefs(references, lines);
     } catch {
       return [];
     }

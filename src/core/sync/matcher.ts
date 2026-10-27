@@ -21,6 +21,7 @@ import type {
 type RefResolution =
   | { kind: 'matched'; specId: string }
   | { kind: 'orphan' }
+  | { kind: 'covered' }
   | { kind: 'ambiguous'; candidates: string[] };
 
 function requirementKey(specId: string, reqId: string): string {
@@ -97,6 +98,17 @@ export class SyncMatcher {
    * 참조가 가리키는 스펙 해석
    */
   private resolveRef(ref: CodeReference, requirements: ExtractedRequirement[]): RefResolution {
+    // A bare ref covered by a qualified ref that really matches a requirement adds nothing
+    // (that qualified ref already counts). If no covering qualifier resolves (typo, unknown
+    // spec), fall through and treat it like any other bare ref.
+    if (!ref.specRef && ref.coveredBy?.length) {
+      const covered = ref.coveredBy.some(
+        (specRef) =>
+          this.resolveRef({ ...ref, specRef, coveredBy: undefined }, requirements).kind === 'matched'
+      );
+      if (covered) return { kind: 'covered' };
+    }
+
     const specsWithReq = [
       ...new Set(requirements.filter(r => r.id === ref.reqId).map(r => r.specId)),
     ];

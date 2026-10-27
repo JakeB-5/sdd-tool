@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `sdd sync`: requirements are now only the REQ IDs a spec *defines* with a heading (`### REQ-01: Title` or `### REQ-01 Title`). REQ IDs merely mentioned in prose (e.g. "see `pricing/checkout` REQ-05") no longer create phantom, permanently "unimplemented" requirements, and a mention placed before the real heading no longer hides that requirement's title
-- `sdd sync`: an unqualified `REQ-xx` in a test title or `@spec` line no longer triggers the "여러 스펙에 해당하여 무시되었습니다" warning when a qualified `@spec <domain>/<feature>#REQ-xx` for the same REQ number covers it (same line, or the declaration/block directly below the annotation); genuinely ambiguous bare references still warn
+- `sdd sync`: requirements are now only the REQ IDs a spec *defines* with a heading (`### REQ-01: Title`, `### REQ-01 Title`, `` ### `REQ-01`: Title ``, `### [REQ-01] Title`; fenced code is ignored; CRLF specs work). REQ IDs merely mentioned in prose (e.g. "see `pricing/checkout` REQ-05") no longer create phantom, permanently "unimplemented" requirements, and a mention placed before the real heading no longer hides that requirement's title. A spec that mentions REQ IDs but defines none with a heading now yields a warning (text and `--json` `warnings`) instead of silently counting 0 requirements
+- `sdd sync`: an unqualified `REQ-xx` in a test title or `@spec` line no longer triggers the "여러 스펙에 해당하여 무시되었습니다" warning when a qualified `@spec <domain>/<feature>#REQ-xx` for the same REQ number that matches a real requirement covers it (same line, or the declaration/block directly below the annotation); bare references covered only by an unresolvable (e.g. typo) qualifier and genuinely ambiguous bare references still warn. The report's warnings section is now titled "경고"
 - `sdd sync --json`: a spec's `title` is now the spec's own title (frontmatter `title`, else first H1) instead of its first requirement's title
 
 ---

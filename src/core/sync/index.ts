@@ -35,10 +35,11 @@ export async function executeSync(
 
     // All requirements are always parsed so that reference resolution (ambiguity,
     // orphans) is the same whether or not a single spec is being checked.
-    const allRequirements = await specParser.parseAllSpecs();
-    const requirements = options.specId
-      ? await specParser.parseSpec(options.specId)
-      : allRequirements;
+    const all = await specParser.parseAllSpecsWithWarnings();
+    const allRequirements = all.requirements;
+    const { requirements, warnings: definitionWarnings } = options.specId
+      ? await specParser.parseSpecWithWarnings(options.specId)
+      : all;
 
     if (requirements.length === 0) {
       const emptyResult: SyncResult = {
@@ -50,7 +51,7 @@ export async function executeSync(
         orphans: [],
         totalRequirements: 0,
         totalImplemented: 0,
-        warnings: [],
+        warnings: definitionWarnings,
       };
       return {
         success: true,
@@ -58,7 +59,7 @@ export async function executeSync(
           result: emptyResult,
           output: options.json
             ? new SyncReporter({ colors: false }).formatJson(emptyResult)
-            : '스펙에 요구사항이 없습니다.',
+            : ['스펙에 요구사항이 없습니다.', ...definitionWarnings.map((w) => `⚠ ${w}`)].join('\n'),
         },
       };
     }
@@ -78,6 +79,7 @@ export async function executeSync(
     // 4. 매칭
     const matcher = new SyncMatcher();
     const result = matcher.match(requirements, codeRefs, testRefs, allRequirements);
+    result.warnings = [...definitionWarnings, ...(result.warnings ?? [])];
 
     // 5. 출력 생성
     const reporter = new SyncReporter({ colors: !options.json && !options.markdown });
