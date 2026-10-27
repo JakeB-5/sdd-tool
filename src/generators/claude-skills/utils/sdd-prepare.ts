@@ -14,7 +14,7 @@ export const sddPrepareSkill: SkillDefinition = {
 ## Overview
 
 Analyze spec, plan, and task documents to detect the sub-agents and skills
-needed for implementation. Any missing tools are flagged, with an option to generate them automatically.
+needed for implementation. Missing tools are flagged in the output and in \`prepare.md\`; re-run with \`--auto-approve\` to generate them.
 \`sdd prepare\` checks and writes them in the Claude Code layout (\`.claude/agents/\`, \`.claude/skills/\`).
 
 **Codex:** \`sdd prepare\` currently targets only the Claude Code layout above; it does not
@@ -26,7 +26,7 @@ When working in Codex, use the detected list as a checklist and create the missi
 
 1. Run \`sdd prepare <feature>\`
 2. Review the detected tool list and presence status
-3. Decide whether to generate any missing tools
+3. Decide whether to generate any missing tools; if so, re-run with \`--auto-approve\` (a plain run never prompts)
 
 ## Workflow
 
@@ -37,13 +37,13 @@ When working in Codex, use the detected list as a checklist and create the missi
 ## Commands
 
 \`\`\`bash
-# Interactive (default)
+# Analyze and write .sdd/specs/<domain>/<feature>/prepare.md (no prompt, no tools created)
 sdd prepare user-auth
 
-# Preview only (no files created)
+# Preview only (no files created, no report)
 sdd prepare user-auth --dry-run
 
-# Auto-approve (generate missing tools without prompting)
+# Also generate the missing tools
 sdd prepare user-auth --auto-approve
 
 # JSON output
@@ -52,42 +52,25 @@ sdd prepare user-auth --json
 
 ## Detection Targets
 
-### Sub-agents (\`.claude/agents/*.md\`)
+Keywords are matched in the feature's spec, plan, and tasks (English and Korean).
+Sub-agents live in \`.claude/agents/*.md\`, skills in \`.claude/skills/<name>/SKILL.md\`.
 
-| Agent | Detection Keywords | Description |
-|-------|-------------------|-------------|
-| test-runner | test, jest, vitest | Run tests |
-| api-scaffold | api, rest, endpoint | Scaffold APIs |
-| component-gen | component, react | Generate components |
-| code-reviewer | review | Code review |
+| Keywords | Sub-agent | Skill |
+|----------|-----------|-------|
+| test, vitest, jest, unit test | test-runner | test |
+| api, rest, endpoint, graphql | api-scaffold | gen-api |
+| component, react, vue, ui | component-gen | gen-component |
+| db, database, prisma, migration | - | db-migrate |
+| doc, readme, jsdoc, documentation | doc-generator | doc |
+| type, schema, zod, typescript | - | gen-types |
+| lint, eslint, prettier, format | - | lint |
+| review, code review | code-reviewer | review |
 
-### Skills (\`.claude/skills/<name>/SKILL.md\`)
+## Output
 
-| Skill | Detection Keywords | Description |
-|-------|-------------------|-------------|
-| test | test | Write tests |
-| gen-api | api, rest | Generate API |
-| gen-component | component | Generate component |
-| db-migrate | database, migration | DB migration |
-| gen-doc | doc | Generate docs |
-
-## Example Output
-
-\`\`\`
-=== SDD Prepare: user-auth ===
-
-Analyzed: 3 documents, 5 tasks
-
---- Sub-agents ---
-  [x] test-runner (present)
-  [ ] api-scaffold (missing) → needs to be created
-
---- Skills ---
-  [x] test (present)
-  [ ] gen-api (missing) → needs to be created
-
-Generate missing tools? (y/n)
-\`\`\`
+The CLI (messages are in Korean) prints the number of tasks analyzed, how many sub-agents and
+skills are needed, present, and missing (with a name and description for each missing one), the
+path of the \`prepare.md\` report, and, when tools are missing, a hint to re-run with \`--auto-approve\`.
 
 ## Generated File Structure
 

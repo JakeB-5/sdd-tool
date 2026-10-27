@@ -1,6 +1,6 @@
 # /sdd-start
 
-The unified entry point for the SDD workflow.
+The entry point for the SDD workflow: checks the project setup, runs the setup wizard, then recommends the next skill.
 
 ## Usage
 
@@ -8,57 +8,66 @@ The unified entry point for the SDD workflow.
 /sdd-start
 ```
 
+In Codex, invoke it as `$sdd-start`. It takes no arguments.
+
 ## Behavior
 
-Analyzes project status and guides you to the next action.
+Setup always comes first. No workflow (reverse extraction, new spec, ...) is suggested until the initial setup is complete.
 
-### New Project
+### 1. Project analysis
 
-When no Constitution exists:
+The skill checks the project and shows the result as a table:
 
-```
-Project has been initialized.
-Next step: Define project principles with /sdd-constitution
-```
+| Item | How it is checked |
+|------|-------------------|
+| SDD initialized | `.sdd/` directory exists |
+| Spec files | Count of `.sdd/specs/**/*.md` files |
+| Existing code | `src/`, `lib/` or `app/` exists |
+| Git repository | `.git/` exists |
+| Git hooks | `.git/hooks/pre-commit` exists |
+| CI/CD | `.github/workflows/sdd-*.yml` exists |
 
-### Existing Project
+### 2. Setup wizard
 
-Provides a workflow selection menu:
+If `.sdd/`, the pre-commit hook or the CI workflow is missing, the skill asks which items to configure (multiple selections allowed) and runs each selected one immediately:
 
-```
-Select an SDD workflow:
+| Item | Command |
+|------|---------|
+| Initialize SDD | `sdd init --skip-git-setup` |
+| Git hooks | `sdd git hooks install` |
+| CI/CD | `sdd cicd setup github` |
 
-1. Add new feature -> /sdd-spec
-2. Modify existing feature -> /sdd-spec
-3. Validate specs -> /sdd-validate
-4. Project status -> /sdd-status
-```
+### 3. Workflow guidance
 
-## Output Information
+Only after setup is complete does the skill recommend the next step:
 
-- Project initialization status
-- Constitution existence
-- Number of specs
-- In-progress tasks
-- Recommended next steps
+| Project state | Recommended skill |
+|---------------|-------------------|
+| Existing code, no specs (brownfield) | `/sdd-reverse` |
+| No existing code (greenfield) | `/sdd-spec` |
+| Specs already exist | `/sdd-status` or `/sdd-implement` |
 
-## Example
+Brownfield is detected by source directories (`src/`, `lib/`, `app/`), few or no specs under `.sdd/specs/`, and project config files such as `package.json`. In that case `/sdd-reverse` scans the code and drafts specs, and you approve and finalize them; new features afterwards use `/sdd-spec`.
 
-```
-/sdd-start
+## Installed Git Hooks
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SDD Tool v1.0.0
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+| Hook | Trigger | Function |
+|------|---------|----------|
+| pre-commit | Before commit | When specs under `.sdd/specs/` are staged, run a full `sdd validate` |
+| commit-msg | After writing the message | Require `<type>(<scope>): <message>` (the scope is optional) with a spec type (`spec`, `plan`, `tasks`, `constitution`, ...) or a Conventional Commits type (`feat`, `fix`, ...) |
+| pre-push | Before push | Validate all specs |
 
-Project: my-app
-Constitution: ✓ (v1.0.0)
-Specs: 5 (3 approved, 2 draft)
+## Generated GitHub Actions
 
-In-progress tasks:
-- user-auth: implementing (3/5 complete)
+| Workflow | Function |
+|----------|----------|
+| `sdd-validate.yml` | On push / PR to `main`, `master` or `develop` that touches `.sdd/**`: installs the pinned `sdd-tool@<version>`, then runs `sdd validate`, `sdd constitution validate` and `sdd impact report` (uploaded as an artifact) |
+| `sdd-labeler.yml` | Add domain labels to PRs |
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Next step: /sdd-implement user-auth
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
+## Related Commands
+
+- [`sdd init`](/cli/init) - Initialize a project
+- [`sdd git`](/cli/git) - Git hooks
+- [`sdd cicd`](/cli/cicd) - CI/CD workflows
+- [`/sdd-spec`](/commands/sdd-spec) - Write specs
+- [`/sdd-reverse`](/commands/sdd-reverse) - Draft specs from existing code

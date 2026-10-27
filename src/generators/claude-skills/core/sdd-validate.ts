@@ -17,10 +17,16 @@ Run \`sdd validate\` to validate all specs in the project.
 
 ## Validation Checks
 
-1. **RFC 2119 keywords**: Presence of SHALL, MUST, SHOULD, MAY, etc.
-2. **GIVEN-WHEN-THEN**: Proper scenario format
-3. **Metadata**: Required fields in YAML frontmatter
-4. **Structure**: Presence of required sections
+Errors (the file fails):
+- Unclosed or invalid YAML frontmatter, or invalid metadata types/values (the fields themselves are optional)
+- Missing \`# Title\` heading
+- No requirement with an uppercase RFC 2119 keyword (SHALL, MUST, SHOULD, MAY, etc.)
+- No GIVEN-WHEN-THEN scenario
+- Critical constitution violations or a major \`constitution_version\` mismatch
+
+Warnings: missing \`created\` date, leftover template placeholders, lowercase RFC 2119 keywords,
+deprecated \`status\` aliases, broken links (\`--check-links\`), minor constitution issues.
+Exit code is 2 when a file fails (with \`--strict\`, also on warnings).
 
 ## Usage
 
