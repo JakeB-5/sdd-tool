@@ -121,8 +121,8 @@ The change history is kept for you in `.sdd/CHANGELOG.md` by `sdd constitution b
 sdd validate --constitution
 ```
 
-`sdd validate` compares every spec's `constitution_version` with the current constitution and reports a version
-difference as a warning (a major change is more serious than a minor one). If the constitution file cannot be parsed,
+`sdd validate` compares every spec's `constitution_version` with the current constitution: a patch difference is
+informational, a minor difference is a warning, and a major difference is an error (exit code 2). If the constitution file cannot be parsed,
 it reports warning W007 and skips the check. It does not read the principles themselves,
 so checking specs against rules such as "API Version Management" is a review task; use `sdd search` to find affected specs.
 

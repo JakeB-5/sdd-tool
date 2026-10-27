@@ -120,8 +120,8 @@ updated: 2024-01-20
 sdd validate --constitution
 ```
 
-`sdd validate`는 모든 스펙의 `constitution_version`을 현재 constitution과 비교해 버전 차이를 경고로 보고합니다
-(Major 변경이 Minor보다 심각합니다). constitution 파일을 파싱할 수 없으면 경고 W007을 보고하고 검사를 건너뜁니다.
+`sdd validate`는 모든 스펙의 `constitution_version`을 현재 constitution과 비교합니다. Patch 차이는 정보,
+Minor 차이는 경고, Major 차이는 에러(종료 코드 2)로 보고합니다. constitution 파일을 파싱할 수 없으면 경고 W007을 보고하고 검사를 건너뜁니다.
 원칙의 내용 자체는 읽지 않으므로 "API 버전 관리" 같은 규칙에 대한 스펙 준수 여부는
 리뷰로 확인해야 하며, 영향받는 스펙은 `sdd search`로 찾을 수 있습니다.
 
