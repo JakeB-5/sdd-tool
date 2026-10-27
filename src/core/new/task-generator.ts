@@ -114,7 +114,7 @@ const LABEL_END = '(?::\\*\\*|\\*\\*:)';
  */
 const STATUS_LINE_PATTERN = new RegExp(`\\*\\*(상태|status)${LABEL_END}[ \\t]*([^\\r\\n]*)`, 'i');
 const PRIORITY_LINE_PATTERN = new RegExp(
-  `\\*\\*(?:우선순위|priority)${LABEL_END}\\s*(?:[🔴🟡🟢]\\s*)?([A-Za-z가-힣]+)`,
+  `\\*\\*(?:우선순위|priority)${LABEL_END}[ \\t]*(?:[🔴🟡🟢][ \\t]*)?([A-Za-z가-힣]+)`,
   'iu'
 );
 const DEPENDENCIES_LINE_PATTERN = new RegExp(
@@ -128,10 +128,11 @@ const DEPENDENCIES_LINE_PATTERN = new RegExp(
 const NO_DEPENDENCY_VALUES = new Set(['none', '없음', '-', 'n/a']);
 
 /**
- * Status value prefix, after leading non-letters/markup (`**`, backticks, emoji).
+ * Status value prefix, after leading non-letters/markup (`**`, backticks, emoji),
+ * ending at a letter boundary so `pendingX` is not a status.
  */
 const STATUS_VALUE_PATTERN =
-  /^[^\p{L}]*(in[-_ ]?progress|pending|completed|blocked|대기|진행\s*중|진행|완료|차단됨?)/iu;
+  /^[^\p{L}]*(in[-_ ]?progress|pending|completed|blocked|대기(?:\s*중)?|진행\s*중|진행|완료됨?|차단됨?)(?!\p{L})/iu;
 
 /**
  * Normalize a raw status value to the internal enum; undefined when unrecognized.
@@ -142,8 +143,8 @@ export function normalizeTaskStatus(raw: string): TaskStatus | undefined {
   if (!match) return undefined;
   const value = match[1].toLowerCase().replace(/[\s_-]/g, '');
   if (value === 'inprogress' || value.startsWith('진행')) return 'in_progress';
-  if (value === 'pending' || value === '대기') return 'pending';
-  if (value === 'completed' || value === '완료') return 'completed';
+  if (value === 'pending' || value.startsWith('대기')) return 'pending';
+  if (value === 'completed' || value.startsWith('완료')) return 'completed';
   return 'blocked';
 }
 
@@ -165,8 +166,10 @@ function formatTaskStatus(status: TaskStatus, english: boolean): string {
  */
 export function parseTasks(content: string): TaskItem[] {
   const tasks: TaskItem[] = [];
+  // Task ids end in a number (`<feature>-task-001`, `t-1`), so note headings
+  // such as `### 참고: 외부 API` or `### Note: x` are not counted as tasks.
   const taskMatches = content.matchAll(
-    /### ([a-z0-9가-힣-]+): ([^\r\n]+)\s*\n([\s\S]*?)(?=\r?\n###|\r?\n---|$)/gi
+    /### ([a-z0-9가-힣-]*\d): ([^\r\n]+)\s*\n([\s\S]*?)(?=\r?\n###|\r?\n---|$)/gi
   );
 
   for (const match of taskMatches) {
@@ -209,7 +212,8 @@ export function parseTasks(content: string): TaskItem[] {
       ? depsMatch[1]
           .split(',')
           .map(d => d.trim())
-          .filter(d => d && !NO_DEPENDENCY_VALUES.has(d.toLowerCase()))
+          // Placeholder check on the first token so `없음 (독립)` also means none
+          .filter(d => d && !NO_DEPENDENCY_VALUES.has(d.split(/\s+/)[0].toLowerCase()))
       : undefined;
 
     tasks.push({

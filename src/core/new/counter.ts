@@ -7,6 +7,7 @@
 import path from 'node:path';
 import { fileExists, readFile, writeFile } from '../../utils/fs.js';
 import { Result, success, failure } from '../../types/index.js';
+import { generateFeatureId } from './schemas.js';
 
 /**
  * 카운터 데이터 구조
@@ -108,6 +109,12 @@ export async function getNextFeatureNumber(
   sddPath: string,
   featureName: string
 ): Promise<Result<{ number: number; fullId: string; branchName: string }, CounterError>> {
+  // 기능 이름 정규화 (un-numbered feature ids use the same rule, Hangul included)
+  const normalizedName = generateFeatureId(featureName);
+  if (!normalizedName) {
+    return failure(new CounterError(`기능 이름이 비어 있습니다: '${featureName}'`, 'INVALID_NAME'));
+  }
+
   const counterResult = await readCounter(sddPath);
   if (!counterResult.success) {
     return failure(counterResult.error);
@@ -118,12 +125,6 @@ export async function getNextFeatureNumber(
 
   // 번호 포맷팅 (3자리, 앞에 0 채움)
   const paddedNumber = String(currentNumber).padStart(3, '0');
-
-  // 기능 이름 정규화
-  const normalizedName = featureName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
 
   const fullId = `${paddedNumber}-${normalizedName}`;
   const branchName = `feature/${fullId}`;

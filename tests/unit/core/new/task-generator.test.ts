@@ -147,6 +147,20 @@ describe('normalizeTaskStatus', () => {
   it('알 수 없는 값은 undefined', () => {
     expect(normalizeTaskStatus('someday')).toBeUndefined();
   });
+
+  it.each(['pendingX', 'completedness', 'blockedly', 'in-progressive'])(
+    '별칭 뒤에 글자가 이어지는 %s는 상태가 아니다',
+    (raw) => {
+      expect(normalizeTaskStatus(raw)).toBeUndefined();
+    }
+  );
+
+  it.each([
+    ['대기 중', 'pending'],
+    ['완료됨', 'completed'],
+  ] as const)('한글 변형 %s → %s', (raw, expected) => {
+    expect(normalizeTaskStatus(raw)).toBe(expected);
+  });
 });
 
 describe('parseTasks', () => {
@@ -256,6 +270,53 @@ Cart model
 
     expect(task.priority).toBe('high');
     expect(task.dependencies).toEqual(['cart-task-001', 'cart-task-000']);
+  });
+
+  it('번호로 끝나지 않는 참고용 ### 제목은 작업으로 세지 않는다', () => {
+    const content = `### cart-task-001: Model
+
+- **Status:** completed
+
+### 참고: 외부 API
+
+- **상태:** 대기
+
+### Note: x
+
+### t-2: B
+
+- **Status:** pending
+`;
+
+    const tasks = parseTasks(content);
+
+    expect(tasks.map((t) => t.id)).toEqual(['cart-task-001', 't-2']);
+  });
+
+  it('우선순위 값이 비어 있으면 다음 줄을 읽지 않는다', () => {
+    const content = `### t-001: A
+
+- **우선순위:**
+low 수준 API 메모
+`;
+
+    expect(parseTasks(content)[0].priority).toBe('medium');
+  });
+
+  it('의존성 첫 토큰이 placeholder면 메모가 붙어도 빈 배열이다', () => {
+    const content = `### t-001: A
+
+- **의존성:** 없음 (독립)
+
+### t-002: B
+
+- **Dependencies:** t-001 (after model)
+`;
+
+    const tasks = parseTasks(content);
+
+    expect(tasks[0].dependencies).toEqual([]);
+    expect(tasks[1].dependencies).toEqual(['t-001 (after model)']);
   });
 
   it.each(['none', 'None', '없음', '-', 'N/A'])('의존성 "%s"는 빈 배열이다', (value) => {
