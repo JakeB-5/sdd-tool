@@ -1,13 +1,20 @@
 /**
  * HTML 내보내기
  */
-import type { ParsedSpec, ParsedRequirement, ParsedScenario, Theme } from './schemas.js';
+import type {
+  ExportAppendix,
+  ParsedSpec,
+  ParsedRequirement,
+  ParsedScenario,
+  Theme,
+} from './schemas.js';
 import { lightTheme, darkTheme, baseStyles } from './styles.js';
 
 interface HtmlExportOptions {
   theme?: Theme;
   includeToc?: boolean;
-  includeConstitution?: boolean;
+  /** Appendix documents (constitution, change proposals) rendered after the specs */
+  appendices?: ExportAppendix[];
   title?: string;
 }
 
@@ -278,13 +285,26 @@ function renderSpec(spec: ParsedSpec): string {
 }
 
 /**
+ * 부록 렌더링 (원문 마크다운을 그대로 표시)
+ */
+function renderAppendix(appendix: ExportAppendix): string {
+  return `
+<section id="${appendix.kind}-${escapeHtml(appendix.id)}" class="spec appendix">
+  <header>
+    <h2>${escapeHtml(appendix.title)}</h2>
+  </header>
+  <pre class="appendix-content">${escapeHtml(appendix.content)}</pre>
+</section>`;
+}
+
+/**
  * 전체 HTML 문서 생성
  */
 export function generateHtml(specs: ParsedSpec[], options: HtmlExportOptions = {}): string {
-  const { theme = 'light', includeToc = true, title = 'SDD 스펙 문서' } = options;
+  const { theme = 'light', includeToc = true, title = 'SDD 스펙 문서', appendices = [] } = options;
   const themeStyles = theme === 'dark' ? darkTheme : lightTheme;
 
-  const specContents = specs.map(renderSpec).join('\n<hr>\n');
+  const specContents = [...specs.map(renderSpec), ...appendices.map(renderAppendix)].join('\n<hr>\n');
   const toc = includeToc ? generateToc(specs) : '';
 
   const timestamp = new Date().toISOString().split('T')[0];

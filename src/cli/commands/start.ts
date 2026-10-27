@@ -74,14 +74,14 @@ async function runStart(options: { workflow?: WorkflowType; status?: boolean }):
 
   // 프로젝트가 초기화되지 않은 경우
   if (!projectStatus.initialized) {
-    logger.info('SDD 프로젝트가 초기화되지 않았습니다.');
+    logger.warn('SDD 프로젝트가 초기화되지 않았습니다.');
     logger.newline();
     logger.info('프로젝트를 시작하려면:');
     logger.listItem('sdd init');
     logger.newline();
     logger.info('초기화 후 Claude Code 스킬을 사용하세요:');
     logger.listItem('/sdd-spec - 첫 기능 명세 작성');
-    return;
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
   // 상태만 표시
@@ -299,7 +299,7 @@ function displayWorkflowGuide(workflow: WorkflowInfo): void {
 
   if (!workflow.available) {
     logger.error(`이 워크플로우는 현재 사용할 수 없습니다: ${workflow.reason}`);
-    return;
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 
   logger.info(workflow.description);

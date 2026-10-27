@@ -83,8 +83,10 @@ version: 1.0.0
 
     const content = await fs.readFile(outputPath, 'utf-8');
     const parsed = JSON.parse(content);
-    expect(parsed.id).toBe('auth');
-    expect(parsed.requirements).toHaveLength(1);
+    // Shape is always { specs: [...] }, even for a single spec
+    expect(parsed.specs).toHaveLength(1);
+    expect(parsed.specs[0].id).toBe('auth');
+    expect(parsed.specs[0].requirements).toHaveLength(1);
   });
 
   it('마크다운으로 내보낸다', async () => {
@@ -102,6 +104,72 @@ version: 1.0.0
     const content = await fs.readFile(outputPath, 'utf-8');
     expect(content).toContain('# 사용자 인증');
     expect(content).toContain('REQ-001');
+    // Title must not be duplicated when the body already has an H1
+    expect(content.match(/^# 사용자 인증$/gm)).toHaveLength(1);
+  });
+
+  it('마크다운 기본 출력 파일 확장자는 .md이다', async () => {
+    const result = await executeExport(tempDir, { format: 'markdown', specIds: ['auth'] });
+
+    expect(result.success).toBe(true);
+    expect(result.outputPath).toMatch(/auth\.md$/);
+  });
+
+  it('pdf 등 지원하지 않는 형식은 파일을 쓰지 않고 실패한다', async () => {
+    const result = await executeExport(tempDir, {
+      format: 'pdf' as never,
+      specIds: ['auth'],
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('지원하지 않는 형식');
+    await expect(fs.stat(path.join(tempDir, 'auth.html'))).rejects.toThrow();
+  });
+
+  it('--include-constitution / --include-changes 내용을 포함한다', async () => {
+    await fs.writeFile(
+      path.join(tempDir, '.sdd', 'constitution.md'),
+      '---\nversion: 1.0.0\n---\n\n# Constitution: Test\n\n원칙 본문\n'
+    );
+    const changeDir = path.join(tempDir, '.sdd', 'changes', 'CHG-001');
+    await fs.mkdir(changeDir, { recursive: true });
+    await fs.writeFile(
+      path.join(changeDir, 'proposal.md'),
+      '---\nid: CHG-001\nstatus: proposed\ncreated: 2025-01-01\n---\n\n# 변경 제안: 로그인 개선\n\n제안 본문\n'
+    );
+
+    const mdPath = path.join(tempDir, 'out.md');
+    await executeExport(tempDir, {
+      format: 'markdown',
+      output: mdPath,
+      includeConstitution: true,
+      includeChanges: true,
+    });
+    const md = await fs.readFile(mdPath, 'utf-8');
+    expect(md).toContain('원칙 본문');
+    expect(md).toContain('제안 본문');
+
+    const jsonPath = path.join(tempDir, 'out.json');
+    await executeExport(tempDir, {
+      format: 'json',
+      output: jsonPath,
+      includeConstitution: true,
+      includeChanges: true,
+    });
+    const json = JSON.parse(await fs.readFile(jsonPath, 'utf-8'));
+    expect(json.constitution.content).toContain('원칙 본문');
+    expect(json.changes[0].id).toBe('CHG-001');
+
+    const htmlPath = path.join(tempDir, 'out.html');
+    await executeExport(tempDir, { format: 'html', output: htmlPath, includeConstitution: true });
+    expect(await fs.readFile(htmlPath, 'utf-8')).toContain('원칙 본문');
+  });
+
+  it('constitution.md가 없는데 --include-constitution이면 실패한다', async () => {
+    const result = await executeExport(tempDir, { format: 'json', includeConstitution: true });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('constitution.md');
   });
 
   it('전체 스펙을 내보낸다', async () => {
@@ -207,7 +275,7 @@ describe('formatExportResult', () => {
       size: 1024,
     });
 
-    expect(output).toContain('SDD Export');
+    expect(output).toContain('SDD 내보내기');
     expect(output).toContain('HTML');
     expect(output).toContain('3개');
     expect(output).toContain('/path/to/output.html');

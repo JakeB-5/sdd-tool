@@ -3,7 +3,10 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
-import { registerWatchCommand } from '../../../../src/cli/commands/watch.js';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { registerWatchCommand, findChangedSpecIds } from '../../../../src/cli/commands/watch.js';
 import { ExitCode } from '../../../../src/errors/index.js';
 
 // Mock dependencies
@@ -263,5 +266,37 @@ describe('watch 명령어 실행', () => {
       })
     );
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('디바운스: 500ms'));
+  });
+});
+
+describe('findChangedSpecIds', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-watch-impact-'));
+    await fs.mkdir(path.join(tempDir, '.sdd', 'specs', 'auth', 'login'), { recursive: true });
+    await fs.writeFile(path.join(tempDir, '.sdd', 'specs', 'auth', 'login', 'spec.md'), '# login\n');
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('변경된 spec.md를 스펙 ID로 변환하고 삭제/보조 문서는 제외한다', async () => {
+    const sddPath = path.join(tempDir, '.sdd');
+    const specFile = path.join(sddPath, 'specs', 'auth', 'login', 'spec.md');
+    const planFile = path.join(sddPath, 'specs', 'auth', 'login', 'plan.md');
+    const now = new Date();
+
+    const ids = await findChangedSpecIds(sddPath, [
+      { type: 'change', path: specFile, relativePath: 'auth/login/spec.md', timestamp: now },
+      { type: 'change', path: planFile, relativePath: 'auth/login/plan.md', timestamp: now },
+    ]);
+    expect(ids).toEqual(['auth/login']);
+
+    const none = await findChangedSpecIds(sddPath, [
+      { type: 'unlink', path: specFile, relativePath: 'auth/login/spec.md', timestamp: now },
+    ]);
+    expect(none).toEqual([]);
   });
 });

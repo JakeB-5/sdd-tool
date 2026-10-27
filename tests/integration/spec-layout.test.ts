@@ -128,7 +128,7 @@ describe('spec layout (domain + common)', () => {
   it('export --format json이 canonical id로 충돌 없이 내보낸다', async () => {
     const output = path.join(projectDir, 'all-specs.json');
     await runOk(['export', '--format', 'json', '-o', output], projectDir);
-    const specs = JSON.parse(await fs.readFile(output, 'utf-8'));
+    const { specs } = JSON.parse(await fs.readFile(output, 'utf-8'));
 
     expect(specs.map((s: { id: string }) => s.id)).toEqual(['auth/login', 'common/signup']);
   });
@@ -152,8 +152,8 @@ describe('spec layout (domain + common)', () => {
 
   it('validate --domain auth가 도메인 스펙 1개만 검증한다', async () => {
     const result = await runOk(['validate', '--domain', 'auth'], projectDir);
-    expect(result.stdout).toContain('1 passed');
-    expect(result.stdout).toContain('0 failed');
+    expect(result.stdout).toContain('1개 통과');
+    expect(result.stdout).toContain('0개 실패');
   });
 
   it('validate --orphan-specs가 등록 스펙과 암묵적 common 스펙을 고아로 보지 않는다', async () => {
@@ -172,8 +172,8 @@ describe('spec layout (domain + common)', () => {
 
     const result = await runCli(['validate'], projectDir);
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain('2 passed');
-    expect(result.stdout).toContain('0 failed');
+    expect(result.stdout).toContain('2개 통과');
+    expect(result.stdout).toContain('0개 실패');
   }, 20000);
 
   it('impact가 signup → login 의존과 역방향 엣지를 보이고 순환이 없다', async () => {
@@ -237,7 +237,7 @@ describe('spec layout (legacy flat)', () => {
     expect(report.summary.totalSpecs).toBe(2);
 
     const validate = await runOk(['validate'], projectDir);
-    expect(validate.stdout).toContain('2 passed');
+    expect(validate.stdout).toContain('2개 통과');
 
     const exported = await runCli(['export', 'login', '--json'], projectDir);
     expect(JSON.parse(exported.stdout)).toMatchObject({ success: true, specsExported: 1 });

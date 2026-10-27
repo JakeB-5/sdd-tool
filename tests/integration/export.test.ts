@@ -135,7 +135,7 @@ describe('sdd export', () => {
     const result = await runCli(['export'], tempDir);
 
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain('SDD Export');
+    expect(result.stdout).toContain('SDD 내보내기');
     expect(result.stdout).toContain('HTML');
 
     // 기본 출력 파일 확인 (specs.html)
@@ -166,11 +166,11 @@ describe('sdd export', () => {
       const content = await fs.readFile(outputPath, 'utf-8');
       const json = JSON.parse(content);
 
-      expect(Array.isArray(json)).toBe(true);
-      expect(json.length).toBe(2);
-      expect(json[0]).toHaveProperty('id');
-      expect(json[0]).toHaveProperty('title');
-      expect(json[0]).toHaveProperty('requirements');
+      expect(Array.isArray(json.specs)).toBe(true);
+      expect(json.specs.length).toBe(2);
+      expect(json.specs[0]).toHaveProperty('id');
+      expect(json.specs[0]).toHaveProperty('title');
+      expect(json.specs[0]).toHaveProperty('requirements');
     }
   });
 
@@ -181,7 +181,7 @@ describe('sdd export', () => {
     expect(result.stdout).toContain('MARKDOWN');
 
     // Markdown 파일 확인
-    const outputPath = path.join(tempDir, 'specs.markdown');
+    const outputPath = path.join(tempDir, 'specs.md');
     const exists = await fs.stat(outputPath).then(() => true).catch(() => false);
     expect(exists).toBe(true);
 
@@ -215,7 +215,7 @@ describe('sdd export', () => {
     const content = await fs.readFile(outputPath, 'utf-8');
     const json = JSON.parse(content);
 
-    expect(json.length).toBe(2);
+    expect(json.specs.length).toBe(2);
   });
 
   it('--no-toc 옵션으로 목차를 제외한다', async () => {
@@ -233,11 +233,36 @@ describe('sdd export', () => {
   it('--include-constitution 옵션으로 Constitution을 포함한다', async () => {
     const result = await runCli(['export', '--include-constitution', '--format', 'json'], tempDir);
 
-    expect(result.code).toBe(0);
+    const output = result.stdout + result.stderr;
+    const hasConstitution = await fs
+      .stat(path.join(tempDir, '.sdd', 'constitution.md'))
+      .then(() => true)
+      .catch(() => false);
 
-    // Constitution 포함 옵션이 처리되었는지 확인
-    // (실제 구현에서 Constitution이 어떻게 포함되는지에 따라 검증 방법이 달라질 수 있음)
-    expect(result.stdout).toContain('SDD Export');
+    if (hasConstitution) {
+      expect(result.code).toBe(0);
+      const json = JSON.parse(await fs.readFile(path.join(tempDir, 'specs.json'), 'utf-8'));
+      expect(json.constitution.content.length).toBeGreaterThan(0);
+    } else {
+      expect(result.code).not.toBe(0);
+      expect(output).toContain('constitution.md');
+    }
+  });
+
+  it('지원하지 않는 형식(pdf)은 0이 아닌 종료 코드로 실패한다', async () => {
+    const result = await runCli(['export', '--format', 'pdf'], tempDir);
+
+    expect(result.code).not.toBe(0);
+    expect(result.stderr).toContain('지원하지 않는 형식');
+  });
+
+  it('--json 출력은 순수 JSON이다', async () => {
+    const result = await runCli(['export', '--format', 'json', '--json'], tempDir);
+
+    expect(result.code).toBe(0);
+    const meta = JSON.parse(result.stdout);
+    expect(meta.success).toBe(true);
+    expect(meta.specsExported).toBe(2);
   });
 
   it('내보낼 스펙이 없으면 에러를 반환한다', async () => {

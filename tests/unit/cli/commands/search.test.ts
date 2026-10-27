@@ -2,7 +2,7 @@
  * search 명령어 테스트
  */
 import { describe, it, expect } from 'vitest';
-import { parseSearchCliOptions } from '../../../../src/cli/commands/search.js';
+import { parseSearchCliOptions, SearchOptionError } from '../../../../src/cli/commands/search.js';
 
 describe('parseSearchCliOptions', () => {
   it('쿼리를 파싱한다', () => {
@@ -63,14 +63,27 @@ describe('parseSearchCliOptions', () => {
     expect(result.limit).toBe(10);
   });
 
-  it('잘못된 limit은 무시한다', () => {
-    const result = parseSearchCliOptions(undefined, { limit: 'abc' });
-    expect(result.limit).toBeUndefined();
+  it('잘못된 limit은 에러로 거부한다', () => {
+    expect(() => parseSearchCliOptions(undefined, { limit: 'abc' })).toThrow(SearchOptionError);
+    expect(() => parseSearchCliOptions(undefined, { limit: '5abc' })).toThrow('--limit');
   });
 
-  it('음수 limit은 무시한다', () => {
-    const result = parseSearchCliOptions(undefined, { limit: '-5' });
-    expect(result.limit).toBeUndefined();
+  it('음수 limit은 에러로 거부한다', () => {
+    expect(() => parseSearchCliOptions(undefined, { limit: '-5' })).toThrow(SearchOptionError);
+  });
+
+  it('잘못된 날짜는 에러로 거부한다', () => {
+    expect(() => parseSearchCliOptions(undefined, { createdAfter: 'notadate' })).toThrow(
+      '--created-after'
+    );
+    expect(() => parseSearchCliOptions(undefined, { updatedBefore: '2024-13-45' })).toThrow(
+      SearchOptionError
+    );
+  });
+
+  it('상태 테이블에 없는 상태는 에러로 거부하고 레거시 별칭은 허용한다', () => {
+    expect(() => parseSearchCliOptions(undefined, { status: 'bogus' })).toThrow('bogus');
+    expect(parseSearchCliOptions(undefined, { status: 'specified' }).status).toBe('specified');
   });
 
   it('정렬 기준을 파싱한다', () => {
@@ -78,9 +91,8 @@ describe('parseSearchCliOptions', () => {
     expect(result.sortBy).toBe('created');
   });
 
-  it('잘못된 정렬 기준은 무시한다', () => {
-    const result = parseSearchCliOptions(undefined, { sortBy: 'invalid' });
-    expect(result.sortBy).toBeUndefined();
+  it('잘못된 정렬 기준은 에러로 거부한다', () => {
+    expect(() => parseSearchCliOptions(undefined, { sortBy: 'invalid' })).toThrow(SearchOptionError);
   });
 
   it('정렬 방향을 파싱한다', () => {
@@ -88,9 +100,8 @@ describe('parseSearchCliOptions', () => {
     expect(result.sortOrder).toBe('asc');
   });
 
-  it('잘못된 정렬 방향은 무시한다', () => {
-    const result = parseSearchCliOptions(undefined, { sortOrder: 'invalid' });
-    expect(result.sortOrder).toBeUndefined();
+  it('잘못된 정렬 방향은 에러로 거부한다', () => {
+    expect(() => parseSearchCliOptions(undefined, { sortOrder: 'invalid' })).toThrow(SearchOptionError);
   });
 
   it('정규식 옵션을 파싱한다', () => {

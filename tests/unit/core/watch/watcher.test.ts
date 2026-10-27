@@ -3,7 +3,13 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
-import { SpecWatcher, FileEvent, FileEventType } from '../../../../src/core/watch/watcher.js';
+import path from 'node:path';
+import {
+  SpecWatcher,
+  FileEvent,
+  FileEventType,
+  isIgnoredPath,
+} from '../../../../src/core/watch/watcher.js';
 
 // chokidar 모킹
 vi.mock('chokidar', () => {
@@ -77,11 +83,7 @@ describe('SpecWatcher - 파일 변경 감지', () => {
       expect.objectContaining({
         persistent: true,
         ignoreInitial: true,
-        ignored: expect.arrayContaining([
-          '**/node_modules/**',
-          '**/.git/**',
-          '**/.*',
-        ]),
+        ignored: expect.any(Function),
         awaitWriteFinish: {
           stabilityThreshold: 100,
           pollInterval: 100,
@@ -531,5 +533,40 @@ describe('SpecWatcher - running getter', () => {
 
     // chokidar.watch가 다시 호출되지 않아야 함
     expect((chokidar.watch as any).mock.calls.length).toBe(callCountBeforeSecondStart);
+  });
+
+  it('ready 전에 start()를 두 번 호출해도 감시자를 하나만 만든다', () => {
+    vi.clearAllMocks();
+    const fresh = new SpecWatcher({ specsPath: '/test/specs' });
+
+    fresh.start();
+    fresh.start();
+
+    expect(chokidar.watch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('isIgnoredPath', () => {
+  const root = path.join('/proj', '.sdd', 'specs');
+
+  it('감시 루트 자체(.sdd 하위)는 제외하지 않는다', () => {
+    expect(isIgnoredPath(root, root)).toBe(false);
+    expect(isIgnoredPath(root, path.join(root, 'auth', 'login', 'spec.md'))).toBe(false);
+  });
+
+  it('node_modules, .git, 숨김 파일/디렉토리를 제외한다', () => {
+    expect(isIgnoredPath(root, path.join(root, 'node_modules', 'x.md'))).toBe(true);
+    expect(isIgnoredPath(root, path.join(root, 'auth', '.git', 'HEAD'))).toBe(true);
+    expect(isIgnoredPath(root, path.join(root, 'auth', '.draft.md'))).toBe(true);
+  });
+
+  it('추가 제외 이름을 지원하고 chokidar에 함수로 전달된다', () => {
+    expect(isIgnoredPath(root, path.join(root, 'tmp', 'a.md'), ['tmp'])).toBe(true);
+
+    vi.clearAllMocks();
+    new SpecWatcher({ specsPath: root }).start();
+    const opts = (chokidar.watch as any).mock.calls[0][1];
+    expect(opts.ignored(path.join(root, 'node_modules'))).toBe(true);
+    expect(opts.ignored(path.join(root, 'auth', 'spec.md'))).toBe(false);
   });
 });

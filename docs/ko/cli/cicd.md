@@ -49,13 +49,16 @@ sdd cicd hooks --install
 
 ### check
 
-CI 환경에서 스펙 검증을 수행합니다.
+CI 환경에서 프로젝트 구조를 확인하고 모든 스펙을 검증합니다 (`sdd validate`와 같은 검증).
+검증 실패 시 종료 코드 `2`(VALIDATION_FAILED)로 종료합니다.
 
 ```bash
 sdd cicd check
 sdd cicd check --strict
 sdd cicd check --fail-on-warning
 ```
+
+지원하지 않는 플랫폼/훅 이름을 지정하면 파일을 생성하지 않고 에러로 종료합니다.
 
 ## 옵션
 
@@ -101,7 +104,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: npm ci
       - run: npm install -g sdd-tool
       - run: sdd validate
 ```

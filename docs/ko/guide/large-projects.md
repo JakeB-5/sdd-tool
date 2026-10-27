@@ -188,16 +188,6 @@ sdd validate --changed
 sdd validate --domain auth
 ```
 
-### 캐싱
-
-```yaml
-# .sdd/config.yml
-cache:
-  enabled: true
-  ttl: 3600  # 1시간
-  path: .sdd/.cache/
-```
-
 ### 병렬 처리
 
 ```bash

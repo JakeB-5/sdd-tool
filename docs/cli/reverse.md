@@ -44,8 +44,11 @@ lists, and source files that were not assigned to a domain. Scan does not modify
 
 Globs without a slash match the file name anywhere (`*.test.ts`); globs with a slash match the
 path relative to the scan root (`src/legacy/**`); backslashes are treated as `/`. Hidden
-directories and `node_modules`, `bower_components`, `dist`, `build`, `out`, `target`,
-`coverage`, `vendor`, `__pycache__`, `venv` are skipped.
+directories (e.g. `.next`, `.turbo`) and `node_modules`, `bower_components`, `__pycache__`,
+`venv`, `dist`, `build`, `out`, `coverage` are skipped at any depth (including monorepo
+packages). The ambiguous names `vendor` and `target` are skipped only at the scan root or in a
+directory with a package manifest (`package.json`, `Cargo.toml`, `go.mod`, `composer.json`,
+`pom.xml`, `build.gradle`), so `src/vendor/` is still scanned.
 
 Domains are suggested from the children of `src/`, `lib/`, `packages/`, `modules/` or `apps/`,
 and from any other top-level directory of the scan root (e.g. `app/`). Directory names

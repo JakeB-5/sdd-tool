@@ -218,15 +218,39 @@ describe('sdd cicd', () => {
   });
 
   describe('에러 처리', () => {
-    it('잘못된 플랫폼은 무시하고 기본 설정을 생성한다', async () => {
-      // 잘못된 플랫폼은 무시되고 기본 동작 수행
-      const { stdout } = await execAsync(
+    it('잘못된 플랫폼은 아무것도 쓰지 않고 실패한다', async () => {
+      const result = await execAsync(
         `node "${cliPath}" cicd setup invalid-platform`,
         { cwd: tempDir }
+      ).then(
+        () => ({ code: 0, stdout: '', stderr: '' }),
+        (err: { code?: number; stdout?: string; stderr?: string }) => ({
+          code: err.code ?? 1,
+          stdout: err.stdout ?? '',
+          stderr: err.stderr ?? '',
+        })
       );
 
-      // 에러가 발생하지 않고 기본 동작 수행
-      expect(stdout).toBeDefined();
+      expect(result.code).not.toBe(0);
+      expect(result.stderr).toContain('지원하지 않는 플랫폼');
+      expect(result.stdout).not.toContain('완료');
+      const githubExists = await fs
+        .stat(path.join(tempDir, '.github', 'workflows', 'sdd-validate.yml'))
+        .then(() => true)
+        .catch(() => false);
+      expect(githubExists).toBe(false);
+    });
+
+    it('cicd check는 잘못된 스펙이 있으면 VALIDATION_FAILED(2)로 종료한다', async () => {
+      const specDir = path.join(tempDir, '.sdd', 'specs', 'broken');
+      await fs.mkdir(specDir, { recursive: true });
+      await fs.writeFile(path.join(specDir, 'spec.md'), '# 깨진 스펙\n\n내용 없음\n');
+
+      const code = await execAsync(`node "${cliPath}" cicd check`, { cwd: tempDir }).then(
+        () => 0,
+        (err: { code?: number }) => err.code ?? 1
+      );
+      expect(code).toBe(2);
     });
   });
 });

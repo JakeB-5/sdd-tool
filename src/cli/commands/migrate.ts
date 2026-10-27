@@ -216,6 +216,10 @@ async function runMigrateDocs(
   if (options.dryRun) {
     logger.warn('(dry-run 모드: 실제 파일이 생성되지 않았습니다)');
   }
+
+  if (summary.failed > 0) {
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
 }
 
 /**
@@ -642,6 +646,10 @@ async function runMigrateOpenSpec(
     logger.newline();
     logger.info('실제 마이그레이션을 수행하려면 --dry-run 옵션을 제거하세요.');
   }
+
+  if (data.errors.length > 0) {
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
 }
 
 /**
@@ -715,6 +723,10 @@ async function runMigrateSpecKit(
   if (options.dryRun) {
     logger.newline();
     logger.info('실제 마이그레이션을 수행하려면 --dry-run 옵션을 제거하세요.');
+  }
+
+  if (data.errors.length > 0) {
+    process.exit(ExitCode.GENERAL_ERROR);
   }
 }
 

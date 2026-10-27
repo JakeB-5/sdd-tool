@@ -1,13 +1,17 @@
 /**
  * cicd 명령어 핵심 로직 테스트
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 import {
   registerCicdCommand,
   generateGitHubWorkflow,
   generateGitLabCI,
   generateHookScript,
+  executeCiCheck,
 } from '../../../../src/cli/commands/cicd.js';
 
 describe('registerCicdCommand', () => {
@@ -186,6 +190,58 @@ describe('generateGitLabCI', () => {
     expect(ci).toContain('artifacts:');
     expect(ci).toContain('impact-report.json');
     expect(ci).toContain('expire_in: 1 week');
+  });
+
+  it('JSON 리포트를 dotenv 리포트로 지정하지 않고 프로젝트 의존성을 설치하지 않는다', () => {
+    const ci = generateGitLabCI(false);
+
+    expect(ci).not.toContain('dotenv');
+    expect(ci).not.toContain('npm ci');
+  });
+});
+
+describe('generateGitHubWorkflow 의존성', () => {
+  it('lockfile 없이 동작하도록 npm ci / npm 캐시를 사용하지 않는다', () => {
+    const workflow = generateGitHubWorkflow(false);
+
+    expect(workflow).not.toContain('npm ci');
+    expect(workflow).not.toContain("cache: 'npm'");
+  });
+});
+
+describe('executeCiCheck', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-cicd-check-'));
+    for (const dir of ['specs', 'changes', 'archive', 'templates']) {
+      await fs.mkdir(path.join(tempDir, '.sdd', dir), { recursive: true });
+    }
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('스펙 내용을 실제로 검증하여 잘못된 스펙이 있으면 에러로 보고한다', async () => {
+    const specDir = path.join(tempDir, '.sdd', 'specs', 'broken');
+    await fs.mkdir(specDir, { recursive: true });
+    await fs.writeFile(path.join(specDir, 'spec.md'), '# 깨진 스펙\n\n내용 없음\n');
+
+    const result = await executeCiCheck(tempDir, {});
+
+    expect(result.specsFailed).toBe(1);
+    expect(result.hasErrors).toBe(true);
+  });
+
+  it('스펙이 없으면 에러 없이 통과한다', async () => {
+    const result = await executeCiCheck(tempDir, {});
+
+    expect(result.hasErrors).toBe(false);
+    expect(result.specsFailed).toBe(0);
   });
 });
 

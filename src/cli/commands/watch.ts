@@ -7,9 +7,51 @@ import { Command } from 'commander';
 import path from 'node:path';
 import { createWatcher, FileEvent } from '../../core/watch/index.js';
 import { validateSpecs } from '../../core/spec/index.js';
+import { listSpecs } from '../../core/spec/locator.js';
+import { analyzeImpact } from '../../core/impact/index.js';
 import { findSddRoot } from '../../utils/fs.js';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
+
+/**
+ * 변경 이벤트에서 영향받은 스펙 ID 추출 (삭제 이벤트 제외)
+ */
+export async function findChangedSpecIds(sddPath: string, events: FileEvent[]): Promise<string[]> {
+  const changed = new Set(
+    events.filter((e) => e.type !== 'unlink').map((e) => path.resolve(e.path))
+  );
+  if (changed.size === 0) {
+    return [];
+  }
+  const specs = await listSpecs(sddPath);
+  return specs.filter((s) => changed.has(path.resolve(s.specPath))).map((s) => s.id);
+}
+
+/**
+ * 변경된 스펙의 영향도 요약 출력
+ */
+async function reportImpact(sddPath: string, events: FileEvent[]): Promise<void> {
+  const specIds = await findChangedSpecIds(sddPath, events);
+  if (specIds.length === 0) {
+    return;
+  }
+
+  logger.info('📈 영향도 분석:');
+  for (const specId of specIds) {
+    const result = await analyzeImpact(sddPath, specId);
+    if (!result.success) {
+      logger.warn(`   ${specId}: 영향도 분석 실패 - ${result.error.message}`);
+      continue;
+    }
+    const { riskScore, riskLevel, affectedBy, transitiveAffected } = result.data;
+    logger.info(
+      `   ${specId}: 위험도 ${riskScore}/10 (${riskLevel}), 직접 영향 ${affectedBy.length}개, 간접 영향 ${transitiveAffected.length}개`
+    );
+    for (const affected of affectedBy) {
+      logger.info(`     - ${affected.id}`);
+    }
+  }
+}
 
 /**
  * watch 명령어 등록
@@ -60,6 +102,9 @@ async function runWatch(options: {
   logger.info(`   경로: ${specsPath}`);
   logger.info(`   디바운스: ${debounceMs}ms`);
   logger.info(`   검증: ${options.validate !== false ? '활성화' : '비활성화'}`);
+  if (options.impact) {
+    logger.info('   영향도 분석: 활성화');
+  }
   logger.newline();
   logger.info('파일 변경을 감시 중... (Ctrl+C로 종료)');
   logger.newline();
@@ -71,6 +116,7 @@ async function runWatch(options: {
 
   let validationCount = 0;
   let errorCount = 0;
+  let impactRunning = false;
 
   watcher.on('change', async (events: FileEvent[]) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -105,19 +151,20 @@ async function runWatch(options: {
 
       if (result.success) {
         const data = result.data;
-        const hasErrors = data.files.some((r: { errors: unknown[] }) => r.errors.length > 0);
-        const hasWarnings = data.files.some((r: { warnings: unknown[] }) => r.warnings.length > 0);
+        const hasErrors = data.files.some((r) => r.errors.length > 0);
+        const hasWarnings = data.files.some((r) => r.warnings.length > 0);
 
         if (hasErrors) {
           errorCount++;
-          logger.error(`❌ 검증 실패: ${data.failed}개 에러, ${data.warnings}개 경고`);
+          logger.error(`❌ 검증 실패: ${data.failed}개 스펙 실패, ${data.warnings}개 경고`);
 
           // 에러 상세 표시
           for (const specResult of data.files) {
             if (specResult.errors.length > 0) {
-              logger.error(`   ${specResult.file}:`);
+              logger.error(`   ${path.relative(specsPath, specResult.file)}:`);
               for (const err of specResult.errors) {
-                logger.error(`     - ${err}`);
+                const line = err.location?.line ? ` (${err.location.line}행)` : '';
+                logger.error(`     - ${err.message}${line}`);
               }
             }
           }
@@ -135,6 +182,23 @@ async function runWatch(options: {
         logger.error(`❌ 검증 오류: ${result.error.message}`);
       }
 
+      logger.newline();
+    }
+
+    if (options.impact) {
+      // Skip when a previous analysis is still running; the next change re-triggers it
+      if (impactRunning) {
+        logger.warn('이전 영향도 분석이 진행 중이어서 이번 변경의 분석을 건너뜁니다.');
+      } else {
+        impactRunning = true;
+        try {
+          await reportImpact(sddPath, events);
+        } catch (error) {
+          logger.error(`영향도 분석 오류: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+          impactRunning = false;
+        }
+      }
       logger.newline();
     }
   });
@@ -159,7 +223,7 @@ async function runWatch(options: {
     logger.info(`   검증 실행: ${validationCount}회`);
     logger.info(`   에러 발생: ${errorCount}회`);
 
-    process.exit(0);
+    process.exit(ExitCode.SUCCESS);
   };
 
   process.on('SIGINT', cleanup);

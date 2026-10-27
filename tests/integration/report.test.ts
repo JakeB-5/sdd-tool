@@ -100,6 +100,14 @@ describe('sdd report', () => {
       const parsed = JSON.parse(content);
       expect(parsed).toBeDefined();
     });
+
+    it('-o 없이 --format json이면 stdout은 순수 JSON이다', async () => {
+      await execAsync(`node "${cliPath}" new json-stdout --no-branch`, { cwd: tempDir });
+
+      const { stdout } = await execAsync(`node "${cliPath}" report --format json`, { cwd: tempDir });
+
+      expect(() => JSON.parse(stdout)).not.toThrow();
+    });
   });
 
   describe('-o 옵션', () => {

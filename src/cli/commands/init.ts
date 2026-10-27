@@ -43,6 +43,43 @@ export interface InitResult {
   files: string[];
   /** 이전 버전이 만든, 더 이상 생성하지 않는 Claude 파일 (경고용, 삭제하지 않음) */
   staleFiles: string[];
+  /** 내용이 달라 덮어쓰기 전에 백업한 파일 (`<file>.bak`, `<file>.1.bak`…, 프로젝트 기준 상대 경로) */
+  backups: string[];
+}
+
+/**
+ * 기존 백업을 덮어쓰지 않는 백업 경로 (`<file>.bak`, `<file>.1.bak`, `<file>.2.bak`…)
+ */
+async function nextBackupPath(relativePath: string, projectPath: string): Promise<string> {
+  let candidate = `${relativePath}.bak`;
+  for (let i = 1; await fileExists(path.join(projectPath, candidate)); i++) {
+    candidate = `${relativePath}.${i}.bak`;
+  }
+  return candidate;
+}
+
+/**
+ * 생성 파일 쓰기 (기존 파일 내용이 다르면 백업 후 덮어쓰기)
+ */
+async function writeGeneratedFile(
+  projectPath: string,
+  relativePath: string,
+  content: string,
+  backups: string[]
+): Promise<void> {
+  const filePath = path.join(projectPath, relativePath);
+  if (await fileExists(filePath)) {
+    const existing = await readFile(filePath);
+    if (existing.success && existing.data !== content) {
+      const backupPath = await nextBackupPath(relativePath, projectPath);
+      const backupResult = await writeFile(path.join(projectPath, backupPath), existing.data);
+      if (!backupResult.success) {
+        throw new Error(`백업 실패: ${backupPath}`);
+      }
+      backups.push(backupPath);
+    }
+  }
+  await writeFile(filePath, content);
 }
 
 /**
@@ -376,41 +413,50 @@ export async function executeInit(
   }
 
   const createdFiles: string[] = [];
+  const backups: string[] = [];
+  // User-editable .sdd files are backed up before being overwritten;
+  // tool-owned .claude skills/commands are regenerated in place
+  const write = async (relativePath: string, content: string, backup = true): Promise<void> => {
+    if (backup) {
+      await writeGeneratedFile(projectPath, relativePath, content, backups);
+    } else {
+      await writeFile(path.join(projectPath, relativePath), content);
+    }
+    createdFiles.push(relativePath);
+  };
 
   // 기본 파일 생성
   const projectName = path.basename(projectPath);
 
   // constitution.md
-  const constitutionContent = generateConstitutionContent(projectName);
-  await writeFile(path.join(sddPath, 'constitution.md'), constitutionContent);
-  createdFiles.push('.sdd/constitution.md');
+  await write('.sdd/constitution.md', generateConstitutionContent(projectName));
 
   // AGENTS.md
-  const agentsContent = generateAgentsMd({ projectName });
-  await writeFile(path.join(sddPath, 'AGENTS.md'), agentsContent);
-  createdFiles.push('.sdd/AGENTS.md');
+  await write('.sdd/AGENTS.md', generateAgentsMd({ projectName }));
 
   // domains.yml (--with-domains 옵션 사용 시)
   if (options.withDomains) {
-    const domainsContent = generateDomainsYaml();
-    await writeFile(path.join(sddPath, 'domains.yml'), domainsContent);
-    createdFiles.push('.sdd/domains.yml');
+    await write('.sdd/domains.yml', generateDomainsYaml());
   }
 
   // 템플릿 파일 생성
-  const templateFiles = await createTemplateFiles(projectPath);
-  createdFiles.push(...templateFiles);
+  await write('.sdd/templates/spec.md', generateSpecTemplate());
+  await write('.sdd/templates/proposal.md', generateProposalTemplate());
+  await write('.sdd/templates/delta.md', generateDeltaTemplate());
+  await write('.sdd/templates/tasks.md', generateTasksTemplate());
 
   // Claude 스킬 생성 (기본, --no-skills 로 제외 가능)
   if (options.skills !== false) {
-    const claudeSkillFiles = await createClaudeSkillFiles(projectPath);
-    createdFiles.push(...claudeSkillFiles);
+    for (const skill of generateClaudeSkills()) {
+      await write(`.claude/skills/${skill.name}/SKILL.md`, serializeSkill(skill), false);
+    }
   }
 
   // 레거시 슬래시 커맨드 생성 (--legacy-commands 사용 시에만)
   if (options.legacyCommands) {
-    const commandFiles = await createCommandFiles(projectPath);
-    createdFiles.push(...commandFiles);
+    for (const cmd of generateClaudeCommands()) {
+      await write(`.claude/commands/${cmd.name}.md`, cmd.content, false);
+    }
   }
 
   // 루트 CLAUDE.md 가 .sdd/AGENTS.md 를 import 하도록 보장 (사용자 내용 보존)
@@ -428,68 +474,8 @@ export async function executeInit(
     directories: createdDirs,
     files: createdFiles,
     staleFiles: await findStaleClaudeFiles(projectPath, options.legacyCommands),
+    backups,
   });
-}
-
-/**
- * 템플릿 파일 생성
- */
-async function createTemplateFiles(projectPath: string): Promise<string[]> {
-  const templatesPath = path.join(projectPath, '.sdd', 'templates');
-  const files: string[] = [];
-
-  // spec.md 템플릿
-  await writeFile(path.join(templatesPath, 'spec.md'), generateSpecTemplate());
-  files.push('.sdd/templates/spec.md');
-
-  // 기타 템플릿 파일들도 생성
-  await writeFile(path.join(templatesPath, 'proposal.md'), generateProposalTemplate());
-  files.push('.sdd/templates/proposal.md');
-
-  await writeFile(path.join(templatesPath, 'delta.md'), generateDeltaTemplate());
-  files.push('.sdd/templates/delta.md');
-
-  await writeFile(path.join(templatesPath, 'tasks.md'), generateTasksTemplate());
-  files.push('.sdd/templates/tasks.md');
-
-  return files;
-}
-
-/**
- * Claude 커맨드 파일 생성
- */
-async function createCommandFiles(projectPath: string): Promise<string[]> {
-  const commandsPath = path.join(projectPath, '.claude', 'commands');
-  const files: string[] = [];
-
-  const commands = generateClaudeCommands();
-  for (const cmd of commands) {
-    await writeFile(path.join(commandsPath, `${cmd.name}.md`), cmd.content);
-    files.push(`.claude/commands/${cmd.name}.md`);
-  }
-
-  return files;
-}
-
-/**
- * Claude Code 스킬 파일 생성 (sdd-* 워크플로우 스킬).
- *
- * Writes each English skill definition to `.claude/skills/<name>/SKILL.md`
- * with its frontmatter (description, argument-hint, allowed-tools, ...).
- */
-async function createClaudeSkillFiles(projectPath: string): Promise<string[]> {
-  const skillsPath = path.join(projectPath, '.claude', 'skills');
-  const files: string[] = [];
-
-  const skills = generateClaudeSkills();
-  for (const skill of skills) {
-    const skillDir = path.join(skillsPath, skill.name);
-    await ensureDir(skillDir);
-    await writeFile(path.join(skillDir, 'SKILL.md'), serializeSkill(skill));
-    files.push(`.claude/skills/${skill.name}/SKILL.md`);
-  }
-
-  return files;
 }
 
 /**
@@ -806,11 +792,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
-
+      # Only the global CLI is needed; project dependencies (and a lockfile) are not required
       - name: Install SDD Tool
         run: npm install -g sdd-tool
 
@@ -976,6 +959,14 @@ async function runInit(options: InitOptions): Promise<void> {
   if (options.legacyCommands) {
     logger.newline();
     logger.info('레거시 슬래시 커맨드가 .claude/commands/ 에 생성되었습니다 (/sdd.*).');
+  }
+  if (result.data.backups.length > 0) {
+    logger.newline();
+    logger.warn('기존 파일 내용이 달라 덮어쓰기 전에 백업했습니다:');
+    for (const backup of result.data.backups) {
+      logger.listItem(`${backup.replace(/(\.\d+)?\.bak$/, '')} → ${backup}`);
+    }
+    logger.info('확인 후 *.bak 파일은 삭제해도 됩니다 (커밋하지 마세요. .gitignore에 .sdd/**/*.bak 추가 권장).');
   }
   if (result.data.staleFiles.length > 0) {
     logger.newline();

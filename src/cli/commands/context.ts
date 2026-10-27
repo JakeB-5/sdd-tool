@@ -85,6 +85,19 @@ export async function executeContextRemove(domainId: string, projectPath?: strin
   }
 
   const manager = createContextManager(root);
+  const current = await manager.get();
+  if (!current.success) {
+    return current;
+  }
+  if (!current.data.activeDomains.includes(domainId)) {
+    const active = current.data.activeDomains;
+    return failure(
+      new Error(
+        `도메인 "${domainId}"은(는) 현재 컨텍스트에 없습니다.` +
+          (active.length > 0 ? ` (활성 도메인: ${active.join(', ')})` : '')
+      )
+    );
+  }
   return manager.removeDomain(domainId);
 }
 

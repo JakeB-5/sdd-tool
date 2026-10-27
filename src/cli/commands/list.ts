@@ -133,7 +133,9 @@ export async function getChangeList(
   if (!options.archived) {
     const pendingResult = await listPendingChanges(sddPath);
     if (pendingResult.success) {
-      result.pending = pendingResult.data.map(c => String(c));
+      result.pending = pendingResult.data.map(c =>
+        c.title ? `${c.id}: ${c.title} [${c.status}]` : `${c.id} [${c.status}]`
+      );
     }
   }
 

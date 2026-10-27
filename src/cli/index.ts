@@ -28,10 +28,19 @@ import { registerGitCommand } from './commands/git.js';
 import { registerDomainCommand } from './commands/domain.js';
 import { registerContextCommand } from './commands/context.js';
 import { registerReverseCommand } from './commands/reverse.js';
-import { registerCacheCommand } from './commands/cache.js';
+import { setJsonMode } from '../utils/logger.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
+
+/**
+ * 명령어가 stdout으로 JSON을 출력하는지 판단
+ *
+ * `--json` (on the command or any parent), or `--format json` without `--output`.
+ */
+export function isJsonOutput(opts: Record<string, unknown>): boolean {
+  return opts.json === true || (opts.format === 'json' && !opts.output);
+}
 
 /**
  * 모든 명령어가 등록된 commander 프로그램 생성 (부수 효과 없음, 테스트 가능)
@@ -43,6 +52,11 @@ export function createProgram(): Command {
     .name('sdd')
     .description(pkg.description)
     .version(pkg.version);
+
+  // Keep stdout pure JSON when a command emits JSON: human logs go to stderr
+  program.hook('preAction', (_thisCommand, actionCommand) => {
+    setJsonMode(isJsonOutput(actionCommand.optsWithGlobals()));
+  });
 
   // Commands
   registerInitCommand(program);
@@ -70,7 +84,6 @@ export function createProgram(): Command {
   registerDomainCommand(program);
   registerContextCommand(program);
   registerReverseCommand(program);
-  registerCacheCommand(program);
 
   return program;
 }

@@ -44,8 +44,11 @@ export interface ProjectQualityResult {
   averageScore: number;
   averagePercentage: number;
   grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  /** All specs found, including those that failed to analyze */
   totalSpecs: number;
   specResults: QualityResult[];
+  /** Specs that could not be analyzed; counted as 0% in the averages */
+  failedSpecs: Array<{ specPath: string; error: string }>;
   summary: string;
 }
 
@@ -484,10 +487,13 @@ export async function analyzeProjectQuality(
 
     // 각 스펙 분석
     const specResults: QualityResult[] = [];
+    const failedSpecs: ProjectQualityResult['failedSpecs'] = [];
     for (const specFile of specFiles) {
       const result = await analyzeSpecQuality(specFile, sddPath);
       if (result.success) {
         specResults.push(result.data);
+      } else {
+        failedSpecs.push({ specPath: specFile, error: result.error.message });
       }
     }
 
@@ -495,22 +501,25 @@ export async function analyzeProjectQuality(
       return failure(new ChangeError('분석 가능한 스펙이 없습니다.'));
     }
 
-    // 평균 점수 계산
+    // 평균 점수 계산 (분석 실패 스펙은 0점으로 포함해 평균이 부풀려지지 않도록 함)
+    const totalSpecs = specResults.length + failedSpecs.length;
     const totalPercentage = specResults.reduce((sum, r) => sum + r.percentage, 0);
-    const averagePercentage = Math.round(totalPercentage / specResults.length);
+    const averagePercentage = Math.round(totalPercentage / totalSpecs);
     const averageScore = Math.round(
-      specResults.reduce((sum, r) => sum + r.totalScore, 0) / specResults.length
+      specResults.reduce((sum, r) => sum + r.totalScore, 0) / totalSpecs
     );
     const grade = getGrade(averagePercentage);
 
-    const summary = `프로젝트 품질: 평균 ${averagePercentage}% (등급: ${grade}), ${specResults.length}개 스펙 분석`;
+    const failedNote = failedSpecs.length > 0 ? `, ${failedSpecs.length}개 분석 실패(0점 처리)` : '';
+    const summary = `프로젝트 품질: 평균 ${averagePercentage}% (등급: ${grade}), ${specResults.length}개 스펙 분석${failedNote}`;
 
     return success({
       averageScore,
       averagePercentage,
       grade,
-      totalSpecs: specResults.length,
+      totalSpecs,
       specResults,
+      failedSpecs,
       summary,
     });
   } catch (error) {
@@ -573,7 +582,10 @@ export function formatProjectQualityResult(result: ProjectQualityResult): string
 
   lines.push('📊 프로젝트 품질 분석');
   lines.push(`   ${gradeIcon} 평균 등급: ${result.grade} (${result.averagePercentage}%)`);
-  lines.push(`   📈 분석된 스펙: ${result.totalSpecs}개`);
+  lines.push(`   📈 분석된 스펙: ${result.specResults.length}개 / 전체 ${result.totalSpecs}개`);
+  if (result.failedSpecs.length > 0) {
+    lines.push(`   ⚠️  분석 실패: ${result.failedSpecs.length}개 (평균에 0점으로 포함)`);
+  }
   lines.push('');
 
   // 등급별 분포
@@ -599,6 +611,14 @@ export function formatProjectQualityResult(result: ProjectQualityResult): string
                  spec.grade === 'C' ? '🟡' :
                  spec.grade === 'D' ? '🟠' : '🔴';
     lines.push(`   ${icon} ${spec.specId}: ${spec.percentage}% (${spec.grade})`);
+  }
+
+  if (result.failedSpecs.length > 0) {
+    lines.push('');
+    lines.push('❌ 분석 실패 스펙:');
+    for (const failed of result.failedSpecs) {
+      lines.push(`   - ${failed.specPath}: ${failed.error}`);
+    }
   }
 
   return lines.join('\n');

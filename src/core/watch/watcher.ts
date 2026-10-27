@@ -28,7 +28,32 @@ export interface FileEvent {
 export interface WatchOptions {
   specsPath: string;
   debounceMs?: number;
+  /** Extra file/directory names to ignore (matched against path segments) */
   ignored?: string[];
+}
+
+const DEFAULT_IGNORED_SEGMENTS = ['node_modules', '.git'];
+
+/**
+ * 감시 제외 경로 여부
+ *
+ * chokidar 4+ no longer accepts glob strings in `ignored`, so matching is done on
+ * path segments relative to the watched root (the root itself, e.g. `.sdd/specs`,
+ * is never ignored even though `.sdd` is a dot-directory).
+ */
+export function isIgnoredPath(
+  specsPath: string,
+  filePath: string,
+  extraIgnored: string[] = []
+): boolean {
+  const relative = path.relative(specsPath, filePath);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+    return false;
+  }
+  const ignoredNames = new Set([...DEFAULT_IGNORED_SEGMENTS, ...extraIgnored]);
+  return relative
+    .split(path.sep)
+    .some((segment) => ignoredNames.has(segment) || segment.startsWith('.'));
 }
 
 /**
@@ -49,31 +74,28 @@ export class SpecWatcher extends EventEmitter {
   private debounceTimer: NodeJS.Timeout | null = null;
   private pendingEvents: FileEvent[] = [];
   private isRunning = false;
+  private extraIgnored: string[];
 
   constructor(options: WatchOptions) {
     super();
     this.specsPath = options.specsPath;
     this.debounceMs = options.debounceMs ?? 500;
+    this.extraIgnored = options.ignored ?? [];
   }
 
   /**
    * 감시 시작
    */
   start(): void {
-    if (this.isRunning) {
+    // Guard on the watcher instance: isRunning only flips on 'ready'
+    if (this.watcher) {
       return;
     }
-
-    const ignored = [
-      '**/node_modules/**',
-      '**/.git/**',
-      '**/.*',
-    ];
 
     this.watcher = chokidar.watch(this.specsPath, {
       persistent: true,
       ignoreInitial: true,
-      ignored,
+      ignored: (filePath: string) => isIgnoredPath(this.specsPath, filePath, this.extraIgnored),
       awaitWriteFinish: {
         stabilityThreshold: 100,
         pollInterval: 100,

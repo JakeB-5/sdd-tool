@@ -154,6 +154,19 @@ describe('getChangeList', () => {
     expect(result.pending).toEqual([]);
     expect(result.archived).toEqual([]);
   });
+
+  it('대기 중인 변경을 id/제목/상태로 표시한다', async () => {
+    const changeDir = path.join(sddPath, 'changes', 'CHG-001');
+    await fs.mkdir(changeDir, { recursive: true });
+    await fs.writeFile(
+      path.join(changeDir, 'proposal.md'),
+      '---\nid: CHG-001\nstatus: proposed\ncreated: 2025-01-01\n---\n\n# 변경 제안: 로그인 개선\n'
+    );
+
+    const result = await getChangeList(tempDir, { pending: true });
+    expect(result.pending).toEqual(['CHG-001: 로그인 개선 [proposed]']);
+    expect(result.pending.join('')).not.toContain('[object Object]');
+  });
 });
 
 describe('getSpecFileTree', () => {

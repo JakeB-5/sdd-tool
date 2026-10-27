@@ -13,8 +13,8 @@ import { ExitCode } from '../../errors/index.js';
  */
 export function registerPromptCommand(program: Command): void {
   program
-    .command('prompt [command]')
-    .description('SDD 워크플로우 단계별 프롬프트를 출력합니다')
+    .command('prompt [name]')
+    .description('SDD 워크플로우 단계별 프롬프트를 출력합니다 (목록: sdd prompt --list)')
     .option('-l, --list', '사용 가능한 프롬프트 목록')
     .action(async (command: string | undefined, options: { list?: boolean }) => {
       try {
@@ -51,8 +51,9 @@ async function runPrompt(
   // 프롬프트 출력
   const prompt = getPrompt(command);
   if (!prompt) {
-    logger.error(`알 수 없는 명령어: ${command}`);
-    logger.info('사용 가능한 명령어: ' + getAvailableCommands().join(', '));
+    logger.error(
+      `알 수 없는 프롬프트: ${command} (사용 가능한 프롬프트: ${getAvailableCommands().join(', ')})`
+    );
     process.exit(ExitCode.GENERAL_ERROR);
   }
 

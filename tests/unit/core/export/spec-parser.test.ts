@@ -131,6 +131,29 @@ dependencies: auth, database
       expect(spec.dependencies).toContain('auth');
       expect(spec.dependencies).toContain('database');
     });
+
+    it('요구사항 설명에서 RFC 키워드 표기만 제거하고 (API) 같은 괄호는 유지한다', async () => {
+      const specDir = path.join(specsDir, 'api');
+      await fs.mkdir(specDir);
+      await fs.writeFile(
+        path.join(specDir, 'spec.md'),
+        `---
+id: api
+---
+
+### REQ-001: 공개 API
+
+시스템은 공개 (API) 엔드포인트를 REST (HTTP) 로 제공해야 한다(SHALL).
+`
+      );
+
+      const spec = await parseSpecFile(path.join(specDir, 'spec.md'), 'api');
+
+      expect(spec.requirements[0].keyword).toBe('SHALL');
+      expect(spec.requirements[0].description).toContain('(API)');
+      expect(spec.requirements[0].description).toContain('(HTTP)');
+      expect(spec.requirements[0].description).not.toContain('(SHALL)');
+    });
   });
 
   describe('parseAllSpecs', () => {

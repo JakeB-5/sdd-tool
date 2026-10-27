@@ -32,7 +32,7 @@ sdd prompt $ARGUMENTS
 
 ## Options
 
-- \`sdd prompt --list\`: List all available prompts
+- \`sdd prompt --list\`: List all available prompts (exactly the names above; any other name is rejected)
 
 Output the prompt content and explain how to use it.
 `,

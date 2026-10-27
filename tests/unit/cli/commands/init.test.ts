@@ -209,6 +209,48 @@ describe('executeInit', () => {
     expect(result.success).toBe(true);
   });
 
+  it('force로 덮어쓸 때 내용이 다른 constitution.md를 .bak으로 백업하고 보고한다', async () => {
+    await executeInit(tempDir, {});
+    const constitutionPath = path.join(tempDir, '.sdd', 'constitution.md');
+    await fs.writeFile(constitutionPath, '# 사용자 원칙\n');
+
+    const result = await executeInit(tempDir, { force: true });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.backups).toEqual(['.sdd/constitution.md.bak']);
+    expect(await fs.readFile(`${constitutionPath}.bak`, 'utf-8')).toBe('# 사용자 원칙\n');
+    expect(await fs.readFile(constitutionPath, 'utf-8')).toContain('# Constitution:');
+  });
+
+  it('두 번째 force에서도 기존 .bak을 덮어쓰지 않는다', async () => {
+    await executeInit(tempDir, {});
+    const constitutionPath = path.join(tempDir, '.sdd', 'constitution.md');
+    await fs.writeFile(constitutionPath, '# 첫 번째 수정\n');
+    await executeInit(tempDir, { force: true });
+    await fs.writeFile(constitutionPath, '# 두 번째 수정\n');
+
+    const result = await executeInit(tempDir, { force: true });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.backups).toEqual(['.sdd/constitution.md.1.bak']);
+    expect(await fs.readFile(`${constitutionPath}.bak`, 'utf-8')).toBe('# 첫 번째 수정\n');
+    expect(await fs.readFile(path.join(tempDir, '.sdd', 'constitution.md.1.bak'), 'utf-8')).toBe(
+      '# 두 번째 수정\n'
+    );
+  });
+
+  it('내용이 같은 파일은 백업하지 않는다', async () => {
+    await executeInit(tempDir, {});
+    const result = await executeInit(tempDir, { force: true });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.backups).toEqual([]);
+    }
+  });
+
   it('템플릿 파일을 생성한다', async () => {
     await executeInit(tempDir, {});
 

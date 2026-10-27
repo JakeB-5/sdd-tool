@@ -170,4 +170,39 @@ describe('logger', () => {
       expect(consoleLogSpy).toHaveBeenCalledWith();
     });
   });
+
+  describe('기호 중복 방지', () => {
+    it('메시지가 이미 기호로 시작하면 접두사를 붙이지 않는다', () => {
+      logger.success('✅ 완료');
+      logger.info('✅ 생성됨');
+      logger.error('✗ 실패');
+      logger.listItem('○ 대기');
+
+      const logs = consoleLogSpy.mock.calls.map((c) => String(c[0]));
+      expect(logs[0]).not.toContain('✓');
+      expect(logs[1]).not.toContain('ℹ');
+      expect(logs[2]).toBe('○ 대기');
+      expect(String(consoleErrorSpy.mock.calls[0][0])).not.toMatch(/✗.*✗/);
+    });
+  });
+
+  describe('setJsonMode', () => {
+    afterEach(() => {
+      logger.setJsonMode(false);
+    });
+
+    it('JSON 모드에서는 사람용 로그를 stderr로 보낸다', () => {
+      logger.setJsonMode(true);
+      logger.info('info');
+      logger.success('success');
+      logger.warn('warn');
+      logger.title('title');
+      logger.listItem('item');
+      logger.newline();
+
+      expect(consoleLogSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      expect(logger.isJsonMode()).toBe(true);
+    });
+  });
 });

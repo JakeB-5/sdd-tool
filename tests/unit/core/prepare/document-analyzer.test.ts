@@ -127,6 +127,31 @@ status: draft
       expect(allKeywords).toContain('doc');
       expect(allKeywords).toContain('review');
     });
+
+    it('단어 경계 없이 부분 문자열로 오탐하지 않는다', async () => {
+      const featureDir = path.join(specsDir, 'boundary-test');
+      await fs.mkdir(featureDir);
+      await fs.writeFile(
+        path.join(featureDir, 'tasks.md'),
+        `# Tasks
+
+- [ ] Handle the latest request payload
+- [ ] Add REST endpoints and unit tests
+`
+      );
+
+      const analyzer = new DocumentAnalyzer(tempDir);
+      const results = await analyzer.analyzeFeature('boundary-test');
+      const lines = results.flatMap(r => r.lines);
+
+      const requestLine = lines.find(l => l.content.includes('latest request'));
+      expect(requestLine?.keywords ?? []).not.toContain('api');
+      expect(requestLine?.keywords ?? []).not.toContain('test');
+
+      const restLine = lines.find(l => l.content.includes('REST'));
+      expect(restLine?.keywords).toContain('api');
+      expect(restLine?.keywords).toContain('test');
+    });
   });
 
   describe('toDetectionSources', () => {

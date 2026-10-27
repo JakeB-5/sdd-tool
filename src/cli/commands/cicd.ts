@@ -8,16 +8,29 @@ import path from 'node:path';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
 import { findSddRoot, ensureDir, writeFile, fileExists, directoryExists } from '../../utils/fs.js';
+import { validateSpecs } from '../../core/spec/validator.js';
 
 /**
- * CI 플랫폼 유형
+ * 지원하는 CI 플랫폼
  */
-type CIPlatform = 'github' | 'gitlab' | 'all';
+export const CI_PLATFORMS = ['github', 'gitlab', 'all'] as const;
+type CIPlatform = (typeof CI_PLATFORMS)[number];
 
 /**
- * 훅 유형
+ * 지원하는 훅 유형
  */
-type HookType = 'pre-commit' | 'pre-push' | 'commit-msg';
+export const HOOK_TYPES = ['pre-commit', 'pre-push', 'commit-msg'] as const;
+type HookType = (typeof HOOK_TYPES)[number];
+
+/**
+ * CI 체크 결과
+ */
+export interface CiCheckResult {
+  hasErrors: boolean;
+  hasWarnings: boolean;
+  specsPassed: number;
+  specsFailed: number;
+}
 
 /**
  * cicd 명령어 등록
@@ -30,11 +43,16 @@ export function registerCicdCommand(program: Command): void {
   // setup 서브커맨드 - CI 설정
   cicd
     .command('setup [platform]')
-    .description('CI 워크플로우 파일을 생성합니다')
+    .description(`CI 워크플로우 파일을 생성합니다 (${CI_PLATFORMS.join(', ')})`)
     .option('--strict', '엄격 모드 (경고도 에러로 처리)')
-    .action(async (platform: CIPlatform | undefined, options: { strict?: boolean }) => {
+    .action(async (platform: string | undefined, options: { strict?: boolean }) => {
       try {
-        await runSetup(platform || 'github', options);
+        const target = platform || 'github';
+        if (!(CI_PLATFORMS as readonly string[]).includes(target)) {
+          logger.error(`지원하지 않는 플랫폼입니다: ${target} (사용 가능: ${CI_PLATFORMS.join(', ')})`);
+          process.exit(ExitCode.GENERAL_ERROR);
+        }
+        await runSetup(target as CIPlatform, options);
       } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
         process.exit(ExitCode.GENERAL_ERROR);
@@ -46,9 +64,13 @@ export function registerCicdCommand(program: Command): void {
     .command('hooks [type]')
     .description('Git hooks를 설정합니다')
     .option('--install', 'husky 설치 포함')
-    .action(async (type: HookType | undefined, options: { install?: boolean }) => {
+    .action(async (type: string | undefined, options: { install?: boolean }) => {
       try {
-        await runHooksSetup(type, options);
+        if (type && !(HOOK_TYPES as readonly string[]).includes(type)) {
+          logger.error(`지원하지 않는 훅입니다: ${type} (사용 가능: ${HOOK_TYPES.join(', ')})`);
+          process.exit(ExitCode.GENERAL_ERROR);
+        }
+        await runHooksSetup(type as HookType | undefined, options);
       } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
         process.exit(ExitCode.GENERAL_ERROR);
@@ -63,7 +85,15 @@ export function registerCicdCommand(program: Command): void {
     .option('--fail-on-warning', '경고 시 실패')
     .action(async (options: { strict?: boolean; failOnWarning?: boolean }) => {
       try {
-        await runCiCheck(options);
+        const projectRoot = await findSddRoot();
+        if (!projectRoot) {
+          logger.error('SDD 프로젝트를 찾을 수 없습니다.');
+          process.exit(ExitCode.GENERAL_ERROR);
+        }
+        const result = await executeCiCheck(projectRoot, options);
+        if (result.hasErrors || (result.hasWarnings && options.failOnWarning)) {
+          process.exit(ExitCode.VALIDATION_FAILED);
+        }
       } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
         process.exit(ExitCode.GENERAL_ERROR);
@@ -166,11 +196,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
-
+      # Only the global CLI is needed; project dependencies (and a lockfile) are not required
       - name: Install SDD Tool
         run: npm install -g sdd-tool
 
@@ -284,15 +311,12 @@ sdd:validate:
       changes:
         - .sdd/**/*
   before_script:
-    - npm ci
     - npm install -g sdd-tool
   script:
     - sdd validate${strictFlag}
     - sdd constitution validate
     - sdd impact report --json > impact-report.json
   artifacts:
-    reports:
-      dotenv: impact-report.json
     paths:
       - impact-report.json
     expire_in: 1 week
@@ -409,15 +433,12 @@ fi
 }
 
 /**
- * CI 체크 실행
+ * CI 체크 실행 (테스트 가능, 종료 코드는 호출자가 결정)
  */
-async function runCiCheck(options: { strict?: boolean; failOnWarning?: boolean }): Promise<void> {
-  const projectRoot = await findSddRoot();
-  if (!projectRoot) {
-    logger.error('SDD 프로젝트를 찾을 수 없습니다.');
-    process.exit(ExitCode.GENERAL_ERROR);
-  }
-
+export async function executeCiCheck(
+  projectRoot: string,
+  options: { strict?: boolean; failOnWarning?: boolean }
+): Promise<CiCheckResult> {
   logger.info('🔍 CI 검증 시작...');
   logger.newline();
 
@@ -462,18 +483,55 @@ async function runCiCheck(options: { strict?: boolean; failOnWarning?: boolean }
     }
   }
 
+  // 4. 스펙 검증
+  logger.info('4. 스펙 검증...');
+  let specsPassed = 0;
+  let specsFailed = 0;
+  if (await directoryExists(specsPath)) {
+    const validation = await validateSpecs(specsPath, {
+      strict: options.strict,
+      checkConstitution: await fileExists(constitutionPath),
+      sddRoot: projectRoot,
+    });
+    if (validation.success) {
+      specsPassed = validation.data.passed;
+      specsFailed = validation.data.failed;
+      for (const file of validation.data.files) {
+        const relativePath = path.relative(specsPath, file.file);
+        if (!file.valid) {
+          logger.error(`   ❌ ${relativePath}`);
+          for (const err of file.errors) {
+            logger.error(`      - ${err.message}`);
+          }
+        }
+      }
+      if (specsFailed > 0) {
+        hasErrors = true;
+      }
+      if (validation.data.warnings > 0) {
+        hasWarnings = true;
+      }
+      logger.info(`   스펙 ${specsPassed}개 통과, ${specsFailed}개 실패, 경고 ${validation.data.warnings}개`);
+    } else {
+      logger.error(`   ❌ 스펙 검증 실패: ${validation.error.message}`);
+      hasErrors = true;
+    }
+  } else {
+    logger.info('   검증할 스펙이 없습니다');
+  }
+
   logger.newline();
 
   // 결과 출력
   if (hasErrors) {
     logger.error('❌ CI 검증 실패');
-    process.exit(ExitCode.VALIDATION_ERROR);
   } else if (hasWarnings && options.failOnWarning) {
     logger.warn('⚠️  경고가 있습니다 (--fail-on-warning)');
-    process.exit(ExitCode.VALIDATION_ERROR);
   } else if (hasWarnings) {
     logger.warn('⚠️  경고가 있지만 검증은 통과했습니다');
   } else {
     logger.success('✅ CI 검증 통과');
   }
+
+  return { hasErrors, hasWarnings, specsPassed, specsFailed };
 }

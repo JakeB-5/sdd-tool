@@ -327,6 +327,17 @@ describe('searchSpecs', () => {
     }
   });
 
+  it('생성일이 없는 스펙은 생성일 필터에서 제외한다', async () => {
+    await createSpec(specsDir, 'no-date', { title: '날짜 없음' });
+
+    const result = await searchSpecs(tempDir, { createdBefore: '2999-12-31' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.items.map((i) => i.id)).not.toContain('no-date');
+    }
+  });
+
   it('하위 디렉토리의 스펙도 검색한다', async () => {
     await fs.mkdir(path.join(specsDir, 'subdir'), { recursive: true });
     await createSpec(path.join(specsDir, 'subdir'), 'nested-spec', {

@@ -12,7 +12,7 @@ sdd init [options]
 
 | 옵션 | 설명 |
 |------|------|
-| `-f, --force` | 기존 설정 덮어쓰기 |
+| `-f, --force` | 기존 설정 덮어쓰기 (내용이 다른 `.sdd/` 파일은 `<파일>.bak`, 이미 있으면 `<파일>.1.bak`…으로 백업 후 보고. 백업은 확인 후 삭제하고 커밋하지 마세요: `.gitignore`에 `.sdd/**/*.bak` 권장) |
 | `--skip-git-setup` | Git/CI-CD 설정 건너뛰기 |
 | `--auto-approve` | 모든 설정을 자동 승인 |
 | `--no-skills` | `.claude/skills/` 생성 건너뛰기 |

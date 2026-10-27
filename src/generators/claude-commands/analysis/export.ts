@@ -48,8 +48,9 @@ sdd export user-auth --no-toc
 |------|------|
 | html | 스타일 포함 HTML (기본값) |
 | json | 구조화된 JSON |
-| markdown | 마크다운 병합 |
-| pdf | HTML 생성 후 브라우저 인쇄 안내 |
+| markdown | 마크다운 병합 (.md) |
+
+PDF는 직접 생성하지 않습니다. HTML로 내보낸 뒤 브라우저에서 인쇄하세요.
 
 ## HTML 기능
 
@@ -62,26 +63,27 @@ sdd export user-auth --no-toc
 
 ## JSON 구조
 
+스펙 수와 관계없이 항상 \`specs\` 배열을 가진 객체입니다.
+
 \`\`\`json
 {
-  "id": "user-auth",
-  "title": "사용자 인증",
-  "requirements": [
+  "specs": [
     {
-      "id": "REQ-001",
-      "title": "로그인",
-      "keyword": "SHALL",
-      "priority": "high"
+      "id": "auth/user-auth",
+      "title": "사용자 인증",
+      "requirements": [
+        { "id": "REQ-001", "title": "로그인", "keyword": "SHALL", "priority": "high" }
+      ],
+      "scenarios": [...]
     }
-  ],
-  "scenarios": [...]
+  ]
 }
 \`\`\`
 
 ## 출력 예시
 
 \`\`\`
-=== SDD Export ===
+=== SDD 내보내기 ===
 
 형식: HTML
 스펙: 3개

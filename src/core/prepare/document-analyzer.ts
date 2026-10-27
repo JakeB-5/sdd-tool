@@ -122,43 +122,46 @@ export class DocumentAnalyzer {
     const keywords: string[] = [];
     const lowerLine = line.toLowerCase();
 
+    // English terms use word boundaries ("rest" must not match "request", "test" not "latest");
+    // Korean terms are matched as substrings since \b does not apply to Hangul.
+
     // 테스트 관련
-    if (/test|테스트|vitest|jest|단위\s*테스트|unit\s*test/i.test(lowerLine)) {
+    if (/\b(?:tests?|testing|vitest|jest)\b|unit\s*tests?\b|테스트/i.test(lowerLine)) {
       keywords.push('test');
     }
 
     // API 관련
-    if (/\bapi\b|rest|endpoint|엔드포인트|graphql/i.test(lowerLine)) {
+    if (/\b(?:apis?|rest|restful|endpoints?|graphql)\b|엔드포인트/i.test(lowerLine)) {
       keywords.push('api');
     }
 
     // 컴포넌트 관련
-    if (/component|컴포넌트|\breact\b|\bvue\b|\bui\b/i.test(lowerLine)) {
+    if (/\b(?:components?|react|vue|ui)\b|컴포넌트/i.test(lowerLine)) {
       keywords.push('component');
     }
 
     // 데이터베이스 관련
-    if (/\bdb\b|database|prisma|migration|마이그레이션|데이터베이스/i.test(lowerLine)) {
+    if (/\b(?:db|databases?|prisma|migrations?)\b|마이그레이션|데이터베이스/i.test(lowerLine)) {
       keywords.push('database');
     }
 
     // 문서 관련
-    if (/\bdoc\b|문서|readme|jsdoc|주석|documentation/i.test(lowerLine)) {
+    if (/\b(?:docs?|readme|jsdoc|documentation)\b|문서|주석/i.test(lowerLine)) {
       keywords.push('doc');
     }
 
     // 타입 관련
-    if (/\btype\b|타입|schema|스키마|\bzod\b|typescript/i.test(lowerLine)) {
+    if (/\b(?:types?|schemas?|zod|typescript)\b|타입|스키마/i.test(lowerLine)) {
       keywords.push('type');
     }
 
     // 린트 관련
-    if (/lint|eslint|prettier|포맷|format/i.test(lowerLine)) {
+    if (/\b(?:lint|linting|linter|eslint|prettier|format|formatting|formatter)\b|포맷/i.test(lowerLine)) {
       keywords.push('lint');
     }
 
     // 리뷰 관련
-    if (/review|리뷰|검증|code\s*review|코드\s*리뷰/i.test(lowerLine)) {
+    if (/\b(?:reviews?|reviewing)\b|리뷰|검증/i.test(lowerLine)) {
       keywords.push('review');
     }
 

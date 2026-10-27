@@ -63,18 +63,38 @@ export interface ScanResult {
   unassigned: string[];
 }
 
-/** Directories never descended into (dot-directories are skipped as well) */
+/**
+ * Dependency / generated directories never descended into at any depth, so monorepo
+ * package output (`packages/web/dist`) is skipped too. Dot-directories such as
+ * `.next` and `.turbo` are skipped separately.
+ */
 const IGNORED_DIRS = new Set([
   'node_modules',
   'bower_components',
+  '__pycache__',
+  'venv',
   'dist',
   'build',
   'out',
-  'target',
   'coverage',
-  'vendor',
-  '__pycache__',
-  'venv',
+]);
+
+/**
+ * Ambiguous names (Go/PHP `vendor`, Rust/Maven `target`) skipped only at a project or
+ * package root (the scan root or a directory holding a package manifest), so source
+ * directories such as `src/vendor/` or `src/target/` remain scannable
+ */
+const PACKAGE_ROOT_IGNORED_DIRS = new Set(['vendor', 'target']);
+
+/** Files marking a directory as a project/package root */
+const PACKAGE_MANIFESTS = new Set([
+  'package.json',
+  'Cargo.toml',
+  'go.mod',
+  'composer.json',
+  'pom.xml',
+  'build.gradle',
+  'build.gradle.kts',
 ]);
 
 /** Top-level directories whose children are domain candidates */
@@ -115,6 +135,8 @@ async function listFiles(root: string, maxDepth: number | undefined): Promise<st
       return;
     }
     entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    const isPackageRoot =
+      depth === 0 || entries.some((e) => e.isFile() && PACKAGE_MANIFESTS.has(e.name));
 
     for (const entry of entries) {
       if (entry.name.startsWith('.')) continue;
@@ -122,6 +144,7 @@ async function listFiles(root: string, maxDepth: number | undefined): Promise<st
 
       if (entry.isDirectory()) {
         if (IGNORED_DIRS.has(entry.name)) continue;
+        if (isPackageRoot && PACKAGE_ROOT_IGNORED_DIRS.has(entry.name)) continue;
         if (maxDepth === undefined || depth < maxDepth) {
           await walk(fullPath, depth + 1);
         }

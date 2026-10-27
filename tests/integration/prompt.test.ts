@@ -101,6 +101,6 @@ describe('sdd prompt', () => {
 
     expect(result.code).not.toBe(0);
     const output = result.stdout + result.stderr;
-    expect(output).toContain('알 수 없는 명령어');
+    expect(output).toContain('알 수 없는 프롬프트');
   });
 });
