@@ -14,7 +14,7 @@ export const sddTasksSkill: SkillDefinition = {
 ## Instructions
 
 1. Read the feature's \`plan.md\` and review the implementation phases
-2. Run \`sdd new tasks <feature-id>\` to generate a task list
+2. If \`tasks.md\` already exists (e.g. generated together with spec.md via \`--all\`), edit it; otherwise run \`sdd new tasks <feature-id>\` to generate a task list. Use \`--force\` only to regenerate it from scratch
 3. Assign a priority and status to each task
 
 ## Task Decomposition Rules

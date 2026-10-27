@@ -206,11 +206,38 @@ title: "추출된 제목"
     await fs.chmod(planPath, 0o444);
 
     try {
-      const result = await createPlan(featurePath, 'test-feature');
+      const result = await createPlan(featurePath, 'test-feature', undefined, true);
       expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('계획 파일 생성 실패');
+      }
     } finally {
       await fs.chmod(planPath, 0o644);
     }
+  });
+
+  it('plan.md가 이미 있으면 덮어쓰지 않고 --force를 안내한다', async () => {
+    const planPath = path.join(featurePath, 'plan.md');
+    await fs.writeFile(planPath, 'edited plan');
+
+    const result = await createPlan(featurePath, 'test-feature');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain(planPath);
+      expect(result.error.message).toContain('--force');
+    }
+    expect(await fs.readFile(planPath, 'utf-8')).toBe('edited plan');
+  });
+
+  it('force이면 기존 plan.md를 덮어쓴다', async () => {
+    const planPath = path.join(featurePath, 'plan.md');
+    await fs.writeFile(planPath, 'edited plan');
+
+    const result = await createPlan(featurePath, 'test-feature', undefined, true);
+
+    expect(result.success).toBe(true);
+    expect(await fs.readFile(planPath, 'utf-8')).toContain('feature: test-feature');
   });
 });
 
@@ -247,7 +274,7 @@ describe('createFeature - 쓰기 실패', () => {
     await fs.chmod(path.join(featureDir, 'spec.md'), 0o444);
 
     try {
-      const result = await createFeature(sddPath, 'locked', {});
+      const result = await createFeature(sddPath, 'locked', { force: true });
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.message).toContain('파일 생성 실패');
@@ -255,6 +282,78 @@ describe('createFeature - 쓰기 실패', () => {
     } finally {
       await fs.chmod(path.join(featureDir, 'spec.md'), 0o644);
     }
+  });
+});
+
+describe('createFeature - 덮어쓰기 방지', () => {
+  let tempDir: string;
+  let sddPath: string;
+  let featureDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-new-overwrite-'));
+    sddPath = path.join(tempDir, '.sdd');
+    featureDir = path.join(sddPath, 'specs', 'common', 'login');
+    await fs.mkdir(featureDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('spec.md가 이미 있으면 실패하고 내용을 보존한다', async () => {
+    await fs.writeFile(path.join(featureDir, 'spec.md'), 'edited spec');
+
+    const result = await createFeature(sddPath, 'login', {});
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain(path.join(featureDir, 'spec.md'));
+      expect(result.error.message).toContain('--force');
+    }
+    expect(await fs.readFile(path.join(featureDir, 'spec.md'), 'utf-8')).toBe('edited spec');
+  });
+
+  it('--all에서 하나라도 존재하면 아무 파일도 쓰지 않는다', async () => {
+    await fs.writeFile(path.join(featureDir, 'tasks.md'), 'edited tasks');
+
+    const result = await createFeature(sddPath, 'login', { all: true });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('tasks.md');
+      expect(result.error.message).not.toContain('plan.md');
+    }
+    expect(await fs.readFile(path.join(featureDir, 'tasks.md'), 'utf-8')).toBe('edited tasks');
+    const specExists = await fs
+      .stat(path.join(featureDir, 'spec.md'))
+      .then(() => true)
+      .catch(() => false);
+    expect(specExists).toBe(false);
+  });
+
+  it('spec.md만 있는데 --plan이면 기존 기능에 추가하는 명령을 안내한다', async () => {
+    await fs.writeFile(path.join(featureDir, 'spec.md'), 'edited spec');
+
+    const result = await createFeature(sddPath, 'login', { plan: true });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('--force');
+      expect(result.error.message).toContain('sdd new plan common/login');
+      expect(result.error.message).toContain('sdd new tasks common/login');
+    }
+  });
+
+  it('force이면 기존 파일을 덮어쓴다', async () => {
+    await fs.writeFile(path.join(featureDir, 'spec.md'), 'edited spec');
+    await fs.writeFile(path.join(featureDir, 'plan.md'), 'edited plan');
+
+    const result = await createFeature(sddPath, 'login', { all: true, force: true });
+
+    expect(result.success).toBe(true);
+    expect(await fs.readFile(path.join(featureDir, 'spec.md'), 'utf-8')).toContain('id: login');
+    expect(await fs.readFile(path.join(featureDir, 'plan.md'), 'utf-8')).toContain('feature: login');
   });
 });
 
@@ -301,6 +400,34 @@ describe('createTasks', () => {
       expect(tasksContent).toContain('핵심 기능 구현');
     }
   });
+
+  it('구현 작업은 테스트 우선이며 사후 테스트 작업이 없다', async () => {
+    const result = await createTasks(featurePath, 'test-feature');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const tasksContent = await fs.readFile(result.data, 'utf-8');
+      expect(tasksContent).not.toMatch(/### [^\n]+: 테스트 작성/);
+      expect(tasksContent.match(/실패하는 테스트로 먼저 작성/g)).toHaveLength(2);
+    }
+  });
+
+  it('tasks.md가 이미 있으면 덮어쓰지 않고 force이면 덮어쓴다', async () => {
+    const tasksPath = path.join(featurePath, 'tasks.md');
+    await fs.writeFile(tasksPath, 'edited tasks');
+
+    const refused = await createTasks(featurePath, 'test-feature');
+    expect(refused.success).toBe(false);
+    if (!refused.success) {
+      expect(refused.error.message).toContain(tasksPath);
+      expect(refused.error.message).toContain('--force');
+    }
+    expect(await fs.readFile(tasksPath, 'utf-8')).toBe('edited tasks');
+
+    const forced = await createTasks(featurePath, 'test-feature', true);
+    expect(forced.success).toBe(true);
+    expect(await fs.readFile(tasksPath, 'utf-8')).toContain('feature: test-feature');
+  });
 });
 
 describe('createChecklist', () => {
@@ -334,6 +461,22 @@ describe('createChecklist', () => {
         .catch(() => false);
       expect(checklistExists).toBe(true);
     }
+  });
+
+  it('checklist.md가 이미 있으면 덮어쓰지 않고 force이면 덮어쓴다', async () => {
+    const checklistPath = path.join(sddPath, 'checklist.md');
+    await fs.writeFile(checklistPath, 'edited checklist');
+
+    const refused = await createChecklist(sddPath);
+    expect(refused.success).toBe(false);
+    if (!refused.success) {
+      expect(refused.error.message).toContain(checklistPath);
+    }
+    expect(await fs.readFile(checklistPath, 'utf-8')).toBe('edited checklist');
+
+    const forced = await createChecklist(sddPath, true);
+    expect(forced.success).toBe(true);
+    expect(await fs.readFile(checklistPath, 'utf-8')).not.toBe('edited checklist');
   });
 });
 
@@ -489,13 +632,81 @@ describe('createFeature with domain', () => {
     }
   });
 
-  it('존재하지 않는 도메인은 실패한다', async () => {
-    const result = await createFeature(sddPath, 'login', { domain: 'nonexistent' });
+  it('존재하지 않는 도메인은 자동 생성하고 스펙을 연결한다', async () => {
+    const result = await createFeature(sddPath, 'pricing/discount', {});
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.domain).toBe('pricing');
+      expect(result.data.domainCreated).toBe(true);
+    }
+    const domainsYml = await fs.readFile(path.join(sddPath, 'domains.yml'), 'utf-8');
+    expect(domainsYml).toContain('pricing:');
+    expect(domainsYml).toContain('discount');
+    const domainMd = await fs
+      .stat(path.join(sddPath, 'domains', 'pricing', 'domain.md'))
+      .then(() => true)
+      .catch(() => false);
+    expect(domainMd).toBe(true);
+  });
+
+  it('기존 도메인이면 domainCreated가 false이다', async () => {
+    const result = await createFeature(sddPath, 'auth/session', {});
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.domainCreated).toBe(false);
+    }
+  });
+
+  it('덮어쓰기가 거부되면 도메인을 만들지 않는다', async () => {
+    const featureDir = path.join(sddPath, 'specs', 'pricing', 'discount');
+    await fs.mkdir(featureDir, { recursive: true });
+    await fs.writeFile(path.join(featureDir, 'spec.md'), 'edited');
+
+    const result = await createFeature(sddPath, 'pricing/discount', {});
+
+    expect(result.success).toBe(false);
+    const domainsYml = await fs.readFile(path.join(sddPath, 'domains.yml'), 'utf-8');
+    expect(domainsYml).not.toContain('pricing:');
+    const domainMd = await fs
+      .stat(path.join(sddPath, 'domains', 'pricing', 'domain.md'))
+      .then(() => true)
+      .catch(() => false);
+    expect(domainMd).toBe(false);
+  });
+
+  it.each([
+    ['pricing/', '기능 이름이 비어 있습니다'],
+    ['pricing/!!!', '기능 이름이 비어 있습니다'],
+    ['/cart', '도메인 이름이 비어 있습니다'],
+  ])('빈 이름(%s)은 거부하고 도메인·파일을 만들지 않는다', async (name, message) => {
+    const result = await createFeature(sddPath, name, {});
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.message).toContain('도메인을 찾을 수 없습니다');
+      expect(result.error.message).toContain(message);
     }
+    const domainsYml = await fs.readFile(path.join(sddPath, 'domains.yml'), 'utf-8');
+    expect(domainsYml).not.toContain('pricing:');
+    expect(domainsYml).not.toContain('""');
+    const specsEntries = await fs.readdir(path.join(sddPath, 'specs'));
+    expect(specsEntries).toEqual([]);
+  });
+
+  it('등록되지 않은 common은 도메인 미지정과 같이 처리한다', async () => {
+    const result = await createFeature(sddPath, 'common/cart', {});
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.domain).toBe('common');
+      expect(result.data.domainCreated).toBe(false);
+      expect(result.data.featurePath).toBe(path.join(sddPath, 'specs', 'common', 'cart'));
+    }
+    const domainsYml = await fs.readFile(path.join(sddPath, 'domains.yml'), 'utf-8');
+    expect(domainsYml).not.toContain('common:');
+    const spec = await fs.readFile(path.join(sddPath, 'specs', 'common', 'cart', 'spec.md'), 'utf-8');
+    expect(spec).not.toContain('domain: common');
   });
 
   it.each([

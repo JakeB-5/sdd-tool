@@ -11,7 +11,7 @@ export const planCommand: ClaudeCommand = {
 
 1. \`.sdd/specs/\` 디렉토리에서 계획을 작성할 기능을 확인하세요
 2. 해당 기능의 \`spec.md\`를 읽고 요구사항을 분석하세요
-3. \`sdd new plan <feature-id>\` 명령어로 계획 템플릿을 생성하거나 기존 \`plan.md\`를 수정하세요
+3. \`plan.md\`가 이미 있으면(예: \`sdd new --all\`로 생성) 그 파일을 수정하고, 없으면 \`sdd new plan <feature-id>\` 명령어로 계획 템플릿을 생성하세요. \`--force\`는 처음부터 다시 생성할 때만 사용하세요
 
 ## 계획 작성 규칙
 

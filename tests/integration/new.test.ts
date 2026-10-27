@@ -137,6 +137,79 @@ describe('sdd new', () => {
     expect(content).toContain('domain: auth');
   });
 
+  it('없는 도메인은 자동 생성하고 안내한다', async () => {
+    const { stdout } = await execAsync(
+      `node "${cliPath}" new pricing/discount --no-branch`,
+      { cwd: tempDir }
+    );
+
+    expect(stdout).toContain("도메인 'pricing'이(가) 없어 새로 생성했습니다 (sdd domain create pricing)");
+    const spec = await fs.readFile(
+      path.join(tempDir, '.sdd', 'specs', 'pricing', 'discount', 'spec.md'),
+      'utf-8'
+    );
+    expect(spec).toContain('domain: pricing');
+
+    const { stdout: list } = await execAsync(`node "${cliPath}" domain list`, { cwd: tempDir });
+    expect(list).toContain('pricing');
+    const domainsYml = await fs.readFile(path.join(tempDir, '.sdd', 'domains.yml'), 'utf-8');
+    expect(domainsYml).toContain('discount');
+  });
+
+  it('plan/tasks/checklist는 기존 파일을 덮어쓰지 않고 --force로만 덮어쓴다', async () => {
+    await execAsync(`node "${cliPath}" new cart --all --no-branch`, { cwd: tempDir });
+    const featurePath = path.join(tempDir, '.sdd', 'specs', 'common', 'cart');
+
+    for (const [sub, file] of [
+      ['plan common/cart', path.join(featurePath, 'plan.md')],
+      ['tasks common/cart', path.join(featurePath, 'tasks.md')],
+      ['checklist', path.join(tempDir, '.sdd', 'checklist.md')],
+    ] as const) {
+      await fs.writeFile(file, 'edited');
+
+      const refused = await execAsync(`node "${cliPath}" new ${sub}`, { cwd: tempDir }).then(
+        () => ({ code: 0, stderr: '' }),
+        (err: { code: number; stderr: string; stdout: string }) => ({
+          code: err.code,
+          stderr: err.stderr + err.stdout,
+        })
+      );
+      expect(refused.code).toBe(1);
+      expect(refused.stderr).toContain(file);
+      expect(refused.stderr).toContain('--force');
+      expect(await fs.readFile(file, 'utf-8')).toBe('edited');
+
+      await execAsync(`node "${cliPath}" new ${sub} --force`, { cwd: tempDir });
+      expect(await fs.readFile(file, 'utf-8')).not.toBe('edited');
+    }
+  });
+
+  it('new <name> --all은 기존 파일이 있으면 실패한다', async () => {
+    await execAsync(`node "${cliPath}" new cart --no-branch`, { cwd: tempDir });
+    const specPath = path.join(tempDir, '.sdd', 'specs', 'common', 'cart', 'spec.md');
+    await fs.writeFile(specPath, 'edited');
+
+    const refused = await execAsync(`node "${cliPath}" new cart --all --no-branch`, {
+      cwd: tempDir,
+    }).then(
+      () => 0,
+      (err: { code: number }) => err.code
+    );
+
+    expect(refused).toBe(1);
+    expect(await fs.readFile(specPath, 'utf-8')).toBe('edited');
+    const planExists = await fs
+      .stat(path.join(tempDir, '.sdd', 'specs', 'common', 'cart', 'plan.md'))
+      .catch(() => false);
+    expect(planExists).toBe(false);
+  });
+
+  it('--all 도움말은 checklist도 명시한다', async () => {
+    const { stdout } = await execAsync(`node "${cliPath}" new --help`, { cwd: tempDir });
+    expect(stdout).toContain('spec, plan, tasks, checklist');
+    expect(stdout).toContain('--force');
+  });
+
   it('--numbered는 feature/001-<name> 브랜치를 만든다 (feature/feature/ 중복 없음)', async () => {
     await execAsync(
       'git init -q && git -c user.email=t@t -c user.name=t commit -q --allow-empty -m init',

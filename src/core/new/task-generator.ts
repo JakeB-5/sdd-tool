@@ -84,22 +84,81 @@ ${task.files.map(f => `  - \`${f}\``).join('\n')}
 
 ## 완료 조건
 
-각 작업 완료 시:
-1. [ ] 코드 작성 완료
-2. [ ] 테스트 작성 및 통과
-3. [ ] 코드 리뷰 완료
-4. [ ] 문서 업데이트
+각 작업 완료 시 (테스트 우선):
+1. [ ] 실패하는 테스트 먼저 작성 (Red)
+2. [ ] 테스트를 통과하는 구현 작성 (Green)
+3. [ ] 리팩터링 후 테스트 재통과 (Refactor)
+4. [ ] 코드 리뷰 완료
+5. [ ] 문서 업데이트
 
 ---
 
 ## 다음 단계
 
-1. 첫 번째 작업부터 순차적으로 진행
-2. 각 작업 완료 후 상태 업데이트
-3. 모든 작업 완료 시 \`/sdd:archive\` 실행
+1. 첫 번째 작업부터 순차적으로 진행 (Claude Code: \`/sdd-implement\`, Codex: \`$sdd-implement\`)
+2. 각 작업 완료 후 상태 업데이트 (대기 · 진행 중 · 완료 · 차단됨)
+3. 모든 작업 완료 시 \`sdd validate\`와 \`sdd sync\`로 명세 검증 및 추적성 확인 (Claude Code: \`/sdd-validate\`, Codex: \`$sdd-validate\`)
 `;
 
   return content;
+}
+
+/**
+ * Bold field label terminator: `**Label:**` or `**Label**:`.
+ */
+const LABEL_END = '(?::\\*\\*|\\*\\*:)';
+
+/**
+ * Task status line: Korean (`상태`) or English (`Status`) label.
+ * Group 1 = label, group 2 = raw value (rest of the line).
+ */
+const STATUS_LINE_PATTERN = new RegExp(`\\*\\*(상태|status)${LABEL_END}[ \\t]*([^\\r\\n]*)`, 'i');
+const PRIORITY_LINE_PATTERN = new RegExp(
+  `\\*\\*(?:우선순위|priority)${LABEL_END}[ \\t]*(?:[🔴🟡🟢][ \\t]*)?([A-Za-z가-힣]+)`,
+  'iu'
+);
+const DEPENDENCIES_LINE_PATTERN = new RegExp(
+  `\\*\\*(?:의존성|dependencies)${LABEL_END}[ \\t]*([^\\r\\n]*)`,
+  'i'
+);
+
+/**
+ * Dependency placeholders meaning "no dependencies".
+ */
+const NO_DEPENDENCY_VALUES = new Set(['none', '없음', '-', 'n/a']);
+
+/**
+ * Status value prefix, after leading non-letters/markup (`**`, backticks, emoji),
+ * ending at a letter boundary so `pendingX` is not a status.
+ */
+const STATUS_VALUE_PATTERN =
+  /^[^\p{L}]*(in[-_ ]?progress|pending|completed|blocked|대기(?:\s*중)?|진행\s*중|진행|완료됨?|차단됨?)(?!\p{L})/iu;
+
+/**
+ * Normalize a raw status value to the internal enum; undefined when unrecognized.
+ * Markup and trailing notes are tolerated (e.g. `✅ 완료`, `**완료**`, `차단됨: API 대기`).
+ */
+export function normalizeTaskStatus(raw: string): TaskStatus | undefined {
+  const match = raw.match(STATUS_VALUE_PATTERN);
+  if (!match) return undefined;
+  const value = match[1].toLowerCase().replace(/[\s_-]/g, '');
+  if (value === 'inprogress' || value.startsWith('진행')) return 'in_progress';
+  if (value === 'pending' || value.startsWith('대기')) return 'pending';
+  if (value === 'completed' || value.startsWith('완료')) return 'completed';
+  return 'blocked';
+}
+
+/**
+ * Status text written back to the file, matching the label language in use.
+ */
+function formatTaskStatus(status: TaskStatus, english: boolean): string {
+  if (english) {
+    return status === 'in_progress' ? 'in-progress' : status;
+  }
+  return status === 'pending' ? '대기'
+    : status === 'in_progress' ? '진행 중'
+    : status === 'completed' ? '완료'
+    : '차단됨';
 }
 
 /**
@@ -107,29 +166,25 @@ ${task.files.map(f => `  - \`${f}\``).join('\n')}
  */
 export function parseTasks(content: string): TaskItem[] {
   const tasks: TaskItem[] = [];
-  const taskMatches = content.matchAll(/### ([a-z0-9-]+): ([^\n]+)\s*\n([\s\S]*?)(?=\n###|\n---|$)/gi);
+  // Task ids end in a number (`<feature>-task-001`, `t-1`), so note headings
+  // such as `### 참고: 외부 API` or `### Note: x` are not counted as tasks.
+  const taskMatches = content.matchAll(
+    /### ([a-z0-9가-힣-]*\d): ([^\r\n]+)\s*\n([\s\S]*?)(?=\r?\n###|\r?\n---|$)/gi
+  );
 
   for (const match of taskMatches) {
     const id = match[1];
     const title = match[2];
     const body = match[3];
 
-    // 상태 추출
-    const statusMatch = body.match(/\*\*상태:\*\*\s*(\S+)/);
-    let status: TaskStatus = 'pending';
-    if (statusMatch) {
-      const statusText = statusMatch[1].toLowerCase();
-      if (statusText.includes('진행') || statusText === 'in_progress') {
-        status = 'in_progress';
-      } else if (statusText.includes('완료') || statusText === 'completed') {
-        status = 'completed';
-      } else if (statusText.includes('차단') || statusText === 'blocked') {
-        status = 'blocked';
-      }
-    }
+    // 상태 추출 (`**상태:**` / `**Status:**` / `**Status**:`)
+    const statusMatch = body.match(STATUS_LINE_PATTERN);
+    const status: TaskStatus = statusMatch
+      ? normalizeTaskStatus(statusMatch[2]) ?? 'pending'
+      : 'pending';
 
     // 우선순위 추출
-    const priorityMatch = body.match(/\*\*우선순위:\*\*\s*(?:[🔴🟡🟢]\s*)?([A-Za-z]+)/u);
+    const priorityMatch = body.match(PRIORITY_LINE_PATTERN);
     let priority: TaskPriority = 'medium';
     if (priorityMatch) {
       const p = priorityMatch[1].toLowerCase();
@@ -152,9 +207,13 @@ export function parseTasks(content: string): TaskItem[] {
       : undefined;
 
     // 의존성 추출
-    const depsMatch = body.match(/\*\*의존성:\*\*\s*([^\n]+)/);
+    const depsMatch = body.match(DEPENDENCIES_LINE_PATTERN);
     const dependencies = depsMatch
-      ? depsMatch[1].split(',').map(d => d.trim()).filter(Boolean)
+      ? depsMatch[1]
+          .split(',')
+          .map(d => d.trim())
+          // Placeholder check on the first token so `없음 (독립)` also means none
+          .filter(d => d && !NO_DEPENDENCY_VALUES.has(d.split(/\s+/)[0].toLowerCase()))
       : undefined;
 
     tasks.push({
@@ -179,18 +238,18 @@ export function updateTaskStatus(
   taskId: string,
   newStatus: TaskStatus
 ): string {
-  const statusText = newStatus === 'pending' ? '대기'
-    : newStatus === 'in_progress' ? '진행 중'
-    : newStatus === 'completed' ? '완료'
-    : '차단됨';
-
-  // 작업 상태 업데이트
+  // 작업 상태 업데이트: stay within this task's section and keep the label form in the file
+  const escapedId = taskId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Section ends at the next heading (#..###) or a `---` separator, as in parseTasks.
   const taskRegex = new RegExp(
-    `(### ${taskId}:[^\\n]+\\s*\\n[\\s\\S]*?\\*\\*상태:\\*\\*)\\s*\\S+`,
+    `(### ${escapedId}:[^\\r\\n]*\\r?\\n(?:(?!#{1,3} |---)[^\\r\\n]*\\r?\\n)*?[^\\r\\n]*\\*\\*(상태|status)${LABEL_END})[ \\t]*[^\\r\\n]*`,
     'i'
   );
 
-  let updated = content.replace(taskRegex, `$1 ${statusText}`);
+  let updated = content.replace(taskRegex, (_match, prefix: string, label: string) => {
+    const english = label.toLowerCase() === 'status';
+    return `${prefix} ${formatTaskStatus(newStatus, english)}`;
+  });
 
   // 진행 상황 업데이트
   const tasks = parseTasks(updated);
@@ -199,15 +258,18 @@ export function updateTaskStatus(
   const completed = tasks.filter(t => t.status === 'completed').length;
   const blocked = tasks.filter(t => t.status === 'blocked').length;
 
+  const eol = content.includes('\r\n') ? '\r\n' : '\n';
   updated = updated.replace(
-    /## 진행 상황\s*\n\n[\s\S]*?(?=\n---)/,
-    `## 진행 상황
-
-- 대기: ${pending}
-- 진행 중: ${inProgress}
-- 완료: ${completed}
-- 차단됨: ${blocked}
-`
+    /## 진행 상황[ \t]*\r?\n\r?\n[\s\S]*?(?=\r?\n---)/,
+    [
+      '## 진행 상황',
+      '',
+      `- 대기: ${pending}`,
+      `- 진행 중: ${inProgress}`,
+      `- 완료: ${completed}`,
+      `- 차단됨: ${blocked}`,
+      '',
+    ].join(eol)
   );
 
   // frontmatter completed 업데이트

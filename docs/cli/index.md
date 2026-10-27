@@ -71,7 +71,8 @@ sdd new <name> [options]
 
 **Options:**
 - `-d, --domain <domain>` - Domain to create spec in (v1.3.0)
-- `--all` - Create spec + plan + tasks simultaneously
+- `--all` - Create spec + plan + tasks + checklist simultaneously
+- `-f, --force` - Overwrite existing files (otherwise the command refuses)
 - `--template <type>` - Use specific template
 
 **Creates:**
@@ -82,7 +83,7 @@ sdd new <name> [options]
 ```bash
 sdd new user-auth                    # Create in 'common' domain
 sdd new login -d auth                # Create in 'auth' domain
-sdd new checkout --all               # Create spec + plan + tasks
+sdd new checkout --all               # Create spec + plan + tasks + checklist
 ```
 
 ### validate

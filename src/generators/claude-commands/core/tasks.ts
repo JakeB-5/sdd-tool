@@ -10,7 +10,7 @@ export const tasksCommand: ClaudeCommand = {
 ## 지시사항
 
 1. 해당 기능의 \`plan.md\`를 읽고 구현 단계를 확인하세요
-2. \`sdd new tasks <feature-id>\` 명령어로 작업 목록을 생성하세요
+2. \`tasks.md\`가 이미 있으면(예: \`sdd new --all\`로 생성) 그 파일을 수정하고, 없으면 \`sdd new tasks <feature-id>\` 명령어로 작업 목록을 생성하세요. \`--force\`는 처음부터 다시 생성할 때만 사용하세요
 3. 각 작업에 우선순위와 상태를 지정하세요
 
 ## 작업 분해 규칙

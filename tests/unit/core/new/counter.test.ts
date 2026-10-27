@@ -160,6 +160,27 @@ describe('getNextFeatureNumber', () => {
     }
   });
 
+  it('한글 이름은 비번호 기능 ID와 같은 규칙으로 정규화한다', async () => {
+    const result = await getNextFeatureNumber(tempDir, '로그인 폼');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.fullId).toBe('001-로그인-폼');
+      expect(result.data.branchName).toBe('feature/001-로그인-폼');
+    }
+  });
+
+  it('정규화 결과가 비면 실패하고 번호를 소비하지 않는다', async () => {
+    const result = await getNextFeatureNumber(tempDir, '!!!');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.code).toBe('INVALID_NAME');
+    }
+    const next = await getNextFeatureNumber(tempDir, 'auth');
+    expect(next.success && next.data.fullId).toBe('001-auth');
+  });
+
   it('이력에 기록한다', async () => {
     await getNextFeatureNumber(tempDir, 'auth');
     await getNextFeatureNumber(tempDir, 'user');

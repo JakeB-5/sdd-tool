@@ -22,6 +22,19 @@ describe('generatePlan', () => {
     expect(content).toContain('사용자 로그인 기능 구현');
   });
 
+  it('다음 단계는 현재 CLI/스킬 이름으로 작업 분해를 안내한다', () => {
+    const content = generatePlan({
+      featureId: 'auth-login',
+      featureTitle: '로그인 기능',
+      overview: '개요',
+    });
+
+    expect(content).not.toMatch(/\/?sdd:/);
+    expect(content).toContain('`sdd new tasks auth-login`');
+    expect(content).toContain('`/sdd-tasks`');
+    expect(content).toContain('`$sdd-tasks`');
+  });
+
   it('기술 결정을 포함할 수 있다', () => {
     const content = generatePlan({
       featureId: 'auth-login',

@@ -24,8 +24,11 @@ sdd new <name> [options]
 | `--all` | spec, plan, tasks, checklist 모두 생성 |
 | `--numbered` | 자동 번호 부여: ID `001-<name>`, 브랜치 `feature/001-<name>` |
 | `--no-branch` | git 브랜치 생성 안 함 (기본 브랜치: `feature/<id>`) |
+| `-f, --force` | 기존 spec.md / plan.md / tasks.md / checklist.md 덮어쓰기 |
 
-파일을 하나라도 쓰지 못하면 0이 아닌 종료 코드로 실패합니다.
+파일을 하나라도 쓰지 못하면 0이 아닌 종료 코드로 실패합니다. `--force` 없이는 기존 파일을 덮어쓰지 않습니다. 대상 파일이 하나라도 이미 있으면 아무것도 쓰지 않고 종료 코드 1로 실패합니다.
+
+도메인(`-d` 또는 `<domain>/<name>`)이 아직 없으면 먼저 생성하고(`sdd domain create <domain>`과 동일) 안내 메시지를 출력합니다.
 
 ## 생성되는 파일
 
