@@ -30,6 +30,7 @@ updated: 2025-01-31
 version: 1.0.0
 constitution_version: 1.0.0
 domain: auth
+depends: [auth/session]
 ---
 ```
 
@@ -44,8 +45,16 @@ domain: auth
 - `updated` - Last update date
 - `version` - Specification version
 - `domain` - Domain this spec belongs to
+- `depends` - Specs this spec depends on (see below)
 - `related` - Related specification IDs
 - `tags` - Category tags
+
+**`depends` syntax:** a YAML list of spec ids in `<domain>/<feature>` form, `[]` when there are none
+(`sdd new` writes `depends: []`). Flow (`depends: [pricing/cart, auth/session]`) and block lists
+(`- pricing/cart`) are both accepted; a bare `<feature>` works when the name is unique.
+Only `depends` creates dependencies for `sdd impact` (graph, cycles, health score). Mentioning another
+spec in the body — `` `pricing/cart` ``, a link, or a `specs/...` path — is reported as a reference,
+never as a dependency.
 
 ### 2. Overview Section
 

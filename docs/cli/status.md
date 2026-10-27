@@ -36,7 +36,7 @@ Each feature's stage is derived from its files, spec status and task progress (f
 | `plan` | no plan.md | `sdd new plan <feature>` (Claude Code `/sdd-plan` · Codex `$sdd-plan`) |
 | `tasks` | no tasks.md | `sdd new tasks <feature>` (`/sdd-tasks` · `$sdd-tasks`) |
 | `tasks` | tasks.md exists but no `### <feature>-task-NNN: title` task was recognized | check the format, or regenerate with `sdd new tasks <feature> --force` (overwrites the file) |
-| `implement` | some tasks not completed | implement (`/sdd-implement` · `$sdd-implement`), then `sdd new task <feature> <task-id> completed` |
+| `implement` | some tasks not completed | implement (`/sdd-implement` · `$sdd-implement`), then `sdd new task <feature> <task-id> completed`. The line reads "구현 진행 중 (n/m)" once a task is in progress or completed, and "구현 시작 전 (0/m)" (start with `sdd new task <feature> <task-id> in-progress`) before that. The spec status is never changed automatically |
 | `finalize` | all tasks completed, spec status is not `implemented` | `sdd validate` · `sdd sync`, then `sdd new status <feature> implemented` |
 
 When every feature is done, the section says so explicitly. With `--json`, each feature carries its `stage`.

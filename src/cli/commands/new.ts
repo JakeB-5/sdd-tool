@@ -15,6 +15,7 @@ import {
   peekNextFeatureNumber,
   getFeatureHistory,
   parseTasks,
+  refreshTaskProgress,
   updateTaskStatus,
   type GenerateTasksOptions,
 } from '../../core/new/index.js';
@@ -534,6 +535,8 @@ export interface TaskStatusChange {
   from: TaskStatus;
   to: TaskStatus;
   changed: boolean;
+  /** tasks.md derived counts (progress block, total/completed) were rewritten */
+  recounted: boolean;
   progress: { completed: number; total: number };
   /** Spec frontmatter status of the feature (undefined when absent or unreadable) */
   specStatus?: string;
@@ -634,7 +637,9 @@ function findTask(tasks: TaskItem[], taskId: string): Result<TaskItem, Error> {
 /**
  * tasks.md 작업 상태 변경 (테스트 가능)
  *
- * The progress block and frontmatter `completed:` count are refreshed by updateTaskStatus.
+ * Every run recomputes the derived counts (`## 진행 상황`, `> 총 N개 작업`, frontmatter
+ * `total:` / `completed:`) from the parsed tasks — also when the status is unchanged,
+ * so re-running with the current status refreshes stale counts.
  */
 export async function setTaskStatus(
   sddPath: string,
@@ -675,19 +680,28 @@ export async function setTaskStatus(
   const rawSpecStatus = specRead.success ? readFrontmatter(specRead.data).data.status : undefined;
   const specStatus = rawSpecStatus === undefined || rawSpecStatus === null ? undefined : String(rawSpecStatus);
 
-  const result = (tasks: TaskItem[], changed: boolean): TaskStatusChange => ({
+  const result = (tasks: TaskItem[], changed: boolean, recounted: boolean): TaskStatusChange => ({
     featureId,
     tasksPath,
     taskId: task.id,
     from: task.status,
     to,
     changed,
+    recounted,
     progress: { completed: tasks.filter((t) => t.status === 'completed').length, total: tasks.length },
     specStatus,
   });
 
   if (task.status === to) {
-    return success(result(parseTasks(content), false));
+    // Status unchanged: still rewrite stale counts
+    const refreshed = refreshTaskProgress(content);
+    if (refreshed !== content) {
+      const writeResult = await writeFile(tasksPath, refreshed);
+      if (!writeResult.success) {
+        return failure(new Error(`작업 파일 쓰기 실패: ${writeResult.error.message}`));
+      }
+    }
+    return success(result(parseTasks(content), false, refreshed !== content));
   }
 
   const updated = updateTaskStatus(content, task.id, to);
@@ -702,7 +716,7 @@ export async function setTaskStatus(
   if (!writeResult.success) {
     return failure(new Error(`작업 파일 쓰기 실패: ${writeResult.error.message}`));
   }
-  return success(result(updatedTasks, true));
+  return success(result(updatedTasks, true, true));
 }
 
 /**
@@ -1082,7 +1096,7 @@ async function handleTaskStatus(
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  const { featureId, from, to, changed, progress, specStatus } = result.data;
+  const { featureId, from, to, changed, recounted, progress, specStatus } = result.data;
   if (options.json) {
     console.log(JSON.stringify(result.data, null, 2));
     return;
@@ -1091,6 +1105,10 @@ async function handleTaskStatus(
   if (changed) {
     logger.info(
       `✅ ${featureId} ${result.data.taskId}: ${displayTaskStatus(from)} → ${displayTaskStatus(to)} (${progressText})`
+    );
+  } else if (recounted) {
+    logger.info(
+      `ℹ ${featureId} ${result.data.taskId} 상태가 이미 ${displayTaskStatus(to)}입니다 (상태 변경 없음, 집계만 갱신: ${progressText})`
     );
   } else {
     logger.info(

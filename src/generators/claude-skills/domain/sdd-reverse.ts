@@ -66,7 +66,7 @@ title: <Feature title>
 status: draft
 created: <YYYY-MM-DD>
 domain: <domain>
-depends: null
+depends: []
 ---
 
 # <Feature title>
@@ -100,7 +100,7 @@ The system SHOULD <observed behaviour>.
 - RFC 2119 keywords must be UPPERCASE (SHALL, MUST, SHOULD, MAY, and their NOT forms).
 - Every draft needs at least one requirement and one GIVEN/WHEN/THEN scenario.
 - Add \`constitution_version\` if the project has a constitution, and list other spec ids in
-  \`depends\` only when the code really depends on them.
+  \`depends\` (\`depends: [<domain>/<feature>]\`) only when the code really depends on them.
 - Do not leave template placeholders such as \`[requirement title]\`.
 
 ### 4. Validate and fix

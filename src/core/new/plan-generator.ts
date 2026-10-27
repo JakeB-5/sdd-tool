@@ -196,7 +196,7 @@ ${options.constitutionCompliance.map(c => `- ${c}`).join('\n')}
 ## 다음 단계
 
 1. [ ] 이 계획에 대한 검토 및 승인
-2. [ ] \`sdd new tasks ${options.featureId}\` 또는 Claude Code \`/sdd-tasks\` · Codex \`$sdd-tasks\`로 작업 분해
+2. [ ] tasks.md를 작업으로 채우기 (\`sdd new --all\`로 이미 생성된 경우 편집, 없으면 \`sdd new tasks ${options.featureId}\`) — Claude Code \`/sdd-tasks\` · Codex \`$sdd-tasks\`
 3. [ ] 구현 시작
 `;
 

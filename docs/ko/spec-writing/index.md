@@ -14,6 +14,7 @@ id: feature-id
 title: "기능 제목"
 status: draft
 created: 2025-12-24
+depends: []
 constitution_version: 1.0.0
 ---
 
@@ -48,8 +49,15 @@ title: "사용자 인증"     # 제목
 status: draft           # 상태
 created: 2025-12-24     # 생성일
 constitution_version: 1.0.0  # 헌법 버전
+depends: [auth/session] # 의존하는 스펙 (없으면 [])
 ---
 ```
+
+**`depends` 문법:** `<domain>/<feature>` 형식 스펙 ID의 YAML 목록이며, 의존성이 없으면 `[]`입니다
+(`sdd new`는 `depends: []`로 생성). 한 줄 목록(`depends: [pricing/cart, auth/session]`)과
+블록 목록(`- pricing/cart`) 모두 허용하고, 이름이 유일하면 `<feature>`만 써도 됩니다.
+`sdd impact`의 의존성(그래프 · 순환 · 건강도)은 `depends`로만 만들어집니다. 본문에서 다른 스펙을
+`` `pricing/cart` ``, 링크, `specs/...` 경로로 언급하면 참조로만 보고하며 의존성으로 세지 않습니다.
 
 ### 2. RFC 2119 키워드
 

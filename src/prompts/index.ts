@@ -271,7 +271,7 @@ id: {FEATURE_ID}
 title: "{TITLE}"
 status: draft
 created: {TODAY}
-depends: null
+depends: []
 ---
 
 # {TITLE}
@@ -558,7 +558,7 @@ export const VALIDATE_PROMPT = `# /sdd-validate - 스펙 검증
 1. YAML frontmatter 존재
    - status: ${SPEC_STATUSES.join(' | ')}
    - created: YYYY-MM-DD
-   - depends: null | [spec-id, ...]
+   - depends: [] | [<domain>/<feature>, ...]
 
 2. RFC 2119 키워드 사용
    - SHALL, MUST, SHOULD, MAY, SHALL NOT

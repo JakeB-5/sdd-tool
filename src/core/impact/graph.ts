@@ -22,10 +22,12 @@ export async function buildDependencyGraph(
 ): Promise<Result<DependencyGraph, ChangeError>> {
   try {
     const dangling: Array<{ from: string; to: string }> = [];
+    const references: Array<{ from: string; to: string }> = [];
     const graph: DependencyGraph = {
       nodes: new Map(),
       edges: [],
       dangling,
+      references,
     };
 
     if (!(await directoryExists(specsPath))) {
@@ -51,7 +53,7 @@ export async function buildDependencyGraph(
       };
 
       // frontmatter에서 명시적 의존성 추출 (문자열/쉼표 구분/YAML 리스트, 스펙 스키마와 동일 규칙)
-      const { data: frontmatter } = readFrontmatter(content);
+      const { data: frontmatter, body } = readFrontmatter(content);
       const normalizedDeps = toStringList(frontmatter.depends);
       if (Array.isArray(normalizedDeps)) {
         const explicitDeps: unknown[] = normalizedDeps;
@@ -79,17 +81,12 @@ export async function buildDependencyGraph(
         }
       }
 
-      // 내용에서 참조 추출
-      const references = extractReferences(content, allSpecIds);
-      for (const ref of references) {
+      // Body mentions (`domain/feature`, links, specs/ paths) are informational
+      // references only: they never become dependency edges, so they cannot
+      // create cycles or change the health score. Dependencies come from `depends`.
+      for (const ref of extractReferences(body, allSpecIds)) {
         if (ref !== specId && !node.dependsOn.includes(ref)) {
-          node.dependsOn.push(ref);
-          graph.edges.push({
-            from: specId,
-            to: ref,
-            type: 'reference',
-            description: '문서 내 참조',
-          });
+          references.push({ from: specId, to: ref });
         }
       }
 
@@ -178,6 +175,11 @@ export function generateMermaidGraph(
   for (const edge of graph.edges) {
     const arrowStyle = edge.type === 'explicit' ? '-->' : '-..->';
     mermaid += `    ${sanitizeId(edge.from)} ${arrowStyle} ${sanitizeId(edge.to)}\n`;
+  }
+
+  // Body references: dotted and labelled so they are not read as dependencies
+  for (const ref of graph.references ?? []) {
+    mermaid += `    ${sanitizeId(ref.from)} -. 참조 .-> ${sanitizeId(ref.to)}\n`;
   }
 
   return mermaid;

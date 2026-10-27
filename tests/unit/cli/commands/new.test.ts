@@ -770,6 +770,16 @@ depends: null
     expect(await fs.readFile(specPath, 'utf-8')).toBe(SPEC.replace('status: draft', 'status: implemented'));
   });
 
+  it('depends: [a, b] flow 시퀀스 서식을 유지한다', async () => {
+    const withDeps = SPEC.replace('depends: null', 'depends: [pricing/coupon, auth/login]');
+    await fs.writeFile(specPath, withDeps);
+
+    const result = await setSpecStatus(sddPath, 'cart', 'review');
+
+    expect(result.success).toBe(true);
+    expect(await fs.readFile(specPath, 'utf-8')).toBe(withDeps.replace('status: draft', 'status: review'));
+  });
+
   it('updated 필드가 있으면 오늘 날짜로 갱신한다', async () => {
     await fs.writeFile(specPath, SPEC.replace('created: 2026-10-27', 'created: 2026-10-27\nupdated: 2020-01-01'));
     const today = new Date().toISOString().split('T')[0];
@@ -992,6 +1002,28 @@ describe('setTaskStatus', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.message).toContain('상태 줄');
+    expect(await fs.readFile(tasksPath, 'utf-8')).toBe(content);
+  });
+
+  it('같은 상태를 다시 지정하면 상태는 그대로 두고 오래된 집계만 갱신한다', async () => {
+    // Placeholder tasks replaced by hand: 2 real tasks, counts still say 3
+    const stale = (await fs.readFile(tasksPath, 'utf-8')).replace(/### cart-task-003:[\s\S]*$/, '');
+    await fs.writeFile(tasksPath, stale);
+
+    const result = await setTaskStatus(sddPath, 'cart', 'cart-task-001', 'pending');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toMatchObject({ changed: false, recounted: true, progress: { completed: 0, total: 2 } });
+    }
+    const content = await fs.readFile(tasksPath, 'utf-8');
+    expect(content).toContain('total: 2');
+    expect(content).toContain('> 총 2개 작업');
+    expect(content).toContain('- 대기: 2');
+
+    const again = await setTaskStatus(sddPath, 'cart', 'cart-task-001', 'pending');
+    expect(again.success).toBe(true);
+    if (again.success) expect(again.data).toMatchObject({ changed: false, recounted: false });
     expect(await fs.readFile(tasksPath, 'utf-8')).toBe(content);
   });
 

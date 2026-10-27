@@ -5,6 +5,7 @@ import { describe, it, expect } from 'vitest';
 import {
   generateTasks,
   parseTasks,
+  refreshTaskProgress,
   updateTaskStatus,
   getNextTask,
   normalizeTaskStatus,
@@ -581,12 +582,124 @@ completed: 0
     expect(updated).toContain('- **Status:** completed');
   });
 
+  it('진행 상황 블록 뒤에 --- 가 없어도 다음 제목까지 갱신한다', () => {
+    const content = `## 진행 상황
+
+- 대기: 9
+- 진행 중: 0
+- 완료: 0
+- 차단됨: 0
+
+## 작업 목록
+
+### t-001: A
+
+- **상태:** 대기
+`;
+
+    const updated = updateTaskStatus(content, 't-001', 'completed');
+
+    expect(updated).toContain('## 진행 상황\n\n- 대기: 0\n- 진행 중: 0\n- 완료: 1\n- 차단됨: 0\n\n## 작업 목록\n');
+    expect(updated).not.toContain('대기: 9');
+  });
+
+  it('진행 상황 블록이 파일 끝에 있어도 갱신한다', () => {
+    const content = `### t-001: A
+
+- **상태:** 대기
+
+## 진행 상황
+
+- 대기: 1
+- 진행 중: 0
+- 완료: 0
+- 차단됨: 0
+`;
+
+    const updated = updateTaskStatus(content, 't-001', 'in_progress');
+
+    expect(updated.endsWith('## 진행 상황\n\n- 대기: 0\n- 진행 중: 1\n- 완료: 0\n- 차단됨: 0\n')).toBe(true);
+  });
+
+  it('CRLF 파일에서 --- 없이 끝나는 진행 상황 블록도 CRLF로 갱신한다', () => {
+    const content = [
+      '## 진행 상황',
+      '',
+      '- 대기: 5',
+      '- 진행 중: 0',
+      '- 완료: 0',
+      '- 차단됨: 0',
+      '',
+      '## 작업 목록',
+      '',
+      '### t-001: A',
+      '',
+      '- **상태:** 대기',
+      '',
+    ].join('\r\n');
+
+    const updated = updateTaskStatus(content, 't-001', 'blocked');
+
+    expect(updated).toContain('- 대기: 0\r\n- 진행 중: 0\r\n- 완료: 0\r\n- 차단됨: 1\r\n\r\n## 작업 목록\r\n');
+    expect(updated.replace(/\r\n/g, '')).not.toContain('\n');
+  });
+
   it('CRLF frontmatter의 completed/total도 CRLF를 유지하며 갱신한다', () => {
     const content = ['---', 'total: 5', 'completed: 0', '---', '', '### t-001: A', '', '- **상태:** 대기', ''].join('\r\n');
 
     const updated = updateTaskStatus(content, 't-001', 'completed');
 
     expect(updated).toContain('---\r\ntotal: 1\r\ncompleted: 1\r\n---\r\n');
+  });
+});
+
+describe('refreshTaskProgress', () => {
+  it('작업을 직접 편집한 뒤 total·총 N개·진행 상황을 다시 계산한다', () => {
+    const content = `---
+feature: cart
+total: 3
+completed: 0
+---
+
+# 작업 목록: cart
+
+> 총 3개 작업
+
+---
+
+## 진행 상황
+
+- 대기: 3
+- 진행 중: 0
+- 완료: 0
+- 차단됨: 0
+
+---
+
+## 작업 목록
+
+### cart-task-001: A
+
+- **상태:** 완료
+
+### cart-task-002: B
+
+- **상태:** 진행 중
+`;
+
+    const refreshed = refreshTaskProgress(content);
+
+    expect(refreshed).toContain('total: 2\ncompleted: 1\n');
+    expect(refreshed).toContain('> 총 2개 작업\n');
+    expect(refreshed).toContain('- 대기: 0\n- 진행 중: 1\n- 완료: 1\n- 차단됨: 0\n\n---\n');
+  });
+
+  it('집계가 최신이면 내용을 바꾸지 않는다 (LF·CRLF)', () => {
+    const lf = generateTasks({ featureId: 'cart', featureTitle: 'Cart', tasks: [{ title: 'A' }, { title: 'B' }] });
+
+    expect(refreshTaskProgress(lf)).toBe(lf);
+    const crlf = lf.replace(/\n/g, '\r\n');
+    expect(refreshTaskProgress(crlf)).toBe(crlf);
   });
 });
 

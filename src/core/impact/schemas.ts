@@ -52,6 +52,8 @@ export interface DependencyGraph {
   edges: DependencyEdge[];
   /** Declared dependencies that do not resolve to any spec (not edges) */
   dangling?: Array<{ from: string; to: string }>;
+  /** Spec ids mentioned in a spec body (not dependencies: no edges, cycles or health impact) */
+  references?: Array<{ from: string; to: string }>;
 }
 
 /**
@@ -80,6 +82,8 @@ export interface ImpactAnalysisResult {
   recommendations: string[];
   /** Dependencies declared by the target spec that resolve to no spec */
   danglingDependencies?: string[];
+  /** Specs mentioned in the target spec body (references, not dependencies) */
+  references?: string[];
 }
 
 /**
@@ -90,6 +94,8 @@ export interface ImpactReport {
   projectPath: string;
   totalSpecs: number;
   totalEdges: number;
+  /** Body mentions of other specs; excluded from edges, cycles and health */
+  totalReferences?: number;
   mostConnectedSpecs: Array<{
     id: string;
     title?: string;

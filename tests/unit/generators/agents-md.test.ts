@@ -129,6 +129,25 @@ describe('generateAgentsMd', () => {
     }
   });
 
+  it('<feature> 인자 표기를 한 번 정의하고 명령어에 같은 표기를 쓴다', () => {
+    const result = generateAgentsMd({ projectName: 'test' });
+
+    expect(result.match(/\*\*인자 표기:\*\*/g)).toHaveLength(1);
+    expect(result).toContain('`<feature>`는 `<domain>/<feature>`(예: `pricing/cart`)');
+    expect(result).toContain('sdd new task <feature> <task-id> in-progress');
+    expect(result).toContain('-s <feature>');
+    expect(result).not.toContain('`<feature>-task-NNN`');
+  });
+
+  it('depends 문법과 재집계 방법을 안내한다', () => {
+    const result = generateAgentsMd({ projectName: 'test' });
+
+    expect(result).toContain('`depends: [pricing/cart, auth/session]`');
+    expect(result).toContain('없으면 `depends: []`');
+    expect(result).toContain('참조일 뿐 의존성이 아닙니다');
+    expect(result).toContain('`sdd new task <feature> <task-id> <현재 상태>`를 다시 실행해 집계만 갱신');
+  });
+
   it('domains.yml은 선택 항목으로 안내한다', () => {
     const result = generateAgentsMd({ projectName: 'test' });
 

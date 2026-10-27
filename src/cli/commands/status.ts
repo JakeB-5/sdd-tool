@@ -39,6 +39,8 @@ export interface FeatureInfo {
   taskProgress?: {
     completed: number;
     total: number;
+    /** Tasks currently in progress (0 when omitted) */
+    inProgress?: number;
   };
   stage: FeatureStage;
 }
@@ -98,8 +100,12 @@ export function getFeatureNextStep(feature: FeatureInfo): string | undefined {
       }
       return `${id}: 작업 분해 — sdd new tasks ${id} (Claude Code /sdd-tasks · Codex $sdd-tasks)`;
     case 'implement': {
-      const { completed, total } = feature.taskProgress ?? { completed: 0, total: 0 };
-      const step = `${id}: 구현 진행 중 (${completed}/${total}) — Claude Code /sdd-implement · Codex $sdd-implement, 작업 완료 시 sdd new task ${id} <task-id> completed`;
+      const { completed, total, inProgress = 0 } = feature.taskProgress ?? { completed: 0, total: 0 };
+      // "In progress" only once a task has started or finished; spec status is never changed here
+      const step =
+        completed > 0 || inProgress > 0
+          ? `${id}: 구현 진행 중 (${completed}/${total}) — Claude Code /sdd-implement · Codex $sdd-implement, 작업 완료 시 sdd new task ${id} <task-id> completed`
+          : `${id}: 구현 시작 전 (${completed}/${total}) — Claude Code /sdd-implement · Codex $sdd-implement, 작업 시작 시 sdd new task ${id} <task-id> in-progress`;
       if (normalizeSpecStatus(feature.status) === 'implemented') {
         return `${step} (스펙 상태(implemented)와 작업 진행률(${completed}/${total})이 맞지 않습니다)`;
       }
@@ -168,6 +174,7 @@ export async function getFeatureInfo(id: string, featurePath: string): Promise<F
     info.taskProgress = {
       completed,
       total: tasks.length,
+      inProgress: tasks.filter(t => t.status === 'in_progress').length,
     };
   }
 

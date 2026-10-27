@@ -7,7 +7,7 @@ export const sddImplementSkill: SkillDefinition = {
   name: 'sdd-implement',
   description:
     "Implement a feature's tasks.md one task at a time with TDD (red, green, refactor) and per-task commits. Use when tasks are ready and the user wants to start or continue implementing a spec.",
-  argumentHint: '<feature-id>',
+  argumentHint: '<feature>',
   allowedTools: [
     'Read',
     'Write',
@@ -38,19 +38,19 @@ export const sddImplementSkill: SkillDefinition = {
 - Work on one task at a time
 - Tests come first: never write implementation code before a failing test for it exists
 - Change task status only with \`sdd new task <feature> <task-id> <status>\` (pending, in-progress, completed, blocked);
-  do not hand-edit status lines or the progress counts
+  do not hand-edit status lines or the progress counts. Every run recomputes the counts from the tasks
 - Include the task ID in every commit message
 - Follow the principles in \`.sdd/constitution.md\`
 - Work on the feature branch created together with the spec (or the current working branch); do not create a branch per task
 
 ## Workflow
 
-1. \`sdd new task <domain>/<feature> <task-id> in-progress\`
+1. \`sdd new task <feature> <task-id> in-progress\`
 2. **Red**: turn the task's GIVEN-WHEN-THEN scenarios into tests and run them; confirm they fail
 3. **Green**: write the minimum code that makes the tests pass
 4. **Refactor**: clean up while keeping all tests green
 5. Add traceability references (see below)
-6. \`sdd new task <domain>/<feature> <task-id> completed\`
+6. \`sdd new task <feature> <task-id> completed\`
 7. Commit: \`feat(<feature>): <task-id> - <description>\`
 
 ## Traceability
@@ -85,8 +85,8 @@ Review its changes and test results, then mark the task completed and commit (wo
 
 Once all tasks are complete:
 1. Run \`sdd validate\` for a final validation pass
-2. Run \`sdd sync <domain>/<feature>\`: every requirement SHOULD be covered, with no ignored-reference warnings
-3. \`sdd new status <domain>/<feature> implemented\`
+2. Run \`sdd sync <feature>\`: every requirement SHOULD be covered, with no ignored-reference warnings
+3. \`sdd new status <feature> implemented\`
 4. Commit and open a PR or merge
 5. Run \`/sdd-status\` to review overall progress
 `,

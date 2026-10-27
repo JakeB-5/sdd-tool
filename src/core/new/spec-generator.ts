@@ -40,7 +40,8 @@ export function generateSpec(options: GenerateSpecOptions): string {
       status,
       created: today,
       domain: options.domain || undefined,
-      depends: options.depends?.length ? options.depends : null,
+      // `depends: []` states "no dependencies" explicitly (list of <domain>/<feature> spec ids)
+      depends: options.depends?.length ? options.depends : [],
       constitution_version: options.constitutionVersion || undefined,
     },
     `

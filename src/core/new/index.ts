@@ -43,6 +43,7 @@ export {
 export {
   generateTasks,
   parseTasks,
+  refreshTaskProgress,
   updateTaskStatus,
   getNextTask,
   type GenerateTasksOptions,

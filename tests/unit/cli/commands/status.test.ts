@@ -103,6 +103,21 @@ describe('buildStatusNextSteps', () => {
     expect(steps[0]).toContain('모든 기능(2개)이 구현 완료');
   });
 
+  it('완료·진행 중 작업이 없으면 "구현 시작 전 (0/N)"으로 안내한다', () => {
+    const step = getFeatureNextStep(feature({ status: 'tasked', taskProgress: { completed: 0, total: 3, inProgress: 0 } }));
+
+    expect(step).toContain('구현 시작 전 (0/3)');
+    expect(step).not.toContain('구현 진행 중');
+    expect(step).toContain('sdd new task pricing/cart <task-id> in-progress');
+  });
+
+  it('진행 중 작업이 하나라도 있으면 "구현 진행 중"으로 안내한다', () => {
+    const step = getFeatureNextStep(feature({ status: 'tasked', taskProgress: { completed: 0, total: 3, inProgress: 1 } }));
+
+    expect(step).toContain('구현 진행 중 (0/3)');
+    expect(step).toContain('<task-id> completed');
+  });
+
   it('implemented인데 미완료 작업이 있으면 불일치를 명시한다', () => {
     const step = getFeatureNextStep(feature({ status: 'implemented', taskProgress: { completed: 1, total: 3 } }));
 
@@ -271,7 +286,7 @@ completed: 2
 
     const info = await getFeatureInfo('test', featurePath);
 
-    expect(info.taskProgress).toEqual({ completed: 2, total: 2 });
+    expect(info.taskProgress).toEqual({ completed: 2, total: 2, inProgress: 0 });
     expect(info.stage).toBe('finalize');
   });
 });

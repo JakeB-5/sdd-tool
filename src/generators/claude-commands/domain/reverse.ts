@@ -53,7 +53,7 @@ title: <기능 제목>
 status: draft
 created: <YYYY-MM-DD>
 domain: <domain>
-depends: null
+depends: []
 ---
 
 # <기능 제목>

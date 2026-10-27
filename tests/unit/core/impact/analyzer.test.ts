@@ -445,6 +445,40 @@ describe('의존성 그래프 정확성 (도메인 레이아웃)', () => {
     }
   });
 
+  it('본문의 `domain/feature` 언급은 의존성·순환·건강도에 반영하지 않고 참조로만 보고한다', async () => {
+    // cart depends on coupon; coupon only mentions cart in its body
+    await writeSpec('pricing/coupon', []);
+    await writeSpec('pricing/cart', ['coupon']);
+    const couponPath = path.join(specsDir, 'pricing/coupon/spec.md');
+    await fs.appendFile(couponPath, '\n쿠폰은 `pricing/cart`의 합계에 적용된다. [장바구니](../cart/spec.md)\n');
+
+    const withMention = await generateImpactReport(tempDir);
+    expect(withMention.success).toBe(true);
+    if (!withMention.success) return;
+    expect(withMention.data.circularDependencies).toHaveLength(0);
+    expect(withMention.data.totalEdges).toBe(1);
+    expect(withMention.data.totalReferences).toBe(1);
+    expect(formatImpactReport(withMention.data)).toContain('본문 참조 (의존성 아님): 1');
+
+    // Health score is identical to the same project without the mention
+    await writeSpec('pricing/coupon', []);
+    const withoutMention = await generateImpactReport(tempDir);
+    expect(withoutMention.success).toBe(true);
+    if (!withoutMention.success) return;
+    expect(withMention.data.healthScore).toBe(withoutMention.data.healthScore);
+    expect(withoutMention.data.totalReferences).toBe(0);
+
+    await fs.appendFile(couponPath, '\n`pricing/cart` 참조\n');
+    const impact = await analyzeImpact(tempDir, 'pricing/coupon');
+    expect(impact.success).toBe(true);
+    if (impact.success) {
+      expect(impact.data.dependsOn).toEqual([]);
+      expect(impact.data.affectedBy.map((s) => s.id)).toEqual(['pricing/cart']);
+      expect(impact.data.references).toEqual(['pricing/cart']);
+      expect(formatImpactResult(impact.data)).toContain('본문 참조 (의존성 아님');
+    }
+  });
+
   it('여러 도메인에 같은 feature가 있으면 모호성 에러를 반환한다', async () => {
     await writeSpec('auth/core', []);
     await writeSpec('billing/core', []);
