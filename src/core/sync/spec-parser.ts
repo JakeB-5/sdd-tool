@@ -34,12 +34,12 @@ const REQ_HEADER_PATTERN =
   /^#{2,4}\s*[`[]?(REQ-\d+)(?![\w-])[`\]]?\s*[:.)\-\u2013\u2014]?\s*(.*)$/i;
 
 /**
- * \uc5b4\ub5a4 \ub9c8\ud06c\ub2e4\uc6b4 \ud5e4\ub529\uc774\ub4e0 (\ud0a4\uc6cc\ub4dc \ud0d0\uc0c9 \ubc94\uc704 \uc81c\ud55c\uc6a9)
+ * Any markdown heading (bounds the keyword search window)
  */
 const ANY_HEADING_PATTERN = /^#{1,4}\s/;
 
 /**
- * \ubcf8\ubb38\uc5d0\uc11c REQ ID\uac00 \uc5b8\uae09\ub418\uc5c8\ub294\uc9c0 (\uc815\uc758 \ud5e4\ub529\uc774 \uc5c6\uc744 \ub54c \uacbd\uace0 \ud310\ub2e8\uc6a9)
+ * Whether the body mentions a REQ ID (drives the no-definition-heading warning)
  */
 const REQ_MENTION_PATTERN = /\bREQ-\d+\b/i;
 
