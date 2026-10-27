@@ -78,6 +78,8 @@ SDD setup also generates the `sdd-implementer` subagent. For a self-contained ta
 
 ## Example
 
+Illustrative transcript (abbreviated):
+
 ```
 /sdd-implement auth/login
 

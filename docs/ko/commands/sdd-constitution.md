@@ -31,6 +31,8 @@ $sdd-constitution      # Codex
    - `sdd constitution bump --minor -m "Add new principle"`
    - `sdd constitution bump --major -m "Change core principle"`
 
+`bump`는 버전 변경(예: `1.0.0 → 1.0.1`)을 출력하고 `.sdd/CHANGELOG.md`에 항목을 기록합니다.
+
 ## 헌법 구조
 
 ```markdown

@@ -64,6 +64,8 @@ sdd domain unlink auth user-login
 
 ```bash
 sdd domain depends payment --on auth
+sdd domain depends payment --on auth --type extends   # uses (기본) | extends | implements
+sdd domain depends payment --on auth --remove         # 의존성 제거
 ```
 
 ### graph
@@ -71,15 +73,19 @@ sdd domain depends payment --on auth
 도메인 의존성 그래프를 시각화합니다.
 
 ```bash
-sdd domain graph              # Mermaid 형식 (기본)
-sdd domain graph --format dot # DOT 형식
+sdd domain graph                         # Mermaid 형식 (기본)
+sdd domain graph --format dot            # DOT 형식
+sdd domain graph --format json           # JSON (노드별 의존성 포함)
+sdd domain graph --direction TD          # LR (기본) | TD | BT | RL
+sdd domain graph -o docs/domains.mmd     # 파일로 저장
 ```
 
-**출력 예시:**
+**출력 예시** (노드 레이블은 도메인 설명, 화살표 레이블은 의존성 타입):
 ```mermaid
 graph LR
+  auth["사용자 인증"]
+  payment["결제 처리"]
   payment -->|uses| auth
-  order -->|uses| payment
 ```
 
 ### validate
@@ -91,15 +97,20 @@ sdd domain validate
 ```
 
 검증 항목:
-- 순환 의존성 감지
-- 고아 스펙 감지
-- 스키마 유효성
+- 순환 의존성 (에러)
+- 잘못된 도메인 ID (`INVALID_DOMAIN_ID`)
+- 존재하지 않는 도메인에 대한 의존성 (`MISSING_DEPENDENCY_DOMAIN`)
+- 스펙이 없는 도메인 (`EMPTY_DOMAIN`, 정보)
+
+고아 스펙(어떤 도메인에도 속하지 않은 스펙)은 감지하지 않습니다. 고아 스펙은 `sdd validate --orphan-specs`로 확인하세요.
 
 ::: tip CLI 전용 작업
 `sdd domain delete`, `rename`, `update`는 CLI에는 있지만 스킬의 문서화된 하위 명령어에는 포함되지 않습니다. 터미널에서 실행하세요. [`sdd domain`](/ko/cli/domain)을 참고하세요.
 :::
 
 ## 예시
+
+예시 출력입니다(요약본):
 
 ```
 /sdd-domain create auth --description "사용자 인증"
@@ -111,6 +122,8 @@ AI: $ sdd domain create auth --description "사용자 인증"
 /sdd-domain graph
 
 AI: graph LR
+      auth["사용자 인증"]
+      payment["payment"]
       payment -->|uses| auth
 ```
 

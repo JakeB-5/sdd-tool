@@ -31,6 +31,8 @@ The constitution defines the core principles of a project. Every spec and implem
    - `sdd constitution bump --minor -m "Add new principle"`
    - `sdd constitution bump --major -m "Change core principle"`
 
+`bump` prints the version change (e.g. `1.0.0 → 1.0.1`) and writes an entry to `.sdd/CHANGELOG.md`.
+
 ## Constitution Structure
 
 ```markdown

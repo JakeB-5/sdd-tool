@@ -78,6 +78,8 @@ SDD 설정은 `sdd-implementer` 서브에이전트도 생성합니다. 독립적
 
 ## 예시
 
+예시 대화입니다(요약본):
+
 ```
 /sdd-implement auth/login
 

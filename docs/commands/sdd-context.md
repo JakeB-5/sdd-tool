@@ -72,14 +72,13 @@ sdd context specs --json
 
 ## Context Effects
 
-Once a context is active, scoped operations apply automatically:
+The context is read only when creating a spec: when exactly one domain is active, a new spec without an explicit domain (`/sdd-spec <feature>`, i.e. `sdd new <feature>`) defaults to that domain. With several active domains no default is applied.
 
-1. **Spec creation**: `/sdd-spec` auto-detects the domain from the context
-2. **Validation**: `/sdd-validate` validates only the domains in the context
-3. **Listing**: `/sdd-list` shows only specs within the context
-4. **Implementation**: relevant specs are surfaced automatically during implementation
+`sdd validate` and `sdd list` ignore the context. To validate a single domain, use `sdd validate -d <domain>`.
 
 ## Example
+
+Illustrative output (abbreviated):
 
 ```
 /sdd-context set payment

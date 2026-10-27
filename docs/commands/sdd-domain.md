@@ -64,6 +64,8 @@ Set a dependency between two domains (`payment` depends on `auth`).
 
 ```bash
 sdd domain depends payment --on auth
+sdd domain depends payment --on auth --type extends   # uses (default) | extends | implements
+sdd domain depends payment --on auth --remove         # Remove the dependency
 ```
 
 ### graph
@@ -71,15 +73,19 @@ sdd domain depends payment --on auth
 Visualize the domain dependency graph.
 
 ```bash
-sdd domain graph              # Mermaid format (default)
-sdd domain graph --format dot # DOT format
+sdd domain graph                         # Mermaid format (default)
+sdd domain graph --format dot            # DOT format
+sdd domain graph --format json           # JSON (nodes with their dependencies)
+sdd domain graph --direction TD          # LR (default) | TD | BT | RL
+sdd domain graph -o docs/domains.mmd     # Write to a file
 ```
 
-**Example output:**
+**Example output** (nodes are labelled with the domain description; the edge shows the dependency type):
 ```mermaid
 graph LR
+  auth["User authentication"]
+  payment["Payment processing"]
   payment -->|uses| auth
-  order -->|uses| payment
 ```
 
 ### validate
@@ -91,15 +97,20 @@ sdd domain validate
 ```
 
 Validation checks:
-- Circular dependency detection
-- Orphaned spec detection
-- Schema validity
+- Circular dependencies (error)
+- Invalid domain IDs (`INVALID_DOMAIN_ID`)
+- Dependencies on domains that do not exist (`MISSING_DEPENDENCY_DOMAIN`)
+- Domains without specs (`EMPTY_DOMAIN`, info)
+
+It does not detect orphaned specs (specs that belong to no domain). Use `sdd validate --orphan-specs` for that.
 
 ::: tip CLI-only operations
 `sdd domain delete`, `rename`, and `update` exist in the CLI but are not part of the skill's documented subcommands. Run them in a terminal; see [`sdd domain`](/cli/domain).
 :::
 
 ## Example
+
+Illustrative output (abbreviated):
 
 ```
 /sdd-domain create auth --description "User authentication"
@@ -111,6 +122,8 @@ AI: $ sdd domain create auth --description "User authentication"
 /sdd-domain graph
 
 AI: graph LR
+      auth["User authentication"]
+      payment["payment"]
       payment -->|uses| auth
 ```
 

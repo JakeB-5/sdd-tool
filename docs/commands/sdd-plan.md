@@ -69,6 +69,8 @@ $sdd-plan <feature>      # Codex
 
 ## Example
 
+Illustrative transcript (abbreviated):
+
 ```
 /sdd-plan auth/login
 

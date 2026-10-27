@@ -87,9 +87,11 @@ sdd domain validate
 \`\`\`
 
 Validation checks:
-- Circular dependency detection
-- Orphaned spec detection
-- Schema validity
+- Circular dependency detection (error)
+- Invalid domain IDs and dependencies on missing domains
+- Empty domains (info)
+
+It does not detect orphaned specs; run \`/sdd-validate\` with the \`--orphan-specs\` option for that.
 
 ## Next Steps
 

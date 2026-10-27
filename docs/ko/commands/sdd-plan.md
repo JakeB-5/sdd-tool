@@ -71,6 +71,8 @@ $sdd-plan <feature>      # Codex
 
 ## 예시
 
+예시 대화입니다(요약본):
+
 ```
 /sdd-plan auth/login
 
