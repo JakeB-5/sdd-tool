@@ -14,11 +14,17 @@ import {
   getNextFeatureNumber,
   peekNextFeatureNumber,
   getFeatureHistory,
+  parseTasks,
+  updateTaskStatus,
   type GenerateTasksOptions,
 } from '../../core/new/index.js';
+import { normalizeTaskStatus } from '../../core/new/task-generator.js';
+import type { TaskItem, TaskStatus } from '../../core/new/schemas.js';
 import { logger } from '../../utils/index.js';
 import { ensureDir, fileExists, readFile, writeFile, findSddRoot } from '../../utils/fs.js';
-import { resolveSpec } from '../../core/spec/locator.js';
+import { readFrontmatter, updateFrontmatter } from '../../utils/frontmatter.js';
+import { listSpecs, resolveSpec, resolveSpecIn, type SpecLocation } from '../../core/spec/locator.js';
+import { SPEC_STATUSES, normalizeSpecStatus, type SpecStatus } from '../../core/spec/status.js';
 import { parseConstitution } from '../../core/constitution/index.js';
 import { Result, success, failure } from '../../types/index.js';
 import { ExitCode } from '../../errors/index.js';
@@ -476,6 +482,188 @@ export async function createChecklist(
 }
 
 /**
+ * Task status values accepted on the command line (normalized by normalizeTaskStatus).
+ */
+const TASK_STATUS_INPUTS = 'pending, in-progress (in_progress), completed, blocked, 대기, 진행 중, 완료, 차단됨';
+
+/**
+ * 스펙 상태 변경 결과
+ */
+export interface SpecStatusChange {
+  featureId: string;
+  specPath: string;
+  /** Raw frontmatter status before the change (undefined when absent) */
+  from?: string;
+  to: SpecStatus;
+  changed: boolean;
+}
+
+/**
+ * 작업 상태 변경 결과
+ */
+export interface TaskStatusChange {
+  featureId: string;
+  tasksPath: string;
+  taskId: string;
+  from: TaskStatus;
+  to: TaskStatus;
+  changed: boolean;
+  progress: { completed: number; total: number };
+}
+
+/**
+ * Resolve a feature reference with the shared spec locator; not-found errors list the known ids.
+ */
+async function resolveFeature(sddPath: string, feature: string): Promise<Result<SpecLocation, Error>> {
+  const all = await listSpecs(sddPath);
+  const resolved = resolveSpecIn(all, feature);
+  if (resolved.success || resolved.error.reason === 'ambiguous') {
+    return resolved;
+  }
+  const available = all.length > 0 ? all.map((s) => s.id).join(', ') : '(없음)';
+  return failure(new Error(`기능 '${feature}'을 찾을 수 없습니다. 사용 가능한 기능: ${available}`));
+}
+
+/**
+ * 스펙 frontmatter status 변경 (테스트 가능)
+ *
+ * Only `status` (and `updated`, when the frontmatter already has it) is rewritten;
+ * the rest of the frontmatter keeps its formatting.
+ */
+export async function setSpecStatus(
+  sddPath: string,
+  feature: string,
+  status: string
+): Promise<Result<SpecStatusChange, Error>> {
+  const to = normalizeSpecStatus(status);
+  if (!to) {
+    return failure(
+      new Error(`유효하지 않은 스펙 상태입니다: '${status}' (허용: ${SPEC_STATUSES.join(', ')})`)
+    );
+  }
+
+  const resolved = await resolveFeature(sddPath, feature);
+  if (!resolved.success) return resolved;
+  const { id: featureId, specPath } = resolved.data;
+
+  const readResult = await readFile(specPath);
+  if (!readResult.success) {
+    return failure(new Error(`스펙 파일 읽기 실패: ${readResult.error.message}`));
+  }
+  const content = readResult.data;
+  const { data } = readFrontmatter(content);
+  const from = data.status === undefined || data.status === null ? undefined : String(data.status);
+
+  if (from === to) {
+    return success({ featureId, specPath, from, to, changed: false });
+  }
+
+  let updated: string;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    updated = updateFrontmatter(content, {
+      status: to,
+      updated: Object.hasOwn(data, 'updated') ? today : undefined,
+    });
+  } catch (error) {
+    return failure(new Error(`${specPath}: ${(error as Error).message}`));
+  }
+
+  const writeResult = await writeFile(specPath, updated);
+  if (!writeResult.success) {
+    return failure(new Error(`스펙 파일 쓰기 실패: ${writeResult.error.message}`));
+  }
+  return success({ featureId, specPath, from, to, changed: true });
+}
+
+/**
+ * Find a task by exact id, or by its numeric suffix when that is unambiguous (`2` → `x-task-002`).
+ */
+function findTask(tasks: TaskItem[], taskId: string): Result<TaskItem, Error> {
+  const ref = taskId.trim();
+  const exact = tasks.find((t) => t.id === ref) ?? tasks.find((t) => t.id.toLowerCase() === ref.toLowerCase());
+  if (exact) return success(exact);
+
+  if (/^\d+$/.test(ref)) {
+    const matches = tasks.filter((t) => Number(t.id.match(/(\d+)$/)?.[1]) === Number(ref));
+    if (matches.length === 1) return success(matches[0]);
+    if (matches.length > 1) {
+      return failure(
+        new Error(`작업 번호 '${ref}'이(가) 여러 작업과 일치합니다: ${matches.map((t) => t.id).join(', ')}`)
+      );
+    }
+  }
+
+  const available = tasks.length > 0 ? tasks.map((t) => t.id).join(', ') : '(없음)';
+  return failure(new Error(`작업을 찾을 수 없습니다: ${ref}. 사용 가능한 작업: ${available}`));
+}
+
+/**
+ * tasks.md 작업 상태 변경 (테스트 가능)
+ *
+ * The progress block and frontmatter `completed:` count are refreshed by updateTaskStatus.
+ */
+export async function setTaskStatus(
+  sddPath: string,
+  feature: string,
+  taskId: string,
+  status: string
+): Promise<Result<TaskStatusChange, Error>> {
+  const to = normalizeTaskStatus(status);
+  if (!to) {
+    return failure(new Error(`유효하지 않은 작업 상태입니다: '${status}' (허용: ${TASK_STATUS_INPUTS})`));
+  }
+
+  const resolved = await resolveFeature(sddPath, feature);
+  if (!resolved.success) return resolved;
+  const featureId = resolved.data.id;
+  const tasksPath = path.join(resolved.data.dir, 'tasks.md');
+
+  if (!(await fileExists(tasksPath))) {
+    return failure(
+      new Error(`tasks.md가 없습니다: ${tasksPath} (sdd new tasks ${featureId}로 먼저 생성하세요)`)
+    );
+  }
+  const readResult = await readFile(tasksPath);
+  if (!readResult.success) {
+    return failure(new Error(`작업 파일 읽기 실패: ${readResult.error.message}`));
+  }
+  const content = readResult.data;
+
+  const found = findTask(parseTasks(content), taskId);
+  if (!found.success) return found;
+  const task = found.data;
+
+  const result = (tasks: TaskItem[], changed: boolean): TaskStatusChange => ({
+    featureId,
+    tasksPath,
+    taskId: task.id,
+    from: task.status,
+    to,
+    changed,
+    progress: { completed: tasks.filter((t) => t.status === 'completed').length, total: tasks.length },
+  });
+
+  if (task.status === to) {
+    return success(result(parseTasks(content), false));
+  }
+
+  const updated = updateTaskStatus(content, task.id, to);
+  const updatedTasks = parseTasks(updated);
+  if (updatedTasks.find((t) => t.id === task.id)?.status !== to) {
+    return failure(
+      new Error(`작업 '${task.id}'에 상태 줄(- **상태:** 또는 - **Status:**)이 없어 변경할 수 없습니다: ${tasksPath}`)
+    );
+  }
+
+  const writeResult = await writeFile(tasksPath, updated);
+  if (!writeResult.success) {
+    return failure(new Error(`작업 파일 쓰기 실패: ${writeResult.error.message}`));
+  }
+  return success(result(updatedTasks, true));
+}
+
+/**
  * 카운터 상태 조회 (테스트 가능)
  */
 export async function getCounterStatus(sddPath: string): Promise<Result<CounterStatus, Error>> {
@@ -547,6 +735,29 @@ export function registerNewCommand(program: Command): void {
     .option('-f, --force', '기존 checklist.md 덮어쓰기')
     .action(async (_opts: unknown, cmd: Command) => {
       await handleChecklist(cmd.optsWithGlobals<{ force?: boolean }>());
+    });
+
+  // status 서브커맨드 (스펙 상태 전이)
+  newCmd
+    .command('status')
+    .description('스펙 상태 변경 (spec.md frontmatter status)')
+    .argument('<feature>', '기능 ID (<domain>/<feature> 또는 <feature>)')
+    .argument('<status>', `새 상태 (${SPEC_STATUSES.join('|')})`)
+    .option('--json', 'JSON 형식으로 출력')
+    .action(async (feature: string, status: string, opts: { json?: boolean }) => {
+      await handleSpecStatus(feature, status, opts);
+    });
+
+  // task 서브커맨드 (작업 상태 전이)
+  newCmd
+    .command('task')
+    .description('작업 상태 변경 (tasks.md, 진행 상황 갱신)')
+    .argument('<feature>', '기능 ID (<domain>/<feature> 또는 <feature>)')
+    .argument('<task-id>', '작업 ID (예: login-task-001, 번호만 쓰면 유일할 때 일치)')
+    .argument('<status>', '새 상태 (pending|in-progress|completed|blocked 또는 대기|진행 중|완료|차단됨)')
+    .option('--json', 'JSON 형식으로 출력')
+    .action(async (feature: string, taskId: string, status: string, opts: { json?: boolean }) => {
+      await handleTaskStatus(feature, taskId, status, opts);
     });
 
   // counter 서브커맨드
@@ -769,6 +980,69 @@ async function handleChecklist(options: { force?: boolean }): Promise<void> {
   }
 
   logger.info(`✅ 체크리스트 생성: ${result.data}`);
+}
+
+/**
+ * status 서브커맨드 핸들러
+ */
+async function handleSpecStatus(
+  feature: string,
+  status: string,
+  options: { json?: boolean }
+): Promise<void> {
+  const sddPath = path.join(await requireProjectRoot(), '.sdd');
+
+  const result = await setSpecStatus(sddPath, feature, status);
+  if (!result.success) {
+    logger.error(result.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const { featureId, from, to, changed } = result.data;
+  if (options.json) {
+    console.log(JSON.stringify(result.data, null, 2));
+    return;
+  }
+  if (changed) {
+    logger.info(`✅ ${featureId} 스펙 상태: ${from ?? '(없음)'} → ${to}`);
+  } else {
+    logger.info(`ℹ ${featureId} 스펙 상태가 이미 ${to}입니다 (변경 없음)`);
+  }
+}
+
+/**
+ * task 서브커맨드 핸들러
+ */
+async function handleTaskStatus(
+  feature: string,
+  taskId: string,
+  status: string,
+  options: { json?: boolean }
+): Promise<void> {
+  const sddPath = path.join(await requireProjectRoot(), '.sdd');
+
+  const result = await setTaskStatus(sddPath, feature, taskId, status);
+  if (!result.success) {
+    logger.error(result.error.message);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+
+  const { featureId, from, to, changed, progress } = result.data;
+  if (options.json) {
+    console.log(JSON.stringify(result.data, null, 2));
+    return;
+  }
+  const progressText = `작업 ${progress.completed}/${progress.total} 완료`;
+  if (changed) {
+    logger.info(`✅ ${featureId} ${result.data.taskId}: ${from} → ${to} (${progressText})`);
+  } else {
+    logger.info(`ℹ ${featureId} ${result.data.taskId} 상태가 이미 ${to}입니다 (변경 없음, ${progressText})`);
+  }
+  if (changed && to === 'completed' && progress.completed === progress.total) {
+    logger.info(
+      `모든 작업 완료 — sdd validate · sdd sync로 확인한 뒤 sdd new status ${featureId} implemented`
+    );
+  }
 }
 
 /**

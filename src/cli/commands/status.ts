@@ -9,12 +9,22 @@ import { fileExists, findSddRoot } from '../../utils/fs.js';
 import { ExitCode } from '../../errors/index.js';
 import { listSpecs, resolveDomainSpecRef } from '../../core/spec/locator.js';
 import { parseSpecMetadata } from '../../core/new/spec-generator.js';
-import { getSpecStatusIcon, getSpecStatusLabel } from '../../core/spec/status.js';
+import { getSpecStatusIcon, getSpecStatusLabel, normalizeSpecStatus } from '../../core/spec/status.js';
 import { parseTasks } from '../../core/new/task-generator.js';
 import { listPendingChanges, listArchives, type PendingChange } from '../../core/change/archive.js';
 import { getCurrentBranch, listFeatureBranches } from '../../core/new/branch.js';
 import { createDomainService } from '../../core/domain/service.js';
 import { hasSddBlock } from '../../generators/agents-md.js';
+
+/**
+ * 기능 워크플로우 단계 (파일 · 스펙 상태 · 작업 진행률로 판정)
+ * - plan: plan.md 없음
+ * - tasks: tasks.md 없음 또는 작업 0개
+ * - implement: 미완료 작업 있음
+ * - finalize: 모든 작업 완료, 스펙 상태가 implemented 아님
+ * - done: 구현 완료 (또는 deprecated)
+ */
+export type FeatureStage = 'plan' | 'tasks' | 'implement' | 'finalize' | 'done';
 
 /**
  * 기능 정보
@@ -30,6 +40,7 @@ export interface FeatureInfo {
     completed: number;
     total: number;
   };
+  stage: FeatureStage;
 }
 
 /**
@@ -56,10 +67,61 @@ export interface StatusOptions {
 }
 
 /**
+ * 기능 단계 판정 (테스트 가능)
+ */
+export function getFeatureStage(info: Omit<FeatureInfo, 'stage'>): FeatureStage {
+  const status = normalizeSpecStatus(info.status);
+  if (status === 'deprecated') return 'done';
+  if (!info.hasPlan) return 'plan';
+  if (!info.hasTasks || !info.taskProgress || info.taskProgress.total === 0) return 'tasks';
+  if (info.taskProgress.completed < info.taskProgress.total) return 'implement';
+  return status === 'implemented' ? 'done' : 'finalize';
+}
+
+/**
+ * 기능별 다음 단계 안내 (완료/폐기된 기능 제외)
+ */
+export function getFeatureNextStep(feature: FeatureInfo): string | undefined {
+  const { id } = feature;
+  switch (feature.stage) {
+    case 'plan':
+      return `${id}: 명세 완성 후 계획 작성 — sdd new plan ${id} (Claude Code /sdd-plan · Codex $sdd-plan)`;
+    case 'tasks':
+      return `${id}: 작업 분해 — sdd new tasks ${id} (Claude Code /sdd-tasks · Codex $sdd-tasks)`;
+    case 'implement': {
+      const { completed, total } = feature.taskProgress ?? { completed: 0, total: 0 };
+      return `${id}: 구현 진행 중 (${completed}/${total}) — Claude Code /sdd-implement · Codex $sdd-implement, 작업 완료 시 sdd new task ${id} <task-id> completed`;
+    }
+    case 'finalize':
+      return `${id}: 모든 작업 완료 — sdd validate · sdd sync 확인 후 sdd new status ${id} implemented`;
+    case 'done':
+      return undefined;
+  }
+}
+
+/**
+ * 다음 단계 안내 목록 (항상 1줄 이상)
+ */
+export function buildStatusNextSteps(features: FeatureInfo[]): string[] {
+  if (features.length === 0) {
+    return ['sdd new <name> - 새 기능 생성'];
+  }
+  const steps = features
+    .map(getFeatureNextStep)
+    .filter((step): step is string => step !== undefined);
+  if (steps.length > 0) {
+    return steps;
+  }
+  return [
+    `✅ 모든 기능(${features.length}개)이 구현 완료되었습니다. 새 기능은 sdd new <name>, 변경은 sdd change로 시작하세요`,
+  ];
+}
+
+/**
  * 기능 정보 조회 (테스트 가능)
  */
 export async function getFeatureInfo(id: string, featurePath: string): Promise<FeatureInfo> {
-  const info: FeatureInfo = {
+  const info: Omit<FeatureInfo, 'stage'> = {
     id,
     title: id,
     status: 'unknown',
@@ -96,7 +158,7 @@ export async function getFeatureInfo(id: string, featurePath: string): Promise<F
     };
   }
 
-  return info;
+  return { ...info, stage: getFeatureStage(info) };
 }
 
 /**
@@ -275,13 +337,12 @@ function printStatus(status: ProjectStatus, verbose?: boolean): void {
       let progressStr = '';
       if (feature.taskProgress) {
         const { completed, total } = feature.taskProgress;
-        const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-        progressStr = ` [${completed}/${total} = ${percent}%]`;
+        progressStr = ` — 작업 ${completed}/${total}`;
       }
 
-      console.log(`   ${statusIcon} ${feature.title} (${feature.id})`);
+      console.log(`   ${statusIcon} ${feature.title} (${feature.id})${progressStr}`);
       if (verbose) {
-        console.log(`      상태: ${feature.status} (${getSpecStatusLabel(feature.status)}), 파일: ${files}${progressStr}`);
+        console.log(`      상태: ${feature.status} (${getSpecStatusLabel(feature.status)}), 파일: ${files}`);
       }
     }
     console.log('');
@@ -320,24 +381,8 @@ function printStatus(status: ProjectStatus, verbose?: boolean): void {
 
   // 다음 단계 안내
   console.log('💡 다음 단계:');
-  if (status.features.length === 0) {
-    console.log('   sdd new <name> - 새 기능 생성');
-  } else {
-    const inProgress = status.features.find(f => f.status === 'implementing');
-    if (inProgress) {
-      console.log(`   ${inProgress.id} 기능 구현 중...`);
-      if (inProgress.taskProgress) {
-        const { completed, total } = inProgress.taskProgress;
-        if (completed < total) {
-          console.log(`   sdd validate - 스펙 검증`);
-        }
-      }
-    } else {
-      const draft = status.features.find(f => f.status === 'draft');
-      if (draft) {
-        console.log(`   ${draft.id} 기능 명세 작성 완료 후 /sdd:plan 실행`);
-      }
-    }
+  for (const step of buildStatusNextSteps(status.features)) {
+    console.log(`   ${step}`);
   }
   console.log('');
 }

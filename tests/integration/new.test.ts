@@ -243,4 +243,53 @@ describe('sdd new', () => {
     expect(stdout).toContain('3. sdd validate');
     expect(stdout).not.toContain('4. ');
   });
+
+  const runFailing = (args: string) =>
+    execAsync(`node "${cliPath}" ${args}`, { cwd: tempDir }).then(
+      () => ({ code: 0, output: '' }),
+      (err: { code: number; stderr: string; stdout: string }) => ({
+        code: err.code,
+        output: err.stderr + err.stdout,
+      })
+    );
+
+  it('new status는 스펙 상태를 바꾸고 이전 → 새 상태를 출력한다', async () => {
+    await execAsync(`node "${cliPath}" new pricing/cart --no-branch`, { cwd: tempDir });
+    const specPath = path.join(tempDir, '.sdd', 'specs', 'pricing', 'cart', 'spec.md');
+
+    const { stdout } = await execAsync(`node "${cliPath}" new status cart approved`, { cwd: tempDir });
+    expect(stdout).toContain('pricing/cart 스펙 상태: draft → approved');
+    expect(await fs.readFile(specPath, 'utf-8')).toContain('status: approved');
+
+    const json = await execAsync(`node "${cliPath}" new status pricing/cart implemented --json`, { cwd: tempDir });
+    expect(JSON.parse(json.stdout)).toMatchObject({ from: 'approved', to: 'implemented', changed: true });
+
+    const invalid = await runFailing('new status cart done');
+    expect(invalid.code).toBe(1);
+    expect(invalid.output).toContain('draft, review, approved');
+
+    const unknown = await runFailing('new status nope implemented');
+    expect(unknown.code).toBe(1);
+    expect(unknown.output).toContain('pricing/cart');
+  });
+
+  it('new task는 작업 상태를 바꾸고 진행률을 출력한다', async () => {
+    await execAsync(`node "${cliPath}" new pricing/cart --tasks --no-branch`, { cwd: tempDir });
+    const tasksPath = path.join(tempDir, '.sdd', 'specs', 'pricing', 'cart', 'tasks.md');
+
+    const { stdout } = await execAsync(`node "${cliPath}" new task cart cart-task-001 in-progress`, { cwd: tempDir });
+    expect(stdout).toContain('cart-task-001: pending → in_progress (작업 0/3 완료)');
+    expect(await fs.readFile(tasksPath, 'utf-8')).toContain('- 진행 중: 1');
+
+    const json = await execAsync(`node "${cliPath}" new task cart 1 완료 --json`, { cwd: tempDir });
+    expect(JSON.parse(json.stdout)).toMatchObject({
+      taskId: 'cart-task-001',
+      to: 'completed',
+      progress: { completed: 1, total: 3 },
+    });
+
+    const unknown = await runFailing('new task cart cart-task-999 completed');
+    expect(unknown.code).toBe(1);
+    expect(unknown.output).toContain('cart-task-001, cart-task-002, cart-task-003');
+  });
 });

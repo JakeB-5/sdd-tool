@@ -86,6 +86,38 @@ Create only the task breakdown:
 sdd new tasks user-auth
 ```
 
+### sdd new status
+
+Change a spec's lifecycle status (`status` in the spec.md frontmatter):
+
+```bash
+sdd new status auth/user-auth implemented
+# ✅ auth/user-auth 스펙 상태: implementing → implemented
+```
+
+- Valid statuses: `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated` (legacy `specified` / `completed` are written as `review` / `implemented`)
+- `<feature>` is `<domain>/<feature>`, or a bare `<feature>` when only one domain has it
+- Only `status` is rewritten, plus `updated:` (today) when the frontmatter already has that field; other fields are left as written
+- Exit code 1 for an unknown feature (available ids are listed) or an invalid status (valid values are listed)
+- `--json` prints `{ featureId, specPath, from, to, changed }`
+
+### sdd new task
+
+Change one task's status in the feature's tasks.md:
+
+```bash
+sdd new task auth/user-auth user-auth-task-002 in-progress
+sdd new task user-auth 2 completed      # numeric suffix, when it matches one task
+# ✅ auth/user-auth user-auth-task-002: in_progress → completed (작업 2/3 완료)
+```
+
+- Statuses: `pending`, `in-progress` (or `in_progress`), `completed`, `blocked`, or `대기`, `진행 중`, `완료`, `차단됨`. The value is written in the language of the task's label (`**상태:** 완료` / `**Status:** completed`)
+- The `## 진행 상황` counts and the frontmatter `completed:` count are refreshed
+- Exit code 1 for an unknown task id (available ids are listed), an ambiguous number, an invalid status, a missing tasks.md, or a task without a status line; the file is not modified
+- `--json` prints `{ featureId, tasksPath, taskId, from, to, changed, progress }`
+
+When the last task is completed, finish with `sdd validate` and `sdd sync`, then `sdd new status <feature> implemented`.
+
 ## Generated spec.md Example
 
 ```markdown
