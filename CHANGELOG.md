@@ -9,8 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **OpenAI Codex support in `sdd init`.** Every `sdd init` now writes both Claude Code and Codex files (no target flag)
+  - Codex skills: the same 30 skills under `.agents/skills/sdd-*/SKILL.md` (frontmatter `name` + `description` only, skill references written as `$sdd-x`). Manual-only skills (`sdd-chat`, `sdd-cicd`, `sdd-guide`, `sdd-migrate`, `sdd-watch`) also get `agents/openai.yaml` with `policy.allow_implicit_invocation: false`
+  - Shared subagents `sdd-spec-reviewer` (read-only spec review with `sdd validate` / `sdd quality`), `sdd-implementer` (test-first implementation of `tasks.md`) and `sdd-impact-analyst` (read-only `sdd impact` analysis), written to `.claude/agents/<name>.md` and `.codex/agents/<name>.toml`
+  - The project-root `AGENTS.md` gets an SDD guide inside a `<!-- sdd:begin -->` … `<!-- sdd:end -->` block: created if missing, otherwise only that block is replaced (or appended); content outside the block, a leading BOM and CRLF line endings are preserved, and init fails before writing anything if the markers are unbalanced. A root `AGENTS.override.md` (which Codex reads instead) triggers a warning
+  - Read-only subagents rely on their instructions (they keep shell access to run `sdd`); Codex `sdd-prepare` notes that `sdd prepare` targets the Claude layout and names the Codex equivalents
+  - `--no-skills` skips both skill trees; subagents are always generated
+
 ### Changed
 
+- **The SDD guide lives in the root `AGENTS.md` block; `.sdd/AGENTS.md` is no longer generated.** An existing `.sdd/AGENTS.md` is left untouched and reported as no longer generated. `CLAUDE.md` now imports `@AGENTS.md` (`@../AGENTS.md` from `.claude/CLAUDE.md`); re-running `sdd init` replaces an old `@.sdd/AGENTS.md` import line in place without duplicating it. `sdd status` checks the root `AGENTS.md` block
+- Skill bodies are target-neutral (no Claude-only tool names such as `AskUserQuestion` or Read/Glob/Grep as requirements); `sdd-implement` and `sdd-validate` mention delegating to the new subagents
 - **`sdd reverse` is now AI-driven.** The CLI keeps only deterministic steps; the `sdd-reverse` skill / `/sdd.reverse` command reads the code and writes drafts
   - `sdd reverse scan` reports real file/line counts, language distribution and directory-based domain suggestions with per-domain file lists; `--include`/`--exclude` are globs (repeatable), `--language` accepts ids or extensions, `--depth 0` is honoured, `--json` prints pure JSON. Scan no longer creates domains
   - Drafts are `sdd new`-format `spec.md` files at `.sdd/.reverse-drafts/<domain>/<feature>/spec.md`

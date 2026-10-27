@@ -36,14 +36,15 @@ sdd init [options]
 **Options:**
 - `--skip-git-setup` - Skip Git workflow setup
 - `--auto-approve` - Auto-approve all settings
-- `--no-skills` - Skip `.claude/skills/` generation
+- `--no-skills` - Skip skill generation (`.claude/skills/` and `.agents/skills/`)
 - `--legacy-commands` - Also write legacy Korean slash commands to `.claude/commands/sdd.*.md`
 
 **Creates:**
 - `.sdd/` directory structure
-- `.claude/skills/sdd-*/SKILL.md` (30 skills, invoked as `/sdd-*`)
-- `CLAUDE.md` importing `@.sdd/AGENTS.md` (created or appended, never overwritten)
-- `.claude/agents/` (optional)
+- `.claude/skills/sdd-*/SKILL.md` (30 skills, invoked as `/sdd-*`) and `.agents/skills/sdd-*/SKILL.md` (the same skills for Codex, invoked as `$sdd-*`)
+- Subagents `sdd-spec-reviewer`, `sdd-implementer`, `sdd-impact-analyst` in `.claude/agents/` and `.codex/agents/`
+- Root `AGENTS.md` with the SDD guide in a `<!-- sdd:begin -->` … `<!-- sdd:end -->` block (content outside it is kept)
+- `CLAUDE.md` importing `@AGENTS.md` (created or appended, never overwritten)
 - Git hooks and CI/CD workflows (optional)
 
 **Example:**

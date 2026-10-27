@@ -40,6 +40,10 @@ sdd validate --strict
 When validation fails, open the flagged file and correct the reported errors.
 Each error message includes guidance on how to resolve it.
 
+For a deeper read-only review (RFC 2119 usage, scenario coverage, constitution
+compliance) you may delegate to the \`sdd-spec-reviewer\` subagent that SDD setup
+generates; it reports issues without editing files.
+
 ## Next Steps
 
 Based on validation results:

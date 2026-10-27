@@ -75,6 +75,6 @@ Writing a basic authentication spec...
 
 To end the conversation:
 - Type "done" or "exit"
-- Invoke a different slash command
+- Invoke a different skill
 `,
 };

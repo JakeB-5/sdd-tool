@@ -53,6 +53,12 @@ Green:  Write the minimum code to make the test pass
 Refactor: Clean up the code while keeping all tests green
 \`\`\`
 
+## Delegation
+
+SDD setup also generates the \`sdd-implementer\` subagent. For a self-contained task
+you may delegate it to that subagent (name it and pass the feature id and task id);
+review its changes and test results before marking the task completed.
+
 ## Completion Criteria
 
 Once all tasks are complete:

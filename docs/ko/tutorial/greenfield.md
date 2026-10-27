@@ -39,9 +39,11 @@ sdd init
   📁 .sdd/archive/
   📁 .sdd/templates/
   📁 .claude/skills/      ← sdd-* 스킬 30개 (/sdd-*로 호출)
+  📁 .agents/skills/      ← Codex용 sdd-* 스킬 30개 ($sdd-*로 호출)
+  📁 .claude/agents/, .codex/agents/  ← sdd-* 서브에이전트
   📄 .sdd/constitution.md
-  📄 .sdd/AGENTS.md
-  📄 CLAUDE.md            ← @.sdd/AGENTS.md import
+  📄 AGENTS.md            ← SDD 지침 블록
+  📄 CLAUDE.md            ← @AGENTS.md import
 
 다음 단계: Claude Code에서 /sdd-start 를 실행하세요.
 ```
@@ -52,14 +54,17 @@ sdd init
 todo-api/
 ├── .sdd/
 │   ├── constitution.md     # 프로젝트 원칙
-│   ├── AGENTS.md           # AI 지침
 │   ├── specs/              # 스펙 저장소
 │   ├── changes/            # 변경 제안
 │   ├── archive/            # 아카이브
 │   └── templates/          # 템플릿
-├── CLAUDE.md               # @.sdd/AGENTS.md import
+├── AGENTS.md               # AI 지침 (sdd:begin/end 블록)
+├── CLAUDE.md               # @AGENTS.md import
 ├── .claude/
-│   └── skills/             # sdd-* 스킬 30개
+│   ├── skills/             # sdd-* 스킬 30개
+│   └── agents/             # sdd-* 서브에이전트
+├── .agents/skills/         # Codex 스킬
+├── .codex/agents/          # Codex 서브에이전트
 └── package.json
 ```
 

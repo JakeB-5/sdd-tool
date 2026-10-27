@@ -1,8 +1,15 @@
 /**
- * Claude Code skill definition.
+ * Target-neutral skill definition.
  *
- * Mirrors the SKILL.md frontmatter fields documented by Claude Code
- * (https://code.claude.com/docs/en/skills).
+ * One definition is serialized for both Claude Code (`.claude/skills/`) and
+ * Codex (`.agents/skills/`). `name`, `description`, and `content` are shared;
+ * the remaining fields mirror the Claude Code SKILL.md frontmatter
+ * (https://code.claude.com/docs/en/skills) and are Claude-only metadata,
+ * except `disableModelInvocation`, which also maps to the Codex
+ * `policy.allow_implicit_invocation: false` setting.
+ *
+ * Bodies reference other skills with Claude notation (`/sdd-x`); the Codex
+ * serializer rewrites them to `$sdd-x`.
  */
 
 // Execution context. `fork` runs the skill in an isolated sub-agent;
@@ -16,7 +23,8 @@ export interface SkillHooks {
 }
 
 /**
- * Complete skill definition written to `.claude/skills/<name>/SKILL.md`.
+ * Complete skill definition written to `.claude/skills/<name>/SKILL.md`
+ * and `.agents/skills/<name>/SKILL.md`.
  *
  * Required fields (`name`, `description`, `content`) are always emitted;
  * optional fields are omitted from the YAML frontmatter when unset so

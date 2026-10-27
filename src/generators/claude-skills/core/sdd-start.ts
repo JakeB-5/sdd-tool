@@ -50,7 +50,8 @@ Automatically analyze the following items and display results as a table:
 
 ### Running the Wizard
 
-Use the \`AskUserQuestion\` tool with **multiSelect: true**:
+Ask the user which items to configure, allowing **multiple selections**
+(use your structured question tool if one is available):
 
 \`\`\`
 Question: "Your project needs initial setup. Select the items to configure."

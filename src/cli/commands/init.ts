@@ -7,9 +7,15 @@ import readline from 'node:readline';
 import { ensureDir, writeFile, directoryExists, fileExists, readFile, readDir } from '../../utils/fs.js';
 import { ExitCode } from '../../errors/index.js';
 import * as logger from '../../utils/logger.js';
-import { generateAgentsMd } from '../../generators/agents-md.js';
+import { buildAgentsMdContent, generateAgentsMdBlock } from '../../generators/agents-md.js';
+import { generateAgents, serializeClaudeAgent, serializeCodexAgent } from '../../generators/agents/index.js';
 import { generateClaudeCommands } from '../../generators/claude-commands.js';
-import { generateClaudeSkills, serializeSkill } from '../../generators/claude-skills.js';
+import {
+  generateClaudeSkills,
+  serializeSkill,
+  serializeCodexSkill,
+  serializeCodexSkillMetadata,
+} from '../../generators/claude-skills.js';
 import { Result, success, failure } from '../../types/index.js';
 import { analyzeProject, generateSuggestions, formatAnalysis } from '../../utils/project-analyzer.js';
 import { setupGit } from './git.js';
@@ -29,7 +35,7 @@ export interface InitOptions {
    * @deprecated 효과 없음. 커맨드는 기본으로 생성되지 않습니다 (--no-commands 호환용).
    */
   commands?: boolean;
-  /** .claude/skills/ 생성 여부 (기본 true, --no-skills 로 false) */
+  /** .claude/skills/, .agents/skills/ 생성 여부 (기본 true, --no-skills 로 false) */
   skills?: boolean;
 }
 
@@ -41,10 +47,12 @@ export interface InitResult {
   claudePath: string;
   directories: string[];
   files: string[];
-  /** 이전 버전이 만든, 더 이상 생성하지 않는 Claude 파일 (경고용, 삭제하지 않음) */
+  /** 이전 버전이 만든, 더 이상 생성하지 않는 파일 (경고용, 삭제하지 않음) */
   staleFiles: string[];
   /** 내용이 달라 덮어쓰기 전에 백업한 파일 (`<file>.bak`, `<file>.1.bak`…, 프로젝트 기준 상대 경로) */
   backups: string[];
+  /** 사용자에게 알릴 경고 (예: Codex가 AGENTS.md 대신 읽는 AGENTS.override.md 존재) */
+  warnings: string[];
 }
 
 /**
@@ -94,6 +102,11 @@ export function getInitDirectories(withDomains = false, legacyCommands = false):
     '.sdd/templates',
     '.claude',
     '.claude/skills',
+    '.claude/agents',
+    '.agents',
+    '.agents/skills',
+    '.codex',
+    '.codex/agents',
   ];
 
   if (legacyCommands) {
@@ -110,17 +123,33 @@ export function getInitDirectories(withDomains = false, legacyCommands = false):
 /**
  * 루트 CLAUDE.md에 넣을 AGENTS.md import 라인
  */
-export const CLAUDE_MD_IMPORT = '@.sdd/AGENTS.md';
+export const CLAUDE_MD_IMPORT = '@AGENTS.md';
 
 /**
- * Collect `@path` import lines, ignoring fenced code blocks and code spans
- * (Claude Code skips imports there too). Paths are normalized without `./`.
+ * 이전 버전(<= 1.6.0)이 넣던 import 라인 (재실행 시 CLAUDE_MD_IMPORT로 교체)
  */
-function collectImports(content: string): Set<string> {
-  const imports = new Set<string>();
+export const LEGACY_CLAUDE_MD_IMPORT = '@.sdd/AGENTS.md';
+
+// Header line written into new CLAUDE.md files, and the one older versions wrote
+const CLAUDE_MD_GUIDE_LINE =
+  '> AI 에이전트 워크플로우 지침은 아래에서 가져오는 루트 `AGENTS.md`의 SDD 블록에 있습니다 (Codex와 공용).';
+const LEGACY_CLAUDE_MD_GUIDE_LINE =
+  '> AI 에이전트 워크플로우 지침은 아래에서 가져오는 `.sdd/AGENTS.md`에 있습니다.';
+
+/** Normalize an import path (`@./x` / `@x` / `./x` → `x`). */
+function normalizeImport(importPath: string): string {
+  return importPath.replace(/^@/, '').replace(/^\.\//, '');
+}
+
+/**
+ * Find `@path` import lines, ignoring fenced code blocks and code spans
+ * (Claude Code skips imports there too). Returns line index → normalized path.
+ */
+function findImportLines(lines: string[]): Map<number, string> {
+  const imports = new Map<number, string>();
   let fence: string | null = null;
 
-  for (const line of content.split(/\r?\n/)) {
+  lines.forEach((line, index) => {
     const fenceMatch = /^\s*(`{3,}|~{3,})/.exec(line);
     if (fenceMatch) {
       const marker = fenceMatch[1];
@@ -129,15 +158,15 @@ function collectImports(content: string): Set<string> {
       } else if (marker[0] === fence[0] && marker.length >= fence.length) {
         fence = null;
       }
-      continue;
+      return;
     }
-    if (fence !== null) continue;
+    if (fence !== null) return;
 
     const importMatch = /^\s*@(\S+)\s*$/.exec(line.replace(/`[^`]*`/g, ''));
     if (importMatch) {
-      imports.add(importMatch[1].replace(/^\.\//, ''));
+      imports.set(index, normalizeImport(importMatch[1]));
     }
-  }
+  });
 
   return imports;
 }
@@ -146,50 +175,89 @@ function collectImports(content: string): Set<string> {
  * CLAUDE.md 내용 계산 (테스트 가능)
  *
  * - 파일이 없으면 짧은 헤더와 import 라인들로 새 내용을 만든다
- * - 빠진 import가 있으면 기존 내용 끝에 덧붙인다 (기존 줄바꿈 형식 유지)
- * - 모든 import가 이미 있으면 null (변경 없음)
+ * - 이전 버전의 import 라인(legacyImports)은 그 줄만 새 import로 교체한다
+ *   (새 import가 이미 있으면 이전 라인을 제거해 중복을 만들지 않음)
+ * - 그 밖에 빠진 import가 있으면 기존 내용 끝에 덧붙인다 (기존 줄바꿈 형식 유지)
+ * - 바꿀 것이 없으면 null (변경 없음)
  *
- * @param imports import 라인 목록 (예: `@.sdd/AGENTS.md`)
+ * @param imports import 라인 목록 (예: `@AGENTS.md`)
+ * @param legacyImports 교체할 이전 import 라인 목록 (예: `@.sdd/AGENTS.md`)
  */
 export function buildClaudeMdContent(
   existing: string | null,
-  imports: string[] = [CLAUDE_MD_IMPORT]
+  imports: string[] = [CLAUDE_MD_IMPORT],
+  legacyImports: string[] = [LEGACY_CLAUDE_MD_IMPORT]
 ): string | null {
   if (existing === null) {
     return `# CLAUDE.md
 
 > 이 프로젝트는 SDD(Spec-Driven Development)를 사용합니다.
-> AI 에이전트 워크플로우 지침은 아래에서 가져오는 \`.sdd/AGENTS.md\`에 있습니다.
+${CLAUDE_MD_GUIDE_LINE}
 
 ${imports.join('\n')}
 `;
   }
 
-  const present = collectImports(existing);
-  const missing = imports.filter(
-    (line) => !present.has(line.replace(/^@/, '').replace(/^\.\//, ''))
-  );
-  if (missing.length === 0) {
-    return null;
+  // A leading BOM is kept as-is and not treated as part of the first line
+  const bomChar = String.fromCharCode(0xfeff);
+  const bom = existing.startsWith(bomChar) ? bomChar : '';
+  const body = existing.slice(bom.length);
+  const eol = body.includes('\r\n') ? '\r\n' : '\n';
+  // Raw lines keep their own terminators so untouched lines stay byte for byte
+  const rawLines = body.split(/(?<=\n)/);
+  const importLines = findImportLines(rawLines.map((line) => line.replace(/\r?\n$/, '')));
+  const present = new Set(importLines.values());
+  const legacy = new Set(legacyImports.map(normalizeImport));
+  let missing = imports.filter((line) => !present.has(normalizeImport(line)));
+
+  let migrated = false;
+  const lines = rawLines.map((raw, index) => {
+    const importPath = importLines.get(index);
+    if (importPath === undefined || !legacy.has(importPath)) {
+      return raw;
+    }
+    migrated = true;
+    if (missing.length === 0) {
+      return '';
+    }
+    const terminator = /\r?\n$/.exec(raw)?.[0] ?? '';
+    const replacement = `${missing.join(eol)}${terminator}`;
+    missing = [];
+    return replacement;
+  });
+
+  if (migrated) {
+    // The header older versions generated points at the legacy file; update that exact line
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].replace(/\r?\n$/, '') === LEGACY_CLAUDE_MD_GUIDE_LINE) {
+        lines[i] = lines[i].replace(LEGACY_CLAUDE_MD_GUIDE_LINE, CLAUDE_MD_GUIDE_LINE);
+      }
+    }
   }
 
-  const eol = existing.includes('\r\n') ? '\r\n' : '\n';
-  const separator = existing.length === 0 || existing.endsWith('\n') ? '' : eol;
-  return `${existing}${separator}${eol}${missing.join(eol)}${eol}`;
+  let next = lines.join('');
+  if (missing.length > 0) {
+    const separator = next.length === 0 || next.endsWith('\n') ? '' : eol;
+    next = `${next}${separator}${eol}${missing.join(eol)}${eol}`;
+  }
+
+  next = `${bom}${next}`;
+  return next === existing ? null : next;
 }
 
 /**
- * 프로젝트 CLAUDE.md가 .sdd/AGENTS.md (및 루트 AGENTS.md)를 import 하도록 보장
+ * 프로젝트 CLAUDE.md가 루트 AGENTS.md를 import 하도록 보장
  *
  * - 루트 CLAUDE.md가 있으면 그 파일을, 없고 .claude/CLAUDE.md가 있으면 그 파일을 갱신
  *   (import 경로는 import 하는 파일 기준 상대 경로)
  * - 둘 다 없으면 루트 CLAUDE.md를 생성
- * - 루트 AGENTS.md가 있으면 CLAUDE.md 때문에 가려지지 않도록 함께 import
+ * - CLAUDE.md가 있으면 Claude Code가 AGENTS.md를 직접 읽지 않으므로 import로 연결
+ * - 이전 버전의 `@.sdd/AGENTS.md` import는 새 import로 교체
  * - 사용자 내용은 덮어쓰지 않으며, 재실행 시에도 중복 추가하지 않는다
  */
 async function ensureClaudeMdImport(
   projectPath: string
-): Promise<Result<{ file: string; action: 'created' | 'appended' | 'unchanged' }, Error>> {
+): Promise<Result<{ file: string; action: 'created' | 'updated' | 'unchanged' }, Error>> {
   const rootClaudeMd = path.join(projectPath, 'CLAUDE.md');
   const dotClaudeMd = path.join(projectPath, '.claude', 'CLAUDE.md');
   const useDotClaude = !(await fileExists(rootClaudeMd)) && (await fileExists(dotClaudeMd));
@@ -197,10 +265,8 @@ async function ensureClaudeMdImport(
   const prefix = useDotClaude ? '../' : '';
   const relTarget = useDotClaude ? '.claude/CLAUDE.md' : 'CLAUDE.md';
 
-  const imports = [`@${prefix}.sdd/AGENTS.md`];
-  if (await fileExists(path.join(projectPath, 'AGENTS.md'))) {
-    imports.push(`@${prefix}AGENTS.md`);
-  }
+  const imports = [`@${prefix}AGENTS.md`];
+  const legacyImports = [`@${prefix}.sdd/AGENTS.md`];
 
   let existing: string | null = null;
   if (await fileExists(target)) {
@@ -211,7 +277,7 @@ async function ensureClaudeMdImport(
     existing = readResult.data;
   }
 
-  const next = buildClaudeMdContent(existing, imports);
+  const next = buildClaudeMdContent(existing, imports, legacyImports);
   if (next === null) {
     return success({ file: relTarget, action: 'unchanged' });
   }
@@ -220,7 +286,34 @@ async function ensureClaudeMdImport(
   if (!writeResult.success) {
     return failure(new Error(`${relTarget}를 쓸 수 없습니다: ${writeResult.error.message}`));
   }
-  return success({ file: relTarget, action: existing === null ? 'created' : 'appended' });
+  return success({ file: relTarget, action: existing === null ? 'created' : 'updated' });
+}
+
+/**
+ * 루트 AGENTS.md의 새 내용 계산 (쓰기 전 검증용, 파일을 바꾸지 않음)
+ *
+ * @returns 써야 할 내용, 변경이 없으면 null. 마커가 깨져 있거나 읽을 수 없으면 실패
+ */
+async function planAgentsMdBlock(
+  projectPath: string,
+  projectName: string
+): Promise<Result<string | null, Error>> {
+  const target = path.join(projectPath, 'AGENTS.md');
+
+  let existing: string | null = null;
+  if (await fileExists(target)) {
+    const readResult = await readFile(target);
+    if (!readResult.success) {
+      return failure(new Error(`AGENTS.md를 읽을 수 없습니다: ${readResult.error.message}`));
+    }
+    existing = readResult.data;
+  }
+
+  try {
+    return success(buildAgentsMdContent(existing, generateAgentsMdBlock({ projectName })));
+  } catch (error) {
+    return failure(error instanceof Error ? error : new Error(String(error)));
+  }
 }
 
 // Skill directories written by sdd init <= 1.6.0 that are no longer generated
@@ -236,13 +329,18 @@ const LEGACY_SKILL_DIRS = new Set([
 ]);
 
 /**
- * 이전 버전의 sdd init이 만든, 더 이상 생성하지 않는 Claude 파일 탐지 (삭제하지 않음)
+ * 이전 버전의 sdd init이 만든, 더 이상 생성하지 않는 파일 탐지 (삭제하지 않음)
  */
 export async function findStaleClaudeFiles(
   projectPath: string,
   legacyCommands = false
 ): Promise<string[]> {
   const stale: string[] = [];
+
+  // Guide moved to the root AGENTS.md managed block (sdd init <= 1.6.0 wrote .sdd/AGENTS.md)
+  if (await fileExists(path.join(projectPath, '.sdd', 'AGENTS.md'))) {
+    stale.push('.sdd/AGENTS.md');
+  }
 
   const skillsResult = await readDir(path.join(projectPath, '.claude', 'skills'));
   if (skillsResult.success) {
@@ -400,6 +498,21 @@ export async function executeInit(
     }
   }
 
+  const projectName = path.basename(projectPath);
+
+  // 루트 AGENTS.md 블록은 무엇이든 쓰기 전에 계산·검증 (마커가 깨져 있으면 아무것도 쓰지 않고 실패)
+  const agentsMdPlan = await planAgentsMdBlock(projectPath, projectName);
+  if (!agentsMdPlan.success) {
+    return failure(agentsMdPlan.error);
+  }
+
+  const warnings: string[] = [];
+  if (await fileExists(path.join(projectPath, 'AGENTS.override.md'))) {
+    warnings.push(
+      '루트 AGENTS.override.md가 있어 Codex가 AGENTS.md 대신 그 파일을 읽습니다. SDD 지침 블록이 Codex에 보이지 않을 수 있습니다.'
+    );
+  }
+
   const directories = getInitDirectories(options.withDomains, options.legacyCommands);
   const createdDirs: string[] = [];
 
@@ -415,7 +528,7 @@ export async function executeInit(
   const createdFiles: string[] = [];
   const backups: string[] = [];
   // User-editable .sdd files are backed up before being overwritten;
-  // tool-owned .claude skills/commands are regenerated in place
+  // tool-owned skills, agents, and commands are regenerated in place
   const write = async (relativePath: string, content: string, backup = true): Promise<void> => {
     if (backup) {
       await writeGeneratedFile(projectPath, relativePath, content, backups);
@@ -425,14 +538,8 @@ export async function executeInit(
     createdFiles.push(relativePath);
   };
 
-  // 기본 파일 생성
-  const projectName = path.basename(projectPath);
-
   // constitution.md
   await write('.sdd/constitution.md', generateConstitutionContent(projectName));
-
-  // AGENTS.md
-  await write('.sdd/AGENTS.md', generateAgentsMd({ projectName }));
 
   // domains.yml (--with-domains 옵션 사용 시)
   if (options.withDomains) {
@@ -445,11 +552,22 @@ export async function executeInit(
   await write('.sdd/templates/delta.md', generateDeltaTemplate());
   await write('.sdd/templates/tasks.md', generateTasksTemplate());
 
-  // Claude 스킬 생성 (기본, --no-skills 로 제외 가능)
+  // Claude Code / Codex 스킬 생성 (기본, --no-skills 로 둘 다 제외 가능)
   if (options.skills !== false) {
     for (const skill of generateClaudeSkills()) {
       await write(`.claude/skills/${skill.name}/SKILL.md`, serializeSkill(skill), false);
+      await write(`.agents/skills/${skill.name}/SKILL.md`, serializeCodexSkill(skill), false);
+      const metadata = serializeCodexSkillMetadata(skill);
+      if (metadata !== null) {
+        await write(`.agents/skills/${skill.name}/agents/openai.yaml`, metadata, false);
+      }
     }
+  }
+
+  // Claude Code / Codex 서브에이전트 생성
+  for (const agent of generateAgents()) {
+    await write(`.claude/agents/${agent.name}.md`, serializeClaudeAgent(agent), false);
+    await write(`.codex/agents/${agent.name}.toml`, serializeCodexAgent(agent), false);
   }
 
   // 레거시 슬래시 커맨드 생성 (--legacy-commands 사용 시에만)
@@ -459,7 +577,16 @@ export async function executeInit(
     }
   }
 
-  // 루트 CLAUDE.md 가 .sdd/AGENTS.md 를 import 하도록 보장 (사용자 내용 보존)
+  // 루트 AGENTS.md 의 SDD 관리 블록 (Codex 는 직접, Claude Code 는 CLAUDE.md import 로 읽음)
+  if (agentsMdPlan.data !== null) {
+    const agentsWrite = await writeFile(path.join(projectPath, 'AGENTS.md'), agentsMdPlan.data);
+    if (!agentsWrite.success) {
+      return failure(new Error(`AGENTS.md를 쓸 수 없습니다: ${agentsWrite.error.message}`));
+    }
+    createdFiles.push('AGENTS.md');
+  }
+
+  // CLAUDE.md 가 루트 AGENTS.md 를 import 하도록 보장 (사용자 내용 보존)
   const claudeMdResult = await ensureClaudeMdImport(projectPath);
   if (!claudeMdResult.success) {
     return failure(claudeMdResult.error);
@@ -475,6 +602,7 @@ export async function executeInit(
     files: createdFiles,
     staleFiles: await findStaleClaudeFiles(projectPath, options.legacyCommands),
     backups,
+    warnings,
   });
 }
 
@@ -885,7 +1013,7 @@ export function registerInitCommand(program: Command): void {
     .option('--skip-git-setup', 'Git/CI-CD 설정 건너뛰기')
     .option('--auto-approve', '모든 설정을 자동 승인')
     .option('--with-domains', '도메인 설정 파일(domains.yml) 생성')
-    .option('--no-skills', '.claude/skills/ 스킬 생성 건너뛰기')
+    .option('--no-skills', '스킬 생성 건너뛰기 (.claude/skills/, .agents/skills/)')
     .option('--legacy-commands', '레거시 .claude/commands/ 슬래시 커맨드도 생성 (기본: 스킬만 생성)')
     // Kept as a hidden no-op so existing scripts using --no-commands keep working.
     .addOption(new Option('--no-commands').hideHelp())
@@ -926,27 +1054,39 @@ async function runInit(options: InitOptions): Promise<void> {
   logger.success('SDD 프로젝트가 초기화되었습니다.');
   logger.newline();
   logger.info('생성된 구조:');
+  const skillCount = generateClaudeSkills().length;
+  const agentNames = generateAgents().map((agent) => agent.name);
+
   logger.listItem('.sdd/');
-  logger.listItem('AGENTS.md', 1);
   logger.listItem('constitution.md', 1);
   logger.listItem('specs/', 1);
   logger.listItem('changes/', 1);
   logger.listItem('archive/', 1);
   logger.listItem('templates/', 1);
-  logger.listItem('.claude/');
-  logger.listItem('skills/', 1);
+  logger.listItem('.claude/ (Claude Code)');
+  if (options.skills !== false) {
+    logger.listItem(`skills/ (${skillCount}개)`, 1);
+  }
+  logger.listItem(`agents/ (${agentNames.length}개)`, 1);
   if (options.legacyCommands) {
     logger.listItem('commands/ (레거시)', 1);
   }
+  if (options.skills !== false) {
+    logger.listItem(`.agents/skills/ (Codex 스킬 ${skillCount}개)`);
+  }
+  logger.listItem(`.codex/agents/ (Codex 서브에이전트 ${agentNames.length}개)`);
+  if (createdFiles.includes('AGENTS.md')) {
+    logger.listItem('AGENTS.md (SDD 워크플로우 지침 블록)');
+  }
   for (const claudeMd of ['CLAUDE.md', '.claude/CLAUDE.md']) {
     if (createdFiles.includes(claudeMd)) {
-      logger.listItem(`${claudeMd} (.sdd/AGENTS.md import)`);
+      logger.listItem(`${claudeMd} (AGENTS.md import)`);
     }
   }
 
   if (options.skills !== false) {
     logger.newline();
-    logger.info(`Claude Code 스킬 (${generateClaudeSkills().length}개, .claude/skills/sdd-*):`);
+    logger.info(`SDD 스킬 (${skillCount}개, Claude Code: /sdd-*, Codex: $sdd-*):`);
     logger.listItem('/sdd-start - 워크플로우 시작 (통합 진입점)');
     logger.listItem('/sdd-constitution - 프로젝트 원칙 관리');
     logger.listItem('/sdd-spec - 기능 명세 작성/수정');
@@ -956,6 +1096,8 @@ async function runInit(options: InitOptions): Promise<void> {
     logger.listItem('/sdd-validate - 스펙 검증');
     logger.listItem('/sdd-status - 상태 확인');
   }
+  logger.newline();
+  logger.info(`서브에이전트 (.claude/agents/, .codex/agents/): ${agentNames.join(', ')}`);
   if (options.legacyCommands) {
     logger.newline();
     logger.info('레거시 슬래시 커맨드가 .claude/commands/ 에 생성되었습니다 (/sdd.*).');
@@ -968,6 +1110,10 @@ async function runInit(options: InitOptions): Promise<void> {
     }
     logger.info('확인 후 *.bak 파일은 삭제해도 됩니다 (커밋하지 마세요. .gitignore에 .sdd/**/*.bak 추가 권장).');
   }
+  for (const warning of result.data.warnings) {
+    logger.newline();
+    logger.warn(warning);
+  }
   if (result.data.staleFiles.length > 0) {
     logger.newline();
     logger.warn('이전 버전이 생성한, 더 이상 사용하지 않는 파일이 있습니다 (삭제하지 않았습니다):');
@@ -975,6 +1121,9 @@ async function runInit(options: InitOptions): Promise<void> {
       logger.listItem(stale);
     }
     logger.info('필요 없다면 직접 삭제하세요. 레거시 커맨드를 계속 쓰려면 --legacy-commands 를 사용하세요.');
+    if (result.data.staleFiles.includes('.sdd/AGENTS.md')) {
+      logger.info('SDD 워크플로우 지침은 이제 루트 AGENTS.md의 sdd:begin/end 블록에 있습니다.');
+    }
   }
 
   // Git/CI-CD 설정 프롬프트
@@ -985,5 +1134,5 @@ async function runInit(options: InitOptions): Promise<void> {
   logger.newline();
   logger.info('다음 단계:');
   logger.listItem('constitution.md를 수정하여 프로젝트 원칙을 정의하세요');
-  logger.listItem('/sdd-spec 으로 첫 번째 기능 명세를 작성하세요');
+  logger.listItem('/sdd-spec (Codex: $sdd-spec) 으로 첫 번째 기능 명세를 작성하세요');
 }

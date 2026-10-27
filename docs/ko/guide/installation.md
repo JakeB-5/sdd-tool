@@ -54,11 +54,14 @@ sdd init
 your-project/
 ├── .sdd/
 │   ├── constitution.md     # 프로젝트 헌법
-│   ├── AGENTS.md           # AI 워크플로우 가이드
 │   └── specs/              # 기능 명세
-├── CLAUDE.md               # @.sdd/AGENTS.md import
-└── .claude/
-    └── skills/             # sdd-* 스킬 30개
+├── AGENTS.md               # SDD 지침 (sdd:begin/end 블록)
+├── CLAUDE.md               # @AGENTS.md import
+├── .claude/
+│   ├── skills/             # sdd-* 스킬 30개 (Claude Code)
+│   └── agents/             # sdd-* 서브에이전트
+├── .agents/skills/         # sdd-* 스킬 30개 (Codex)
+└── .codex/agents/          # sdd-* 서브에이전트 (Codex)
 ```
 
 ## 업데이트
