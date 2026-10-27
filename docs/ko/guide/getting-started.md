@@ -29,10 +29,10 @@ sdd init
 
 이 명령어는 다음을 생성합니다:
 - `.sdd/` - 명세 저장소
-- `.claude/commands/` - 32개의 슬래시 커맨드
-- `.claude/skills/` - 32개의 sdd-* 스킬 2.0 (영문) + 6개의 dev-* 개발 스킬
+- `.claude/skills/` - 30개의 sdd-* 스킬 (영문, `/sdd-*` 슬래시 커맨드로 호출)
+- `CLAUDE.md` - 루트에 `@.sdd/AGENTS.md` import 보장 (없으면 생성, 있으면 줄 추가)
 
-스킬 생성을 건너뛰려면 `--no-skills`, 슬래시 커맨드를 건너뛰려면 `--no-commands` 옵션을 사용합니다.
+스킬 생성을 건너뛰려면 `--no-skills`, 레거시 슬래시 커맨드(`.claude/commands/sdd.*.md`)도 함께 생성하려면 `--legacy-commands` 옵션을 사용합니다.
 
 ### 2. Git 워크플로우 설정 (선택)
 
@@ -58,7 +58,7 @@ claude
 ### 4. 워크플로우 시작
 
 ```
-/sdd.start
+/sdd-start
 ```
 
 AI가 프로젝트 상태를 분석하고 다음 단계를 안내합니다.
@@ -66,21 +66,21 @@ AI가 프로젝트 상태를 분석하고 다음 단계를 안내합니다.
 ## 전체 워크플로우
 
 ```
-/sdd.start        → 워크플로우 시작
+/sdd-start        → 워크플로우 시작
     ↓
-/sdd.constitution → 프로젝트 원칙 정의
+/sdd-constitution → 프로젝트 원칙 정의
     ↓
-/sdd.spec         → 기능 명세 작성/수정
+/sdd-spec         → 기능 명세 작성/수정
     ↓
-/sdd.plan         → 구현 계획 수립
+/sdd-plan         → 구현 계획 수립
     ↓
-/sdd.tasks        → 작업 분해
+/sdd-tasks        → 작업 분해
     ↓
-/sdd.prepare      → 도구 점검
+/sdd-prepare      → 도구 점검
     ↓
-/sdd.implement    → 순차적 구현
+/sdd-implement    → 순차적 구현
     ↓
-/sdd.validate     → 명세 검증
+/sdd-validate     → 명세 검증
 ```
 
 ## 다음 단계

@@ -5,9 +5,10 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddPrepareSkill: SkillDefinition = {
   name: 'sdd-prepare',
-  description: 'Audit required skills and sub-agents for a feature before implementation',
+  description:
+    "Detect which Claude Code sub-agents and skills a feature's spec, plan, and tasks need, and generate missing ones with `sdd prepare`. Use after task breakdown and before implementation.",
+  argumentHint: '<feature-id> [--dry-run]',
   allowedTools: ['Read', 'Glob', 'Bash(sdd prepare*)'],
-  context: 'inline',
   content: `# SDD Prepare
 
 ## Overview
@@ -24,7 +25,7 @@ needed for implementation. Any missing tools are flagged, with an option to gene
 ## Workflow
 
 \`\`\`
-/sdd-new → /sdd-plan → /sdd-tasks → sdd prepare → /sdd-implement
+/sdd-spec → /sdd-plan → /sdd-tasks → sdd prepare → /sdd-implement
 \`\`\`
 
 ## Commands

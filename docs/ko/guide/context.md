@@ -32,7 +32,7 @@ sdd context set auth order payment
 ### 의존성 포함
 
 ```bash
-sdd context set auth --include-deps
+sdd context set auth
 ```
 
 `auth`가 `core`에 의존하면 `core`도 읽기 전용으로 포함됩니다.
@@ -113,7 +113,7 @@ sdd new mfa-setup          # auth/mfa-setup으로 자동 생성
 
 ```bash
 # 결제 플로우 전체 작업
-sdd context set order payment --include-deps
+sdd context set order payment
 ```
 
 ### 3. 리뷰 모드
@@ -195,7 +195,7 @@ sdd context set payment
 
 ```bash
 # 의존성 포함하여 전체 파악
-sdd context set order --include-deps
+sdd context set order
 sdd context specs           # 영향 범위 확인
 ```
 

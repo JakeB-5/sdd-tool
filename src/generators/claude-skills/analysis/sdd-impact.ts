@@ -5,7 +5,9 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddImpactSkill: SkillDefinition = {
   name: 'sdd-impact',
-  description: 'Analyze downstream impact of a proposed spec change across domains and code',
+  description:
+    'Analyze which specs and code files depend on a spec or change proposal, with optional dependency graph and what-if simulation. Use before changing or removing a spec, or when the user asks about blast radius.',
+  argumentHint: '<specId> [--graph] [--code] [--json]',
   allowedTools: ['Read', 'Glob', 'Grep', 'Bash(sdd impact*)'],
   context: 'fork',
   content: `# SDD Impact
@@ -37,8 +39,8 @@ sdd impact report
 # Impact of a specific change proposal
 sdd impact change <id>
 
-# What-if simulation: what breaks if this spec is removed?
-sdd impact simulate --remove <spec>
+# What-if simulation: predict the impact of applying a change proposal to a spec
+sdd impact simulate <specId> <proposal-id>
 \`\`\`
 
 ---

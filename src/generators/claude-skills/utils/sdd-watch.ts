@@ -5,9 +5,10 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddWatchSkill: SkillDefinition = {
   name: 'sdd-watch',
-  description: 'Watch spec files and auto-validate on change (long-running)',
+  description:
+    'Run `sdd watch` to watch .sdd/specs and re-validate (optionally with impact analysis) on every change; long-running. Use when the user explicitly asks to start watch mode.',
+  argumentHint: '[--no-validate] [--impact] [--quiet] [--debounce <ms>]',
   allowedTools: ['Bash(sdd watch*)'],
-  context: 'manual-invoke-only',
   disableModelInvocation: true,
   content: `# SDD Watch
 
@@ -19,9 +20,18 @@ sdd watch $ARGUMENTS
 
 ## Options
 
-- \`--path <dir>\`: Directory to watch
-- \`--validate\`: Auto-validate on change
-- \`--quality\`: Run quality checks on change
+- \`--no-validate\`: Disable automatic validation on change
+- \`--impact\`: Include impact analysis on change
+- \`-q, --quiet\`: Suppress output on success
+- \`--debounce <ms>\`: Debounce interval in milliseconds (default: 500)
+
+## Examples
+
+\`\`\`bash
+sdd watch
+sdd watch --impact
+sdd watch --quiet --debounce 1000
+\`\`\`
 
 Press Ctrl+C to stop watching.
 `,

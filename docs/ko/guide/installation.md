@@ -25,7 +25,7 @@ sdd --version
 
 ## Claude Code 설정
 
-SDD Tool은 Claude Code의 슬래시 커맨드를 통해 AI와 협업합니다.
+SDD Tool은 Claude Code 스킬(`/sdd-*` 슬래시 커맨드로 호출)을 통해 AI와 협업합니다.
 
 ### Claude Code 설치
 
@@ -56,9 +56,9 @@ your-project/
 │   ├── constitution.md     # 프로젝트 헌법
 │   ├── AGENTS.md           # AI 워크플로우 가이드
 │   └── specs/              # 기능 명세
+├── CLAUDE.md               # @.sdd/AGENTS.md import
 └── .claude/
-    ├── commands/           # 슬래시 커맨드 (32개)
-    └── skills/             # dev-* 스킬 6개 + sdd-* 스킬 2.0 32개
+    └── skills/             # sdd-* 스킬 30개
 ```
 
 ## 업데이트

@@ -31,9 +31,9 @@ export const analyzeCommand: ClaudeCommand = {
 
 | 규모 | 추천 워크플로우 | 필수 산출물 |
 |------|----------------|-------------|
-| Small | /sdd.change | proposal.md |
-| Medium | /sdd.new → /sdd.plan | spec.md, plan.md |
-| Large | /sdd.research → /sdd.new | research.md, spec.md, plan.md |
+| Small | /sdd.spec (기존 스펙 직접 수정) | spec.md |
+| Medium | /sdd.spec → /sdd.plan | spec.md, plan.md |
+| Large | /sdd.research → /sdd.spec | research.md, spec.md, plan.md |
 
 ## 사용 방법
 
@@ -47,16 +47,16 @@ export const analyzeCommand: ClaudeCommand = {
 **입력:** "로그인 기능 추가해줘"
 **분석:**
 - 키워드: "기능 추가" → 중규모
-- 추천: /sdd.new → /sdd.plan → /sdd.tasks → /sdd.implement
+- 추천: /sdd.spec → /sdd.plan → /sdd.tasks → /sdd.implement
 
 **입력:** "로그인 버튼 색상 변경"
 **분석:**
 - 키워드: "변경" → 소규모
-- 추천: 직접 수정 또는 /sdd.change
+- 추천: /sdd.spec으로 직접 수정
 
 **입력:** "마이크로서비스 아키텍처로 전환"
 **분석:**
 - 키워드: "아키텍처", "전환" → 대규모
-- 추천: /sdd.research → /sdd.new → /sdd.plan
+- 추천: /sdd.research → /sdd.spec → /sdd.plan
 `,
 };

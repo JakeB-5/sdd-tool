@@ -1,15 +1,15 @@
-# /sdd.spec
+# /sdd-spec
 
 Create or modify feature specifications. (Unified entry point)
 
 ## Overview
 
-`/sdd.spec` automatically determines whether you're writing a new feature (`/sdd.new`) or modifying an existing spec (`/sdd.change`), and guides you to the appropriate workflow.
+`/sdd-spec` creates a new spec or modifies an existing one. Large modifications go through a change proposal under `.sdd/changes/CHG-xxx/{proposal,delta,tasks}.md`, which you apply with `sdd change apply <id>` and archive with `sdd change archive <id>`. (It replaces the removed `/sdd-new` and `/sdd-change`.)
 
 ## Usage
 
 ```
-/sdd.spec [feature description]
+/sdd-spec [feature description]
 ```
 
 ## Arguments
@@ -61,7 +61,7 @@ sdd new <domain>/<feature-id> --all
 ### Creating a New Feature
 
 ```
-/sdd.spec user authentication feature
+/sdd-spec user authentication feature
 
 AI: Checking .sdd/specs/...
     -> auth/user-auth spec not found.
@@ -75,7 +75,7 @@ AI: Checking .sdd/specs/...
 ### Modifying an Existing Spec
 
 ```
-/sdd.spec add social login to authentication
+/sdd-spec add social login to authentication
 
 AI: Checking .sdd/specs/...
     -> auth/login/spec.md exists.
@@ -98,14 +98,14 @@ For new features:
 
 ## Next Steps
 
-- After creating new spec: `/sdd.plan` -> `/sdd.tasks` -> `/sdd.implement`
+- After creating new spec: `/sdd-plan` -> `/sdd-tasks` -> `/sdd-implement`
 - After modifying spec: `sdd validate` -> commit
 
 ## Related Commands
 
 | Command | Description |
 |---------|-------------|
-| `/sdd.plan` | Create implementation plan |
-| `/sdd.tasks` | Task breakdown |
-| `/sdd.validate` | Spec validation |
-| `/sdd.impact` | Change impact analysis |
+| `/sdd-plan` | Create implementation plan |
+| `/sdd-tasks` | Task breakdown |
+| `/sdd-validate` | Spec validation |
+| `/sdd-impact` | Change impact analysis |

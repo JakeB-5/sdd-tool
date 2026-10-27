@@ -1,11 +1,11 @@
-# /sdd.prepare
+# /sdd-prepare
 
 구현에 필요한 서브에이전트와 스킬을 점검합니다.
 
 ## 사용법
 
 ```
-/sdd.prepare [feature-id]
+/sdd-prepare [feature-id]
 ```
 
 ## 인수
@@ -35,7 +35,7 @@
 ## 예시
 
 ```
-/sdd.prepare user-auth
+/sdd-prepare user-auth
 
 AI: user-auth 작업을 분석하여 필요한 도구를 점검합니다.
 
@@ -88,5 +88,5 @@ AI: user-auth 작업을 분석하여 필요한 도구를 점검합니다.
 도구 점검 후:
 
 ```
-/sdd.implement  → 구현 시작
+/sdd-implement  → 구현 시작
 ```

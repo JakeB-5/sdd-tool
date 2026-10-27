@@ -1,19 +1,18 @@
-# /sdd.context
+# /sdd-context
 
 작업 컨텍스트를 관리하는 슬래시 커맨드입니다.
 
 ## 개요
 
-`/sdd.context`는 현재 작업 중인 도메인 범위를 설정합니다. 대규모 프로젝트에서 관련 스펙만 집중하여 작업할 때 사용합니다.
+`/sdd-context`는 현재 작업 중인 도메인 범위를 설정합니다. 대규모 프로젝트에서 관련 스펙만 집중하여 작업할 때 사용합니다.
 
 ## 사용법
 
 ```
-/sdd.context set <domain...>  # 컨텍스트 설정
-/sdd.context show             # 현재 컨텍스트
-/sdd.context clear            # 컨텍스트 해제
-/sdd.context specs            # 컨텍스트 내 스펙 목록
-/sdd.context export           # 프롬프트 내보내기
+/sdd-context set <domain...>  # 컨텍스트 설정
+/sdd-context show             # 현재 컨텍스트
+/sdd-context clear            # 컨텍스트 해제
+/sdd-context specs            # 컨텍스트 내 스펙 목록
 ```
 
 ## 하위 명령어
@@ -23,17 +22,19 @@
 작업 컨텍스트를 설정합니다.
 
 ```
-/sdd.context set auth
-/sdd.context set auth payment order
-/sdd.context set auth --include-deps  # 의존 도메인 포함
+/sdd-context set auth
+/sdd-context set auth payment order
+/sdd-context set auth --no-include-deps  # 의존 도메인 제외
 ```
+
+의존 도메인은 기본적으로 포함됩니다.
 
 ### show
 
 현재 설정된 컨텍스트를 표시합니다.
 
 ```
-/sdd.context show
+/sdd-context show
 ```
 
 **출력:**
@@ -53,8 +54,8 @@
 컨텍스트에 도메인을 추가하거나 제거합니다.
 
 ```
-/sdd.context add order
-/sdd.context remove payment
+/sdd-context add order
+/sdd-context remove payment
 ```
 
 ### clear
@@ -62,7 +63,7 @@
 컨텍스트를 해제합니다.
 
 ```
-/sdd.context clear
+/sdd-context clear
 ```
 
 ### specs
@@ -70,7 +71,7 @@
 컨텍스트 내 스펙 목록을 표시합니다.
 
 ```
-/sdd.context specs
+/sdd-context specs
 ```
 
 **출력:**
@@ -87,30 +88,19 @@ payment/
   - refund
 ```
 
-### export
-
-컨텍스트 기반 프롬프트를 내보냅니다.
-
-```
-/sdd.context export
-/sdd.context export --format markdown
-```
-
-AI에게 제공할 컨텍스트 정보를 생성합니다.
-
 ## 컨텍스트 효과
 
 컨텍스트가 설정되면:
 
-1. **스펙 생성**: `/sdd.spec`에서 도메인 자동 감지
-2. **검증**: `/sdd.validate`에서 해당 도메인만 검증
-3. **목록**: `/sdd.list`에서 컨텍스트 스펙만 표시
-4. **구현**: `/dev-implement`에서 관련 스펙 참조
+1. **스펙 생성**: `/sdd-spec`에서 도메인 자동 감지
+2. **검증**: `/sdd-validate`에서 해당 도메인만 검증
+3. **목록**: `/sdd-list`에서 컨텍스트 스펙만 표시
+4. **구현**: `/sdd-implement`에서 관련 스펙 참조
 
 ## 예시
 
 ```
-User: /sdd.context set auth payment
+User: /sdd-context set auth payment
 
 Claude: 🎯 컨텍스트 설정 완료!
 
@@ -128,7 +118,7 @@ Claude: 🎯 컨텍스트 설정 완료!
 
 ---
 
-User: /sdd.context specs
+User: /sdd-context specs
 
 Claude: 📋 컨텍스트 스펙 목록:
 
@@ -141,30 +131,10 @@ payment/ (2 specs)
   ✅ checkout [완료]
   ⏳ refund [대기]
 
----
-
-User: /sdd.context export
-
-Claude: 📤 컨텍스트 프롬프트 내보내기:
-
-## 현재 작업 컨텍스트
-
-### 도메인: auth
-사용자 인증 관련 기능
-
-### 도메인: payment
-결제 처리 기능
-
-### 관련 스펙
-- auth/user-login: 이메일/비밀번호 로그인
-- auth/user-registration: 회원가입
-- payment/checkout: 결제 처리
-
-[클립보드에 복사됨]
 ```
 
 ## 관련 명령어
 
 - [`sdd context`](/cli/context) - CLI 버전
-- [`/sdd.domain`](/commands/sdd-domain) - 도메인 관리
+- [`/sdd-domain`](/commands/sdd-domain) - 도메인 관리
 - [컨텍스트 가이드](/guide/context)

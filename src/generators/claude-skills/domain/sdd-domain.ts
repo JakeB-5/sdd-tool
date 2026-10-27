@@ -5,9 +5,10 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddDomainSkill: SkillDefinition = {
   name: 'sdd-domain',
-  description: 'Manage domains — create, link specs, set dependencies, visualize the dependency graph',
+  description:
+    'Create, inspect, link, and validate domains, set domain dependencies, and render the dependency graph with `sdd domain`. Use when the user wants to organize specs into domains or inspect domain structure.',
+  argumentHint: '[create|list|show|link|depends|graph|validate] [args]',
   allowedTools: ['Read', 'Write', 'Edit', 'Bash(sdd domain*)'],
-  context: 'inline',
   content: `# SDD Domain
 
 ## Overview

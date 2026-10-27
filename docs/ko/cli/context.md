@@ -22,7 +22,7 @@ sdd context set <domain...> [options]
 
 | 옵션 | 설명 |
 |------|------|
-| `--include-deps` | 의존 도메인 포함 |
+| `--no-include-deps` | 의존 도메인 제외 (기본: 포함) |
 | `--read-only` | 읽기 전용으로 설정 |
 
 **예시:**
@@ -35,7 +35,7 @@ sdd context set auth
 sdd context set auth order payment
 
 # 의존성 포함
-sdd context set auth --include-deps
+sdd context set auth
 ```
 
 ### show
@@ -181,7 +181,7 @@ sdd context history [options]
 
 1. 2025-12-29 10:30:00  set auth, order
 2. 2025-12-29 09:15:00  add payment
-3. 2025-12-29 09:00:00  set core --include-deps
+3. 2025-12-29 09:00:00  set core
 4. 2025-12-28 16:00:00  clear
 ```
 

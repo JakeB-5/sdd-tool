@@ -5,7 +5,9 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddResearchSkill: SkillDefinition = {
   name: 'sdd-research',
-  description: 'Generate a technical research document on a given topic with citations',
+  description:
+    'Write a technical research document comparing options (pros, cons, comparison table, recommendation, references) for a decision. Use when the user must choose a technology or approach before writing a spec or plan.',
+  argumentHint: '<topic>',
   allowedTools: ['Read', 'Write', 'Glob', 'Grep', 'WebFetch'],
   context: 'fork',
   content: `# SDD Research

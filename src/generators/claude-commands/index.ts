@@ -1,11 +1,12 @@
 /**
  * Claude Code 슬래시 커맨드 생성기
  *
- * 이 모듈은 SDD 워크플로우용 Claude 슬래시 커맨드를 생성합니다.
+ * 레거시 커맨드: `sdd init --legacy-commands` 사용 시에만 `.claude/commands/`에 생성됩니다.
+ * 기본 통합은 `.claude/skills/`의 스킬입니다 (../claude-skills).
  * 커맨드는 카테고리별로 분류되어 있습니다:
  *
- * - core/: 핵심 워크플로우 (start, new, plan, tasks, implement, validate)
- * - management/: 관리 기능 (constitution, change, status)
+ * - core/: 핵심 워크플로우 (start, spec, plan, tasks, implement, validate)
+ * - management/: 관리 기능 (constitution, status)
  * - analysis/: 분석 기능 (analyze, impact, quality, sync, diff, search, list, export, report)
  * - domain/: 도메인 관리 (reverse, domain, context)
  * - utils/: 유틸리티 (guide, chat, transition, research, data-model, prepare, cicd, watch, migrate, prompt)
@@ -18,7 +19,6 @@ export type { ClaudeCommand } from './types.js';
 import {
   startCommand,
   specCommand,
-  newCommand,
   planCommand,
   tasksCommand,
   implementCommand,
@@ -28,7 +28,6 @@ import {
 // 관리 커맨드
 import {
   constitutionCommand,
-  changeCommand,
   statusCommand,
 } from './management/index.js';
 
@@ -76,14 +75,12 @@ export function generateClaudeCommands(): ClaudeCommand[] {
     // 핵심 워크플로우
     startCommand,
     specCommand,
-    newCommand,
     planCommand,
     tasksCommand,
     implementCommand,
     validateCommand,
     // 관리
     constitutionCommand,
-    changeCommand,
     statusCommand,
     // 분석
     analyzeCommand,

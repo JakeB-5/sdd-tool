@@ -1,11 +1,11 @@
-# /sdd.tasks
+# /sdd-tasks
 
 Break down work into executable units.
 
 ## Usage
 
 ```
-/sdd.tasks [feature-id]
+/sdd-tasks [feature-id]
 ```
 
 ## Arguments
@@ -38,7 +38,7 @@ The AI breaks down the implementation plan into work units:
 ## Example
 
 ```
-/sdd.tasks user-auth
+/sdd-tasks user-auth
 
 AI: Breaking down user-auth plan into work units.
 ```
@@ -92,6 +92,6 @@ completed: 0
 After task breakdown:
 
 ```
-/sdd.prepare    -> Tool check
-/sdd.implement  -> Start implementation
+/sdd-prepare    -> Tool check
+/sdd-implement  -> Start implementation
 ```

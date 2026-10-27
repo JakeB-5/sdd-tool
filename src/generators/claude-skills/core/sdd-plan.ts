@@ -5,9 +5,10 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddPlanSkill: SkillDefinition = {
   name: 'sdd-plan',
-  description: 'Build an implementation plan from an existing spec, including phases and risk analysis',
-  allowedTools: ['Read', 'Write', 'Edit', 'Glob'],
-  context: 'inline',
+  description:
+    "Write plan.md for an existing spec: technical decisions, implementation phases, risks, and testing strategy. Use when a spec is ready and the user wants to plan how to build it.",
+  argumentHint: '<feature-id>',
+  allowedTools: ['Read', 'Write', 'Edit', 'Glob', 'Bash(sdd new plan*)'],
   content: `# SDD Plan
 
 ## Instructions

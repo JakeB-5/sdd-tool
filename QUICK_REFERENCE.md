@@ -8,28 +8,28 @@ A quick lookup guide for common SDD Tool commands and concepts.
 # Install globally
 npm install -g sdd-tool
 
-# Initialize project (generates slash commands + Skills 2.0 + Git/CI-CD setup)
+# Initialize project (generates skills + CLAUDE.md import + Git/CI-CD setup)
 sdd init
 sdd init --no-skills        # Skip .claude/skills/ generation
-sdd init --no-commands      # Skip .claude/commands/ generation
+sdd init --legacy-commands  # Also write legacy .claude/commands/sdd.*.md
 
 # Start workflow
-/sdd.start
+/sdd-start
 ```
 
-## Essential Slash Commands
+## Essential Skills (Slash Commands)
 
-| Command | Purpose |
-|---------|---------|
-| `/sdd.start` | Begin workflow |
-| `/sdd.constitution` | Define project principles |
-| `/sdd.spec` | Write/edit specifications |
-| `/sdd.plan` | Create implementation plan |
-| `/sdd.tasks` | Break down into tasks |
-| `/sdd.prepare` | Verify tools needed |
-| `/sdd.implement` | Implement features |
-| `/sdd.validate` | Validate specs |
-| `/sdd.chat` | Interactive assistant |
+| Skill | Purpose |
+|-------|---------|
+| `/sdd-start` | Begin workflow |
+| `/sdd-constitution` | Define project principles |
+| `/sdd-spec` | Write/edit specifications |
+| `/sdd-plan` | Create implementation plan |
+| `/sdd-tasks` | Break down into tasks |
+| `/sdd-prepare` | Verify tools needed |
+| `/sdd-implement` | Implement features |
+| `/sdd-validate` | Validate specs |
+| `/sdd-chat` | Interactive assistant |
 
 ## Essential CLI Commands
 
@@ -137,12 +137,12 @@ your-project/
 │   ├── changes/             # Change proposals
 │   └── archive/             # Completed changes
 │
+├── CLAUDE.md                # Imports @.sdd/AGENTS.md
+│
 └── .claude/                 # Claude Code config
-    ├── commands/            # Slash commands (Korean, dot-notation)
     ├── agents/              # Sub-agents
     └── skills/              # Skills
-        ├── dev-*/           # Dev skills (v1.2.0)
-        └── sdd-*/           # SDD workflow skills — Skills 2.0 (v1.6.0)
+        └── sdd-*/           # SDD workflow skills (30)
 ```
 
 ## Common Workflows
@@ -150,18 +150,18 @@ your-project/
 ### New Project (Greenfield)
 
 1. `sdd init` - Initialize
-2. `/sdd.constitution` - Define principles
-3. `/sdd.spec` - Write first spec
-4. `/sdd.plan` - Plan implementation
-5. `/sdd.tasks` - Break into tasks
-6. `/sdd.prepare` - Verify tools
-7. `/sdd.implement` - Build feature
+2. `/sdd-constitution` - Define principles
+3. `/sdd-spec` - Write first spec
+4. `/sdd-plan` - Plan implementation
+5. `/sdd-tasks` - Break into tasks
+6. `/sdd-prepare` - Verify tools
+7. `/sdd-implement` - Build feature
 
 ### Existing Project (Brownfield)
 
 1. `sdd init --skip-git-setup` - Initialize without Git setup
 2. Identify key specs to document
-3. Use `/sdd.reverse` for legacy code extraction
+3. Use `/sdd-reverse` for legacy code extraction
 4. Follow greenfield workflow for new features
 
 ### Feature Development
@@ -170,7 +170,7 @@ your-project/
 sdd new my-feature
 sdd validate
 sdd prepare my-feature
-/sdd.implement
+/sdd-implement
 sdd sync                    # Verify implementation
 ```
 
@@ -292,12 +292,12 @@ npm install -g sdd-tool
 npx sdd --version
 ```
 
-### Missing slash commands
+### Missing skills
 
 ```bash
-# Recreate commands
+# Recreate skills
 sdd init
-# or manually check .claude/commands/
+# or manually check .claude/skills/
 ```
 
 ### Sync failures
@@ -350,7 +350,7 @@ sdd --version                   # Show version
 - **Node version**: >= 20.0.0
 - **Package manager**: npm, pnpm, or yarn
 - **Config location**: `.sdd/` directory
-- **Slash commands**: 20+ total
+- **Skills (slash commands)**: 30 total
 - **CLI commands**: 25+ total
 - **RFC 2119 keywords**: 5 (SHALL, SHOULD, MAY, SHALL NOT, SHOULD NOT)
 
@@ -364,7 +364,7 @@ sdd --version                   # Show version
 
 ## Version Compatibility
 
-- **v1.6.0+**: Skills 2.0 — 32 English `sdd-*` skills, `--no-skills`/`--no-commands` flags
+- **v1.6.0+**: Skills — 30 English `sdd-*` skills, `--no-skills` flag (`--legacy-commands` writes legacy `.claude/commands/`)
 - **v1.3.0+**: Domain-based spec structure
 - **v1.2.0+**: Context, reverse extraction, skills
 - **v1.0.0+**: Git workflow integration

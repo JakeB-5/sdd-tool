@@ -21,7 +21,7 @@ export const prepareCommand: ClaudeCommand = {
 ## 워크플로우
 
 \`\`\`
-/sdd.new → /sdd.plan → /sdd.tasks → sdd prepare → /sdd.implement
+/sdd.spec → /sdd.plan → /sdd.tasks → sdd prepare → /sdd.implement
 \`\`\`
 
 ## 명령어

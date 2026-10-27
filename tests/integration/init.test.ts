@@ -117,19 +117,43 @@ describe('sdd init', () => {
     expect(result.stdout).toContain('덮어씁니다');
   });
 
-  it('.claude/skills/ 에 32개의 sdd-* Skills 2.0 파일을 생성한다', async () => {
-    await runCli(['init'], tempDir);
+  it('.claude/skills/ 에 30개의 sdd-* 스킬만 생성하고 커맨드는 만들지 않는다', async () => {
+    const result = await runCli(['init'], tempDir);
+    expect(result.code).toBe(0);
 
     const skillsDir = path.join(tempDir, '.claude', 'skills');
     const entries = await fs.readdir(skillsDir);
-    const sddSkills = entries.filter((e) => e.startsWith('sdd-'));
-    expect(sddSkills.length).toBe(32);
+    expect(entries.filter((e) => e.startsWith('sdd-')).length).toBe(30);
+    expect(entries.filter((e) => e.startsWith('dev-'))).toEqual([]);
 
     // Spot-check one skill for YAML frontmatter
     const startSkillMd = path.join(skillsDir, 'sdd-start', 'SKILL.md');
     const content = await fs.readFile(startSkillMd, 'utf-8');
     expect(content).toContain('name: sdd-start');
-    expect(content).toContain('context: inline');
+    expect(content).not.toContain('context:');
+
+    const commandsExists = await fs.stat(path.join(tempDir, '.claude', 'commands'))
+      .then(() => true)
+      .catch(() => false);
+    expect(commandsExists).toBe(false);
+
+    const claudeMd = await fs.readFile(path.join(tempDir, 'CLAUDE.md'), 'utf-8');
+    expect(claudeMd).toMatch(/^@\.sdd\/AGENTS\.md$/m);
+  });
+
+  it('--legacy-commands 옵션으로 .claude/commands/ 를 함께 생성한다', async () => {
+    const result = await runCli(['init', '--legacy-commands'], tempDir);
+    expect(result.code).toBe(0);
+
+    const entries = await fs.readdir(path.join(tempDir, '.claude', 'commands'));
+    expect(entries).toContain('sdd.start.md');
+    expect(entries.length).toBe(30);
+  });
+
+  it('--help 에 --legacy-commands 가 있고 --no-commands 는 숨겨진다', async () => {
+    const result = await runCli(['init', '--help'], tempDir);
+    expect(result.stdout).toContain('--legacy-commands');
+    expect(result.stdout).not.toContain('--no-commands');
   });
 
   it('--no-skills 옵션으로 .claude/skills/ 가 비어있다', async () => {
@@ -141,7 +165,7 @@ describe('sdd init', () => {
     expect(entries).toEqual([]);
   });
 
-  it('--no-commands 옵션으로 .claude/commands/ 가 비어있다', async () => {
+  it('--no-commands 옵션(호환용 no-op)도 성공하고 커맨드를 만들지 않는다', async () => {
     const result = await runCli(['init', '--no-commands'], tempDir);
     expect(result.code).toBe(0);
 

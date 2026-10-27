@@ -5,9 +5,10 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddDiffSkill: SkillDefinition = {
   name: 'sdd-diff',
-  description: 'Visualize spec changes between commits or within the working directory',
-  allowedTools: ['Read', 'Glob', 'Bash(sdd diff*,git diff)'],
-  context: 'inline',
+  description:
+    'Show structural spec changes (requirements, scenarios, RFC 2119 keyword strength, metadata) between commits, branches, or the working tree. Use when the user asks what changed in specs or wants to review spec edits.',
+  argumentHint: '[commit1] [commit2] [--staged] [--stat]',
+  allowedTools: ['Read', 'Glob', 'Bash(sdd diff*)', 'Bash(git diff*)'],
   content: `# SDD Diff
 
 ## Overview

@@ -1,11 +1,11 @@
-# /sdd.plan
+# /sdd-plan
 
 Create an implementation plan.
 
 ## Usage
 
 ```
-/sdd.plan [feature-id]
+/sdd-plan [feature-id]
 ```
 
 ## Arguments
@@ -32,7 +32,7 @@ The AI creates a technical implementation plan:
 ## Example
 
 ```
-/sdd.plan user-auth
+/sdd-plan user-auth
 
 AI: Analyzing user-auth spec to create implementation plan.
 
@@ -87,5 +87,5 @@ created: 2025-12-24
 After creating the plan:
 
 ```
-/sdd.tasks  -> Task breakdown
+/sdd-tasks  -> Task breakdown
 ```

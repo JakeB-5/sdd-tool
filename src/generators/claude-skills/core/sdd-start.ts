@@ -5,9 +5,16 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddStartSkill: SkillDefinition = {
   name: 'sdd-start',
-  description: 'Entry point for the SDD workflow — analyze project state and run the initial setup wizard',
-  allowedTools: ['Read', 'Glob', 'Bash(sdd *)'],
-  context: 'inline',
+  description:
+    'Entry point for the SDD workflow: checks project setup (.sdd, Git hooks, CI), runs the setup wizard, then recommends the next skill. Use when the user starts using SDD in a project or asks where to begin.',
+  allowedTools: [
+    'Read',
+    'Glob',
+    'Bash(sdd init*)',
+    'Bash(sdd git hooks*)',
+    'Bash(sdd cicd setup*)',
+    'Bash(sdd status*)',
+  ],
   content: `# SDD Start
 
 ## Core Principles
@@ -76,7 +83,7 @@ For each item:
 | Project State | Recommended Workflow |
 |--------------|---------------------|
 | Existing code + no specs (brownfield) | \`/sdd-reverse\` |
-| No existing code (greenfield) | \`/sdd-new\` |
+| No existing code (greenfield) | \`/sdd-spec\` |
 | Specs already exist | \`/sdd-status\` or \`/sdd-implement\` |
 
 ---
@@ -85,10 +92,9 @@ For each item:
 
 When adopting SDD on a project that already has code:
 
-1. **Reverse extraction**: Run \`/sdd-reverse scan\` to analyze the project structure
-2. **Extract specs**: Run \`/sdd-reverse extract\` to generate spec drafts from existing code
-3. **Review and finalize**: \`/sdd-reverse review\` → \`/sdd-reverse finalize\`
-4. For new features going forward, use \`/sdd-new\`
+1. **Reverse extraction**: Run \`/sdd-reverse\`; it guides you through scanning the project and drafting specs from the existing code
+2. **Review and finalize**: Approve the drafts and finalize them into \`.sdd/specs/\` as \`/sdd-reverse\` instructs
+3. For new features going forward, use \`/sdd-spec\`
 
 **Brownfield detection criteria:**
 - Source directories such as \`src/\`, \`lib/\`, or \`app/\` exist

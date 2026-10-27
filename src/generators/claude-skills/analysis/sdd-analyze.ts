@@ -5,7 +5,9 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddAnalyzeSkill: SkillDefinition = {
   name: 'sdd-analyze',
-  description: 'Analyze a user request and estimate its implementation scope and affected domains',
+  description:
+    'Classify a feature request as small, medium, or large, find affected domains in .sdd/specs, and recommend the SDD workflow to follow. Use when the user describes new work and asks how big it is or how to approach it.',
+  argumentHint: '<request>',
   allowedTools: ['Read', 'Glob', 'Grep'],
   context: 'fork',
   content: `# SDD Analyze
@@ -20,15 +22,15 @@ Analyze a natural-language request to estimate the size of work, identify which 
 
 ### Small
 - Keywords: fix, typo, rename, minor change, simple addition
-- Workflow: direct edit or \`/sdd-change\`
+- Workflow: \`/sdd-spec\` (direct edit of the existing spec)
 
 ### Medium
 - Keywords: add feature, improve, extend, refactor
-- Workflow: \`/sdd-new\` → \`/sdd-plan\` → \`/sdd-tasks\`
+- Workflow: \`/sdd-spec\` → \`/sdd-plan\` → \`/sdd-tasks\`
 
 ### Large
 - Keywords: system, architecture, migration, full overhaul, redesign
-- Workflow: \`/sdd-research\` → \`/sdd-new\` → \`/sdd-plan\` → \`/sdd-tasks\` → \`/sdd-prepare\`
+- Workflow: \`/sdd-research\` → \`/sdd-spec\` → \`/sdd-plan\` → \`/sdd-tasks\` → \`/sdd-prepare\`
 
 ---
 
@@ -36,9 +38,9 @@ Analyze a natural-language request to estimate the size of work, identify which 
 
 | Scope  | Recommended Workflow                      | Required Artifacts              |
 |--------|-------------------------------------------|---------------------------------|
-| Small  | \`/sdd-change\`                             | proposal.md                     |
-| Medium | \`/sdd-new\` → \`/sdd-plan\`                  | spec.md, plan.md                |
-| Large  | \`/sdd-research\` → \`/sdd-new\` → \`/sdd-plan\` | research.md, spec.md, plan.md   |
+| Small  | \`/sdd-spec\` (edit existing spec)          | spec.md                         |
+| Medium | \`/sdd-spec\` → \`/sdd-plan\`                 | spec.md, plan.md                |
+| Large  | \`/sdd-research\` → \`/sdd-spec\` → \`/sdd-plan\` | research.md, spec.md, plan.md |
 
 ---
 
@@ -58,17 +60,17 @@ Analyze a natural-language request to estimate the size of work, identify which 
 **Analysis:**
 - Keyword: "add feature" → Medium scope
 - Affected domain: authentication
-- Recommendation: \`/sdd-new\` → \`/sdd-plan\` → \`/sdd-tasks\` → \`/sdd-implement\`
+- Recommendation: \`/sdd-spec\` → \`/sdd-plan\` → \`/sdd-tasks\` → \`/sdd-implement\`
 
 **Input:** "Change the login button color"
 **Analysis:**
 - Keyword: "change" → Small scope
-- Recommendation: direct edit or \`/sdd-change\`
+- Recommendation: direct edit via \`/sdd-spec\`
 
 **Input:** "Migrate to a microservices architecture"
 **Analysis:**
 - Keywords: "architecture", "migrate" → Large scope
-- Recommendation: \`/sdd-research\` → \`/sdd-new\` → \`/sdd-plan\`
+- Recommendation: \`/sdd-research\` → \`/sdd-spec\` → \`/sdd-plan\`
 
 ---
 

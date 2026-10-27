@@ -36,11 +36,14 @@ sdd init [options]
 **Options:**
 - `--skip-git-setup` - Skip Git workflow setup
 - `--auto-approve` - Auto-approve all settings
+- `--no-skills` - Skip `.claude/skills/` generation
+- `--legacy-commands` - Also write legacy Korean slash commands to `.claude/commands/sdd.*.md`
 
 **Creates:**
 - `.sdd/` directory structure
-- `.claude/commands/` with slash commands
-- `.claude/agents/` and `.claude/skills/` (optional)
+- `.claude/skills/sdd-*/SKILL.md` (30 skills, invoked as `/sdd-*`)
+- `CLAUDE.md` importing `@.sdd/AGENTS.md` (created or appended, never overwritten)
+- `.claude/agents/` (optional)
 - Git hooks and CI/CD workflows (optional)
 
 **Example:**
@@ -487,13 +490,13 @@ sdd context <subcommand> [options]
 - `clear` - Clear context
 
 **Options:**
-- `--include-deps` - Include dependent domains
+- `--no-include-deps` - Exclude dependent domains (included by default)
 
 **Examples:**
 ```bash
 sdd context set auth
 sdd context set auth order payment   # Multiple domains
-sdd context set auth --include-deps  # With dependencies
+sdd context set auth  # Dependencies included by default
 sdd context show
 sdd context specs
 sdd context clear

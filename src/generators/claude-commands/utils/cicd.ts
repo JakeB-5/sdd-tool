@@ -8,7 +8,7 @@ export const cicdCommand: ClaudeCommand = {
   content: `---
 description: CI/CD 파이프라인을 설정합니다
 allowed-tools: Bash, Read, Write
-argument-hint: [setup|hooks|check] [--platform github]
+argument-hint: [setup [github|gitlab|all] | hooks [type] | check]
 ---
 
 sdd cicd 명령어를 실행합니다.
@@ -19,13 +19,16 @@ sdd cicd $ARGUMENTS
 
 ## 서브커맨드
 
-- \`setup\`: CI/CD 워크플로우 생성
-- \`hooks\`: Git hooks 설정
-- \`check\`: CI 검증 실행
+- \`setup [platform]\`: CI/CD 워크플로우 생성 (platform: github(기본), gitlab, all)
+- \`hooks [type]\`: Git hooks 설정 (\`--install\`: husky 설치 포함)
+- \`check\`: CI 검증 실행 (\`--strict\`, \`--fail-on-warning\`)
 
-## 옵션
+## 예시
 
-- \`--platform <type>\`: github, gitlab, all
+\`\`\`bash
+sdd cicd setup gitlab
+sdd cicd setup all --strict
+\`\`\`
 
 생성된 CI/CD 설정을 확인하고 추가 설정이 필요하면 안내해주세요.
 `,

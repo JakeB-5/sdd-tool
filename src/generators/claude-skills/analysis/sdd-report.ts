@@ -5,7 +5,9 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddReportSkill: SkillDefinition = {
   name: 'sdd-report',
-  description: 'Generate a project-level report of specs, progress, and quality metrics',
+  description:
+    'Generate a project report (HTML, Markdown, or JSON) aggregating spec status, quality scores, and validation results with `sdd report`. Use when the user wants a progress or status report for stakeholders.',
+  argumentHint: '[--format html|markdown|json] [-o <path>]',
   allowedTools: ['Read', 'Glob', 'Grep', 'Bash(sdd report*)'],
   context: 'fork',
   content: `# SDD Report

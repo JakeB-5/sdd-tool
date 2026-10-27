@@ -25,7 +25,7 @@ sdd --version
 
 ## Claude Code Setup
 
-SDD Tool collaborates with AI through Claude Code slash commands.
+SDD Tool collaborates with AI through Claude Code skills (invoked as `/sdd-*` slash commands).
 
 ### Install Claude Code
 
@@ -56,9 +56,9 @@ your-project/
 │   ├── constitution.md     # Project constitution
 │   ├── AGENTS.md           # AI workflow guide
 │   └── specs/              # Feature specs
+├── CLAUDE.md               # Imports @.sdd/AGENTS.md
 └── .claude/
-    ├── commands/           # Slash commands (32 total)
-    └── skills/             # 6 dev-* skills + 32 sdd-* Skills 2.0
+    └── skills/             # 30 sdd-* skills
 ```
 
 ## Update

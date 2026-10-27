@@ -50,13 +50,13 @@ sdd init
   📁 .sdd/changes/
   📁 .sdd/archive/
   📁 .sdd/templates/
-  📁 .claude/commands/    ← 슬래시 커맨드
-  📁 .claude/skills/      ← 개발 스킬
+  📁 .claude/skills/      ← sdd-* 스킬 30개 (/sdd-*로 호출)
   📄 .sdd/constitution.md
   📄 .sdd/AGENTS.md
+  📄 CLAUDE.md            ← @.sdd/AGENTS.md import (생성 또는 추가)
 
 기존 코드는 그대로 유지됩니다.
-다음 단계: Claude Code에서 /sdd.start 를 실행하세요.
+다음 단계: Claude Code에서 /sdd-start 를 실행하세요.
 ```
 
 ### Claude Code에서 시작

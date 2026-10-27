@@ -32,7 +32,7 @@ sdd context set auth order payment
 ### Include Dependencies
 
 ```bash
-sdd context set auth --include-deps
+sdd context set auth
 ```
 
 If `auth` depends on `core`, `core` is also included as read-only.
@@ -113,7 +113,7 @@ sdd new mfa-setup          # Auto-created as auth/mfa-setup
 
 ```bash
 # Work on entire payment flow
-sdd context set order payment --include-deps
+sdd context set order payment
 ```
 
 ### 3. Review Mode
@@ -195,7 +195,7 @@ sdd context set payment
 
 ```bash
 # Include dependencies for full picture
-sdd context set order --include-deps
+sdd context set order
 sdd context specs           # Check impact scope
 ```
 

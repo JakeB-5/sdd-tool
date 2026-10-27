@@ -63,8 +63,8 @@ Output (existing project):
   • Work in progress: None
 
 🚀 Select Workflow:
-  1. Write new feature spec (/sdd.spec)
-  2. Change existing spec (/sdd.spec)
+  1. Write new feature spec (/sdd-spec)
+  2. Change existing spec (/sdd-spec)
   3. Check project status (sdd status)
   4. Quality analysis (sdd quality)
 
@@ -122,10 +122,10 @@ sdd start
 
 ## Slash Command
 
-In Claude Code, use the `/sdd.start` slash command:
+In Claude Code, use the `/sdd-start` slash command:
 
 ```
-/sdd.start
+/sdd-start
 ```
 
 ## Related Documentation

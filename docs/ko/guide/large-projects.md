@@ -87,7 +87,7 @@ sdd list  # auth 스펙만 표시
 
 ```bash
 # 관련 도메인 함께 로드
-sdd context set order payment --include-deps
+sdd context set order payment
 ```
 
 ### 전체 검토 시

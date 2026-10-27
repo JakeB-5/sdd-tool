@@ -5,9 +5,9 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddStatusSkill: SkillDefinition = {
   name: 'sdd-status',
-  description: 'Summarize current SDD project state — specs, changes, progress, blockers',
-  allowedTools: ['Read', 'Glob', 'Bash(sdd status*)'],
-  context: 'inline',
+  description:
+    'Summarize the SDD project state (features and their statuses, change proposals, branch, next steps) using `sdd status` and `sdd list`. Use when the user asks about progress, status, or what to do next.',
+  allowedTools: ['Read', 'Glob', 'Bash(sdd status*)', 'Bash(sdd list*)'],
   content: `# SDD Status
 
 ## Overview

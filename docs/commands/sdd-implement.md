@@ -1,11 +1,11 @@
-# /sdd.implement
+# /sdd-implement
 
 Sequential TDD implementation based on the task list.
 
 ## Usage
 
 ```
-/sdd.implement [feature-id]
+/sdd-implement [feature-id]
 ```
 
 ## Arguments
@@ -38,7 +38,7 @@ Sequential TDD implementation based on the task list.
 ## Example
 
 ```
-/sdd.implement user-auth
+/sdd-implement user-auth
 
 AI: Starting user-auth implementation.
 
@@ -66,13 +66,13 @@ AI: Starting user-auth implementation.
 Pause during implementation:
 
 ```
-/sdd.implement pause
+/sdd-implement pause
 ```
 
 Resume:
 
 ```
-/sdd.implement
+/sdd-implement
 ```
 
 ## After Completion
@@ -86,5 +86,5 @@ AI: user-auth implementation complete!
     Tests passed: 24/24
     Coverage: 92%
 
-    Next step: /sdd.validate
+    Next step: /sdd-validate
 ```

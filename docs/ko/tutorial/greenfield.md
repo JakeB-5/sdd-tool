@@ -38,12 +38,12 @@ sdd init
   📁 .sdd/changes/
   📁 .sdd/archive/
   📁 .sdd/templates/
-  📁 .claude/commands/    ← 슬래시 커맨드 (32개)
-  📁 .claude/skills/      ← dev-* 스킬 6개 + sdd-* 스킬 2.0 32개
+  📁 .claude/skills/      ← sdd-* 스킬 30개 (/sdd-*로 호출)
   📄 .sdd/constitution.md
   📄 .sdd/AGENTS.md
+  📄 CLAUDE.md            ← @.sdd/AGENTS.md import
 
-다음 단계: Claude Code에서 /sdd.start 를 실행하세요.
+다음 단계: Claude Code에서 /sdd-start 를 실행하세요.
 ```
 
 생성되는 구조:
@@ -57,18 +57,18 @@ todo-api/
 │   ├── changes/            # 변경 제안
 │   ├── archive/            # 아카이브
 │   └── templates/          # 템플릿
+├── CLAUDE.md               # @.sdd/AGENTS.md import
 ├── .claude/
-│   ├── commands/           # 슬래시 커맨드 (32개, dot-notation)
-│   └── skills/             # dev-* 스킬 6개 + sdd-* 스킬 2.0 32개
+│   └── skills/             # sdd-* 스킬 30개
 └── package.json
 ```
 
 ### Claude Code에서 시작
 
-이제 Claude Code에서 프로젝트를 열고 `/sdd.start`를 실행합니다:
+이제 Claude Code에서 프로젝트를 열고 `/sdd-start`를 실행합니다:
 
 ```
-/sdd.start
+/sdd-start
 ```
 
 ```
@@ -78,13 +78,13 @@ todo-api/
 📜 Constitution: 템플릿 (수정 필요)
 📋 스펙: 0개
 
-다음 단계: /sdd.constitution 으로 프로젝트 원칙을 정의하세요.
+다음 단계: /sdd-constitution 으로 프로젝트 원칙을 정의하세요.
 ```
 
 ## Step 2: 프로젝트 헌법 정의
 
 ```
-/sdd.constitution
+/sdd-constitution
 ```
 
 Claude가 대화형으로 프로젝트 원칙을 수립합니다:
@@ -120,7 +120,7 @@ Constitution이 저장되었습니다: .sdd/constitution.md
 할 일 API의 주요 도메인을 설계합니다:
 
 ```
-/sdd.domain
+/sdd-domain
 ```
 
 Claude와 대화하며 도메인을 설계합니다:
@@ -165,7 +165,7 @@ domains.yml이 업데이트되었습니다.
 ### 새 스펙 생성
 
 ```
-/sdd.spec 할 일 생성 기능
+/sdd-spec 할 일 생성 기능
 ```
 
 Claude가 대화형으로 스펙을 작성합니다:
@@ -236,8 +236,8 @@ Claude: 📋 스펙 초안
 도메인: todo
 
 다음 단계:
-- /sdd.spec 으로 추가 스펙 작성
-- /sdd.plan 으로 구현 계획 작성
+- /sdd-spec 으로 추가 스펙 작성
+- /sdd-plan 으로 구현 계획 작성
 ```
 
 ## Step 5: 관련 스펙 추가
@@ -245,14 +245,14 @@ Claude: 📋 스펙 초안
 나머지 스펙도 작성합니다:
 
 ```
-/sdd.spec 입력 검증 유틸리티
+/sdd-spec 입력 검증 유틸리티
 ```
 
 ```
-/sdd.spec 할 일 조회
-/sdd.spec 할 일 수정
-/sdd.spec 할 일 삭제
-/sdd.spec 할 일 목록
+/sdd-spec 할 일 조회
+/sdd-spec 할 일 수정
+/sdd-spec 할 일 삭제
+/sdd-spec 할 일 목록
 ```
 
 각 스펙에 대해 Claude와 대화하며 시나리오와 계약을 정의합니다.
@@ -260,7 +260,7 @@ Claude: 📋 스펙 초안
 ## Step 6: 스펙 검증
 
 ```
-/sdd.validate
+/sdd-validate
 ```
 
 ```
@@ -286,7 +286,7 @@ Claude: 📋 스펙 초안
 ## Step 7: 구현 계획
 
 ```
-/sdd.plan create-todo
+/sdd-plan create-todo
 ```
 
 Claude가 구현 계획을 작성합니다:
@@ -330,7 +330,7 @@ Claude가 구현 계획을 작성합니다:
 ## Step 8: 작업 분해
 
 ```
-/sdd.tasks create-todo
+/sdd-tasks create-todo
 ```
 
 ```
@@ -370,7 +370,7 @@ Claude가 구현 계획을 작성합니다:
 ## Step 9: 구현
 
 ```
-/sdd.implement create-todo
+/sdd-implement create-todo
 ```
 
 Claude가 TDD 방식으로 구현을 진행합니다:
@@ -447,8 +447,8 @@ src/todo/create-todo.test.ts:
 스펙 상태: draft → implemented
 
 다음 작업:
-- /sdd.implement 으로 다른 스펙 구현
-- "다음 뭐 구현할까?" → Claude가 dev-next 스킬로 추천
+- /sdd-implement 으로 다른 스펙 구현
+- "다음 뭐 구현할까?" → Claude가 상태와 의존성을 기준으로 추천
 ```
 
 ## Step 10: 반복
@@ -459,7 +459,7 @@ src/todo/create-todo.test.ts:
 다음 뭐 구현해야 해?
 ```
 
-Claude가 자동으로 `dev-next` 스킬을 사용합니다:
+Claude가 스펙 상태와 의존성을 확인합니다:
 
 ```
 📊 다음 구현 추천
@@ -482,7 +482,7 @@ Claude가 자동으로 `dev-next` 스킬을 사용합니다:
 ## 진행 상황 확인
 
 ```
-/sdd.status
+/sdd-status
 ```
 
 ```
@@ -506,7 +506,7 @@ Claude가 자동으로 `dev-next` 스킬을 사용합니다:
 ## 도메인 그래프 확인
 
 ```
-/sdd.domain graph
+/sdd-domain graph
 ```
 
 ```mermaid
@@ -536,11 +536,11 @@ graph LR
 ## 요약
 
 1. `sdd init`으로 프로젝트 초기화 (CLI)
-2. `/sdd.start`로 프로젝트 상태 확인 (Claude Code)
-3. `/sdd.constitution`으로 원칙 정의
-4. `/sdd.domain`으로 도메인 설계
-5. `/sdd.spec`으로 스펙 작성
-6. `/sdd.validate`로 검증
-7. `/sdd.plan`, `/sdd.tasks`로 계획
-8. `/sdd.implement`로 TDD 구현
-9. `/sdd.status`로 진행 추적
+2. `/sdd-start`로 프로젝트 상태 확인 (Claude Code)
+3. `/sdd-constitution`으로 원칙 정의
+4. `/sdd-domain`으로 도메인 설계
+5. `/sdd-spec`으로 스펙 작성
+6. `/sdd-validate`로 검증
+7. `/sdd-plan`, `/sdd-tasks`로 계획
+8. `/sdd-implement`로 TDD 구현
+9. `/sdd-status`로 진행 추적

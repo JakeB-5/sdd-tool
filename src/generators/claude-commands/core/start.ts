@@ -73,7 +73,7 @@ export const startCommand: ClaudeCommand = {
 | 프로젝트 상태 | 권장 워크플로우 |
 |--------------|----------------|
 | 기존 코드 있음 + 스펙 없음 (브라운필드) | \`/sdd.reverse\` |
-| 기존 코드 없음 (그린필드) | \`/sdd.new\` |
+| 기존 코드 없음 (그린필드) | \`/sdd.spec\` |
 | 스펙 있음 | \`/sdd.status\` 또는 \`/sdd.implement\` |
 
 ---
@@ -82,10 +82,9 @@ export const startCommand: ClaudeCommand = {
 
 기존 코드가 있는 프로젝트에서 SDD를 도입할 때:
 
-1. **스펙 역추출**: \`/sdd.reverse scan\`으로 프로젝트 구조 분석
-2. **스펙 추출**: \`/sdd.reverse extract\`로 코드에서 스펙 초안 생성
-3. **리뷰 및 확정**: \`/sdd.reverse review\` → \`/sdd.reverse finalize\`
-4. 이후 새 기능은 \`/sdd.new\`로 작성
+1. **스펙 역추출**: \`/sdd.reverse\`를 실행하면 프로젝트 스캔과 코드 기반 스펙 초안 작성을 안내합니다
+2. **리뷰 및 확정**: \`/sdd.reverse\` 안내에 따라 초안을 승인하고 \`.sdd/specs/\`로 확정
+3. 이후 새 기능은 \`/sdd.spec\`으로 작성
 
 **브라운필드 판별 기준**:
 - src/, lib/, app/ 등 소스 디렉토리가 존재

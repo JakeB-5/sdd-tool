@@ -5,9 +5,10 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddQualitySkill: SkillDefinition = {
   name: 'sdd-quality',
-  description: 'Compute a quality score for a spec file based on clarity, completeness, and testability',
+  description:
+    'Score one or all specs (A–F) on clarity, completeness, and testability with `sdd quality`, and suggest fixes. Use when the user wants to check whether a spec is good enough before planning or implementing.',
+  argumentHint: '[specId] [--all] [--min-score <n>] [--json]',
   allowedTools: ['Read', 'Glob', 'Bash(sdd quality*)'],
-  context: 'inline',
   content: `# SDD Quality
 
 ## Overview

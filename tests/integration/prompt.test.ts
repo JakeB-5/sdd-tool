@@ -35,24 +35,37 @@ describe('sdd prompt', () => {
     const result = await runCli(['prompt']);
 
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain('/sdd:change');
-    expect(result.stdout).toContain('/sdd:apply');
-    expect(result.stdout).toContain('/sdd:archive');
-    expect(result.stdout).toContain('/sdd:validate');
+    // Prompt names with the generated skill / real CLI they relate to
+    expect(result.stdout).toContain('change (/sdd-spec)');
+    expect(result.stdout).toContain('apply (sdd change apply <id>)');
+    expect(result.stdout).toContain('archive (sdd change archive <id>)');
+    expect(result.stdout).toContain('validate (/sdd-validate)');
+    expect(result.stdout).not.toContain('/sdd:');
   });
 
   it('--list 옵션으로 목록을 출력한다', async () => {
     const result = await runCli(['prompt', '--list']);
 
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain('사용 가능한 슬래시 커맨드');
+    expect(result.stdout).toContain('사용 가능한 프롬프트');
+  });
+
+  it('목록의 모든 프롬프트는 실제로 출력 가능하다', async () => {
+    const list = await runCli(['prompt', '--list']);
+    const names = [...list.stdout.matchAll(/^\s*[-•*]?\s*([a-z]+) \(/gm)].map((m) => m[1]);
+
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names) {
+      const result = await runCli(['prompt', name]);
+      expect(result.code).toBe(0);
+    }
   });
 
   it('change 프롬프트를 출력한다', async () => {
     const result = await runCli(['prompt', 'change']);
 
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain('/sdd:change');
+    expect(result.stdout).toContain('/sdd-spec');
     expect(result.stdout).toContain('RFC 2119');
     expect(result.stdout).toContain('GIVEN-WHEN-THEN');
     expect(result.stdout).toContain('sdd validate');
@@ -62,7 +75,7 @@ describe('sdd prompt', () => {
     const result = await runCli(['prompt', 'apply']);
 
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain('/sdd:apply');
+    expect(result.stdout).toContain('sdd change apply');
     expect(result.stdout).toContain('delta.md');
   });
 
@@ -70,7 +83,7 @@ describe('sdd prompt', () => {
     const result = await runCli(['prompt', 'archive']);
 
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain('/sdd:archive');
+    expect(result.stdout).toContain('sdd change archive');
     expect(result.stdout).toContain('.sdd/archive/');
   });
 
@@ -78,7 +91,7 @@ describe('sdd prompt', () => {
     const result = await runCli(['prompt', 'validate']);
 
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain('/sdd:validate');
+    expect(result.stdout).toContain('/sdd-validate');
     expect(result.stdout).toContain('sdd validate');
     expect(result.stdout).toContain('--strict');
   });

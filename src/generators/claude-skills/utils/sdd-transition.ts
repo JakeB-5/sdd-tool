@@ -5,9 +5,10 @@ import type { SkillDefinition } from '../types.js';
 
 export const sddTransitionSkill: SkillDefinition = {
   name: 'sdd-transition',
-  description: 'Switch between new-feature and change-proposal workflows mid-session',
-  allowedTools: ['Read', 'Write'],
-  context: 'inline',
+  description:
+    'Convert a new-feature spec into a change proposal, or a change proposal into a new feature spec, with `sdd transition`. Use when work turns out to belong in the other workflow mid-session.',
+  argumentHint: '[new-to-change <spec-id> | change-to-new <change-id> | guide]',
+  allowedTools: ['Read', 'Write', 'Bash(sdd transition*)'],
   content: `# SDD Transition
 
 ## Overview

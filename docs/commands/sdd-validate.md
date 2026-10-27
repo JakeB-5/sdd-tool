@@ -1,11 +1,11 @@
-# /sdd.validate
+# /sdd-validate
 
 Verify that specifications are correctly written.
 
 ## Usage
 
 ```
-/sdd.validate [feature-id]
+/sdd-validate [feature-id]
 ```
 
 ## Arguments
@@ -36,7 +36,7 @@ Verify that specifications are correctly written.
 ## Example
 
 ```
-/sdd.validate
+/sdd-validate
 
 AI: Validating all specs.
 
@@ -62,7 +62,7 @@ AI: Validating all specs.
 Some issues can be automatically fixed:
 
 ```
-/sdd.validate --fix
+/sdd-validate --fix
 
 AI: Auto-fixable issues:
     - profile/spec.md: Add SHOULD keyword

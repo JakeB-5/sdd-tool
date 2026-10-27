@@ -20,15 +20,15 @@ sdd migrate $ARGUMENTS
 ## 서브커맨드
 
 - \`detect\`: 기존 도구 감지
-- \`openspec\`: OpenSpec에서 마이그레이션
-- \`speckit\`: SpecKit에서 마이그레이션
-- \`docs\`: 마크다운 문서 변환
+- \`openspec [source]\`: OpenSpec에서 마이그레이션
+- \`speckit [source]\`: SpecKit에서 마이그레이션
+- \`docs <source>\`: 마크다운 문서 변환
 
 ## 옵션
 
 - \`--dry-run\`: 미리보기
-- \`--overwrite\`: 기존 스펙 덮어쓰기
-- \`--source <path>\`: 소스 디렉토리
+- \`--overwrite\`: 기존 스펙 덮어쓰기 (openspec, speckit)
+- 소스 디렉토리는 옵션이 아닌 \`[source]\` 인자로 지정합니다
 
 마이그레이션 결과를 확인하고 필요한 후속 작업을 안내해주세요.
 `,
