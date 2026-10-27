@@ -27,14 +27,18 @@ Codex에서는 생성된 스킬과 `.codex/agents/*.toml` 서브에이전트가 
 
 ## 감지 키워드
 
+키워드는 기능의 tasks.md, plan.md, spec.md에서 찾습니다(대소문자 무시, 단어 단위. `테스트`, `문서`, `리뷰` 같은 한글 키워드는 부분 문자열로 매칭).
+
 | 키워드 | 서브에이전트 | 스킬 |
 |--------|-------------|------|
-| 테스트, test | test-runner | test |
-| api, rest | api-scaffold | gen-api |
-| component | component-gen | gen-component |
-| database | - | db-migrate |
-| 문서, doc | - | gen-doc |
-| review | code-reviewer | review |
+| test, vitest, jest, unit test, 테스트 | test-runner | test |
+| api, rest, endpoint, graphql, 엔드포인트 | api-scaffold | gen-api |
+| component, react, vue, ui, 컴포넌트 | component-gen | gen-component |
+| db, database, prisma, migration, 데이터베이스 | - | db-migrate |
+| doc, readme, jsdoc, documentation, 문서 | doc-generator | doc |
+| type, schema, zod, typescript, 타입 | - | gen-types |
+| lint, eslint, prettier, format, 포맷 | - | lint |
+| review, code review, 리뷰, 검증 | code-reviewer | review |
 
 ## 예시
 

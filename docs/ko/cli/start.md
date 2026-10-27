@@ -17,7 +17,7 @@ sdd start [options]
 
 ## 동작
 
-`sdd start`는 대화형이 아닙니다. 옵션 없이 실행하면 프로젝트 상태(Constitution 버전, 스펙 수와 ID, 진행 중인 변경)와
+`sdd start`는 대화형이 아닙니다. 옵션 없이 실행하면 프로젝트 상태(Constitution 버전, 스펙 수, 스펙 ID 처음 5개와 더 있으면 `... 외 N개`, 진행 중인 변경)와
 워크플로우 목록을 출력합니다. `--workflow <type>`을 주면 해당 워크플로우의 단계, 관련 Claude Code 스킬, 명령어를
 출력합니다. SDD 프로젝트 밖에서는 실패합니다(종료 코드 1).
 

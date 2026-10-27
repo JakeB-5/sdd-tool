@@ -94,24 +94,23 @@ sdd domain show <name>
 
 **출력 예시:**
 
+`경로`와 `의존성`은 설정된 경우에만 표시되고, `의존 그래프`는 도메인이 의존 관계에 속할 때 표시됩니다
+(`core ← auth ← order`는 "order가 auth에, auth가 core에 의존"한다는 뜻):
+
 ```
-📁 도메인: auth
 
-설명: 인증 및 인가
+# auth 도메인
+설명: auth 도메인 (reverse finalize로 등록)
 경로: src/auth
-소유자: @security-team
+의존성: core
 
-스펙 (4개):
-  ✅ user-login
-  ✅ oauth-google
-  🔄 session-management
-  📝 mfa-setup
+스펙 목록 (3):
+  - login
+  - logout
+  - register
 
-의존성:
-  사용: core
-  사용됨: user, order
-
-태그: security, authentication
+의존 그래프:
+  core ← auth ← order
 ```
 
 ### link
@@ -155,7 +154,8 @@ sdd domain depends <domain> --on <target> [options]
 
 | 옵션 | 설명 |
 |------|------|
-| `--on` | 의존 대상 도메인 |
+| `--on <target>` | 의존 대상 도메인 |
+| `--type <uses\|extends\|implements>` | 의존성 타입 (기본: `uses`) |
 | `--remove` | 의존성 제거 |
 
 **예시:**

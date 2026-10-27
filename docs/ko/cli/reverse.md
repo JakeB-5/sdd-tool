@@ -126,5 +126,5 @@ sdd reverse finalize [ref] [--all] [--force]
 ## 참고
 
 - [역추출 가이드](/ko/guide/reverse-extraction)
-- [/sdd.reverse](/ko/commands/sdd-reverse)
+- [/sdd-reverse](/ko/commands/sdd-reverse) (Codex: `$sdd-reverse`)
 - [sdd validate](/ko/cli/validate)

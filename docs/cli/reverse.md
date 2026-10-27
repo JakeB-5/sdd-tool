@@ -128,5 +128,5 @@ command exits with a non-zero code.
 ## Related
 
 - [Reverse Extraction Guide](/guide/reverse-extraction)
-- [/sdd.reverse](/commands/sdd-reverse)
+- [/sdd-reverse](/commands/sdd-reverse) (`$sdd-reverse` in Codex)
 - [sdd validate](/cli/validate)

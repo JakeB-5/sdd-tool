@@ -46,7 +46,7 @@ sdd transition <subcommand> [options]
 sdd transition new-to-change auth/login -r "extends the existing login"
 ```
 
-Creates the next `CHG-XXX` change proposal (`proposal.md`, `delta.md`) for `auth/login`:
+Creates the next `CHG-XXX` change proposal (`proposal.md`, `delta.md` and `tasks.md`) for `auth/login`:
 
 ```
 ✓ 전환 완료! 변경 제안이 생성되었습니다.
@@ -63,8 +63,13 @@ Then edit the proposal and delta, run `sdd change validate CHG-002` and `sdd cha
 sdd transition change-to-new CHG-002 -n new-login
 ```
 
-Creates the spec `.sdd/specs/common/new-login/spec.md` and marks the original change as `transitioned`.
-Continue with `sdd new plan common/new-login` and `sdd new tasks common/new-login`.
+Creates the spec `.sdd/specs/common/new-login/spec.md` (plus plan.md and tasks.md) and marks the original change as `transitioned`.
+Continue by editing them (`sdd new plan` / `sdd new tasks` would refuse because the files exist; add `--force` only to regenerate).
+
+Without `-n` the feature name is the proposal title, lowercased with spaces turned into hyphens. The command
+fails (exit code 1) when that name is not a single path segment (a title like `Auth/Login v2` contains `/`) or the spec
+already exists (`스펙이 이미 존재합니다`); pass `-n <name>` then. For non-English or otherwise odd titles, pass `-n`
+with a kebab-case name anyway so the id is a valid feature name.
 
 ### Print the Guide
 
@@ -77,7 +82,9 @@ sdd transition guide
 1. **new to change**: The original spec is preserved. The generated proposal gets the next `CHG-XXX` id
    (archived ids are never reused) and uses the proposal schema fields (`id`, `target`), so
    `sdd change validate` / `sdd impact change` can read it.
-2. **change to new**: The original change proposal is marked as `transitioned`.
+2. **change to new**: The `transitioned` state is written only to `.sdd/changes/<id>/.status` (with the new feature name
+   and a timestamp). `proposal.md` keeps `status: draft`, so `sdd list changes` and `sdd change -l` still show the
+   change as `[draft]`.
 3. Rule of thumb: prefer a change when ≤ 3 specs are affected and the work extends existing behavior;
    prefer a new feature when more specs are affected, a new concept or domain is introduced, or it can be tested independently.
 

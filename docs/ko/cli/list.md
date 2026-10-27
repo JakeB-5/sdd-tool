@@ -58,5 +58,5 @@ sdd list specs
 
 ## 관련 명령어
 
-- [`sdd status`](/cli/status) - 프로젝트 상태
-- [`sdd validate`](/cli/validate) - 스펙 검증
+- [`sdd status`](/ko/cli/status) - 프로젝트 상태
+- [`sdd validate`](/ko/cli/validate) - 스펙 검증

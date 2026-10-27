@@ -53,11 +53,25 @@ sdd report -f json -o sdd-report.json
 {
   "title": "SDD 프로젝트 리포트",
   "generatedAt": "2026-10-27T11:41:03.082Z",
+  "projectPath": "/abs/path/to/project/.sdd",
   "specs": [
-    { "id": "auth/login", "title": "login", "status": "draft" }
-  ]
+    { "id": "auth/login", "title": "User Login", "status": "implemented" }
+  ],
+  "summary": {
+    "totalSpecs": 13,
+    "byPhase": { "unknown": 13 },
+    "byStatus": { "implemented": 1, "draft": 12 },
+    "averageQuality": 54,
+    "validationErrors": 0,
+    "validationWarnings": 7
+  },
+  "quality": { "averageScore": 54, "grade": "F", "specResults": ["..."] },
+  "validation": { "passed": 13, "failed": 0, "warnings": 7, "files": ["..."] }
 }
 ```
+
+`quality` has the shape of `sdd quality --all --json` and `validation` lists every validated file with its errors and
+warnings; both are omitted with `--no-quality` / `--no-validation`.
 
 ### Without Quality and Validation
 

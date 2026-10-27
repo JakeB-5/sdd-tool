@@ -94,7 +94,7 @@ sdd quality auth/login --json
 ```json
 {
   "specId": "login",
-  "specPath": ".sdd/specs/auth/login/spec.md",
+  "specPath": "/abs/path/to/project/.sdd/specs/auth/login/spec.md",
   "totalScore": 64,
   "maxScore": 100,
   "percentage": 64,
@@ -108,9 +108,17 @@ sdd quality auth/login --json
       "details": ["발견된 키워드: SHALL: 2개, SHOULD: 1개"],
       "suggestions": []
     }
+  ],
+  "summary": "스펙 'login'의 품질 점수: 64/100 (64%, 등급: D)",
+  "topSuggestions": [
+    "frontmatter에 constitution_version을 추가하세요",
+    "관련 문서나 외부 참조 링크를 추가하면 좋습니다"
   ]
 }
 ```
+
+`specPath`는 절대 경로이고 `items`에는 기준마다 항목이 하나씩 있습니다(여기서는 생략). `--all`이면 출력은
+`{ averageScore, averagePercentage, grade, totalSpecs, specResults: [ 스펙별 위 객체 ], failedSpecs, summary }`입니다.
 
 ## 관련 문서
 

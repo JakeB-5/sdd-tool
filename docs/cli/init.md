@@ -55,7 +55,7 @@ Skills and subagents are tool-owned and regenerated in place on every run; only 
 
 `sdd init` generates 30 English skills under `.claude/skills/sdd-*/SKILL.md`. Claude Code exposes each skill as a slash command named after the skill (e.g., `/sdd-start`, `/sdd-spec`). Skills include these frontmatter fields:
 
-- **`context: fork`** — 7 analysis/domain skills run in a forked context (`sdd-analyze`, `sdd-impact`, `sdd-report`, `sdd-research`, `sdd-reverse`, `sdd-search`, `sdd-sync`)
+- **`context: fork`** — 6 analysis skills run in a forked context (`sdd-analyze`, `sdd-impact`, `sdd-report`, `sdd-research`, `sdd-search`, `sdd-sync`)
 - **`disable-model-invocation: true`** — 5 utility skills that only you can invoke (`sdd-chat`, `sdd-cicd`, `sdd-guide`, `sdd-migrate`, `sdd-watch`)
 - **`argument-hint`** — skills that take arguments
 - **`allowed-tools`** — least-privilege patterns per skill (e.g., `Bash(sdd validate*)`)

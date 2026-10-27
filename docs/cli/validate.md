@@ -52,7 +52,7 @@ sdd validate [path] [options]
 
 ### Constitution Validation
 
-- `constitution_version` is compared with the constitution's `version`: a difference is a warning, a major difference fails; specs without it are skipped
+- `constitution_version` is compared with the constitution's `version`: a patch difference is only an info line (ℹ), a minor difference is a warning, a major difference fails; specs without it are skipped
 - An unparseable constitution gives warning W007 and the check is skipped. The constitution's rules (for example forbidden practices) are not checked against spec text
 
 ## Examples

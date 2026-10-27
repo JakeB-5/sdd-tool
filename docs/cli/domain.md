@@ -94,24 +94,23 @@ sdd domain show <name>
 
 **Output example:**
 
+The CLI prints Korean labels. `경로` (path) and `의존성` appear only when set, and `의존 그래프` only when the
+domain has dependencies or dependents (`core ← auth ← order` reads "order depends on auth, which depends on core"):
+
 ```
-📁 Domain: auth
 
-Description: Authentication and authorization
-Path: src/auth
-Owner: @security-team
+# auth 도메인
+설명: auth 도메인 (reverse finalize로 등록)
+경로: src/auth
+의존성: core
 
-Specs (4):
-  ✅ user-login
-  ✅ oauth-google
-  🔄 session-management
-  📝 mfa-setup
+스펙 목록 (3):
+  - login
+  - logout
+  - register
 
-Dependencies:
-  Uses: core
-  Used by: user, order
-
-Tags: security, authentication
+의존 그래프:
+  core ← auth ← order
 ```
 
 ### link
@@ -155,8 +154,9 @@ sdd domain depends <domain> --on <target> [options]
 
 | Option | Description |
 |--------|-------------|
-| `--on` | Target domain |
-| `--remove` | Remove dependency |
+| `--on <target>` | Target domain |
+| `--type <uses\|extends\|implements>` | Dependency type (default: `uses`) |
+| `--remove` | Remove the dependency |
 
 **Examples:**
 

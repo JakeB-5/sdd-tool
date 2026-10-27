@@ -27,14 +27,18 @@ For Codex, the generated skills and `.codex/agents/*.toml` subagents are the equ
 
 ## Detection Keywords
 
-| Keyword | Subagent | Skill |
-|---------|----------|-------|
-| test | test-runner | test |
-| api, rest | api-scaffold | gen-api |
-| component | component-gen | gen-component |
-| database | - | db-migrate |
-| doc, documentation | - | gen-doc |
-| review | code-reviewer | review |
+Keywords are searched in the feature's tasks.md, plan.md and spec.md (case-insensitive, whole words; Korean keywords such as `테스트`, `문서`, `리뷰` match as substrings).
+
+| Keywords | Subagent | Skill |
+|----------|----------|-------|
+| test, vitest, jest, unit test | test-runner | test |
+| api, rest, endpoint, graphql | api-scaffold | gen-api |
+| component, react, vue, ui | component-gen | gen-component |
+| db, database, prisma, migration | - | db-migrate |
+| doc, readme, jsdoc, documentation | doc-generator | doc |
+| type, schema, zod, typescript | - | gen-types |
+| lint, eslint, prettier, format | - | lint |
+| review, code review | code-reviewer | review |
 
 ## Examples
 

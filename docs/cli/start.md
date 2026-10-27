@@ -17,8 +17,8 @@ sdd start [options]
 
 ## Behavior
 
-`sdd start` is not interactive. Without options it prints the project status (constitution version, spec count and
-ids, pending changes) followed by the list of workflows. With `--workflow <type>` it prints the steps, the
+`sdd start` is not interactive. Without options it prints the project status (constitution version, spec count, the
+first 5 spec ids followed by `... 외 N개` when there are more, pending changes) followed by the list of workflows. With `--workflow <type>` it prints the steps, the
 matching Claude Code skills and the commands for that workflow. Outside an SDD project it fails (exit code 1).
 
 ## Examples

@@ -52,7 +52,7 @@ sdd validate [path] [options]
 
 ### 헌법 검증
 
-- `constitution_version`을 constitution의 `version`과 비교: 차이는 경고, Major 차이는 실패. 없는 스펙은 건너뜀
+- `constitution_version`을 constitution의 `version`과 비교: Patch 차이는 정보(ℹ)일 뿐이고, Minor 차이는 경고, Major 차이는 실패. 없는 스펙은 건너뜀
 - constitution을 파싱할 수 없으면 경고 W007과 함께 검사를 건너뜀. constitution의 규칙(예: 금지 사항)을 스펙 본문과 대조하지는 않음
 
 ## 예시

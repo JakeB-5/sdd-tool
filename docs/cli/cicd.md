@@ -43,6 +43,10 @@ sdd cicd hooks pre-commit
 sdd cicd hooks --install
 ```
 
+Writes the hook scripts to `.husky/` (`pre-commit` and `pre-push`, or only the one you name). With `--install` it also
+prints the husky installation steps first (`npm install -D husky`, `npx husky init`); it does not run them. Install
+husky yourself for the scripts to take effect.
+
 ::: tip
 If you prefer direct Git hooks, use `sdd git hooks install` instead.
 :::
