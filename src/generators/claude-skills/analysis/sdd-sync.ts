@@ -43,6 +43,9 @@ sdd sync --markdown
 
 Without \`--ci\`/\`--threshold\`, \`sdd sync\` only reports and exits 0.
 
+A spec's requirements are the IDs it defines with a heading (\`### REQ-01: Title\`); REQ IDs that only
+appear in prose, tables, or lists are references and are not counted.
+
 Requirement IDs are numbered per spec, so qualify \`@spec\` annotations with the spec:
 \`<domain>/<feature>#REQ-xx\` (or \`<feature>#REQ-xx\` when the feature name is unique).
 A bare \`@spec REQ-01\` matches only when exactly one spec has \`REQ-01\`; if several specs do,
@@ -68,6 +71,10 @@ Name tests with the same reference:
 it('auth/login#REQ-01: logs in with valid credentials', () => { ... });
 it('auth/login#REQ-02: rejects invalid password', () => { ... });
 \`\`\`
+
+A bare \`REQ-xx\` is not ambiguous when a qualified reference to the same REQ covers it: on the same
+line, or inside the declaration directly below a \`@spec <domain>/<feature>#REQ-xx\` comment (e.g. the
+\`it('REQ-01 ...')\` titles inside an annotated \`describe\`).
 
 ---
 

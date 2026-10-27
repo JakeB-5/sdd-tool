@@ -57,34 +57,25 @@ sdd quality <specId> --json
 
 ---
 
-## Scoring Dimensions
+## Scoring Criteria
 
-- **Clarity** — requirements use unambiguous RFC 2119 keywords (SHALL, SHOULD, MAY)
-- **Completeness** — all sections present: Overview, Requirements, Scenarios, Acceptance Criteria
-- **Testability** — each requirement has at least one GIVEN/WHEN/THEN scenario
-- **Traceability** — requirements are uniquely identified (REQ-xxx)
-- **Consistency** — no conflicting requirements within the spec
+| Criterion | Points | What earns them |
+|-----------|--------|-----------------|
+| RFC 2119 keywords | 10 | 2 per distinct keyword used (SHALL, MUST, SHOULD, MAY, SHALL NOT, MUST NOT, SHOULD NOT) |
+| GIVEN-WHEN-THEN scenarios | 20 | 5 per complete GIVEN/WHEN/THEN scenario, so 4 scenarios give full score |
+| Requirement clarity | 15 | 5 for a requirements section + 2 per REQ-xx mention (max 10) |
+| Dependencies | 10 | 10 for a \`depends\` field (\`depends: []\` when there are none), 5 without it |
+| Document structure | 15 | 4 each for title (H1), requirements section, scenarios; 1 each for overview, constraints, notes sections |
+| Constitution | 10 | A \`constitution_version\` field (full score when the project has no constitution) |
+| Links | 10 | 5 + 1 per Markdown link |
+| Metadata | 10 | 2 each for \`id\`, \`title\`, \`status\`; 1 each for \`created\`, \`updated\`, \`author\`, \`version\` |
 
----
+Quality counts every \`REQ-xx\` mention, while \`/sdd-sync\` counts only requirements defined by a
+\`### REQ-xx: Title\` heading; a good score does not mean the requirements are traceable.
 
-## Output Format
-
-\`\`\`
-=== SDD Quality: user-auth ===
-
-Score: 85 / 100  [B]
-
-Breakdown:
-  Clarity      : 90/100
-  Completeness : 80/100
-  Testability  : 85/100
-  Traceability : 88/100
-  Consistency  : 82/100
-
-Suggestions:
-  - REQ-003 uses "should" (lowercase) — replace with SHALL or SHOULD
-  - Scenario for REQ-007 is missing a THEN clause
-\`\`\`
+Scenarios count whether they sit in one scenarios section (the layout generated for a new spec) or under
+each requirement (\`#### Scenario:\`); keep the layout the spec already uses.
+The output lists each criterion's score and concrete suggestions.
 
 ---
 

@@ -8,38 +8,56 @@ export const sddTasksSkill: SkillDefinition = {
   description:
     'Break a plan.md into actionable tasks.md entries with priorities, dependencies, and acceptance criteria. Use when a plan exists and the user wants a task breakdown before implementing.',
   argumentHint: '<feature-id>',
-  allowedTools: ['Read', 'Write', 'Edit', 'Bash(sdd new tasks*)'],
+  allowedTools: [
+    'Read',
+    'Write',
+    'Edit',
+    'Bash(sdd new tasks*)',
+    'Bash(sdd new task *)',
+    'Bash(sdd new status *)',
+  ],
   content: `# SDD Tasks
 
 ## Instructions
 
-1. Read the feature's \`plan.md\` and review the implementation phases
-2. If \`tasks.md\` already exists (e.g. generated together with spec.md via \`--all\`), edit it; otherwise run \`sdd new tasks <feature-id>\` to generate a task list. Use \`--force\` only to regenerate it from scratch
-3. Assign a priority and status to each task
+1. Read the feature's \`spec.md\` and \`plan.md\` and review the implementation phases
+2. Write the tasks in the feature's \`tasks.md\`:
+   - A feature created with \`--all\` (the \`/sdd-spec\` default) already has \`tasks.md\` with placeholder tasks: edit it in place. Do not re-run \`sdd new tasks\`
+   - Only if it is missing, run \`sdd new tasks <domain>/<feature-id>\` to generate the template
+   - \`--force\` regenerates the file from scratch and discards its content; use it only when asked
+3. Replace the placeholder tasks with the real breakdown; give each task a priority, dependencies, and the pending status
+4. Optionally record the stage: \`sdd new status <domain>/<feature-id> tasked\`
 
 ## Task Decomposition Rules
 
 - Break work into tasks completable within 2–4 hours
-- Clearly mark dependencies between tasks
+- Task ids are \`<feature-id>-task-NNN\` (\`login-task-001\`, \`login-task-002\`, …), each under a \`### <task-id>: Title\` heading
+- Clearly mark dependencies between tasks (task ids, or \`none\`)
 - Priority levels: HIGH (🔴), MEDIUM (🟡), LOW (🟢)
-- Status values: pending, in-progress, completed, blocked
+- Implementation tasks are test-first: the task writes failing tests for its scenarios, then the code.
+  Do not add a separate "write tests" task after the implementation
 
 ## Task Structure
 
+This is the form \`sdd new tasks\` writes (labels: status, priority, description, dependencies):
+
 \`\`\`markdown
-### <feature>-task-001: [Task Title]
+### <feature-id>-task-001: [Task title]
 
-- **Status:** pending
-- **Priority:** 🔴 HIGH
-- **Dependencies:** none
-
-#### Description
-[Detailed description of the task]
-
-#### Acceptance Criteria
-- [ ] Criterion 1
-- [ ] Criterion 2
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **설명:** [What to build, test-first; the requirements (REQ-xx) it covers]
+- **의존성:** 없음
 \`\`\`
+
+\`\`\`text
+대기 = pending   진행 중 = in-progress   완료 = completed   차단됨 = blocked   없음 = none
+\`\`\`
+
+English labels (\`**Status:**\`, \`**Priority:**\`, \`**Description:**\`, \`**Dependencies:**\`) with the
+English values are parsed too; keep the form the file already uses. Statuses and the progress
+counts are updated with \`sdd new task <feature> <task-id> <status>\` during implementation
+(see \`/sdd-implement\`), not by hand.
 
 After completing the task list, begin implementation with \`/sdd-implement\`.
 `,

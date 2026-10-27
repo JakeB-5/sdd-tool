@@ -297,7 +297,7 @@ depends: null
 
 ## 시나리오
 
-### Scenario 1: [시나리오명]
+### Scenario 1: [시나리오명] (REQ-01)
 
 - **GIVEN** [전제 조건]
 - **WHEN** [행동/트리거]

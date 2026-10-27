@@ -55,15 +55,30 @@ export function generateAgentsMd(options: AgentsGeneratorOptions): string {
 
 ### GIVEN-WHEN-THEN 형식
 
-모든 요구사항은 아래 형식의 시나리오를 포함해야 합니다:
+모든 요구사항은 GIVEN-WHEN-THEN 시나리오로 다뤄야 합니다. \`sdd new\`가 생성하는 구조를 유지하세요:
+요구사항은 \`### REQ-01: 제목\` 헤딩으로 정의하고(번호는 스펙 안에서 고유), 시나리오 이름에 다루는 요구사항을 적습니다.
 
 \`\`\`markdown
-### Scenario: [시나리오명]
+## 요구사항
+
+### REQ-01: [요구사항 제목]
+
+시스템은 [기능]을 지원해야 한다(SHALL).
+
+## 시나리오
+
+### Scenario 1: [시나리오명] (REQ-01)
 
 - **GIVEN** [전제 조건]
 - **WHEN** [행동/트리거]
 - **THEN** [예상 결과]
 \`\`\`
+
+### 추적성
+
+코드와 테스트는 \`@spec <domain>/<feature>#REQ-xx\` 형식으로 요구사항을 참조합니다.
+REQ 번호는 스펙마다 01부터 시작하므로, 한정하지 않은 \`REQ-xx\`는 같은 ID를 가진 스펙이 여럿이면 무시됩니다.
+구현을 마치기 전에 \`sdd sync\`로 확인하세요.
 
 ---
 
@@ -105,7 +120,8 @@ CLAUDE.md              # Claude Code용, @AGENTS.md import
 │   └── <domain>/<feature>/
 │       ├── spec.md
 │       ├── plan.md
-│       └── tasks.md
+│       ├── tasks.md
+│       └── checklist.md
 ├── changes/           # 변경 제안
 │   └── <id>/
 │       ├── proposal.md
@@ -122,10 +138,13 @@ CLAUDE.md              # Claude Code용, @AGENTS.md import
 ### 신규 기능 워크플로우
 
 1. \`sdd-spec\` 스킬 - 스펙 초안 작성 (CLI: \`sdd new <domain>/<feature> --all\`)
-2. \`sdd-plan\` 스킬 - 구현 계획 수립
-3. \`sdd-tasks\` 스킬 - 작업 분해 (마커: [P1-3], [→T], [US])
-4. \`sdd-implement\` 스킬 - 순차적 구현 및 테스트 (\`sdd-implementer\` 서브에이전트에 위임 가능)
-5. \`sdd-validate\` 스킬 - 검증 (\`sdd-spec-reviewer\` 서브에이전트로 리뷰 가능), 리뷰 및 머지
+   - spec.md, plan.md, tasks.md, checklist.md 생성. 없는 도메인은 자동 생성, 도메인 생략 시 \`common\` (현재 컨텍스트의 활성 도메인이 하나면 그 도메인)
+   - 기본으로 \`feature/<feature>\` 브랜치를 만들고 전환합니다. 이미 작업 브랜치 위라면 \`--no-branch\`
+   - 기존 파일은 덮어쓰지 않습니다(\`--force\`는 처음부터 다시 생성할 때만)
+2. \`sdd-plan\` 스킬 - 구현 계획 수립 (이미 생성된 plan.md를 편집)
+3. \`sdd-tasks\` 스킬 - 작업 분해 (이미 생성된 tasks.md를 편집, 작업 ID는 \`<feature>-task-NNN\`)
+4. \`sdd-implement\` 스킬 - 작업별 테스트 우선 구현 (\`sdd-implementer\` 서브에이전트에 위임 가능)
+5. \`sdd-validate\` 스킬 - 검증 (\`sdd-spec-reviewer\` 서브에이전트로 리뷰 가능), \`sdd sync\` 후 \`sdd new status <feature> implemented\`, 리뷰 및 머지
 
 ### 역추출 워크플로우 (브라운필드)
 
@@ -194,14 +213,20 @@ sdd validate --strict    # 경고도 에러로 처리
 
 ---
 
-## 작업 마커
+## 상태 변경
 
-| 마커 | 의미 |
-|------|------|
-| [P] | 우선순위 없음 |
-| [P1-3] | 우선순위 (1=높음) |
-| [→T] | 테스트 필요 |
-| [US] | 불확실/검토 필요 |
+tasks.md의 작업 상태와 spec.md의 \`status\`는 직접 고치지 말고 CLI로 바꿉니다 (진행 상황 집계도 함께 갱신됨).
+
+\`\`\`bash
+sdd new task <feature> <task-id> in-progress   # pending | in-progress | completed | blocked (한글: 대기 | "진행 중" | 완료 | 차단됨, 공백 값은 따옴표)
+sdd new task <feature> <task-id> completed
+sdd new status <feature> implemented            # draft | review | approved | planned | tasked | implementing | implemented | deprecated
+\`\`\`
+
+커밋 메시지는 commit-msg 훅 형식 \`<type>(<scope>): <message>\`를 따릅니다.
+type은 스펙 타입 \`spec|spec-update|spec-status|plan|tasks|constitution|sdd-config\` 또는
+Conventional Commits 타입 \`feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert\`입니다.
+scope는 생략할 수 있고, \`Merge ...\` / \`Revert ...\` 메시지도 허용됩니다. 작업 커밋 예: \`feat(<feature>): <task-id> - <설명>\`
 
 ---
 

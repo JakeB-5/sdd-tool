@@ -111,7 +111,7 @@ When adopting SDD on a project that already has code:
 | Hook | Trigger | Function |
 |------|---------|----------|
 | pre-commit | Before commit | Validate changed specs |
-| commit-msg | After writing commit message | Validate message format |
+| commit-msg | After writing commit message | Require \`<type>(<scope>): <message>\`: a spec type (\`spec\`, \`plan\`, \`tasks\`, \`constitution\`, …) or a Conventional Commits type (\`feat\`, \`fix\`, …) |
 | pre-push | Before push | Validate all specs |
 
 ### Generated GitHub Actions

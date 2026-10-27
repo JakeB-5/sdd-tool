@@ -97,7 +97,7 @@ ${req}
 `;
     });
   } else {
-    content += `### Scenario 1: [시나리오명]
+    content += `### Scenario 1: [시나리오명] (REQ-01)
 
 - **GIVEN** [전제 조건]
 - **WHEN** [행동/트리거]

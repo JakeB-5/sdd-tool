@@ -29,7 +29,7 @@ constitution_version: "{{CONSTITUTION_VERSION}}"
 
 ## 시나리오
 
-### Scenario 1: {{SCENARIO_NAME}}
+### Scenario 1: {{SCENARIO_NAME}} (REQ-01)
 
 - **GIVEN** {{GIVEN_CONDITION}}
 - **WHEN** {{WHEN_ACTION}}
