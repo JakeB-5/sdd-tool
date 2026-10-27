@@ -1,91 +1,98 @@
 # /sdd-plan
 
-Create an implementation plan.
+Write the implementation plan (`plan.md`) for an existing spec.
 
 ## Usage
 
 ```
-/sdd-plan [feature-id]
+/sdd-plan <feature>      # Claude Code
+$sdd-plan <feature>      # Codex
 ```
 
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
-| feature-id | Feature ID (defaults to most recently written spec if omitted) |
+| feature | `<domain>/<feature>` (e.g. `auth/login`) or the feature name when it is unique in the project (e.g. `login`) |
 
 ## Behavior
 
-The AI creates a technical implementation plan:
+1. Browse `.sdd/specs/` to identify the feature you want to plan
+2. Read the feature's `spec.md` and analyze its requirements
+3. Write the plan in the feature's `plan.md`:
+   - A feature created with `--all` (the `/sdd-spec` default) already has `plan.md`: the skill edits it in place and does not re-run `sdd new plan`
+   - Only if it is missing, it runs `sdd new plan <feature>` to generate the template
+   - `--force` regenerates the file from scratch and discards its content; it is used only when you ask
+4. Optionally records the stage: `sdd new status <feature> planned`
 
-1. Analyze the spec
-2. Derive technical decisions
-3. Define implementation phases
-4. Risk analysis
+## Plan Authoring Rules
 
-## Generated File
+- State each technical decision and its rationale
+- Divide the work into clearly defined implementation phases
+- List expected deliverables for each phase
+- Include a risk analysis and mitigation strategies
+- Define a testing strategy
+
+## Target File
 
 ```
-.sdd/specs/<feature-id>/plan.md
+.sdd/specs/<domain>/<feature>/plan.md
+```
+
+## Plan Structure
+
+```markdown
+## Technical Decisions
+### Decision 1: [Title]
+**Rationale:** [Why this technology or approach was chosen]
+
+## Implementation Phases
+### Phase 1: Foundation
+[Description]
+**Deliverables:**
+- [ ] Deliverable 1
+- [ ] Deliverable 2
+
+### Phase 2: Core Logic
+[Description]
+**Deliverables:**
+- [ ] Deliverable 1
+
+## Risk Analysis
+| Risk | Impact | Mitigation Strategy |
+|------|--------|-------------------|
+| [risk] | High/Medium/Low | [strategy] |
+
+## Testing Strategy
+[Describe unit, integration, and e2e coverage approach]
 ```
 
 ## Example
 
+Illustrative transcript (abbreviated):
+
 ```
-/sdd-plan user-auth
+/sdd-plan auth/login
 
-AI: Analyzing user-auth spec to create implementation plan.
-
-    Technical Decisions:
-    - JWT library: jsonwebtoken
-    - Password hashing: bcrypt
-    - Token storage: httpOnly cookies
-
-    Implementation Phases:
-    1. Define data model
-    2. Implement authentication service
-    3. Implement API endpoints
-    4. Implement middleware
-```
-
-## Generated plan.md
-
-```markdown
----
-spec_id: user-auth
-created: 2025-12-24
----
-
-# Implementation Plan: user-auth
-
-## Technical Decisions
-
-| Item | Choice | Rationale |
-|------|--------|-----------|
-| JWT library | jsonwebtoken | Widely used, stable |
-| Password hashing | bcrypt | Industry standard |
-
-## Implementation Phases
-
-### Phase 1: Data Model
-- Define User schema
-- Write migrations
-
-### Phase 2: Authentication Service
-- Login logic
-- Token generation/validation
-
-## Risks
-
-| Risk | Impact | Mitigation Strategy |
-|------|--------|---------------------|
-| Token theft | High | Short expiration time, refresh token |
+AI: Reading .sdd/specs/auth/login/spec.md (3 requirements).
+    Editing the existing plan.md:
+    - Decision: bcrypt for password hashing, JWT in httpOnly cookies
+    - Phase 1: data model / Phase 2: auth service / Phase 3: API endpoints
+    - Risk: token theft (High) -> short expiry + refresh token
+    - Testing: unit tests per REQ, integration test for the login endpoint
+    $ sdd new status auth/login planned
 ```
 
 ## Next Steps
 
-After creating the plan:
+After creating the plan, decompose the work into tasks:
 
 ```
-/sdd-tasks  -> Task breakdown
+/sdd-tasks <feature>  -> Task breakdown
 ```
+
+## Related Commands
+
+- [`sdd new`](/cli/new) - `sdd new plan` and `sdd new status`
+- [`/sdd-spec`](/commands/sdd-spec) - Spec authoring
+- [`/sdd-tasks`](/commands/sdd-tasks) - Task breakdown
