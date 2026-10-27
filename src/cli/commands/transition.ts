@@ -9,8 +9,9 @@ import { promises as fs } from 'node:fs';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
 import { findSddRoot, fileExists, readFile, ensureDir, writeFile, directoryExists, findSpecPath } from '../../utils/fs.js';
-import { generateChangeId } from '../../core/change/index.js';
+import { generateChangeId, isValidChangeId } from '../../core/change/index.js';
 import { Result, success, failure } from '../../types/index.js';
+import { isSafePathSegment } from '../../utils/path.js';
 
 /**
  * 전환 방향
@@ -137,6 +138,10 @@ export async function transitionChangeToNew(
   changeId: string,
   options: ChangeToNewOptions
 ): Promise<Result<ChangeToNewResult, Error>> {
+  if (!isValidChangeId(changeId)) {
+    return failure(new Error(`유효하지 않은 변경 ID입니다: ${changeId} (형식: CHG-001)`));
+  }
+
   const changePath = path.join(sddPath, 'changes', changeId);
 
   if (!(await directoryExists(changePath))) {
@@ -151,6 +156,14 @@ export async function transitionChangeToNew(
   const featureName = options.name ||
     extractedTitle.toLowerCase().replace(/\s+/g, '-') ||
     `feature-from-${changeId}`;
+
+  // 단일 경로 세그먼트만 허용 (경로 조작 방지)
+  if (!isSafePathSegment(featureName)) {
+    return failure(
+      new Error(`유효하지 않은 기능 이름입니다: ${featureName} ('/', '\\', '..' 사용 불가)`)
+    );
+  }
+
   // 도메인 미지정 시 common 폴더에 생성
   const specsPath = path.join(sddPath, 'specs', 'common');
   const newSpecPath = path.join(specsPath, featureName);

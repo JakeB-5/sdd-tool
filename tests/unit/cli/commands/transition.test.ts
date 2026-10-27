@@ -203,6 +203,49 @@ describe('transitionChangeToNew', () => {
       expect(result.error.message).toContain('이미 존재');
     }
   });
+
+  it.each(['..', '../CHG-001', 'CHG-001/..', 'foo'])(
+    '유효하지 않은 변경 ID(%s)는 거부한다',
+    async (badId) => {
+      const result = await transitionChangeToNew(sddPath, badId, { name: 'x' });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('유효하지 않은 변경 ID');
+      }
+    }
+  );
+
+  it.each(['../../escape', '..', 'a/b', 'a\\b'])(
+    '경로 조작 기능 이름(%s)은 거부하고 디렉토리를 만들지 않는다',
+    async (badName) => {
+      const changePath = path.join(sddPath, 'changes', 'CHG-001');
+      await fs.mkdir(changePath, { recursive: true });
+      await fs.writeFile(path.join(changePath, 'proposal.md'), '# Test');
+
+      const result = await transitionChangeToNew(sddPath, 'CHG-001', { name: badName });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('유효하지 않은 기능 이름');
+      }
+      const escaped = await fs
+        .stat(path.join(sddPath, 'escape'))
+        .then(() => true)
+        .catch(() => false);
+      expect(escaped).toBe(false);
+    }
+  );
+
+  it('제목에서 파생된 기능 이름도 경로 조작을 거부한다', async () => {
+    const changePath = path.join(sddPath, 'changes', 'CHG-001');
+    await fs.mkdir(changePath, { recursive: true });
+    await fs.writeFile(path.join(changePath, 'proposal.md'), '# ../../evil\n');
+
+    const result = await transitionChangeToNew(sddPath, 'CHG-001', {});
+
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('getTransitionGuide', () => {

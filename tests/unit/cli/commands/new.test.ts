@@ -423,4 +423,22 @@ describe('createFeature with domain', () => {
       expect(result.error.message).toContain('도메인을 찾을 수 없습니다');
     }
   });
+
+  it.each([
+    ['login', { domain: '../../escape' }],
+    ['login', { domain: '..' }],
+    ['../escape', {}],
+  ])('경로 조작 도메인(%s, %j)은 거부하고 디렉토리를 만들지 않는다', async (name, options) => {
+    const result = await createFeature(sddPath, name, options);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('유효하지 않은 도메인 ID');
+    }
+    const escaped = await fs
+      .stat(path.join(tempDir, 'escape'))
+      .then(() => true)
+      .catch(() => false);
+    expect(escaped).toBe(false);
+  });
 });

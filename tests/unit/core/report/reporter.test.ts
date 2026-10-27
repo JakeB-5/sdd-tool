@@ -466,4 +466,35 @@ This spec has no frontmatter.
       // title, status, phase는 undefined일 것
     }
   });
+
+  it('HTML 리포트에서 스펙 제목/설명/상태/리포트 제목을 이스케이프한다', async () => {
+    await fs.mkdir(path.join(specsDir, 'evil'));
+    await fs.writeFile(
+      path.join(specsDir, 'evil', 'spec.md'),
+      `---
+title: <img src=x onerror=alert(1)>
+description: <script>alert(2)</script>
+status: <b>draft</b>
+---
+
+# Evil
+`
+    );
+
+    const result = await generateReport(tempDir, {
+      format: 'html',
+      title: '<script>alert(3)</script>',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const html = result.data.content;
+      expect(html).not.toContain('<img src=x');
+      expect(html).not.toContain('<script>');
+      expect(html).not.toContain('<b>draft</b>');
+      expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+      expect(html).toContain('&lt;script&gt;alert(2)&lt;/script&gt;');
+      expect(html).toContain('&lt;script&gt;alert(3)&lt;/script&gt;');
+    }
+  });
 });

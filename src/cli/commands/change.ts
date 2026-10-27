@@ -16,6 +16,7 @@ import {
   listPendingChanges,
   archiveChange,
   generateChangeId,
+  isValidChangeId,
 } from '../../core/change/index.js';
 import { findSddRoot, directoryExists, ensureDir, writeFile, readFile, fileExists } from '../../utils/fs.js';
 import * as logger from '../../utils/logger.js';
@@ -357,6 +358,16 @@ export function registerChangeCommand(program: Command): void {
 }
 
 /**
+ * Exit when the change ID is not a safe CHG-XXX path segment.
+ */
+function exitIfInvalidChangeId(id: string): void {
+  if (!isValidChangeId(id)) {
+    logger.error(`유효하지 않은 변경 ID입니다: ${id} (형식: CHG-001)`);
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
+}
+
+/**
  * 변경 제안 생성/조회
  */
 async function runChange(
@@ -395,6 +406,7 @@ async function runChange(
 
   // 기존 변경 조회
   if (id) {
+    exitIfInvalidChangeId(id);
     const changePath = path.join(sddPath, 'changes', id);
     if (!(await directoryExists(changePath))) {
       logger.error(`변경을 찾을 수 없습니다: ${id}`);
@@ -446,6 +458,7 @@ async function runApply(id: string): Promise<void> {
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
+  exitIfInvalidChangeId(id);
   const sddPath = path.join(projectRoot, '.sdd');
   const changePath = path.join(sddPath, 'changes', id);
 
@@ -499,6 +512,7 @@ async function runDiff(id: string): Promise<void> {
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
+  exitIfInvalidChangeId(id);
   const sddPath = path.join(projectRoot, '.sdd');
   const changePath = path.join(sddPath, 'changes', id);
 
@@ -567,6 +581,7 @@ async function runValidateChange(id: string): Promise<void> {
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
+  exitIfInvalidChangeId(id);
   const sddPath = path.join(projectRoot, '.sdd');
   const changePath = path.join(sddPath, 'changes', id);
 

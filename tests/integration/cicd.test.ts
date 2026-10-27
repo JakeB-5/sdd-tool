@@ -169,6 +169,38 @@ describe('sdd cicd', () => {
 
       expect(content).toMatch(/node|setup-node/i);
     });
+
+    it('라벨러는 step output을 스크립트에 직접 보간하지 않고 env로 전달한다', async () => {
+      await execAsync(
+        `node "${cliPath}" cicd setup`,
+        { cwd: tempDir }
+      );
+
+      const labelerPath = path.join(tempDir, '.github', 'workflows', 'sdd-labeler.yml');
+      const content = await fs.readFile(labelerPath, 'utf-8');
+
+      expect(content).toContain('DOMAINS: ${{ steps.changes.outputs.domains }}');
+      expect(content).toContain('BASE_REF: ${{ github.base_ref }}');
+      expect(content).toContain('process.env.DOMAINS');
+      expect(content).toContain('"origin/$BASE_REF"');
+      // Expressions may only appear as env values, never inside run:/script: bodies
+      for (const line of content.split('\n').filter((l) => l.includes('${{'))) {
+        expect(line).toMatch(/^\s+[A-Z_]+: \$\{\{ [^}]+ \}\}$/);
+      }
+    });
+  });
+
+  describe('라벨러 템플릿', () => {
+    it('templates/github/workflows/sdd-labeler.yml도 run/script에 ${{ }}를 보간하지 않는다', async () => {
+      const templatePath = path.join(process.cwd(), 'templates', 'github', 'workflows', 'sdd-labeler.yml');
+      const content = await fs.readFile(templatePath, 'utf-8');
+      const exprLines = content.split('\n').filter((l) => l.includes('${{'));
+
+      expect(exprLines.length).toBeGreaterThan(0);
+      for (const line of exprLines) {
+        expect(line).toMatch(/^\s+[A-Z_]+: \$\{\{ [^}]+ \}\}$/);
+      }
+    });
   });
 
   describe('GitLab CI 내용', () => {

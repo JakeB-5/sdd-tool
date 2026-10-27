@@ -12,6 +12,7 @@ import {
   DomainInfo,
   toDomainInfoList,
   createEmptyDomainsConfig,
+  isValidDomainId,
 } from '../../schemas/domains.schema.js';
 
 /**
@@ -255,6 +256,15 @@ export function addDomain(
     tags?: string[];
   }>
 ): Result<DomainsConfig, Error> {
+  // ID 형식 확인 (경로 조작 방지)
+  if (!isValidDomainId(id)) {
+    return failure(
+      new Error(
+        `유효하지 않은 도메인 ID입니다: ${id} (영문 소문자로 시작하고, 소문자/숫자/하이픈만 사용할 수 있습니다)`
+      )
+    );
+  }
+
   // 이미 존재하는지 확인
   if (config.domains[id]) {
     return failure(new Error(`도메인이 이미 존재합니다: ${id}`));

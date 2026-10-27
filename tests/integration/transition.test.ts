@@ -97,7 +97,7 @@ describe('sdd transition', () => {
     it('존재하지 않는 변경에 에러를 반환한다', async () => {
       try {
         await execAsync(
-          `node "${cliPath}" transition change-to-new non-existent-change`,
+          `node "${cliPath}" transition change-to-new CHG-999`,
           { cwd: tempDir }
         );
         expect.fail('Should have thrown an error');
@@ -105,6 +105,21 @@ describe('sdd transition', () => {
         const execError = error as { stdout?: string; stderr?: string };
         const output = (execError.stdout || '') + (execError.stderr || '');
         expect(output).toMatch(/찾을 수 없|not found|에러|error/i);
+      }
+    });
+
+    it('경로 조작 변경 ID와 기능 이름을 거부한다', async () => {
+      await execAsync(`node "${cliPath}" change -t "경로 테스트"`, { cwd: tempDir });
+
+      for (const args of ['..', 'CHG-001 --name ../../escape']) {
+        try {
+          await execAsync(`node "${cliPath}" transition change-to-new ${args}`, { cwd: tempDir });
+          expect.fail('Should have thrown an error');
+        } catch (error: unknown) {
+          const execError = error as { stdout?: string; stderr?: string };
+          const output = (execError.stdout || '') + (execError.stderr || '');
+          expect(output).toMatch(/유효하지 않은 (변경 ID|기능 이름)/);
+        }
       }
     });
 

@@ -46,12 +46,22 @@ export async function executeDiff(
   }
 
   // 변경된 스펙 파일 조회
-  const changedFiles = await gitDiff.getChangedSpecFiles({
+  const changedResult = await gitDiff.getChangedSpecFiles({
     staged: options.staged,
     commit1: options.commit1,
     commit2: options.commit2,
     specPath: options.specId,
   });
+  if (!changedResult.success) {
+    return {
+      success: false,
+      error: {
+        code: 'GIT_DIFF_FAILED',
+        message: changedResult.error.message,
+      },
+    };
+  }
+  const changedFiles = changedResult.data;
 
   // 각 파일의 diff 계산
   const specDiffs: SpecDiff[] = [];

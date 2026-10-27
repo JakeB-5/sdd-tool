@@ -58,13 +58,33 @@ created: 2025-01-01
   });
 
   it('존재하지 않는 변경은 에러를 반환한다', async () => {
-    const result = await archiveChange(sddPath, 'nonexistent');
+    const result = await archiveChange(sddPath, 'CHG-999');
 
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.message).toContain('찾을 수 없습니다');
     }
   });
+
+  it.each(['..', '../..', 'nonexistent', 'CHG-001/../..', ''])(
+    '유효하지 않은 변경 ID(%s)는 거부하고 파일을 건드리지 않는다',
+    async (badId) => {
+      await fs.writeFile(path.join(sddPath, 'marker.txt'), 'keep');
+
+      const result = await archiveChange(sddPath, badId);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('유효하지 않은 변경 ID');
+      }
+      expect(await fs.readFile(path.join(sddPath, 'marker.txt'), 'utf-8')).toBe('keep');
+      const archiveExists = await fs
+        .access(path.join(sddPath, 'archive'))
+        .then(() => true)
+        .catch(() => false);
+      expect(archiveExists).toBe(false);
+    }
+  );
 
   it('아카이브에 proposal 상태를 업데이트한다', async () => {
     const changeId = 'CHG-002';

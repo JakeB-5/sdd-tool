@@ -10,6 +10,7 @@ import {
 } from './schemas.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
+import { parseFrontmatter } from '../../utils/frontmatter.js';
 
 /**
  * Proposal 파싱 결과
@@ -67,7 +68,7 @@ const PreprocessedProposalMetadataSchema = z.object({
  */
 export function parseProposal(content: string): Result<ParsedProposal, ChangeError> {
   try {
-    const { data: frontmatter, content: body } = matter(content);
+    const { data: frontmatter, content: body } = parseFrontmatter(content);
 
     // 메타데이터 검증
     const metadataResult = PreprocessedProposalMetadataSchema.safeParse(frontmatter);
@@ -236,7 +237,7 @@ export function updateProposalStatus(
   newStatus: ChangeStatus
 ): Result<string, ChangeError> {
   try {
-    const { data: frontmatter, content: body } = matter(content);
+    const { data: frontmatter, content: body } = parseFrontmatter(content);
     const today = new Date().toISOString().split('T')[0];
 
     const updatedFrontmatter = {

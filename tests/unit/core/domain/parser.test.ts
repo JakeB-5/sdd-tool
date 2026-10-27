@@ -150,6 +150,18 @@ domains:
 
       expect(result.success).toBe(false);
     });
+
+    it.each(['../x', '..', 'a/b', 'Auth', '1abc', ''])(
+      '유효하지 않은 도메인 ID(%s)는 거부해야 함',
+      (badId) => {
+        const result = addDomain(createEmptyDomainsConfig(), badId, { description: 'x' });
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.message).toContain('유효하지 않은 도메인 ID');
+        }
+      }
+    );
   });
 
   describe('removeDomain', () => {

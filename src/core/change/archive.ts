@@ -7,6 +7,7 @@ import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { directoryExists, ensureDir, copyDir, removeDir } from '../../utils/fs.js';
 import { parseProposal, updateProposalStatus } from './proposal.js';
+import { isValidChangeId } from './schemas.js';
 
 /**
  * 아카이브 결과
@@ -25,6 +26,10 @@ export async function archiveChange(
   sddPath: string,
   changeId: string
 ): Promise<Result<ArchiveResult, ChangeError>> {
+  if (!isValidChangeId(changeId)) {
+    return failure(new ChangeError(`유효하지 않은 변경 ID입니다: ${changeId} (형식: CHG-001)`));
+  }
+
   try {
     const changesPath = path.join(sddPath, 'changes');
     const archivePath = path.join(sddPath, 'archive');

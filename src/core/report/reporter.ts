@@ -233,6 +233,18 @@ export async function generateReport(
 }
 
 /**
+ * HTML 이스케이프
+ */
+function escapeHtml(text: unknown): string {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
  * HTML 리포트 렌더링
  */
 function renderHtmlReport(data: ReportData): string {
@@ -256,22 +268,22 @@ function renderHtmlReport(data: ReportData): string {
       deprecated: '#ef4444',
     };
     const color = colors[status] || '#6b7280';
-    return `<span style="background:${color};color:white;padding:2px 8px;border-radius:4px;font-size:12px;">${status}</span>`;
+    return `<span style="background:${color};color:white;padding:2px 8px;border-radius:4px;font-size:12px;">${escapeHtml(status)}</span>`;
   };
 
   const specRows = data.specs.map(spec => `
     <tr>
-      <td><strong>${spec.id}</strong></td>
-      <td>${spec.title || '-'}</td>
-      <td>${spec.phase || '-'}</td>
+      <td><strong>${escapeHtml(spec.id)}</strong></td>
+      <td>${escapeHtml(spec.title || '-')}</td>
+      <td>${escapeHtml(spec.phase || '-')}</td>
       <td>${statusBadge(spec.status || 'unknown')}</td>
-      <td>${spec.description || '-'}</td>
+      <td>${escapeHtml(spec.description || '-')}</td>
     </tr>
   `).join('');
 
   const qualityRows = data.quality?.specResults?.map(q => `
     <tr>
-      <td>${q.specId}</td>
+      <td>${escapeHtml(q.specId)}</td>
       <td>${q.percentage}%</td>
       <td style="color:${gradeColor(q.grade)};font-weight:bold;">${q.grade}</td>
       <td>${q.totalScore}/${q.maxScore}</td>
@@ -280,7 +292,7 @@ function renderHtmlReport(data: ReportData): string {
 
   const validationRows = data.validation?.files?.map(v => `
     <tr>
-      <td>${v.file}</td>
+      <td>${escapeHtml(v.file)}</td>
       <td style="color:${v.errors.length > 0 ? '#ef4444' : '#22c55e'};">${v.errors.length > 0 ? '❌ 실패' : '✅ 통과'}</td>
       <td>${v.errors.length}</td>
       <td>${v.warnings.length}</td>
@@ -292,7 +304,7 @@ function renderHtmlReport(data: ReportData): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${data.title}</title>
+  <title>${escapeHtml(data.title)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; background: #f9fafb; padding: 2rem; }
@@ -317,8 +329,8 @@ function renderHtmlReport(data: ReportData): string {
 </head>
 <body>
   <div class="container">
-    <h1>${data.title}</h1>
-    <p class="meta">생성: ${new Date(data.generatedAt).toLocaleString('ko-KR')} | 경로: ${data.projectPath}</p>
+    <h1>${escapeHtml(data.title)}</h1>
+    <p class="meta">생성: ${new Date(data.generatedAt).toLocaleString('ko-KR')} | 경로: ${escapeHtml(data.projectPath)}</p>
 
     <div class="summary">
       <div class="card">
@@ -345,7 +357,7 @@ function renderHtmlReport(data: ReportData): string {
     <h2>Phase별 분포</h2>
     <div class="phase-chart">
       ${Object.entries(data.summary.byPhase).map(([phase, count]) => `
-        <span class="phase-item">${phase}: ${count}</span>
+        <span class="phase-item">${escapeHtml(phase)}: ${count}</span>
       `).join('')}
     </div>
 

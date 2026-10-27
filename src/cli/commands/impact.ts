@@ -25,6 +25,7 @@ import {
   type CodeImpactResult,
 } from '../../core/impact/index.js';
 import { findSddRoot } from '../../utils/fs.js';
+import { isSafePathSegment } from '../../utils/path.js';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
 import { Result, success, failure } from '../../types/index.js';
@@ -55,10 +56,15 @@ export interface SimulateOptions {
 
 /**
  * 제안서 경로 해석 (테스트 가능)
+ * Returns null when a relative path is not a single safe segment under changes/.
  */
-export function resolveProposalPath(proposalPath: string, sddPath: string): string {
+export function resolveProposalPath(proposalPath: string, sddPath: string): string | null {
   if (path.isAbsolute(proposalPath)) {
     return proposalPath;
+  }
+
+  if (!isSafePathSegment(proposalPath)) {
+    return null;
   }
 
   // 상대 경로인 경우 changes/ 디렉토리에서 찾기
@@ -443,6 +449,12 @@ async function runSimulate(
   const sddPath = path.join(projectRoot, '.sdd');
   const specsPath = path.join(sddPath, 'specs');
   const fullProposalPath = resolveProposalPath(proposalPath, sddPath);
+  if (!fullProposalPath) {
+    logger.error(
+      `유효하지 않은 제안서 경로입니다: ${proposalPath} (changes/ 아래의 이름 또는 절대 경로만 허용됩니다)`
+    );
+    process.exit(ExitCode.GENERAL_ERROR);
+  }
 
   logger.info(`📊 What-if 시뮬레이션`);
   logger.info(`대상 스펙: ${feature}`);

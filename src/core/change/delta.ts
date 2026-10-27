@@ -1,11 +1,11 @@
 /**
  * Delta 파서 및 생성기
  */
-import matter from 'gray-matter';
 import { z } from 'zod';
 import { DeltaItem } from './schemas.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
+import { parseFrontmatter } from '../../utils/frontmatter.js';
 
 /**
  * 파싱된 델타
@@ -43,7 +43,7 @@ const PreprocessedDeltaMetadataSchema = z.object({
  */
 export function parseDelta(content: string): Result<ParsedDelta, ChangeError> {
   try {
-    const { data: frontmatter, content: body } = matter(content);
+    const { data: frontmatter, content: body } = parseFrontmatter(content);
 
     // 메타데이터 검증
     const metadataResult = PreprocessedDeltaMetadataSchema.safeParse(frontmatter);
