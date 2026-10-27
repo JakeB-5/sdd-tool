@@ -209,6 +209,8 @@ export function parseDelta(content: string): Result<ParsedDelta, ChangeError> {
 export interface GenerateDeltaOptions {
   proposalId: string;
   title: string;
+  /** Affected spec paths; one MODIFIED template block is emitted per spec */
+  affectedSpecs?: string[];
   added?: string[];
   modified?: Array<{ target: string; before: string; after: string }>;
   removed?: string[];
@@ -246,7 +248,9 @@ created: ${today}
       content += `#### After\n\n\`\`\`markdown\n${mod.after}\n\`\`\`\n\n`;
     });
   } else {
-    content += `### {{SPEC_PATH}}
+    const targets = options.affectedSpecs?.length ? options.affectedSpecs : ['{{SPEC_PATH}}'];
+    for (const target of targets) {
+      content += `### ${target}
 
 #### Before
 
@@ -261,6 +265,7 @@ created: ${today}
 \`\`\`
 
 `;
+    }
   }
 
   content += '## REMOVED\n\n';

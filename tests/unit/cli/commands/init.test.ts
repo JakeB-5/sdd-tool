@@ -154,6 +154,15 @@ describe('generateSpecTemplate', () => {
     expect(template).toContain('{{DESCRIPTION}}');
   });
 
+  it('sdd new가 생성하는 스펙과 같은 REQ-01 + 시나리오 구조를 사용한다', () => {
+    const template = generateSpecTemplate();
+
+    expect(template).toContain('## 요구사항');
+    expect(template).toContain('### REQ-01: {{REQUIREMENT_TITLE}}');
+    expect(template).toContain('## 시나리오');
+    expect(template).not.toContain('## Requirement:');
+  });
+
   it('GIVEN-WHEN-THEN 시나리오 템플릿을 포함한다', () => {
     const template = generateSpecTemplate();
 

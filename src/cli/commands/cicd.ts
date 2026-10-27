@@ -5,10 +5,37 @@
  */
 import { Command } from 'commander';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
 import { findSddRoot, ensureDir, writeFile, fileExists, directoryExists } from '../../utils/fs.js';
 import { validateSpecs } from '../../core/spec/validator.js';
+
+/**
+ * Version of the running tool (same package.json the CLI's --version reports).
+ * Walks up from this module because its depth differs between src/ and the bundled dist/.
+ */
+function readToolVersion(): string {
+  let dir = path.dirname(fileURLToPath(import.meta.url));
+  for (;;) {
+    try {
+      const pkg = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf-8')) as {
+        name?: string;
+        version?: string;
+      };
+      if (pkg.name === 'sdd-tool' && pkg.version) return pkg.version;
+    } catch {
+      // no readable package.json at this level; keep walking up
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return 'latest';
+    dir = parent;
+  }
+}
+
+/** Generated CI installs the version of the tool that generated it, so results are reproducible */
+const SDD_INSTALL_SPEC = `sdd-tool@${readToolVersion()}`;
 
 /**
  * 지원하는 CI 플랫폼
@@ -187,6 +214,8 @@ jobs:
   validate:
     name: Validate Specs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -199,7 +228,7 @@ jobs:
 
       # Only the global CLI is needed; project dependencies (and a lockfile) are not required
       - name: Install SDD Tool
-        run: npm install -g sdd-tool
+        run: npm install -g ${SDD_INSTALL_SPEC}
 
       - name: Validate specifications
         run: sdd validate${strictFlag}
@@ -221,7 +250,7 @@ jobs:
 /**
  * GitHub Actions 라벨러 생성
  */
-function generateGitHubLabeler(): string {
+export function generateGitHubLabeler(): string {
   return `# SDD PR 라벨러 워크플로우
 # 변경된 도메인에 따라 자동으로 라벨을 추가합니다
 
@@ -237,6 +266,10 @@ jobs:
   label:
     name: Add Labels
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
 
     steps:
       - name: Checkout
@@ -249,16 +282,18 @@ jobs:
         env:
           BASE_REF: \${{ github.base_ref }}
         run: |
-          # 변경된 도메인 감지
-          DOMAINS=$(git diff --name-only "origin/$BASE_REF" | \\
-            grep "^\\.sdd/specs/" | \\
+          CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF")
+
+          # 변경된 도메인 감지 (일치하는 파일이 없어도 단계가 실패하지 않도록 grep 종료 코드를 무시)
+          DOMAINS=$(printf '%s\\n' "$CHANGED_FILES" | \\
+            { grep "^\\.sdd/specs/" || true; } | \\
             cut -d'/' -f3 | \\
             sort -u | \\
             tr '\\n' ' ')
           echo "domains=$DOMAINS" >> $GITHUB_OUTPUT
 
           # Constitution 변경 감지
-          if git diff --name-only "origin/$BASE_REF" | grep -q "constitution.md"; then
+          if printf '%s\\n' "$CHANGED_FILES" | grep -q "constitution.md"; then
             echo "constitution=true" >> $GITHUB_OUTPUT
           else
             echo "constitution=false" >> $GITHUB_OUTPUT
@@ -311,7 +346,7 @@ sdd:validate:
       changes:
         - .sdd/**/*
   before_script:
-    - npm install -g sdd-tool
+    - npm install -g ${SDD_INSTALL_SPEC}
   script:
     - sdd validate${strictFlag}
     - sdd constitution validate

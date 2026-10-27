@@ -28,7 +28,7 @@ import { Result, success, failure } from '../../types/index.js';
 export interface ChangeOptions {
   list?: boolean;
   title?: string;
-  spec?: string;
+  spec?: string | string[];
 }
 
 /**
@@ -129,18 +129,27 @@ export async function getChangeInfo(changePath: string): Promise<Result<ChangeIn
 }
 
 /**
+ * Normalize the repeatable / comma-separated --spec option into a unique list of spec paths.
+ */
+export function normalizeSpecOption(spec: string | string[] | undefined): string[] {
+  const values = Array.isArray(spec) ? spec : spec ? [spec] : [];
+  const specs = values.flatMap((value) => value.split(',')).map((value) => value.trim());
+  return [...new Set(specs.filter((value) => value.length > 0))];
+}
+
+/**
  * 변경 생성 (테스트 가능)
  */
 export async function createChange(
   sddPath: string,
-  options: { title?: string; spec?: string }
+  options: { title?: string; spec?: string | string[] }
 ): Promise<Result<CreateChangeResult, Error>> {
   const changesPath = path.join(sddPath, 'changes');
 
   // Archived IDs count as used so an ID is never reissued after archiving
   const newId = await generateNextChangeId(sddPath);
   const title = options.title || '새 변경 제안';
-  const affectedSpecs = options.spec ? [options.spec] : [];
+  const affectedSpecs = normalizeSpecOption(options.spec);
 
   const changePath = path.join(changesPath, newId);
   const dirResult = await ensureDir(changePath);
@@ -164,6 +173,7 @@ export async function createChange(
   const delta = generateDelta({
     proposalId: newId,
     title,
+    affectedSpecs,
   });
   const deltaPath = path.join(changePath, 'delta.md');
   const deltaWrite = await writeFile(deltaPath, delta);
@@ -295,11 +305,15 @@ export function registerChangeCommand(program: Command): void {
     .description('변경 제안을 생성하거나 관리합니다')
     .option('-l, --list', '진행 중인 변경 목록')
     .option('-t, --title <title>', '변경 제안 제목')
-    .option('-s, --spec <spec>', '대상 스펙 경로')
+    .option(
+      '-s, --spec <spec>',
+      '대상 스펙 경로 (반복 또는 쉼표 구분으로 여러 개 지정 가능)',
+      (value: string, previous: string[] = []) => [...previous, value]
+    )
     .action(async (id: string | undefined, options: {
       list?: boolean;
       title?: string;
-      spec?: string;
+      spec?: string[];
     }) => {
       try {
         await runChange(id, options);
@@ -377,7 +391,7 @@ function exitIfInvalidChangeId(id: string): void {
  */
 async function runChange(
   id: string | undefined,
-  options: { list?: boolean; title?: string; spec?: string }
+  options: { list?: boolean; title?: string; spec?: string | string[] }
 ): Promise<void> {
   const projectRoot = await findSddRoot();
   if (!projectRoot) {

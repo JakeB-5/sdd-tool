@@ -188,23 +188,26 @@ function scoreDependencies(spec: ParsedSpec): QualityScoreItem {
   const details: string[] = [];
   const suggestions: string[] = [];
 
+  // `depends` is the canonical field; `dependencies` is accepted as an alias
+  const fields = [spec.metadata.depends, spec.metadata.dependencies];
+  const declared = fields.some((value) => value !== undefined);
+  const deps = fields
+    .flatMap((value) => (Array.isArray(value) ? value : value ? [value] : []))
+    .filter((dep) => dep !== null && dep !== '');
+
   let score = 0;
 
-  if (spec.metadata.depends) {
-    const deps = Array.isArray(spec.metadata.depends)
-      ? spec.metadata.depends
-      : [spec.metadata.depends];
-
-    if (deps.length > 0 && deps[0] !== null) {
-      score = maxScore;
-      details.push(`의존성: ${deps.join(', ')}`);
-    } else {
-      score = 5; // null로 명시적 선언
-      details.push('의존성 없음 (명시적 선언)');
-    }
+  if (deps.length > 0) {
+    score = maxScore;
+    details.push(`의존성: ${[...new Set(deps)].join(', ')}`);
+  } else if (declared) {
+    // `depends: null` / `depends: []` explicitly states there are no dependencies
+    score = maxScore;
+    details.push('의존성 없음 (명시적 선언)');
   } else {
-    score = 5; // depends 필드가 없으면 기본 점수
+    score = 5; // 필드가 없으면 기본 점수
     details.push('의존성 필드 없음 (암시적 없음)');
+    suggestions.push('frontmatter에 depends 필드를 추가하세요 (의존성이 없으면 depends: [])');
   }
 
   return {
@@ -228,7 +231,8 @@ function scoreStructure(content: string): QualityScoreItem {
   const requiredSections = [
     { pattern: /^#\s+.+/m, name: '제목 (H1)' },
     { pattern: /^##\s*(요구사항|Requirements)/im, name: '요구사항 섹션' },
-    { pattern: /^##\s*(시나리오|Scenario)/im, name: '시나리오 섹션' },
+    // Scenarios may be one `## 시나리오` section or written under each requirement (`### Scenario:`, `#### Scenario:`)
+    { pattern: /^#{2,6}\s*(시나리오|Scenario)/im, name: '시나리오 섹션' },
   ];
 
   const optionalSections = [

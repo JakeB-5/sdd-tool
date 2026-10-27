@@ -463,11 +463,23 @@ depends: null
 
 ---
 
-## Requirement: {{REQUIREMENT_TITLE}}
+## 개요
+
+기능의 목적과 배경
+
+---
+
+## 요구사항
+
+### REQ-01: {{REQUIREMENT_TITLE}}
 
 시스템은 {{DESCRIPTION}}해야 한다(SHALL).
 
-### Scenario: {{SCENARIO_NAME}}
+---
+
+## 시나리오
+
+### Scenario 1: {{SCENARIO_NAME}}
 
 - **GIVEN** {{GIVEN_CONDITION}}
 - **WHEN** {{WHEN_ACTION}}

@@ -120,6 +120,34 @@ describe('generateDelta', () => {
     expect(result).toContain('## ADDED');
     expect(result).toContain('## MODIFIED');
     expect(result).toContain('## REMOVED');
+    expect(result).toContain('### {{SPEC_PATH}}');
+  });
+
+  it('affectedSpecs가 있으면 스펙마다 MODIFIED 블록을 만들고 플레이스홀더를 쓰지 않는다', () => {
+    const result = generateDelta({
+      proposalId: 'CHG-003',
+      title: '다중 스펙',
+      affectedSpecs: ['auth/login', 'auth/signup'],
+    });
+
+    expect(result).not.toContain('{{SPEC_PATH}}');
+    expect(result).toContain('### auth/login\n');
+    expect(result).toContain('### auth/signup\n');
+
+    const parsed = parseDelta(result);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.modified.map((m) => m.target)).toEqual(['auth/login', 'auth/signup']);
+    }
+  });
+
+  it('플레이스홀더 MODIFIED 제목은 파싱 시 무시된다', () => {
+    const parsed = parseDelta(generateDelta({ proposalId: 'CHG-004', title: '빈 델타' }));
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.modified).toHaveLength(0);
+    }
   });
 });
 
