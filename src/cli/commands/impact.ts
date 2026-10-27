@@ -101,6 +101,7 @@ export async function executeGraphAnalysis(
   mermaid: string;
   nodes?: unknown[];
   edges?: unknown[];
+  references?: Array<{ from: string; to: string }>;
   dangling: Array<{ from: string; to: string }>;
 }, Error>> {
   // 강조할 스펙 참조를 canonical id로 해석
@@ -126,6 +127,7 @@ export async function executeGraphAnalysis(
       mermaid,
       nodes: Array.from(graphResult.data.nodes.values()),
       edges: graphResult.data.edges,
+      references: graphResult.data.references ?? [],
       dangling,
     });
   }
@@ -340,6 +342,7 @@ async function runImpact(
         content: graphResult.data.mermaid,
         nodes: graphResult.data.nodes,
         edges: graphResult.data.edges,
+        references: graphResult.data.references,
         dangling: graphResult.data.dangling,
       }, null, 2));
     } else {

@@ -35,8 +35,8 @@ sdd status [options]
 | `implement` | 스펙은 `implemented`인데 미완료 작업 있음 | 남은 작업 완료. "스펙 상태(implemented)와 작업 진행률(n/m)이 맞지 않습니다"를 덧붙임 |
 | `plan` | plan.md 없음 | `sdd new plan <feature>` (Claude Code `/sdd-plan` · Codex `$sdd-plan`) |
 | `tasks` | tasks.md 없음 | `sdd new tasks <feature>` (`/sdd-tasks` · `$sdd-tasks`) |
-| `tasks` | tasks.md는 있지만 `### <feature>-task-NNN: 제목` 형식의 작업을 찾지 못함 | 형식 확인, 또는 `sdd new tasks <feature> --force`로 재생성(기존 내용 덮어씀) |
-| `implement` | 미완료 작업 있음 | 구현(`/sdd-implement` · `$sdd-implement`) 후 `sdd new task <feature> <task-id> completed` |
+| `tasks` | tasks.md는 있지만 `### <name>-task-NNN: 제목`(`<name>` = 도메인을 뺀 기능 이름) 형식의 작업을 찾지 못함 | 형식 확인, 또는 `sdd new tasks <feature> --force`로 재생성(기존 내용 덮어씀) |
+| `implement` | 미완료 작업 있음 | 구현(`/sdd-implement` · `$sdd-implement`) 후 `sdd new task <feature> <task-id> completed`. 진행 중이거나 완료된 작업이 하나라도 있으면 "구현 진행 중 (n/m)", 그 전에는 "구현 시작 전 (0/m)"(시작: `sdd new task <feature> <task-id> in-progress`). 스펙 상태는 자동으로 바꾸지 않음 |
 | `finalize` | 모든 작업 완료, 스펙 상태가 `implemented` 아님 | `sdd validate` · `sdd sync` 후 `sdd new status <feature> implemented` |
 
 모든 기능이 완료되면 완료되었다고 명시합니다. `--json` 출력의 각 기능에는 `stage`가 포함됩니다.

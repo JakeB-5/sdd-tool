@@ -146,7 +146,7 @@ describe('generateSpecTemplate', () => {
     const template = generateSpecTemplate();
 
     expect(template).toContain('status: draft');
-    expect(template).toContain('depends: null');
+    expect(template).toContain('depends: []');
   });
 
   it('플레이스홀더를 포함한다', () => {

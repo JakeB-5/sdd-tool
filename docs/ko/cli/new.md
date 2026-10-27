@@ -113,9 +113,10 @@ sdd new task user-auth 2 completed      # 번호만: 한 작업과만 일치할 
 
 - 상태(정확한 값, 대소문자·앞뒤 공백 무시): `pending`, `in-progress`(또는 `in_progress`), `completed`, `blocked`, `대기`, `진행 중`(또는 `진행중`), `완료`, `차단됨`. 그 외 값(`"완료 안 됨"`, `completed-ish`, `**pending**`)은 거부. 공백이 있는 값은 `"진행 중"`처럼 따옴표로 감싸거나 `in-progress`를 사용 (인자가 남으면 오류)
 - 값은 파일에서 쓰던 언어로 기록: `**Status:**` 라벨이거나 현재 값이 영문이면 영문(`**상태:** pending` → `**상태:** in-progress`), 그 외에는 한글(`**상태:** 완료`)
-- 갱신되는 집계: 한글 `## 진행 상황` 블록, frontmatter에 있으면 `completed:` / `total:`. 본문의 다른 진행 블록(예: 영문 `## Progress`)은 그대로 둠
+- 갱신되는 집계: 한글 `## 진행 상황` 블록(다음 제목 · `---` 줄 · 파일 끝까지), `> 총 N개 작업` 줄, frontmatter에 있으면 `completed:` / `total:`. 본문의 다른 진행 블록(예: 영문 `## Progress`)은 그대로 둠
+- 실행할 때마다 파싱한 작업으로 집계를 다시 계산합니다. 요청한 상태가 현재 상태와 같아도 집계가 오래됐으면 다시 씁니다(`상태 변경 없음, 집계만 갱신`). 작업 목록을 직접 편집한 뒤에는 `sdd new task <feature> <task-id> <현재 상태>`를 다시 실행해 집계를 갱신하세요
 - 없는 작업 ID(사용 가능한 ID 나열), 모호한 번호, 유효하지 않은 상태, tasks.md 없음, 상태 줄이 없는 작업은 종료 코드 1이며 파일을 수정하지 않음
-- 텍스트 출력은 `in-progress`, `--json`은 내부 값 `in_progress`로 `{ featureId, tasksPath, taskId, from, to, changed, progress, specStatus }` 출력
+- 텍스트 출력은 `in-progress`, `--json`은 내부 값 `in_progress`로 `{ featureId, tasksPath, taskId, from, to, changed, recounted, progress, specStatus }` 출력 (`recounted`: 집계를 다시 씀)
 
 마지막 작업을 완료했는데 스펙이 아직 `implemented`가 아니면 `sdd validate`와 `sdd sync`로 확인한 뒤 `sdd new status <feature> implemented`로 마무리하라고 안내합니다.
 

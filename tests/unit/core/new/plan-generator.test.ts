@@ -31,6 +31,8 @@ describe('generatePlan', () => {
 
     expect(content).not.toMatch(/\/?sdd:/);
     expect(content).toContain('`sdd new tasks auth-login`');
+    // tasks.md may already exist (sdd new --all): edit it instead of re-running sdd new tasks
+    expect(content).toContain('tasks.md를 작업으로 채우기 (`sdd new --all`로 이미 생성된 경우 편집, 없으면 `sdd new tasks auth-login`)');
     expect(content).toContain('`/sdd-tasks`');
     expect(content).toContain('`$sdd-tasks`');
   });

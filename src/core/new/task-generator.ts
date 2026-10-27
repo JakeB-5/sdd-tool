@@ -249,32 +249,82 @@ export function updateTaskStatus(
     'i'
   );
 
-  let updated = content.replace(taskRegex, (_match, prefix: string, label: string, value: string) => {
+  const updated = content.replace(taskRegex, (_match, prefix: string, label: string, value: string) => {
     // English label, or an English value already written under a Korean label
     const english = label.toLowerCase() === 'status' || /^[^\p{L}]*[a-z]/iu.test(value);
     return `${prefix} ${formatTaskStatus(newStatus, english)}`;
   });
 
-  // 진행 상황 업데이트
-  const tasks = parseTasks(updated);
+  return refreshTaskProgress(updated);
+}
+
+/**
+ * `## 진행 상황` block, matched at the heading position (sticky): the heading, blank lines,
+ * then consecutive `- 대기|진행 중|완료|차단됨: N` lines (a trailing note on a count line is
+ * replaced with the count). Anything after the count lines (notes, code fences, other
+ * sections) is left untouched.
+ * Group 1 = the count lines.
+ */
+const PROGRESS_BLOCK_PATTERN =
+  /## 진행 상황[ \t]*(?:\r?\n|$)(?:[ \t]*\r?\n)*((?:- (?:대기|진행 중|완료|차단됨): \d+[^\r\n]*(?:\r?\n|$))*)/y;
+
+/**
+ * Offset of the first `## 진행 상황` heading outside fenced code blocks, or -1.
+ */
+function findProgressHeading(content: string): number {
+  let fence: string | null = null;
+  let offset = 0;
+  for (const line of content.split('\n')) {
+    const fenceMatch = /^\s*(`{3,}|~{3,})/.exec(line);
+    if (fenceMatch) {
+      const mark = fenceMatch[1];
+      if (fence === null) fence = mark;
+      else if (mark[0] === fence[0] && mark.length >= fence.length) fence = null;
+    } else if (fence === null && /^## 진행 상황[ \t]*\r?$/.test(line)) {
+      return offset;
+    }
+    offset += line.length + 1;
+  }
+  return -1;
+}
+
+/**
+ * Recompute every derived count from the parsed tasks: the `## 진행 상황` block,
+ * the `> 총 N개 작업` line and frontmatter `total:` / `completed:`.
+ * Returns the content unchanged when the counts are already current.
+ */
+export function refreshTaskProgress(content: string): string {
+  const tasks = parseTasks(content);
   const pending = tasks.filter(t => t.status === 'pending').length;
   const inProgress = tasks.filter(t => t.status === 'in_progress').length;
   const completed = tasks.filter(t => t.status === 'completed').length;
   const blocked = tasks.filter(t => t.status === 'blocked').length;
 
   const eol = content.includes('\r\n') ? '\r\n' : '\n';
-  updated = updated.replace(
-    /## 진행 상황[ \t]*\r?\n\r?\n[\s\S]*?(?=\r?\n---)/,
-    [
-      '## 진행 상황',
-      '',
-      `- 대기: ${pending}`,
-      `- 진행 중: ${inProgress}`,
-      `- 완료: ${completed}`,
-      `- 차단됨: ${blocked}`,
-      '',
-    ].join(eol)
-  );
+  const block = [
+    '## 진행 상황',
+    '',
+    `- 대기: ${pending}`,
+    `- 진행 중: ${inProgress}`,
+    `- 완료: ${completed}`,
+    `- 차단됨: ${blocked}`,
+  ].join(eol);
+  let updated = content;
+  const start = findProgressHeading(content);
+  if (start >= 0) {
+    PROGRESS_BLOCK_PATTERN.lastIndex = start;
+    const match = PROGRESS_BLOCK_PATTERN.exec(content);
+    if (match) {
+      const end = start + match[0].length;
+      const rest = content.slice(end);
+      // Keep the original line break after the counts; separate following text that
+      // directly followed the heading (no count lines yet) with a blank line
+      const tail = !/\n$/.test(match[0]) ? '' : match[1] === '' && rest !== '' ? eol + eol : eol;
+      updated = content.slice(0, start) + block + tail + rest;
+    }
+  }
+
+  updated = updated.replace(/^> 총 \d+개 작업[ \t]*(?=\r?$)/m, `> 총 ${tasks.length}개 작업`);
 
   // frontmatter completed/total 업데이트 (frontmatter 블록 안에서만, 줄바꿈 유지)
   updated = updated.replace(

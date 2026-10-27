@@ -35,6 +35,17 @@ sdd impact simulate <spec> <change-id> [--json]
 - **Directly/indirectly affected specs**: specs that depend on the target
 - **Risk score** and recommendations
 
+### Dependencies vs. references
+
+Dependencies come **only** from the frontmatter `depends` list (`depends: [pricing/cart]`, `[]` for none).
+Mentioning another spec in the body — `` `pricing/cart` ``, a Markdown link to it, or a `specs/...` path —
+is a **reference**: it is listed separately (in `sdd impact <spec>`, "본문 참조 (의존성 아님)" for specs the target
+mentions and "본문에서 이 스펙을 언급하는 스펙 (의존성 아님)" for specs that mention it — `references` / `referencedBy`
+in `--json`; the reference
+count in `sdd impact report`, a dotted `참조` arrow in `--graph`, `references` in `--graph --json`) and never
+creates a dependency edge, a cycle, or a change to the health score or risk score.
+Declare a real dependency in `depends` instead.
+
 ## simulate
 
 `simulate` reads `.sdd/changes/<id>/delta.md` (proposal.md is used only for legacy changes without delta.md).

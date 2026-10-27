@@ -141,5 +141,6 @@ export function updateFrontmatter(content: string, updates: Record<string, unkno
     }
   }
 
-  return `---\n${doc.toString({ lineWidth: 0 })}---\n${body}`;
+  // flowCollectionPadding: false keeps `[a, b]` / `{a: 1}` as authors write them (not `[ a, b ]`)
+  return `---\n${doc.toString({ lineWidth: 0, flowCollectionPadding: false })}---\n${body}`;
 }

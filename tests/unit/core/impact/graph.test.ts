@@ -178,6 +178,45 @@ depends: null
     }
   });
 
+  it('본문 언급(백틱·링크·specs/ 경로)은 엣지가 아닌 references로만 기록한다', async () => {
+    await writeSpec('pricing/cart', 'depends: [coupon]', '장바구니');
+    await writeSpec('pricing/coupon', 'depends: []', '쿠폰');
+    await fs.appendFile(
+      path.join(tempDir, 'pricing/coupon/spec.md'),
+      '\n`pricing/cart` 합계에 적용. [cart](specs/pricing/cart/spec.md)\n'
+    );
+
+    const result = await buildDependencyGraph(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.edges).toEqual([
+        expect.objectContaining({ from: 'pricing/cart', to: 'pricing/coupon', type: 'explicit' }),
+      ]);
+      expect(result.data.nodes.get('pricing/coupon')?.dependsOn).toEqual([]);
+      expect(result.data.nodes.get('pricing/cart')?.dependedBy).toEqual([]);
+      expect(result.data.references).toEqual([{ from: 'pricing/coupon', to: 'pricing/cart' }]);
+
+      const mermaid = generateMermaidGraph(result.data);
+      expect(mermaid).toContain('pricing_cart --> pricing_coupon');
+      expect(mermaid).toContain('pricing_coupon -. 참조 .-> pricing_cart');
+    }
+  });
+
+  it('이미 depends로 선언된 스펙의 본문 언급은 references에 중복 기록하지 않는다', async () => {
+    await writeSpec('pricing/cart', 'depends: [pricing/coupon]', '장바구니');
+    await writeSpec('pricing/coupon', 'depends: []', '쿠폰');
+    await fs.appendFile(path.join(tempDir, 'pricing/cart/spec.md'), '\n`pricing/coupon` 사용\n');
+
+    const result = await buildDependencyGraph(tempDir);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.edges).toHaveLength(1);
+      expect(result.data.references).toEqual([]);
+    }
+  });
+
   it('해석되지 않는 의존성은 dangling으로 기록하고 엣지로 만들지 않는다', async () => {
     await writeSpec('payment', 'depends:\n  - missing', '결제');
 

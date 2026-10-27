@@ -92,6 +92,11 @@ describe('sdd status', () => {
     await run('new tasks auth');
     stdout = await run('status');
     expect(stdout).toContain('(common/auth) — 작업 0/3');
+    expect(stdout).toContain('구현 시작 전 (0/3)');
+    expect(stdout).not.toContain('구현 진행 중');
+
+    await run('new task auth 1 in-progress');
+    stdout = await run('status');
     expect(stdout).toContain('구현 진행 중 (0/3)');
 
     for (const n of [1, 2, 3]) {

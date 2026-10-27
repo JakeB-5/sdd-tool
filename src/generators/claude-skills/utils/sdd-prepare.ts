@@ -7,7 +7,7 @@ export const sddPrepareSkill: SkillDefinition = {
   name: 'sdd-prepare',
   description:
     "Detect which sub-agents and skills a feature's spec, plan, and tasks need, and generate missing ones with `sdd prepare`. Use after task breakdown and before implementation.",
-  argumentHint: '<feature-id> [--dry-run]',
+  argumentHint: '<feature> [--dry-run]',
   allowedTools: ['Read', 'Glob', 'Bash(sdd prepare*)'],
   content: `# SDD Prepare
 
@@ -24,7 +24,7 @@ When working in Codex, use the detected list as a checklist and create the missi
 
 ## Instructions
 
-1. Run \`sdd prepare <feature-id>\`
+1. Run \`sdd prepare <feature>\`
 2. Review the detected tool list and presence status
 3. Decide whether to generate any missing tools
 

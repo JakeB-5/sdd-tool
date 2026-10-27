@@ -47,6 +47,15 @@ describe('frontmatter 블록 감지와 안전한 재작성', () => {
     expect(updated).toMatch(/\n---\n\n# T\n본문\n$/);
   });
 
+  it('재작성 시 flow 시퀀스·맵 서식에 공백을 추가하지 않는다', () => {
+    const content =
+      '---\nid: cart\nstatus: draft\ndepends: [pricing/cart, pricing/coupon]\nempty: []\nmeta: {owner: a}\nblock:\n  - x\n---\n# T\n';
+    const updated = updateFrontmatter(content, { status: 'review' });
+    expect(updated).toBe(
+      '---\nid: cart\nstatus: review\ndepends: [pricing/cart, pricing/coupon]\nempty: []\nmeta: {owner: a}\nblock:\n  - x\n---\n# T\n'
+    );
+  });
+
   it('빈 frontmatter 블록에도 필드를 추가한다', () => {
     expect(updateFrontmatter('---\n---\n# T\n', { status: 'draft' })).toBe('---\nstatus: draft\n---\n# T\n');
   });

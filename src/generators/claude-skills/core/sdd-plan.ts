@@ -7,7 +7,7 @@ export const sddPlanSkill: SkillDefinition = {
   name: 'sdd-plan',
   description:
     "Write plan.md for an existing spec: technical decisions, implementation phases, risks, and testing strategy. Use when a spec is ready and the user wants to plan how to build it.",
-  argumentHint: '<feature-id>',
+  argumentHint: '<feature>',
   allowedTools: ['Read', 'Write', 'Edit', 'Glob', 'Bash(sdd new plan*)', 'Bash(sdd new status *)'],
   content: `# SDD Plan
 
@@ -17,9 +17,9 @@ export const sddPlanSkill: SkillDefinition = {
 2. Read the feature's \`spec.md\` and analyze its requirements
 3. Write the plan in the feature's \`plan.md\`:
    - A feature created with \`--all\` (the \`/sdd-spec\` default) already has \`plan.md\`: edit it in place. Do not re-run \`sdd new plan\`
-   - Only if it is missing, run \`sdd new plan <domain>/<feature-id>\` to generate the template
+   - Only if it is missing, run \`sdd new plan <feature>\` to generate the template
    - \`--force\` regenerates the file from scratch and discards its content; use it only when asked
-4. Optionally record the stage: \`sdd new status <domain>/<feature-id> planned\`
+4. Optionally record the stage: \`sdd new status <feature> planned\`
 
 ## Plan Authoring Rules
 

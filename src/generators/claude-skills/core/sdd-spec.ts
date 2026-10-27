@@ -7,7 +7,7 @@ export const sddSpecSkill: SkillDefinition = {
   name: 'sdd-spec',
   description:
     'Create a new feature spec or modify an existing one, routing large modifications through a change proposal. Use when the user wants to write, add, change, or extend a feature spec or requirements.',
-  argumentHint: '<domain>/<feature-id>',
+  argumentHint: '<domain>/<feature>',
   allowedTools: [
     'Read',
     'Write',
@@ -28,24 +28,24 @@ to an existing feature, and follows the matching workflow.
 ## Instructions
 
 1. Ask the user for the **domain name** and **feature name** (or use \`$ARGUMENTS\`)
-2. Check whether \`.sdd/specs/<domain>/<feature-id>/spec.md\` already exists
+2. Check whether \`.sdd/specs/<domain>/<feature>/spec.md\` already exists
 3. **Route based on the result:**
 
 ### If no spec exists (new feature)
 
 \`\`\`bash
-sdd new <domain>/<feature-id> --all
+sdd new <domain>/<feature> --all
 \`\`\`
 
-- Creates \`.sdd/specs/<domain>/<feature-id>/\` with \`spec.md\`, \`plan.md\`, \`tasks.md\`, and \`checklist.md\`
+- Creates \`.sdd/specs/<domain>/<feature>/\` with \`spec.md\`, \`plan.md\`, \`tasks.md\`, and \`checklist.md\`
 - A missing domain is created automatically (a notice is printed); without a domain the feature goes under
   \`common\`, or under the single active domain of the current context (\`/sdd-context\`) if one is set
-- By default \`sdd new\` also creates and switches to a \`feature/<feature-id>\` git branch from the current one.
+- By default \`sdd new\` also creates and switches to a \`feature/<name>\` git branch (the feature name) from the current one.
   Add \`--no-branch\` when you are already on a working branch (e.g. several features in one branch),
   otherwise each new feature branches off the previous feature's branch
 - Existing files are never overwritten (exit code 1); use \`--force\` only to regenerate them from scratch
 - Fill in the generated \`spec.md\` using RFC 2119 keywords and GIVEN-WHEN-THEN scenarios
-- The spec starts as \`status: draft\`; change it with \`sdd new status <domain>/<feature-id> <status>\`
+- The spec starts as \`status: draft\`; change it with \`sdd new status <feature> <status>\`
   (draft, review, approved, planned, tasked, implementing, implemented, deprecated) instead of editing the frontmatter
 
 ### If a spec exists (modifying existing) → route by change scope
@@ -55,7 +55,7 @@ sdd new <domain>/<feature-id> --all
 - Validate with \`sdd validate\`
 
 **Large change** (many requirement changes, structural changes, deletions):
-- Create a change proposal: \`sdd change -t "<title>" -s <domain>/<feature-id>\`
+- Create a change proposal: \`sdd change -t "<title>" -s <feature>\`
 - This creates \`.sdd/changes/CHG-xxx/proposal.md\` and \`delta.md\`; add \`tasks.md\` in the same directory if the change needs a task list
 - Fill in the delta (ADDED / MODIFIED / REMOVED), then follow review → approve → apply:
   - \`sdd change validate <id>\`
@@ -73,6 +73,11 @@ sdd new <domain>/<feature-id> --all
 - Keep the structure \`sdd new\` generates: a requirements section with \`### REQ-xx\` headings, then a
   scenarios section whose scenarios name the requirement they cover
   (a \`#### Scenario:\` directly under each requirement is also accepted)
+- Declare dependencies on other specs in the frontmatter \`depends\` field: a YAML list of spec ids
+  \`<domain>/<feature>\`, e.g. \`depends: [pricing/cart, auth/session]\`, and \`depends: []\` when there are
+  none (the value \`sdd new\` writes). Only \`depends\` creates dependencies for the impact analysis
+  (\`/sdd-impact\`: graph, cycles, health); mentioning another spec in the body (\`pricing/cart\` in
+  backticks, a link) is just a reference
 
 \`\`\`markdown
 ## Requirements

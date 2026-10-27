@@ -64,7 +64,7 @@ title: Login
 status: draft
 created: 2026-10-27
 domain: auth
-depends: null
+depends: []
 ---
 
 # Login

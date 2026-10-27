@@ -110,6 +110,19 @@ describe('generateSpec', () => {
     expect(content).toContain('- auth');
     expect(content).toContain('- database');
   });
+
+  it('의존성이 없으면 depends: []로 기록하고 메타데이터 검증을 통과한다', () => {
+    // Quality scoring of `depends: []` is covered in tests/unit/core/quality
+    const content = generateSpec({ id: 'cart', title: '카트', description: '설명' });
+
+    expect(content).toContain('\ndepends: []\n');
+    expect(content).not.toContain('depends: null');
+    const parsed = parseSpec(content);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.metadata.depends).toEqual([]);
+    }
+  });
 });
 
 describe('parseSpecMetadata', () => {

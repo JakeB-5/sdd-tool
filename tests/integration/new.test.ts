@@ -300,6 +300,30 @@ describe('sdd new', () => {
     expect(quoted.stdout).toContain('pending → in-progress');
   });
 
+  it('new task를 같은 상태로 다시 실행하면 직접 편집한 작업 목록의 집계만 갱신한다', async () => {
+    await execAsync(`node "${cliPath}" new pricing/cart --all --no-branch`, { cwd: tempDir });
+    const tasksPath = path.join(tempDir, '.sdd', 'specs', 'pricing', 'cart', 'tasks.md');
+    // Replace the placeholders by hand: drop task 003 and the `---` after the progress block
+    const edited = (await fs.readFile(tasksPath, 'utf-8'))
+      .replace(/### cart-task-003:[\s\S]*?(?=\n---)/, '')
+      .replace(/(- 차단됨: 0\n\n)---\n\n/, '$1');
+    await fs.writeFile(tasksPath, edited);
+
+    const { stdout } = await execAsync(`node "${cliPath}" new task cart 1 pending`, { cwd: tempDir });
+    expect(stdout).toContain('상태 변경 없음, 집계만 갱신: 작업 0/2 완료');
+    const content = await fs.readFile(tasksPath, 'utf-8');
+    expect(content).toContain('total: 2');
+    expect(content).toContain('> 총 2개 작업');
+    expect(content).toContain('- 대기: 2\n');
+
+    const second = await execAsync(`node "${cliPath}" new task cart 1 pending`, { cwd: tempDir });
+    expect(second.stdout).toContain('(변경 없음, 작업 0/2 완료)');
+
+    // The plan's next step no longer tells --all users to run `sdd new tasks`
+    const plan = await fs.readFile(path.join(tempDir, '.sdd', 'specs', 'pricing', 'cart', 'plan.md'), 'utf-8');
+    expect(plan).toContain('`sdd new --all`로 이미 생성된 경우 편집');
+  });
+
   it('마지막 작업 완료 시 스펙이 implemented가 아닐 때만 new status를 안내한다', async () => {
     await execAsync(`node "${cliPath}" new pricing/cart --tasks --no-branch`, { cwd: tempDir });
     for (const n of [1, 2]) {

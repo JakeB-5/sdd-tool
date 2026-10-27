@@ -35,6 +35,15 @@ sdd impact simulate <spec> <change-id> [--json]
 - **직접/간접 영향 스펙**: 대상 스펙에 의존하는 스펙
 - **리스크 점수**와 권장사항
 
+### 의존성과 참조
+
+의존성은 frontmatter `depends` 목록(`depends: [pricing/cart]`, 없으면 `[]`)에서**만** 만들어집니다.
+본문에서 다른 스펙을 `` `pricing/cart` ``, 마크다운 링크, `specs/...` 경로로 언급하면 **참조**입니다.
+참조는 따로 표시되며(`sdd impact <spec>`에서 대상이 언급하는 스펙은 "본문 참조 (의존성 아님)", 대상을 언급하는 스펙은
+"본문에서 이 스펙을 언급하는 스펙 (의존성 아님)" — `--json`의 `references` / `referencedBy`, `sdd impact report`의 참조 수,
+`--graph`의 점선 `참조` 화살표, `--graph --json`의 `references`) 의존성 엣지 · 순환 · 건강도 · 리스크 점수에
+영향을 주지 않습니다. 실제 의존성은 `depends`에 선언하세요.
+
 ## simulate
 
 `simulate`는 `.sdd/changes/<id>/delta.md`를 읽습니다 (delta.md가 없는 레거시 변경만 proposal.md 사용).

@@ -111,7 +111,7 @@ sdd validate --check-links  # Include link validation
 sdd status                  # Check status
 sdd list                    # List specs
 sdd change -l               # List changes
-sdd impact <spec>           # Analyze impact
+sdd impact <feature>        # Analyze impact
 sdd transition guide        # Show transition guide
 \`\`\`
 

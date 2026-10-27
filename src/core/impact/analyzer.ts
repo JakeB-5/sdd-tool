@@ -105,6 +105,12 @@ export async function analyzeImpact(
       danglingDependencies: (graph.dangling ?? [])
         .filter((d) => d.from === effectiveTargetSpec)
         .map((d) => d.to),
+      references: (graph.references ?? [])
+        .filter((r) => r.from === effectiveTargetSpec)
+        .map((r) => r.to),
+      referencedBy: (graph.references ?? [])
+        .filter((r) => r.to === effectiveTargetSpec)
+        .map((r) => r.from),
     });
   } catch (error) {
     return failure(
@@ -330,6 +336,24 @@ export function formatImpactResult(result: ImpactAnalysisResult): string {
     lines.push('');
   }
 
+  const references = result.references ?? [];
+  if (references.length > 0) {
+    lines.push('📎 본문 참조 (의존성 아님 — 의존성은 frontmatter `depends`로 선언):');
+    for (const ref of references) {
+      lines.push(`  └─ ${ref}`);
+    }
+    lines.push('');
+  }
+
+  const referencedBy = result.referencedBy ?? [];
+  if (referencedBy.length > 0) {
+    lines.push('📎 본문에서 이 스펙을 언급하는 스펙 (의존성 아님):');
+    for (const ref of referencedBy) {
+      lines.push(`  └─ ${ref}`);
+    }
+    lines.push('');
+  }
+
   const riskIcon = result.riskLevel === 'high' ? '🔴' : result.riskLevel === 'medium' ? '🟡' : '🟢';
   lines.push(`📈 리스크 점수: ${result.riskScore}/10 ${riskIcon}`);
   lines.push('');
@@ -397,6 +421,7 @@ export async function generateImpactReport(
       projectPath: sddPath,
       totalSpecs: nodes.length,
       totalEdges: graph.edges.length,
+      totalReferences: graph.references?.length ?? 0,
       mostConnectedSpecs: mostConnected,
       orphanSpecs,
       circularDependencies: circularDeps,
@@ -638,6 +663,9 @@ export function formatImpactReport(report: ImpactReport): string {
   lines.push(`📈 통계`);
   lines.push(`  - 총 스펙 수: ${report.totalSpecs}`);
   lines.push(`  - 총 의존 관계: ${report.totalEdges}`);
+  if (report.totalReferences) {
+    lines.push(`  - 본문 참조 (의존성 아님): ${report.totalReferences}`);
+  }
   const healthIcon = report.healthScore >= 80 ? '🟢' : report.healthScore >= 50 ? '🟡' : '🔴';
   lines.push(`  - 건강도 점수: ${report.healthScore}/100 ${healthIcon}`);
   lines.push('');

@@ -458,7 +458,7 @@ id: "{{FEATURE_ID}}"
 title: "{{FEATURE_NAME}}"
 status: draft
 created: ${today}
-depends: null
+depends: []
 constitution_version: "{{CONSTITUTION_VERSION}}"
 ---
 

@@ -71,6 +71,30 @@ describe('generateClaudeSkills', () => {
     expect(spec.content).not.toContain('CHG-xxx.md');
   });
 
+  it('sdd-spec documents the depends syntax and its [] default', () => {
+    const spec = skills.find((s) => s.name === 'sdd-spec')!;
+    expect(spec.content).toContain('`depends: [pricing/cart, auth/session]`');
+    expect(spec.content).toContain('`depends: []`');
+    expect(spec.content).toContain('is just a reference');
+  });
+
+  it('commands on an existing feature use the single <feature> notation', () => {
+    for (const skill of skills) {
+      // `<domain>/<feature>` is only for creating a feature (`sdd new <domain>/<feature>`) and spec paths
+      expect(skill.content, skill.name).not.toMatch(
+        /sdd (new (task|tasks|plan|status)|sync|prepare|impact|change [^`]*-s) <domain>\//
+      );
+      expect(skill.content, skill.name).not.toContain('<feature-id>');
+      expect(skill.argumentHint ?? '', skill.name).not.toContain('<feature-id>');
+    }
+  });
+
+  it('sdd-tasks explains that every sdd new task run recomputes the counts', () => {
+    const tasks = skills.find((s) => s.name === 'sdd-tasks')!;
+    expect(tasks.content).toContain('Each run recomputes the counts');
+    expect(tasks.content).toContain('`sdd new task <feature> <first-task-id> pending`');
+  });
+
   it('every skill has a kebab-case name starting with sdd-', () => {
     for (const skill of skills) {
       expect(skill.name).toMatch(/^sdd-[a-z][a-z0-9-]*$/);

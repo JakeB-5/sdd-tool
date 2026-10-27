@@ -59,7 +59,7 @@ title: 로그인
 status: draft
 created: 2026-10-27
 domain: auth
-depends: null
+depends: []
 ---
 
 # 로그인
