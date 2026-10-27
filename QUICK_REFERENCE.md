@@ -89,7 +89,7 @@ constitution_version: 1.0.0
 
 ### REQ-01: Requirement Title
 
-Requirement description using RFC 2119 keywords.
+The system SHALL describe the requirement using RFC 2119 keywords.
 
 ## Scenarios
 
@@ -145,7 +145,7 @@ Requirement description using RFC 2119 keywords.
 your-project/
 ├── .sdd/                    # Specs directory
 │   ├── constitution.md      # Project principles
-│   ├── domains.yml          # Domain definitions
+│   ├── domains.yml          # Domain definitions (`sdd init --with-domains`, or created by the first `sdd new <domain>/<feature>`)
 │   ├── specs/               # Specifications
 │   ├── changes/             # Change proposals
 │   └── archive/             # Completed changes
@@ -171,8 +171,8 @@ your-project/
 4. `/sdd-plan` - Plan implementation (edit the generated plan.md)
 5. `/sdd-tasks` - Break into tasks (edit the generated tasks.md)
 6. `/sdd-prepare` - Verify tools
-7. `/sdd-implement` - Build test-first (`sdd new task <feature> <task-id> in-progress|completed`)
-8. `/sdd-validate` - `sdd validate`, `sdd sync`, then `sdd new status <feature> implemented`
+7. `/sdd-implement` - Build test-first (`sdd new task <feature> <task-id> in-progress|completed`); after the last task: `sdd validate`, `sdd sync <feature>`, then `sdd new status <feature> implemented`
+8. `/sdd-validate` - `sdd validate` (plus `sdd sync` for implemented features)
 
 In Codex, use `$sdd-*` instead of `/sdd-*`.
 
@@ -318,10 +318,14 @@ npx sdd --version
 ### Missing skills
 
 ```bash
-# Recreate skills
-sdd init
-# or manually check .claude/skills/
+# Check that the skills exist
+ls .claude/skills/
+
+# Recreate them in an existing project (plain `sdd init` refuses when .sdd/ exists)
+sdd init --force
 ```
+
+`sdd init --force` regenerates skills, subagents and the AGENTS.md block, but it also replaces `.sdd/constitution.md` and `.sdd/templates/` with the defaults (the old constitution is saved as `.sdd/constitution.md.bak`). Specs under `.sdd/specs/` are kept. Re-apply your constitution edits from the `.bak` file afterwards.
 
 ### Sync failures
 

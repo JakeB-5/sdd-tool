@@ -82,7 +82,7 @@ After initialization, your project will have:
 your-project/
 ├── .sdd/
 │   ├── constitution.md      # Project principles
-│   ├── domains.yml          # Domain definitions
+│   ├── domains.yml          # Domain definitions (only with `sdd init --with-domains`, otherwise created on the first `sdd new <domain>/<feature>`)
 │   ├── specs/               # Specifications
 │   ├── changes/             # Change proposals
 │   └── archive/             # Completed changes
@@ -325,7 +325,7 @@ sdd status
 
 Shows:
 - Project structure checks (constitution.md, AGENTS.md)
-- Every feature with its spec status and task progress (`작업 1/3`)
+- Every feature with a status icon (📝 draft, ✅ implemented, ...) and its task progress (`— 작업 1/3`, when it has a tasks.md); add `--verbose` for the spec status text and the files each feature has
 - The current git branch
 - Next steps per feature, computed from its files, spec status and task progress: write the plan, break it into tasks, implement (with the `sdd new task` command to run), or finish with `sdd validate` · `sdd sync` and `sdd new status <feature> implemented`
 
@@ -389,8 +389,9 @@ sdd init
 /sdd-spec [domain]/[feature]   # runs: sdd new <domain>/<feature> --all
 /sdd-plan                      # edit the generated plan.md
 /sdd-tasks                     # edit the generated tasks.md
-/sdd-implement                 # per task: sdd new task <feature> <task-id> in-progress -> completed
-/sdd-validate                  # sdd validate, sdd sync, then: sdd new status <feature> implemented
+/sdd-implement                 # per task: sdd new task <feature> <task-id> in-progress -> completed;
+                               # at the end: sdd validate, sdd sync <feature>, sdd new status <feature> implemented
+/sdd-validate                  # sdd validate (and sdd sync for implemented features)
 ```
 
 In Codex, use `$sdd-*` instead of `/sdd-*`.
@@ -455,11 +456,13 @@ Ensure `.claude/skills/` exists:
 ls .claude/skills/
 ```
 
-If missing, run:
+If missing, regenerate them. Plain `sdd init` refuses to run when `.sdd/` already exists, so use:
 
 ```bash
-sdd init
+sdd init --force
 ```
+
+`--force` regenerates skills, subagents and the AGENTS.md block, but it also replaces `.sdd/constitution.md` and `.sdd/templates/` with the defaults (the old constitution is saved as `.sdd/constitution.md.bak`). Specs under `.sdd/specs/` are kept.
 
 ## Learning Resources
 

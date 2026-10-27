@@ -71,8 +71,8 @@ Use these skills in Claude Code:
 | `/sdd-spec` | Create/modify specification (`sdd new <domain>/<feature> --all`) |
 | `/sdd-plan` | Write the implementation plan (plan.md) |
 | `/sdd-tasks` | Break down into tasks (tasks.md) |
-| `/sdd-implement` | Implement test-first (`sdd new task ...` per task) |
-| `/sdd-validate` | Validate specifications (then `sdd sync` and `sdd new status <feature> implemented`) |
+| `/sdd-implement` | Implement test-first (`sdd new task ...` per task; at the end `sdd validate`, `sdd sync`, `sdd new status <feature> implemented`) |
+| `/sdd-validate` | Validate specifications (`sdd validate`, plus `sdd sync` for implemented features) |
 
 [View all skills →](/commands/)
 

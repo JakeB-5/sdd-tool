@@ -98,8 +98,8 @@ The CLI commands each step runs behind the scenes (you can also run them yoursel
 | 4 | `/sdd-plan` | edits the generated `plan.md`; optionally `sdd new status <feature> planned` |
 | 5 | `/sdd-tasks` | edits the generated `tasks.md`; optionally `sdd new status <feature> tasked` |
 | 6 | `/sdd-prepare` | `sdd prepare <feature>` |
-| 7 | `/sdd-implement` | `sdd new task <feature> <task-id> in-progress\|completed` for every task, `sdd status` |
-| 8 | `/sdd-validate` | `sdd validate`, `sdd sync <feature>`, then `sdd new status <feature> implemented` |
+| 7 | `/sdd-implement` | `sdd new task <feature> <task-id> in-progress\|completed` for every task, `sdd status`; after the last task `sdd validate`, `sdd sync <feature>`, then `sdd new status <feature> implemented` |
+| 8 | `/sdd-validate` | `sdd validate` (and `sdd sync` for implemented features) |
 
 `<feature>` is `<domain>/<feature>` (e.g. `pricing/cart`) or a unique feature name (e.g. `cart`). In Codex, use `$sdd-*` instead of `/sdd-*`.
 
@@ -323,6 +323,14 @@ AI reads tasks.md and guides strictly test-first (TDD) implementation, one task 
 
 Task statuses are changed only with `sdd new task`; every run recomputes the progress counts in tasks.md.
 
+When all tasks are completed, `/sdd-implement` finishes the feature:
+
+```bash
+sdd validate                              # Format check
+sdd sync <feature>                        # Every requirement covered by code/tests
+sdd new status <feature> implemented      # Mark the spec as implemented
+```
+
 ### Step 8: /sdd-validate
 
 Validate specifications:
@@ -335,13 +343,7 @@ Validate specifications:
 - Verify GIVEN-WHEN-THEN format
 - Confirm required metadata fields
 
-When all tasks are completed, finish the feature:
-
-```bash
-sdd validate                              # Format check
-sdd sync <feature>                        # Every requirement covered by code/tests
-sdd new status <feature> implemented      # Mark the spec as implemented
-```
+For features that are already implemented, it also runs `sdd sync` to confirm every requirement is referenced by code or tests (`@spec <domain>/<feature>#REQ-01`).
 
 ---
 
@@ -549,7 +551,7 @@ sdd context clear                   # Clear context
 
 ### Reverse Extraction
 
-The CLI scans structure, validates drafts, and records review decisions. The AI (the `sdd-reverse` skill or `/sdd.reverse` in Claude Code) reads the code and writes the drafts to `.sdd/.reverse-drafts/<domain>/<feature>/spec.md`.
+The CLI scans structure, validates drafts, and records review decisions. The AI (the `/sdd-reverse` skill, or `$sdd-reverse` in Codex; `/sdd.reverse` only exists with `sdd init --legacy-commands`) reads the code and writes the drafts to `.sdd/.reverse-drafts/<domain>/<feature>/spec.md`.
 
 ```bash
 sdd reverse scan --json             # Scan structure (files, lines, languages, suggested domains)
@@ -586,8 +588,8 @@ sdd cicd check              # Validate CI environment
 your-project/
 ├── .sdd/
 │   ├── constitution.md     # Project constitution
-│   ├── domains.yml         # Domain definitions
-│   ├── .context.json       # Current context
+│   ├── domains.yml         # Domain definitions (created by `sdd init --with-domains` or on first `sdd new <domain>/<feature>`)
+│   ├── .context.json       # Current context (created by `sdd context set`)
 │   ├── specs/              # Feature specifications (domain-based)
 │   │   ├── common/         # Default domain (no domain specified)
 │   │   │   └── feature-name/
@@ -610,11 +612,10 @@ your-project/
 │
 ├── .claude/                # Claude Code
 │   ├── agents/             # Subagents (sdd-spec-reviewer, sdd-implementer, sdd-impact-analyst)
-│   ├── skills/             # SDD workflow skills — English, kebab-case
-│   │   ├── sdd-start/
-│   │   │   └── SKILL.md
-│   │   └── ...             # 30 sdd-* skills total
-│   └── settings.json       # Skill settings
+│   └── skills/             # SDD workflow skills — English, kebab-case
+│       ├── sdd-start/
+│       │   └── SKILL.md
+│       └── ...             # 30 sdd-* skills total
 ├── .agents/skills/         # Codex skills (same 30 sdd-* skills)
 └── .codex/agents/          # Codex subagents (sdd-*.toml)
 ```

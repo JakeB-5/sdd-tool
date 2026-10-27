@@ -96,8 +96,8 @@ AI가 프로젝트 상태를 분석하고 다음 단계를 안내합니다.
 | 4 | `/sdd-plan` | 이미 생성된 `plan.md` 편집, 선택적으로 `sdd new status <feature> planned` |
 | 5 | `/sdd-tasks` | 이미 생성된 `tasks.md` 편집, 선택적으로 `sdd new status <feature> tasked` |
 | 6 | `/sdd-prepare` | `sdd prepare <feature>` |
-| 7 | `/sdd-implement` | 작업마다 `sdd new task <feature> <task-id> in-progress\|completed` |
-| 8 | `/sdd-validate` | `sdd validate`, `sdd sync <feature>`, 이어서 `sdd new status <feature> implemented` |
+| 7 | `/sdd-implement` | 작업마다 `sdd new task <feature> <task-id> in-progress\|completed`; 마지막 작업 후 `sdd validate`, `sdd sync <feature>`, 이어서 `sdd new status <feature> implemented` |
+| 8 | `/sdd-validate` | `sdd validate` (구현 완료된 기능은 `sdd sync`도 실행) |
 
 `<feature>`는 `<domain>/<feature>`(예: `auth/user-authentication`) 또는 프로젝트에서 유일한 기능 이름입니다.
 
@@ -126,9 +126,13 @@ sdd new auth/user-authentication --all
 id: user-authentication
 title: "사용자 인증"
 status: draft
+created: 2025-01-30
 domain: auth
 depends: []
+constitution_version: 1.0.0
 ---
+
+# 사용자 인증
 
 ## 요구사항
 
@@ -160,7 +164,7 @@ sdd new status auth/user-authentication implemented
 
 - `sdd new task <feature> <task-id> <status>`: `pending`, `in-progress`, `completed`, `blocked` (또는 `대기`, `"진행 중"`, `완료`, `차단됨`). tasks.md의 진행 집계도 함께 갱신합니다. 작업 ID는 `<name>-task-NNN` 형식입니다.
 - `sdd new status <feature> <status>`: `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated`.
-- `sdd status`는 기능별 스펙 상태와 작업 진행률(`작업 1/3`)을 보여 주고, 기능별 다음 단계를 안내합니다.
+- `sdd status`는 기능마다 상태 아이콘(📝 초안, ✅ 구현 완료 등)과 작업 진행률(tasks.md가 있으면 `— 작업 1/3`)을 보여 주고, 기능별 다음 단계를 안내합니다. 스펙 상태 문구와 기능별 파일 목록은 `--verbose`로 확인합니다.
 
 ## 다음 단계
 

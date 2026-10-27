@@ -92,8 +92,8 @@ claude
 | 4 | `/sdd-plan` | 이미 생성된 `plan.md` 편집, 선택적으로 `sdd new status <feature> planned` |
 | 5 | `/sdd-tasks` | 이미 생성된 `tasks.md` 편집, 선택적으로 `sdd new status <feature> tasked` |
 | 6 | `/sdd-prepare` | `sdd prepare <feature>` |
-| 7 | `/sdd-implement` | 작업마다 `sdd new task <feature> <task-id> in-progress\|completed`, `sdd status` |
-| 8 | `/sdd-validate` | `sdd validate`, `sdd sync <feature>`, 이어서 `sdd new status <feature> implemented` |
+| 7 | `/sdd-implement` | 작업마다 `sdd new task <feature> <task-id> in-progress\|completed`, `sdd status`; 마지막 작업 후 `sdd validate`, `sdd sync <feature>`, 이어서 `sdd new status <feature> implemented` |
+| 8 | `/sdd-validate` | `sdd validate` (구현 완료된 기능은 `sdd sync`도 실행) |
 
 `<feature>`는 `<domain>/<feature>`(예: `pricing/cart`) 또는 프로젝트에서 유일한 기능 이름(예: `cart`)입니다. Codex에서는 `/sdd-*` 대신 `$sdd-*`를 사용합니다.
 
@@ -317,6 +317,14 @@ AI가 tasks.md를 읽고, 엄격한 테스트 우선(TDD) 방식으로 작업을
 
 작업 상태는 `sdd new task`로만 변경하며, 실행할 때마다 tasks.md의 진행 집계가 다시 계산됩니다.
 
+모든 작업이 완료되면 `/sdd-implement`가 기능을 마무리합니다:
+
+```bash
+sdd validate                              # 형식 검증
+sdd sync <feature>                        # 모든 요구사항이 코드/테스트에서 커버되는지 확인
+sdd new status <feature> implemented      # 스펙을 implemented로 표시
+```
+
 ### Step 8: /sdd-validate
 
 명세 검증:
@@ -329,13 +337,7 @@ AI가 tasks.md를 읽고, 엄격한 테스트 우선(TDD) 방식으로 작업을
 - GIVEN-WHEN-THEN 형식 준수
 - 메타데이터 필수 필드 확인
 
-모든 작업이 완료되면 기능을 마무리합니다:
-
-```bash
-sdd validate                              # 형식 검증
-sdd sync <feature>                        # 모든 요구사항이 코드/테스트에서 커버되는지 확인
-sdd new status <feature> implemented      # 스펙을 implemented로 표시
-```
+구현이 끝난 기능은 `sdd sync`도 실행해 모든 요구사항이 코드나 테스트에서 참조되는지(`@spec <domain>/<feature>#REQ-01`) 확인합니다.
 
 ---
 
@@ -542,7 +544,7 @@ sdd context clear                   # 컨텍스트 해제
 
 ### 역추출
 
-CLI는 구조 스캔, 초안 검증, 리뷰 결정 기록을 담당합니다. 코드를 읽고 초안(`.sdd/.reverse-drafts/<도메인>/<기능>/spec.md`)을 작성하는 것은 AI(Claude Code의 `sdd-reverse` 스킬 또는 `/sdd.reverse`)입니다.
+CLI는 구조 스캔, 초안 검증, 리뷰 결정 기록을 담당합니다. 코드를 읽고 초안(`.sdd/.reverse-drafts/<도메인>/<기능>/spec.md`)을 작성하는 것은 AI(`/sdd-reverse` 스킬, Codex에서는 `$sdd-reverse`. `/sdd.reverse`는 `sdd init --legacy-commands`를 사용할 때만 존재)입니다.
 
 ```bash
 sdd reverse scan --json             # 구조 스캔 (파일, 라인, 언어, 제안 도메인)
@@ -579,8 +581,8 @@ sdd cicd check              # CI 환경 검증
 your-project/
 ├── .sdd/
 │   ├── constitution.md     # 프로젝트 헌법
-│   ├── domains.yml         # 도메인 정의
-│   ├── .context.json       # 현재 컨텍스트
+│   ├── domains.yml         # 도메인 정의 (`sdd init --with-domains` 또는 첫 `sdd new <domain>/<feature>` 때 생성)
+│   ├── .context.json       # 현재 컨텍스트 (`sdd context set` 때 생성)
 │   ├── specs/              # 기능 명세 (도메인 기반 구조)
 │   │   ├── common/         # 기본 도메인 (도메인 미지정 시)
 │   │   │   └── feature-name/
@@ -603,11 +605,10 @@ your-project/
 │
 ├── .claude/                # Claude Code
 │   ├── agents/             # 서브에이전트 (sdd-spec-reviewer, sdd-implementer, sdd-impact-analyst)
-│   ├── skills/             # SDD 워크플로우 스킬 — 영어, 케밥 케이스
-│   │   ├── sdd-start/
-│   │   │   └── SKILL.md
-│   │   └── ...             # sdd-* 스킬 30개
-│   └── settings.json       # 스킬 설정
+│   └── skills/             # SDD 워크플로우 스킬 — 영어, 케밥 케이스
+│       ├── sdd-start/
+│       │   └── SKILL.md
+│       └── ...             # sdd-* 스킬 30개
 ├── .agents/skills/         # Codex 스킬 (같은 sdd-* 스킬 30개)
 └── .codex/agents/          # Codex 서브에이전트 (sdd-*.toml)
 ```
