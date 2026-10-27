@@ -71,7 +71,7 @@ AI: Running sdd validate.
       ⚠ RFC 2119 키워드는 대문자로 작성하세요 (소문자 발견: shall → SHALL)
       ⚠ YAML frontmatter에 created 날짜가 없습니다
 
-    결과: 1개 통과, 1개 실패, 1개 경고
+    결과: 1개 통과, 1개 실패, 2개 경고
     -> Fixing common/bad/spec.md, re-running sdd validate.
 ```
 
