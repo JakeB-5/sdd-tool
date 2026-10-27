@@ -86,6 +86,82 @@ AI가 프로젝트 상태를 분석하고 다음 단계를 안내합니다.
 /sdd-validate     → 명세 검증
 ```
 
+각 단계가 내부적으로 사용하는 CLI 명령어입니다 (직접 실행해도 됩니다). Codex에서는 `/sdd-*` 대신 `$sdd-*`를 사용합니다.
+
+| 단계 | 스킬 | 사용하는 CLI 명령어 |
+|------|------|---------------------|
+| 1 | `/sdd-start` | `sdd status` |
+| 2 | `/sdd-constitution` | `.sdd/constitution.md` 편집 |
+| 3 | `/sdd-spec` | `sdd new <domain>/<feature> --all`, `sdd validate` |
+| 4 | `/sdd-plan` | 이미 생성된 `plan.md` 편집, 선택적으로 `sdd new status <feature> planned` |
+| 5 | `/sdd-tasks` | 이미 생성된 `tasks.md` 편집, 선택적으로 `sdd new status <feature> tasked` |
+| 6 | `/sdd-prepare` | `sdd prepare <feature>` |
+| 7 | `/sdd-implement` | 작업마다 `sdd new task <feature> <task-id> in-progress\|completed` |
+| 8 | `/sdd-validate` | `sdd validate`, `sdd sync <feature>`, 이어서 `sdd new status <feature> implemented` |
+
+`<feature>`는 `<domain>/<feature>`(예: `auth/user-authentication`) 또는 프로젝트에서 유일한 기능 이름입니다.
+
+## CLI로 명세 만들기
+
+`<domain>/<feature>` 형식으로 도메인과 함께 명세를 생성합니다:
+
+```bash
+sdd new auth/user-authentication --all
+```
+
+`--all`은 `.sdd/specs/auth/user-authentication/`에 `spec.md`, `plan.md`, `tasks.md`, `checklist.md`를 생성합니다.
+
+- 아직 없는 도메인(`auth`)은 자동으로 생성되고 안내 메시지가 출력됩니다. 도메인을 생략하면(`sdd new user-authentication`) `common`, 또는 현재 컨텍스트의 활성 도메인이 하나뿐이면 그 도메인에 생성됩니다. `-d auth` 옵션도 계속 사용할 수 있습니다.
+- 기본적으로 `sdd new`는 `feature/user-authentication` git 브랜치를 만들어 전환합니다. 현재 브랜치에 머무르려면 `--no-branch`를 사용하세요 (예: 한 브랜치에서 여러 기능을 작업할 때).
+- 기존 파일은 덮어쓰지 않습니다. 같은 명령을 다시 실행하면 파일 이름과 함께 종료 코드 1로 실패하며, 처음부터 다시 생성할 때만 `--force`를 사용하세요.
+
+`--all` 없이 실행하면 `spec.md`만 생성됩니다. 나머지는 `sdd new plan <feature>`, `sdd new tasks <feature>`, `sdd new checklist`로 나중에 추가할 수 있습니다.
+
+### 요구사항, 추적성, 의존성
+
+요구사항은 `### REQ-01: 제목` 헤딩으로 정의합니다. 번호는 스펙 안에서 고유하며 스펙마다 `REQ-01`부터 다시 시작합니다. `sdd sync`는 이 헤딩으로 정의된 요구사항만 세며, 본문에서 언급한 REQ ID는 요구사항이 아닙니다.
+
+```markdown
+---
+id: user-authentication
+title: "사용자 인증"
+status: draft
+domain: auth
+depends: []
+---
+
+## 요구사항
+
+### REQ-01: 사용자 로그인
+
+시스템은 이메일과 비밀번호 인증을 지원해야 한다(SHALL).
+
+## 시나리오
+
+### Scenario 1: 로그인 성공 (REQ-01)
+
+- **GIVEN** 유효한 계정을 가진 사용자가 있을 때
+- **WHEN** 로그인 폼을 제출하면
+- **THEN** JWT 토큰을 받는다
+```
+
+- **추적성**: 코드와 테스트에서 `@spec <domain>/<feature>#REQ-01`로 요구사항을 참조합니다 (예: `@spec auth/user-authentication#REQ-01`). 한정하지 않은 `REQ-01`은 여러 스펙이 같은 ID를 가지면 모호해져 `sdd sync`가 무시합니다.
+- **의존성**: frontmatter의 `depends`에 `<domain>/<feature>` ID 목록으로 선언하고, 없으면 `depends: []`를 씁니다 (예: `depends: [auth/session, pricing/cart]`). `sdd impact`는 `depends`만 의존성으로 계산하며, 본문에서 다른 스펙을 언급한 것은 별도의 "본문 참조"로 표시됩니다.
+
+### 진행 상황 갱신
+
+작업 상태와 스펙 상태는 파일을 직접 고치지 말고 상태 명령어로 변경합니다. `<feature>`는 `<domain>/<feature>` 또는 유일한 기능 이름입니다:
+
+```bash
+sdd new task auth/user-authentication user-authentication-task-001 in-progress
+sdd new task user-authentication user-authentication-task-001 completed
+sdd new status auth/user-authentication implemented
+```
+
+- `sdd new task <feature> <task-id> <status>`: `pending`, `in-progress`, `completed`, `blocked` (또는 `대기`, `"진행 중"`, `완료`, `차단됨`). tasks.md의 진행 집계도 함께 갱신합니다. 작업 ID는 `<name>-task-NNN` 형식입니다.
+- `sdd new status <feature> <status>`: `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated`.
+- `sdd status`는 기능별 스펙 상태와 작업 진행률(`작업 1/3`)을 보여 주고, 기능별 다음 단계를 안내합니다.
+
 ## 다음 단계
 
 - [설치 가이드](/guide/installation) - 상세 설치 방법

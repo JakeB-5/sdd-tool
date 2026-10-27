@@ -88,6 +88,21 @@ claude
 └─────────────────────────────────────────────────────────────┘
 ```
 
+The CLI commands each step runs behind the scenes (you can also run them yourself):
+
+| Step | Skill | CLI commands used |
+|------|-------|-------------------|
+| 1 | `/sdd-start` | `sdd status` |
+| 2 | `/sdd-constitution` | edits `.sdd/constitution.md` |
+| 3 | `/sdd-spec` | `sdd new <domain>/<feature> --all` (spec.md, plan.md, tasks.md, checklist.md), `sdd validate` |
+| 4 | `/sdd-plan` | edits the generated `plan.md`; optionally `sdd new status <feature> planned` |
+| 5 | `/sdd-tasks` | edits the generated `tasks.md`; optionally `sdd new status <feature> tasked` |
+| 6 | `/sdd-prepare` | `sdd prepare <feature>` |
+| 7 | `/sdd-implement` | `sdd new task <feature> <task-id> in-progress\|completed` for every task, `sdd status` |
+| 8 | `/sdd-validate` | `sdd validate`, `sdd sync <feature>`, then `sdd new status <feature> implemented` |
+
+`<feature>` is `<domain>/<feature>` (e.g. `pricing/cart`) or a unique feature name (e.g. `cart`). In Codex, use `$sdd-*` instead of `/sdd-*`.
+
 ---
 
 ## Skills (Slash Commands)
@@ -127,7 +142,7 @@ Skills are authored in English for model-routing accuracy and use these frontmat
 
 | Field | Applied to |
 |-------|-----------|
-| `context: fork` | 7 analysis/domain skills (`sdd-analyze`, `sdd-impact`, `sdd-report`, `sdd-research`, `sdd-reverse`, `sdd-search`, `sdd-sync`) |
+| `context: fork` | 6 analysis skills (`sdd-analyze`, `sdd-impact`, `sdd-report`, `sdd-research`, `sdd-search`, `sdd-sync`) |
 | `disable-model-invocation: true` | 5 utility skills (`sdd-chat`, `sdd-cicd`, `sdd-guide`, `sdd-migrate`, `sdd-watch`) |
 | `argument-hint` | Skills that take arguments |
 | `allowed-tools` | All skills — least-privilege patterns (e.g., `Bash(sdd validate*)`) |
@@ -224,12 +239,14 @@ Write feature specifications with AI:
 /sdd-spec user authentication
 ```
 
-AI generates through conversation:
+For a new feature the skill runs `sdd new <domain>/<feature> --all` and then guides you through filling in:
 - `spec.md` - Feature specification (RFC 2119 + GIVEN-WHEN-THEN)
+
+`sdd new` also generates `plan.md`, `tasks.md` and `checklist.md` (`--all`), creates a missing domain automatically (no domain → `common`), and creates and switches to a `feature/<name>` git branch unless you pass `--no-branch`. Existing files are never overwritten (exit code 1); use `--force` only to regenerate them from scratch.
 
 ### Step 4: /sdd-plan
 
-Create an implementation plan:
+Write the implementation plan in the already generated `plan.md`:
 
 ```
 /sdd-plan
@@ -239,17 +256,21 @@ Create an implementation plan:
 - Implementation phases
 - Risk analysis and mitigation
 
+Only if `plan.md` is missing does the skill run `sdd new plan <feature>`.
+
 ### Step 5: /sdd-tasks
 
-Break requirements into executable tasks:
+Break requirements into executable tasks in the already generated `tasks.md`:
 
 ```
 /sdd-tasks
 ```
 
 - Each task completable within 2-4 hours
+- Task ids are `<name>-task-NNN` (e.g. `cart-task-001`)
 - Task dependencies marked
 - Priority levels: HIGH (🔴), MEDIUM (🟡), LOW (🟢)
+- Test-first: each task writes failing tests for its scenarios before the code
 
 ### Step 6: /sdd-prepare
 
@@ -292,11 +313,15 @@ Sequential implementation based on tasks:
 /sdd-implement
 ```
 
-AI reads tasks.md and guides TDD-style implementation:
-1. Change task status to "in progress"
-2. Write tests
-3. Implement code
-4. Mark task as "completed"
+AI reads tasks.md and guides strictly test-first (TDD) implementation, one task at a time:
+1. `sdd new task <feature> <task-id> in-progress`
+2. Red: turn the task's scenarios into tests and confirm they fail
+3. Green: write the minimum code that passes
+4. Refactor with all tests green
+5. Reference each requirement in code and tests as `@spec <domain>/<feature>#REQ-01`
+6. `sdd new task <feature> <task-id> completed`, then commit
+
+Task statuses are changed only with `sdd new task`; every run recomputes the progress counts in tasks.md.
 
 ### Step 8: /sdd-validate
 
@@ -309,6 +334,14 @@ Validate specifications:
 - Check RFC 2119 keyword usage
 - Verify GIVEN-WHEN-THEN format
 - Confirm required metadata fields
+
+When all tasks are completed, finish the feature:
+
+```bash
+sdd validate                              # Format check
+sdd sync <feature>                        # Every requirement covered by code/tests
+sdd new status <feature> implemented      # Mark the spec as implemented
+```
 
 ---
 
@@ -338,10 +371,12 @@ AI: I'll help you create a user authentication spec. Let me ask a few questions.
 
 ```markdown
 ---
-id: user-auth
+id: login
 title: "User Authentication"
 status: draft
 created: 2025-12-24
+domain: auth
+depends: []
 constitution_version: 1.0.0
 ---
 
@@ -358,13 +393,29 @@ constitution_version: 1.0.0
 
 ## Scenarios
 
-### Scenario 1: Successful Login
+### Scenario 1: Successful Login (REQ-01)
 
 - **GIVEN** a valid user account exists
 - **WHEN** valid email and password are entered
 - **THEN** a JWT token is returned
 - **AND** token expiration time is set
 ```
+
+### Requirements and Traceability
+
+- **Requirements are defined by headings**: `### REQ-01: Title`. Numbers are unique within a spec and restart at `REQ-01` in every spec. Only these definition headings count as requirements in `sdd sync`; REQ ids mentioned in prose, tables or lists are references.
+- **Link code and tests to requirements** with `@spec <domain>/<feature>#REQ-01` (in a comment or a test title), e.g. `@spec auth/login#REQ-01`. A bare `REQ-01` is ambiguous once several specs define it and is then ignored by `sdd sync`.
+- **Status** is changed with `sdd new status <feature> <status>` (`draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated`) rather than by editing the frontmatter.
+
+### Dependencies (`depends`)
+
+Declare dependencies on other specs in the frontmatter as a YAML list of `<domain>/<feature>` ids, and use `depends: []` when there are none:
+
+```yaml
+depends: [pricing/cart, auth/session]
+```
+
+`depends` is the only dependency source for `sdd impact` (graph, cycles, health score, affected specs). Mentioning another spec in the body (`` `pricing/cart` ``, a link) is shown as a reference, not a dependency.
 
 ### RFC 2119 Keywords
 
@@ -390,30 +441,49 @@ sdd init --auto-approve     # Auto-approve all settings
 sdd init --no-skills        # Skip .claude/skills/ and .agents/skills/ generation
 sdd init --legacy-commands  # Also write legacy .claude/commands/sdd.*.md
 sdd validate                # Validate specs
-sdd status                  # Check status
+sdd status                  # Per-feature stage, task progress and next steps
 sdd list                    # View list
 ```
+
+`sdd status` shows each feature's task progress (e.g. `작업 1/3`) and computes the "next steps" per feature from its files, spec status and task progress (plan → tasks → implement → `sdd validate` · `sdd sync` → `sdd new status <feature> implemented`).
 
 ### Feature Development
 
 ```bash
-sdd new <name>              # Create new feature (common domain)
-sdd new <name> -d <domain>  # Create with domain (v1.3.0)
-sdd new <name> --all        # Create spec + plan + tasks
-sdd prepare <name>          # Verify sub-agents/skills
+sdd new <domain>/<feature>           # Create a feature (missing domain is created automatically)
+sdd new <name>                       # No domain: goes to `common` (or the single active context domain)
+sdd new <name> -d <domain>           # Domain via option (still supported)
+sdd new <domain>/<feature> --all     # spec.md + plan.md + tasks.md + checklist.md
+sdd new <domain>/<feature> --no-branch  # Do not create/switch to a git branch
+sdd new <domain>/<feature> --all --force  # Regenerate, overwriting existing files
+sdd prepare <feature>                # Verify sub-agents/skills
 ```
 
-**v1.3.0 Domain-based Structure:**
-- Without domain: creates in `common` folder
-- Path: `.sdd/specs/<domain>/<feature>/spec.md`
-- Example: `sdd new login -d auth` → `.sdd/specs/auth/login/spec.md`
+- Path: `.sdd/specs/<domain>/<feature>/spec.md`. Example: `sdd new auth/login` (or `sdd new login -d auth`) → `.sdd/specs/auth/login/spec.md`
+- A domain that does not exist yet is created (like `sdd domain create <domain>`) and a notice is printed
+- Without a domain the feature goes to `common`, or to the single active domain of the current context
+- By default `sdd new` creates and switches to a `feature/<name>` git branch; pass `--no-branch` to stay on the current branch
+- Existing files are never overwritten: the command exits with code 1 and names the file. `--force` regenerates them
+
+**Update status** (instead of editing frontmatter or tasks.md by hand). `<feature>` is `<domain>/<feature>` or a unique feature name:
+
+```bash
+sdd new status <feature> <status>              # draft | review | approved | planned | tasked | implementing | implemented | deprecated
+sdd new task <feature> <task-id> <status>      # pending | in-progress | completed | blocked (한글: 대기 | "진행 중" | 완료 | 차단됨)
+
+sdd new status pricing/cart implemented
+sdd new task pricing/cart cart-task-001 in-progress
+sdd new task cart cart-task-001 completed      # bare feature name; task ids are <name>-task-NNN
+```
+
+`sdd new task` also refreshes the progress block and `total:` / `completed:` counts in tasks.md, and suggests `sdd new status <feature> implemented` after the last task. Quote multi-word values (`"진행 중"`).
 
 ### Change Management
 
 ```bash
 sdd change                  # Create change proposal
 sdd change apply <id>       # Apply change
-sdd impact <feature>        # Analyze impact
+sdd impact <feature>        # Analyze impact (dependencies come from frontmatter `depends`)
 ```
 
 ### Quality & Analysis
@@ -424,7 +494,9 @@ sdd report                  # Generate report
 sdd search <query>          # Search specs
 ```
 
-### Sync & Change Tracking (v0.8.0)
+### Sync & Change Tracking
+
+`sdd sync` counts only requirements a spec defines with a `### REQ-01: Title` heading, and matches them to `@spec <domain>/<feature>#REQ-01` references in code and tests (bare ids count only while unambiguous).
 
 ```bash
 sdd sync                    # Verify spec-code sync
@@ -440,7 +512,7 @@ sdd diff --stat             # Statistics summary
 sdd diff --json             # JSON output
 ```
 
-### Spec Export (v0.9.0)
+### Spec Export
 
 ```bash
 sdd export user-auth        # Export single spec to HTML
@@ -452,7 +524,7 @@ sdd export --theme dark     # Dark theme
 sdd export --no-toc         # Exclude table of contents
 ```
 
-### Domain Management (v1.2.0)
+### Domain Management
 
 ```bash
 sdd domain create auth              # Create new domain
@@ -464,7 +536,7 @@ sdd domain graph                    # Show dependency graph (Mermaid)
 sdd domain graph --format dot       # DOT format
 ```
 
-### Context Management (v1.2.0)
+### Context Management
 
 ```bash
 sdd context set auth                # Set context
@@ -487,7 +559,7 @@ sdd reverse review <ref> --approve  # Approve a draft (or --reject --reason "...
 sdd reverse finalize                # Move approved drafts to .sdd/specs/
 ```
 
-### Git Workflow (v1.0.0)
+### Git Workflow
 
 ```bash
 # Install Git Hooks
@@ -514,22 +586,24 @@ sdd cicd check              # Validate CI environment
 your-project/
 ├── .sdd/
 │   ├── constitution.md     # Project constitution
-│   ├── domains.yml         # Domain definitions (v1.2.0)
-│   ├── .context.json       # Current context (v1.2.0)
-│   ├── specs/              # Feature specifications (v1.3.0: domain-based)
+│   ├── domains.yml         # Domain definitions
+│   ├── .context.json       # Current context
+│   ├── specs/              # Feature specifications (domain-based)
 │   │   ├── common/         # Default domain (no domain specified)
 │   │   │   └── feature-name/
 │   │   │       ├── spec.md
 │   │   │       ├── plan.md
-│   │   │       └── tasks.md
+│   │   │       ├── tasks.md
+│   │   │       └── checklist.md
 │   │   └── auth/           # Domain-grouped specs
 │   │       └── login/
 │   │           ├── spec.md
 │   │           ├── plan.md
-│   │           └── tasks.md
+│   │           ├── tasks.md
+│   │           └── checklist.md
 │   ├── changes/            # Change proposals
 │   ├── archive/            # Completed changes
-│   └── .reverse-drafts/    # Reverse extraction drafts (v1.2.0)
+│   └── .reverse-drafts/    # Reverse extraction drafts
 │
 ├── AGENTS.md               # SDD guide in a <!-- sdd:begin/end --> block (read by Codex)
 ├── CLAUDE.md               # Imports the guide via @AGENTS.md (Claude Code)
@@ -540,7 +614,7 @@ your-project/
 │   │   ├── sdd-start/
 │   │   │   └── SKILL.md
 │   │   └── ...             # 30 sdd-* skills total
-│   └── settings.json       # Skill settings (v1.2.0)
+│   └── settings.json       # Skill settings
 ├── .agents/skills/         # Codex skills (same 30 sdd-* skills)
 └── .codex/agents/          # Codex subagents (sdd-*.toml)
 ```

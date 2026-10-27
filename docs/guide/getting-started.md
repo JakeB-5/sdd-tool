@@ -117,18 +117,28 @@ AI will analyze your project and guide you through the workflow.
 
 ### Option 2: Using CLI Commands
 
-Create a new specification:
+Create a new specification with its domain, in `<domain>/<feature>` form:
 
 ```bash
-sdd new user-authentication
+sdd new auth/user-authentication --all
 ```
 
-This creates:
-- `.sdd/specs/common/user-authentication/spec.md`
+This creates (`--all`):
+- `.sdd/specs/auth/user-authentication/spec.md`
+- `.sdd/specs/auth/user-authentication/plan.md`
+- `.sdd/specs/auth/user-authentication/tasks.md`
+- `.sdd/specs/auth/user-authentication/checklist.md`
+
+Things to know:
+- A domain that does not exist yet (`auth`) is created automatically and a notice is printed. Without a domain (`sdd new user-authentication`) the feature goes under `common`, or under the single active domain of the current context. `-d auth` still works.
+- By default `sdd new` creates and switches to a `feature/user-authentication` git branch. Pass `--no-branch` to stay on your current branch (for example when several features share one branch).
+- Existing files are never overwritten: running the command again exits with code 1 and names the file. Use `--force` only to regenerate the files from scratch.
+
+Without `--all`, only `spec.md` is created; add plan.md, tasks.md and checklist.md later with `sdd new plan <feature>`, `sdd new tasks <feature>` and `sdd new checklist`.
 
 ### Edit the Specification
 
-Open `.sdd/specs/common/user-authentication/spec.md` and define your requirements:
+Open `.sdd/specs/auth/user-authentication/spec.md` and define your requirements:
 
 ```markdown
 ---
@@ -136,6 +146,8 @@ id: user-authentication
 title: "User Authentication"
 status: draft
 created: 2025-01-30
+domain: auth
+depends: []
 constitution_version: 1.0.0
 ---
 
@@ -145,21 +157,63 @@ constitution_version: 1.0.0
 
 ## Requirements
 
-### REQ-001: User Login
+### REQ-01: User Login
 
 The system SHALL support email and password authentication.
 
-#### Scenarios
+### REQ-02: Password Reset
+
+The system SHOULD provide password reset functionality.
+
+## Scenarios
+
+### Scenario 1: Successful login (REQ-01)
 
 - **GIVEN** a registered user with valid credentials
 - **WHEN** they submit the login form
 - **THEN** they receive a JWT token
 - **AND** the token is stored securely
-
-### REQ-002: Password Reset
-
-The system SHOULD provide password reset functionality.
 ```
+
+Requirements are defined by `### REQ-01: Title` headings. Numbers are unique within a spec and restart at `REQ-01` in every spec.
+
+#### Declaring dependencies
+
+List the specs this one depends on in the frontmatter, as `<domain>/<feature>` ids, and use `[]` when there are none:
+
+```yaml
+depends: [auth/session, pricing/cart]
+```
+
+`depends` is the only dependency source for `sdd impact`. Mentioning another spec in the body is shown as a reference, not a dependency.
+
+### Plan, Tasks and Progress
+
+`plan.md` and `tasks.md` already exist, so edit them (with `/sdd-plan` and `/sdd-tasks`) instead of creating them again. Task ids look like `user-authentication-task-001`.
+
+Track progress with the state commands instead of editing files by hand. `<feature>` is `<domain>/<feature>` or a unique feature name:
+
+```bash
+sdd new task auth/user-authentication user-authentication-task-001 in-progress
+sdd new task user-authentication user-authentication-task-001 completed
+sdd new status auth/user-authentication implemented
+```
+
+- `sdd new task <feature> <task-id> <status>` accepts `pending`, `in-progress`, `completed`, `blocked` (or `대기`, `"진행 중"`, `완료`, `차단됨`) and refreshes the progress counts in tasks.md.
+- `sdd new status <feature> <status>` accepts `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated`.
+
+### Link Code to Requirements
+
+Reference requirements from code and tests as `@spec <domain>/<feature>#REQ-01`:
+
+```typescript
+/**
+ * @spec auth/user-authentication#REQ-01
+ */
+export function login(email: string, password: string) { /* ... */ }
+```
+
+A bare `REQ-01` is ambiguous once several specs define it, and `sdd sync` ignores it.
 
 ## Understanding Core Concepts
 
@@ -251,12 +305,15 @@ Verify spec-code alignment:
 
 ```bash
 sdd sync
+sdd sync auth/user-authentication   # a single spec
 ```
 
 Output shows:
-- Sync rate for each spec
-- Missing implementations
-- Outdated specs
+- The sync rate (requirements referenced by code or tests / all requirements)
+- Requirements that are not implemented yet, e.g. `auth/user-authentication#REQ-02`
+- Warnings, such as ignored ambiguous references or a spec that defines no `### REQ-01: Title` headings
+
+Only requirements defined by a `### REQ-01: Title` heading are counted. Code and tests are matched through `@spec <domain>/<feature>#REQ-01` references; REQ ids merely mentioned in prose are not requirements.
 
 ## Viewing Project Status
 
@@ -267,25 +324,25 @@ sdd status
 ```
 
 Shows:
-- Total specs count
-- Specs by status (draft, active, completed)
-- Recent changes
-- Quality metrics
+- Project structure checks (constitution.md, AGENTS.md)
+- Every feature with its spec status and task progress (`작업 1/3`)
+- The current git branch
+- Next steps per feature, computed from its files, spec status and task progress: write the plan, break it into tasks, implement (with the `sdd new task` command to run), or finish with `sdd validate` · `sdd sync` and `sdd new status <feature> implemented`
 
 ### List All Specs
 
 ```bash
-sdd list
+sdd list features
 ```
 
-Browse all specifications with filters:
+Browse features with their status, optionally filtered:
 
 ```bash
 # Filter by status
-sdd list --status active
+sdd list features --status implementing
 
-# Filter by domain
-sdd list --domain auth
+# Status of a single domain
+sdd status --domain auth
 ```
 
 ## Searching Specifications
@@ -306,7 +363,7 @@ Search options:
 ### Short Term (This Week)
 1. Run `sdd init` to initialize your project
 2. Write your project `constitution.md`
-3. Create first spec using `/sdd-spec` or `sdd new`
+3. Create first spec using `/sdd-spec` or `sdd new <domain>/<feature> --all`
 4. Validate specs with `sdd validate`
 
 ### Medium Term (This Month)
@@ -327,20 +384,25 @@ Search options:
 
 ```bash
 sdd init
+/sdd-start
 /sdd-constitution [Your project description]
-/sdd-spec [Feature name]
-/sdd-plan
-/sdd-tasks
-/sdd-implement
+/sdd-spec [domain]/[feature]   # runs: sdd new <domain>/<feature> --all
+/sdd-plan                      # edit the generated plan.md
+/sdd-tasks                     # edit the generated tasks.md
+/sdd-implement                 # per task: sdd new task <feature> <task-id> in-progress -> completed
+/sdd-validate                  # sdd validate, sdd sync, then: sdd new status <feature> implemented
 ```
+
+In Codex, use `$sdd-*` instead of `/sdd-*`.
 
 ### Adding Features to Existing Project
 
 ```bash
-/sdd-spec [New feature name]
+/sdd-spec [domain]/[new feature]
 /sdd-plan
 /sdd-tasks
 /sdd-implement
+/sdd-validate
 ```
 
 ### Modifying Existing Features
@@ -348,6 +410,7 @@ sdd init
 ```bash
 /sdd-spec [Feature to modify]
 # AI detects existing spec and offers modification workflow
+# (small edits go straight into spec.md, large ones through a change proposal)
 /sdd-plan
 /sdd-tasks
 /sdd-implement
@@ -356,13 +419,15 @@ sdd init
 ### Analyzing Change Impact
 
 ```bash
-sdd impact user-authentication
+sdd impact auth/user-authentication
 ```
 
 Shows:
-- Dependent specs
-- Affected tests
-- API changes
+- Specs that depend on it (and the ones it depends on), taken from the frontmatter `depends` list only
+- Body references: specs mentioned in the text, listed separately and not counted as dependencies
+- Risk score and recommendations
+
+Declare real dependencies with `depends: [<domain>/<feature>, ...]` (`[]` for none).
 
 ## Troubleshooting
 

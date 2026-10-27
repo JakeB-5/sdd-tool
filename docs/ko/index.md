@@ -45,7 +45,23 @@ sdd init
 
 # Claude Code에서 워크플로우 시작
 /sdd-start
+
+# 첫 명세 생성 (도메인 자동 생성; spec, plan, tasks, checklist)
+sdd new auth/user-authentication --all
+
+# 명세 검증
+sdd validate
+
+# 구현하면서 진행 상황 갱신
+sdd new task user-authentication user-authentication-task-001 in-progress
+sdd status
+
+# 마무리: @spec <domain>/<feature>#REQ-01 커버리지 확인 후 implemented로 표시
+sdd sync
+sdd new status auth/user-authentication implemented
 ```
+
+`sdd new`는 `feature/<name>` git 브랜치도 만들어 전환하고(`--no-branch`로 생략) 기존 파일을 덮어쓰지 않습니다(`--force`로 다시 생성). 요구사항은 스펙의 `### REQ-01: 제목` 헤딩이며, `sdd impact`의 의존성은 frontmatter의 `depends: [<domain>/<feature>]` 목록에서만 계산됩니다.
 
 `sdd init`은 30개의 sdd-* 스킬(`.claude/skills/sdd-*/`)을 생성하며, Claude Code는 각 스킬을 `/sdd-*` 슬래시 커맨드로 노출합니다. 레거시 `.claude/commands/` 파일은 `sdd init --legacy-commands`를 사용할 때만 생성됩니다.
 

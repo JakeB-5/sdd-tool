@@ -82,6 +82,21 @@ claude
 └─────────────────────────────────────────────────────────────┘
 ```
 
+각 단계가 내부적으로 실행하는 CLI 명령어 (직접 실행해도 됩니다):
+
+| 단계 | 스킬 | 사용하는 CLI 명령어 |
+|------|------|---------------------|
+| 1 | `/sdd-start` | `sdd status` |
+| 2 | `/sdd-constitution` | `.sdd/constitution.md` 편집 |
+| 3 | `/sdd-spec` | `sdd new <domain>/<feature> --all` (spec.md, plan.md, tasks.md, checklist.md), `sdd validate` |
+| 4 | `/sdd-plan` | 이미 생성된 `plan.md` 편집, 선택적으로 `sdd new status <feature> planned` |
+| 5 | `/sdd-tasks` | 이미 생성된 `tasks.md` 편집, 선택적으로 `sdd new status <feature> tasked` |
+| 6 | `/sdd-prepare` | `sdd prepare <feature>` |
+| 7 | `/sdd-implement` | 작업마다 `sdd new task <feature> <task-id> in-progress\|completed`, `sdd status` |
+| 8 | `/sdd-validate` | `sdd validate`, `sdd sync <feature>`, 이어서 `sdd new status <feature> implemented` |
+
+`<feature>`는 `<domain>/<feature>`(예: `pricing/cart`) 또는 프로젝트에서 유일한 기능 이름(예: `cart`)입니다. Codex에서는 `/sdd-*` 대신 `$sdd-*`를 사용합니다.
+
 ---
 
 ## 스킬 (슬래시 커맨드)
@@ -121,7 +136,7 @@ Codex에서는 `$sdd-spec auth/login`처럼 명시적으로 호출하거나 `/sk
 
 | 필드 | 적용 대상 |
 |------|----------|
-| `context: fork` | 분석/도메인 스킬 7개 (`sdd-analyze`, `sdd-impact`, `sdd-report`, `sdd-research`, `sdd-reverse`, `sdd-search`, `sdd-sync`) |
+| `context: fork` | 분석 스킬 6개 (`sdd-analyze`, `sdd-impact`, `sdd-report`, `sdd-research`, `sdd-search`, `sdd-sync`) |
 | `disable-model-invocation: true` | 유틸리티 스킬 5개 (`sdd-chat`, `sdd-cicd`, `sdd-guide`, `sdd-migrate`, `sdd-watch`) |
 | `argument-hint` | 인수를 받는 스킬 |
 | `allowed-tools` | 모든 스킬 — 최소 권한 패턴 (예: `Bash(sdd validate*)`) |
@@ -218,12 +233,14 @@ AI가 `.sdd/constitution.md`를 분석하고, 프로젝트 원칙 작성을 도�
 /sdd-spec 사용자 인증 기능
 ```
 
-AI가 대화를 통해 다음을 생성합니다:
+새 기능이면 스킬이 `sdd new <domain>/<feature> --all`을 실행한 뒤 다음을 채우도록 안내합니다:
 - `spec.md` - 기능 명세 (RFC 2119 + GIVEN-WHEN-THEN)
+
+`sdd new`는 `plan.md`, `tasks.md`, `checklist.md`도 함께 생성하고(`--all`), 없는 도메인은 자동으로 만들며(도메인 생략 시 `common`), `--no-branch`를 주지 않으면 `feature/<name>` git 브랜치를 만들어 전환합니다. 기존 파일은 덮어쓰지 않으며(종료 코드 1), 처음부터 다시 생성할 때만 `--force`를 사용하세요.
 
 ### Step 4: /sdd-plan
 
-구현 계획을 수립합니다:
+이미 생성된 `plan.md`에 구현 계획을 수립합니다:
 
 ```
 /sdd-plan
@@ -233,17 +250,21 @@ AI가 대화를 통해 다음을 생성합니다:
 - 구현 단계(Phase) 정의
 - 리스크 분석 및 완화 전략
 
+`plan.md`가 없을 때만 스킬이 `sdd new plan <feature>`를 실행합니다.
+
 ### Step 5: /sdd-tasks
 
-작업을 실행 가능한 단위로 분해합니다:
+이미 생성된 `tasks.md`에서 작업을 실행 가능한 단위로 분해합니다:
 
 ```
 /sdd-tasks
 ```
 
 - 각 작업은 2-4시간 내 완료 가능한 크기
+- 작업 ID는 `<name>-task-NNN` (예: `cart-task-001`)
 - 작업 간 의존성 표시
 - 우선순위: HIGH(🔴), MEDIUM(🟡), LOW(🟢)
+- 테스트 우선: 각 작업은 코드보다 먼저 시나리오의 실패하는 테스트를 작성
 
 ### Step 6: /sdd-prepare
 
@@ -286,11 +307,15 @@ sdd prepare user-auth --auto-approve  # 자동 생성
 /sdd-implement
 ```
 
-AI가 tasks.md를 읽고, TDD 방식으로 구현을 안내합니다:
-1. 작업 상태를 "진행 중"으로 변경
-2. 테스트 작성
-3. 코드 구현
-4. 작업 상태를 "완료"로 변경
+AI가 tasks.md를 읽고, 엄격한 테스트 우선(TDD) 방식으로 작업을 하나씩 구현하도록 안내합니다:
+1. `sdd new task <feature> <task-id> in-progress`
+2. Red: 작업의 시나리오를 테스트로 만들고 실패하는지 확인
+3. Green: 테스트를 통과하는 최소한의 코드 작성
+4. 모든 테스트가 통과하는 상태에서 Refactor
+5. 코드와 테스트에서 요구사항을 `@spec <domain>/<feature>#REQ-01`로 참조
+6. `sdd new task <feature> <task-id> completed` 후 커밋
+
+작업 상태는 `sdd new task`로만 변경하며, 실행할 때마다 tasks.md의 진행 집계가 다시 계산됩니다.
 
 ### Step 8: /sdd-validate
 
@@ -303,6 +328,14 @@ AI가 tasks.md를 읽고, TDD 방식으로 구현을 안내합니다:
 - RFC 2119 키워드 사용 여부
 - GIVEN-WHEN-THEN 형식 준수
 - 메타데이터 필수 필드 확인
+
+모든 작업이 완료되면 기능을 마무리합니다:
+
+```bash
+sdd validate                              # 형식 검증
+sdd sync <feature>                        # 모든 요구사항이 코드/테스트에서 커버되는지 확인
+sdd new status <feature> implemented      # 스펙을 implemented로 표시
+```
 
 ---
 
@@ -331,10 +364,12 @@ AI: 사용자 인증 기능의 명세를 작성해 드릴게요. 먼저 몇 가�
 
 ```markdown
 ---
-id: user-auth
+id: login
 title: "사용자 인증"
 status: draft
 created: 2025-12-24
+domain: auth
+depends: []
 constitution_version: 1.0.0
 ---
 
@@ -351,13 +386,29 @@ constitution_version: 1.0.0
 
 ## 시나리오
 
-### Scenario 1: 성공적인 로그인
+### Scenario 1: 성공적인 로그인 (REQ-01)
 
 - **GIVEN** 유효한 사용자 계정이 있을 때
 - **WHEN** 올바른 이메일과 비밀번호로 로그인하면
 - **THEN** JWT 토큰이 반환된다
 - **AND** 토큰 만료 시간이 설정된다
 ```
+
+### 요구사항과 추적성
+
+- **요구사항은 헤딩으로 정의합니다**: `### REQ-01: 제목`. 번호는 스펙 안에서 고유하며 스펙마다 `REQ-01`부터 다시 시작합니다. `sdd sync`는 이 정의 헤딩만 요구사항으로 세고, 본문·표·목록에서 언급한 REQ ID는 참조로 취급합니다.
+- **코드와 테스트를 요구사항에 연결**할 때는 `@spec <domain>/<feature>#REQ-01`(주석 또는 테스트 제목)을 사용합니다. 예: `@spec auth/login#REQ-01`. 한정하지 않은 `REQ-01`은 여러 스펙이 같은 ID를 가지면 모호해져 `sdd sync`가 무시합니다.
+- **상태**는 frontmatter를 직접 고치지 말고 `sdd new status <feature> <status>`(`draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated`)로 변경합니다.
+
+### 의존성 (`depends`)
+
+다른 스펙에 대한 의존성은 frontmatter에 `<domain>/<feature>` ID의 YAML 목록으로 선언하며, 없으면 `depends: []`를 씁니다:
+
+```yaml
+depends: [pricing/cart, auth/session]
+```
+
+`depends`는 `sdd impact`(그래프, 순환, 건강도, 영향받는 스펙)의 유일한 의존성 출처입니다. 본문에서 다른 스펙을 언급하는 것(`` `pricing/cart` ``, 링크)은 의존성이 아니라 참조로 표시됩니다.
 
 ### RFC 2119 키워드
 
@@ -383,30 +434,49 @@ sdd init --auto-approve     # 모든 설정 자동 승인
 sdd init --no-skills        # .claude/skills/, .agents/skills/ 생성 건너뛰기
 sdd init --legacy-commands  # 레거시 .claude/commands/sdd.*.md도 함께 생성
 sdd validate                # 스펙 검증
-sdd status                  # 상태 확인
+sdd status                  # 기능별 단계, 작업 진행률, 다음 단계
 sdd list                    # 목록 조회
 ```
+
+`sdd status`는 기능마다 작업 진행률(예: `작업 1/3`)을 보여 주고, "다음 단계"를 기능별 파일·스펙 상태·작업 진행률로 계산합니다 (plan → tasks → implement → `sdd validate` · `sdd sync` → `sdd new status <feature> implemented`).
 
 ### 기능 개발
 
 ```bash
-sdd new <name>              # 새 기능 생성 (common 도메인)
-sdd new <name> -d <domain>  # 도메인 지정 생성 (v1.3.0)
-sdd new <name> --all        # spec + plan + tasks 모두 생성
-sdd prepare <name>          # 서브에이전트/스킬 점검
+sdd new <domain>/<feature>           # 기능 생성 (없는 도메인은 자동 생성)
+sdd new <name>                       # 도메인 생략: `common` (또는 컨텍스트의 활성 도메인이 하나면 그 도메인)
+sdd new <name> -d <domain>           # 옵션으로 도메인 지정 (계속 지원)
+sdd new <domain>/<feature> --all     # spec.md + plan.md + tasks.md + checklist.md
+sdd new <domain>/<feature> --no-branch  # git 브랜치를 만들지/전환하지 않음
+sdd new <domain>/<feature> --all --force  # 기존 파일을 덮어쓰며 다시 생성
+sdd prepare <feature>                # 서브에이전트/스킬 점검
 ```
 
-**v1.3.0 도메인 기반 구조:**
-- 도메인 미지정 시 `common` 폴더에 생성
-- 경로: `.sdd/specs/<domain>/<feature>/spec.md`
-- 예: `sdd new login -d auth` → `.sdd/specs/auth/login/spec.md`
+- 경로: `.sdd/specs/<domain>/<feature>/spec.md`. 예: `sdd new auth/login` (또는 `sdd new login -d auth`) → `.sdd/specs/auth/login/spec.md`
+- 아직 없는 도메인은 `sdd domain create <domain>`처럼 자동 생성되고 안내 메시지가 출력됩니다
+- 도메인을 생략하면 `common`, 또는 현재 컨텍스트의 활성 도메인이 하나뿐이면 그 도메인에 생성됩니다
+- 기본적으로 `sdd new`는 `feature/<name>` git 브랜치를 만들어 전환합니다. 현재 브랜치에 머무르려면 `--no-branch`를 사용하세요
+- 기존 파일은 덮어쓰지 않습니다. 종료 코드 1과 함께 파일 이름을 알려 주며, `--force`로 다시 생성할 수 있습니다
+
+**상태 변경** (frontmatter나 tasks.md를 직접 고치는 대신). `<feature>`는 `<domain>/<feature>` 또는 유일한 기능 이름입니다:
+
+```bash
+sdd new status <feature> <status>              # draft | review | approved | planned | tasked | implementing | implemented | deprecated
+sdd new task <feature> <task-id> <status>      # pending | in-progress | completed | blocked (한글: 대기 | "진행 중" | 완료 | 차단됨)
+
+sdd new status pricing/cart implemented
+sdd new task pricing/cart cart-task-001 in-progress
+sdd new task cart cart-task-001 completed      # 기능 이름만 사용 가능, 작업 ID는 <name>-task-NNN
+```
+
+`sdd new task`는 tasks.md의 진행 상황 블록과 `total:` / `completed:` 집계도 갱신하고, 마지막 작업을 완료하면 `sdd new status <feature> implemented`를 제안합니다. 공백이 있는 값은 따옴표로 감싸세요(`"진행 중"`).
 
 ### 변경 관리
 
 ```bash
 sdd change                  # 변경 제안 생성
 sdd change apply <id>       # 변경 적용
-sdd impact <feature>        # 영향도 분석
+sdd impact <feature>        # 영향도 분석 (의존성은 frontmatter `depends`에서만 계산)
 ```
 
 ### 품질 및 분석
@@ -417,7 +487,9 @@ sdd report                  # 리포트 생성
 sdd search <query>          # 스펙 검색
 ```
 
-### 동기화 및 변경 추적 (v0.8.0)
+### 동기화 및 변경 추적
+
+`sdd sync`는 스펙이 `### REQ-01: 제목` 헤딩으로 정의한 요구사항만 세고, 코드와 테스트의 `@spec <domain>/<feature>#REQ-01` 참조와 매칭합니다 (한정하지 않은 ID는 모호하지 않을 때만 인정).
 
 ```bash
 sdd sync                    # 스펙-코드 동기화 검증
@@ -433,7 +505,7 @@ sdd diff --stat             # 통계 요약
 sdd diff --json             # JSON 출력
 ```
 
-### 스펙 내보내기 (v0.9.0)
+### 스펙 내보내기
 
 ```bash
 sdd export user-auth        # 단일 스펙 HTML 내보내기
@@ -445,7 +517,7 @@ sdd export --theme dark     # 다크 테마
 sdd export --no-toc         # 목차 제외
 ```
 
-### 도메인 관리 (v1.2.0)
+### 도메인 관리
 
 ```bash
 sdd domain create auth              # 새 도메인 생성
@@ -457,7 +529,7 @@ sdd domain graph                    # 의존성 그래프 (Mermaid)
 sdd domain graph --format dot       # DOT 형식
 ```
 
-### 컨텍스트 관리 (v1.2.0)
+### 컨텍스트 관리
 
 ```bash
 sdd context set auth                # 컨텍스트 설정
@@ -480,7 +552,7 @@ sdd reverse review <ref> --approve  # 초안 승인 (또는 --reject --reason ".
 sdd reverse finalize                # 승인된 초안을 .sdd/specs/로 이동
 ```
 
-### Git 워크플로우 (v1.0.0)
+### Git 워크플로우
 
 ```bash
 # Git Hooks 설정
@@ -507,22 +579,24 @@ sdd cicd check              # CI 환경 검증
 your-project/
 ├── .sdd/
 │   ├── constitution.md     # 프로젝트 헌법
-│   ├── domains.yml         # 도메인 정의 (v1.2.0)
-│   ├── .context.json       # 현재 컨텍스트 (v1.2.0)
-│   ├── specs/              # 기능 명세 (v1.3.0: 도메인 기반 구조)
+│   ├── domains.yml         # 도메인 정의
+│   ├── .context.json       # 현재 컨텍스트
+│   ├── specs/              # 기능 명세 (도메인 기반 구조)
 │   │   ├── common/         # 기본 도메인 (도메인 미지정 시)
 │   │   │   └── feature-name/
 │   │   │       ├── spec.md
 │   │   │       ├── plan.md
-│   │   │       └── tasks.md
+│   │   │       ├── tasks.md
+│   │   │       └── checklist.md
 │   │   └── auth/           # 도메인별 그룹
 │   │       └── login/
 │   │           ├── spec.md
 │   │           ├── plan.md
-│   │           └── tasks.md
+│   │           ├── tasks.md
+│   │           └── checklist.md
 │   ├── changes/            # 변경 제안
 │   ├── archive/            # 완료된 변경
-│   └── .reverse-drafts/    # 역추출 임시 스펙 (v1.2.0)
+│   └── .reverse-drafts/    # 역추출 임시 스펙
 │
 ├── AGENTS.md               # <!-- sdd:begin/end --> 블록의 SDD 지침 (Codex가 읽음)
 ├── CLAUDE.md               # @AGENTS.md로 지침을 import (Claude Code)
@@ -533,7 +607,7 @@ your-project/
 │   │   ├── sdd-start/
 │   │   │   └── SKILL.md
 │   │   └── ...             # sdd-* 스킬 30개
-│   └── settings.json       # 스킬 설정 (v1.2.0)
+│   └── settings.json       # 스킬 설정
 ├── .agents/skills/         # Codex 스킬 (같은 sdd-* 스킬 30개)
 └── .codex/agents/          # Codex 서브에이전트 (sdd-*.toml)
 ```
