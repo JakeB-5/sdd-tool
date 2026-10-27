@@ -16,6 +16,9 @@ import {
   detectDomain,
   validateDomain,
   buildNextSteps,
+  setSpecStatus,
+  setTaskStatus,
+  parseTaskStatusArg,
 } from '../../../../src/cli/commands/new.js';
 import { executeDomainCreate } from '../../../../src/cli/commands/domain.js';
 import { executeContextSet, executeContextClear } from '../../../../src/cli/commands/context.js';
@@ -725,5 +728,279 @@ describe('createFeature with domain', () => {
       .then(() => true)
       .catch(() => false);
     expect(escaped).toBe(false);
+  });
+});
+
+describe('setSpecStatus', () => {
+  let tempDir: string;
+  let sddPath: string;
+  let specPath: string;
+
+  const SPEC = `---
+id: cart
+title: "카트" # display title
+status: draft
+created: 2026-10-27
+domain: pricing
+depends: null
+---
+
+# 카트
+`;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-spec-status-'));
+    sddPath = path.join(tempDir, '.sdd');
+    specPath = path.join(sddPath, 'specs', 'pricing', 'cart', 'spec.md');
+    await fs.mkdir(path.dirname(specPath), { recursive: true });
+    await fs.writeFile(specPath, SPEC);
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('status만 바꾸고 나머지 frontmatter 서식은 유지한다 (updated 필드가 없으면 추가하지 않음)', async () => {
+    const result = await setSpecStatus(sddPath, 'pricing/cart', 'implemented');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toMatchObject({ featureId: 'pricing/cart', from: 'draft', to: 'implemented', changed: true });
+    }
+    expect(await fs.readFile(specPath, 'utf-8')).toBe(SPEC.replace('status: draft', 'status: implemented'));
+  });
+
+  it('updated 필드가 있으면 오늘 날짜로 갱신한다', async () => {
+    await fs.writeFile(specPath, SPEC.replace('created: 2026-10-27', 'created: 2026-10-27\nupdated: 2020-01-01'));
+    const today = new Date().toISOString().split('T')[0];
+
+    const result = await setSpecStatus(sddPath, 'cart', 'review');
+
+    expect(result.success).toBe(true);
+    const content = await fs.readFile(specPath, 'utf-8');
+    expect(content).toContain('status: review');
+    expect(content).toContain(`updated: ${today}`);
+    expect(content).not.toContain('2020-01-01');
+  });
+
+  it('레거시 별칭과 대소문자를 표준 상태로 기록한다', async () => {
+    const result = await setSpecStatus(sddPath, 'cart', 'Completed');
+
+    expect(result.success).toBe(true);
+    expect(await fs.readFile(specPath, 'utf-8')).toContain('status: implemented');
+  });
+
+  it('같은 상태면 파일을 쓰지 않고 changed=false를 반환한다', async () => {
+    const result = await setSpecStatus(sddPath, 'cart', 'draft');
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.changed).toBe(false);
+    expect(await fs.readFile(specPath, 'utf-8')).toBe(SPEC);
+  });
+
+  it('유효하지 않은 상태는 허용 값을 나열하며 실패한다', async () => {
+    const result = await setSpecStatus(sddPath, 'cart', 'done');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain("'done'");
+      expect(result.error.message).toContain('draft, review, approved, planned, tasked, implementing, implemented, deprecated');
+    }
+    expect(await fs.readFile(specPath, 'utf-8')).toBe(SPEC);
+  });
+
+  it('없는 기능은 사용 가능한 기능을 나열하며 실패한다', async () => {
+    const result = await setSpecStatus(sddPath, 'nope', 'review');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain("'nope'");
+      expect(result.error.message).toContain('pricing/cart');
+    }
+  });
+
+  it('여러 도메인에 같은 기능이 있으면 모호성 오류를 반환한다', async () => {
+    const other = path.join(sddPath, 'specs', 'shop', 'cart', 'spec.md');
+    await fs.mkdir(path.dirname(other), { recursive: true });
+    await fs.writeFile(other, SPEC);
+
+    const result = await setSpecStatus(sddPath, 'cart', 'review');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('pricing/cart, shop/cart');
+    }
+  });
+
+  it('CRLF 스펙은 CRLF 줄바꿈을 유지한다', async () => {
+    const crlf = SPEC.replace(/\n/g, '\r\n');
+    await fs.writeFile(specPath, crlf);
+
+    const result = await setSpecStatus(sddPath, 'cart', 'approved');
+
+    expect(result.success).toBe(true);
+    expect(await fs.readFile(specPath, 'utf-8')).toBe(crlf.replace('status: draft', 'status: approved'));
+  });
+
+  it('frontmatter가 없는 스펙은 수정하지 않고 실패한다', async () => {
+    await fs.writeFile(specPath, '# 카트\n');
+
+    const result = await setSpecStatus(sddPath, 'cart', 'review');
+
+    expect(result.success).toBe(false);
+    expect(await fs.readFile(specPath, 'utf-8')).toBe('# 카트\n');
+  });
+});
+
+describe('setTaskStatus', () => {
+  let tempDir: string;
+  let sddPath: string;
+  let tasksPath: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-task-status-'));
+    sddPath = path.join(tempDir, '.sdd');
+    await fs.mkdir(path.join(sddPath, 'specs'), { recursive: true });
+    const created = await createFeature(sddPath, 'pricing/cart', { tasks: true });
+    if (!created.success) throw created.error;
+    tasksPath = path.join(created.data.featurePath, 'tasks.md');
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('작업 상태를 바꾸고 진행 상황/완료 수를 갱신한다', async () => {
+    const result = await setTaskStatus(sddPath, 'pricing/cart', 'cart-task-001', 'completed');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toMatchObject({
+        featureId: 'pricing/cart',
+        taskId: 'cart-task-001',
+        from: 'pending',
+        to: 'completed',
+        changed: true,
+        progress: { completed: 1, total: 3 },
+      });
+    }
+    const content = await fs.readFile(tasksPath, 'utf-8');
+    expect(content).toMatch(/### cart-task-001:[^\n]*\n\n- \*\*상태:\*\* 완료/);
+    expect(content).toContain('- 완료: 1');
+    expect(content).toContain('- 대기: 2');
+    expect(content).toContain('completed: 1');
+  });
+
+  it.each([
+    ['in-progress', 'in_progress', '진행 중'],
+    ['in_progress', 'in_progress', '진행 중'],
+    ['blocked', 'blocked', '차단됨'],
+    ['진행 중', 'in_progress', '진행 중'],
+    ['완료', 'completed', '완료'],
+  ])('상태 입력 %s를 %s로 정규화한다', async (input, normalized, written) => {
+    const result = await setTaskStatus(sddPath, 'cart', 'cart-task-002', input);
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.to).toBe(normalized);
+    expect(await fs.readFile(tasksPath, 'utf-8')).toContain(`- **상태:** ${written}`);
+  });
+
+  it('영문 Status 라벨은 영문 값으로 기록한다', async () => {
+    await fs.writeFile(tasksPath, '# 작업\n\n### t-1: 하나\n\n- **Status:** pending\n');
+
+    const result = await setTaskStatus(sddPath, 'cart', 't-1', 'in-progress');
+
+    expect(result.success).toBe(true);
+    expect(await fs.readFile(tasksPath, 'utf-8')).toContain('- **Status:** in-progress');
+  });
+
+  it('번호만 주면 유일한 작업과 일치한다', async () => {
+    const result = await setTaskStatus(sddPath, 'cart', '3', 'completed');
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.taskId).toBe('cart-task-003');
+  });
+
+  it('번호가 여러 작업과 일치하면 실패한다', async () => {
+    await fs.writeFile(
+      tasksPath,
+      '# 작업\n\n### a-1: 하나\n- **상태:** 대기\n\n### b-1: 둘\n- **상태:** 대기\n'
+    );
+
+    const result = await setTaskStatus(sddPath, 'cart', '1', 'completed');
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.message).toContain('a-1, b-1');
+  });
+
+  it('없는 작업 ID는 사용 가능한 ID를 나열하며 실패한다', async () => {
+    const before = await fs.readFile(tasksPath, 'utf-8');
+
+    const result = await setTaskStatus(sddPath, 'cart', 'cart-task-999', 'completed');
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('cart-task-999');
+      expect(result.error.message).toContain('cart-task-001, cart-task-002, cart-task-003');
+    }
+    expect(await fs.readFile(tasksPath, 'utf-8')).toBe(before);
+  });
+
+  it('유효하지 않은 작업 상태는 허용 값을 나열하며 실패한다', async () => {
+    const result = await setTaskStatus(sddPath, 'cart', 'cart-task-001', 'finished');
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.message).toContain('pending, in-progress');
+  });
+
+  it.each(['완료 안 됨', '123 completed', 'completed-ish', '**pending**', '✅ 완료', 'done', ''])(
+    'CLI 상태 인자는 정확한 값만 허용한다: %j',
+    async (input) => {
+      const before = await fs.readFile(tasksPath, 'utf-8');
+
+      const result = await setTaskStatus(sddPath, 'cart', 'cart-task-001', input);
+
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('유효하지 않은 작업 상태');
+      expect(await fs.readFile(tasksPath, 'utf-8')).toBe(before);
+    }
+  );
+
+  it.each([
+    [' Completed ', 'completed'],
+    ['IN-PROGRESS', 'in_progress'],
+    ['진행중', 'in_progress'],
+    ['진행  중', 'in_progress'],
+    ['차단됨', 'blocked'],
+    ['대기', 'pending'],
+  ])('CLI 상태 인자 %j는 대소문자/공백을 무시하고 %s로 정규화한다', (input, expected) => {
+    expect(parseTaskStatusArg(input)).toBe(expected);
+  });
+
+  it('결과에 스펙 상태를 포함한다', async () => {
+    const result = await setTaskStatus(sddPath, 'cart', 'cart-task-001', 'completed');
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.specStatus).toBe('draft');
+  });
+
+  it('상태 줄이 없는 작업은 파일을 바꾸지 않고 실패한다', async () => {
+    const content = '# 작업\n\n### t-1: 하나\n\n- **우선순위:** 🔴 HIGH\n';
+    await fs.writeFile(tasksPath, content);
+
+    const result = await setTaskStatus(sddPath, 'cart', 't-1', 'completed');
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.message).toContain('상태 줄');
+    expect(await fs.readFile(tasksPath, 'utf-8')).toBe(content);
+  });
+
+  it('tasks.md가 없으면 sdd new tasks를 안내하며 실패한다', async () => {
+    await fs.rm(tasksPath);
+
+    const result = await setTaskStatus(sddPath, 'cart', 'cart-task-001', 'completed');
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.message).toContain('sdd new tasks pricing/cart');
   });
 });

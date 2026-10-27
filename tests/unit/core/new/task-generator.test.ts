@@ -491,6 +491,72 @@ completed: 0
     expect(updated).toContain('completed: 1');
     expect(updated.replace(/\r\n/g, '')).not.toContain('\n');
   });
+
+  it('한글 레이블에 영문 값이 쓰여 있으면 영문 값으로 기록한다', () => {
+    const content = `### t-001: A
+
+- **상태:** pending
+`;
+
+    expect(updateTaskStatus(content, 't-001', 'in_progress')).toContain('- **상태:** in-progress\n');
+    expect(updateTaskStatus('### t-001: A\n\n- **상태:** ✅ 완료\n', 't-001', 'pending')).toContain(
+      '- **상태:** 대기\n'
+    );
+  });
+
+  it('frontmatter의 completed/total만 갱신하고 본문의 completed: 줄은 건드리지 않는다', () => {
+    const content = `---
+feature: cart
+total: 1
+completed: 0
+---
+
+## Progress
+
+- pending: 2
+- completed: 0
+
+---
+
+### t-001: A
+
+- **Status:** pending
+
+### t-002: B
+
+- **Status:** pending
+`;
+
+    const updated = updateTaskStatus(content, 't-001', 'completed');
+
+    expect(updated).toContain('---\nfeature: cart\ntotal: 2\ncompleted: 1\n---\n');
+    // English body block is not recalculated (only the Korean "## 진행 상황" block is)
+    expect(updated).toContain('- pending: 2\n- completed: 0\n');
+  });
+
+  it('frontmatter가 없으면 본문의 completed: 줄을 바꾸지 않는다', () => {
+    const content = `## Progress
+
+completed: 0
+
+### t-001: A
+
+- **Status:** pending
+`;
+
+    const updated = updateTaskStatus(content, 't-001', 'completed');
+
+    expect(updated).toContain('\ncompleted: 0\n');
+    expect(updated).toContain('- **Status:** completed');
+  });
+
+  it('CRLF frontmatter의 completed/total도 CRLF를 유지하며 갱신한다', () => {
+    const content = ['---', 'total: 5', 'completed: 0', '---', '', '### t-001: A', '', '- **상태:** 대기', ''].join('\r\n');
+
+    const updated = updateTaskStatus(content, 't-001', 'completed');
+
+    expect(updated).toContain('---\r\ntotal: 1\r\ncompleted: 1\r\n---\r\n');
+  });
 });
 
 describe('getNextTask', () => {

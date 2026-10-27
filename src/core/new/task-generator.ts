@@ -242,12 +242,13 @@ export function updateTaskStatus(
   const escapedId = taskId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // Section ends at the next heading (#..###) or a `---` separator, as in parseTasks.
   const taskRegex = new RegExp(
-    `(### ${escapedId}:[^\\r\\n]*\\r?\\n(?:(?!#{1,3} |---)[^\\r\\n]*\\r?\\n)*?[^\\r\\n]*\\*\\*(상태|status)${LABEL_END})[ \\t]*[^\\r\\n]*`,
+    `(### ${escapedId}:[^\\r\\n]*\\r?\\n(?:(?!#{1,3} |---)[^\\r\\n]*\\r?\\n)*?[^\\r\\n]*\\*\\*(상태|status)${LABEL_END})[ \\t]*([^\\r\\n]*)`,
     'i'
   );
 
-  let updated = content.replace(taskRegex, (_match, prefix: string, label: string) => {
-    const english = label.toLowerCase() === 'status';
+  let updated = content.replace(taskRegex, (_match, prefix: string, label: string, value: string) => {
+    // English label, or an English value already written under a Korean label
+    const english = label.toLowerCase() === 'status' || /^[^\p{L}]*[a-z]/iu.test(value);
     return `${prefix} ${formatTaskStatus(newStatus, english)}`;
   });
 
@@ -272,10 +273,15 @@ export function updateTaskStatus(
     ].join(eol)
   );
 
-  // frontmatter completed 업데이트
+  // frontmatter completed/total 업데이트 (frontmatter 블록 안에서만, 줄바꿈 유지)
   updated = updated.replace(
-    /completed:\s*\d+/,
-    `completed: ${completed}`
+    /^(---[ \t]*\r?\n)([\s\S]*?\r?\n)?(---[ \t]*(?:\r?\n|$))/,
+    (_match, open: string, yaml: string | undefined, close: string) =>
+      open +
+      (yaml ?? '')
+        .replace(/^completed:[ \t]*\d+[ \t]*(?=\r?$)/m, `completed: ${completed}`)
+        .replace(/^total:[ \t]*\d+[ \t]*(?=\r?$)/m, `total: ${tasks.length}`) +
+      close
   );
 
   return updated;

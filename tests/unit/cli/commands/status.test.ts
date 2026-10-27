@@ -7,11 +7,128 @@ import path from 'node:path';
 import os from 'node:os';
 import {
   getFeatureInfo,
+  getFeatureStage,
+  getFeatureNextStep,
+  buildStatusNextSteps,
   getProjectStatus,
   getStatusIcon,
   type FeatureInfo,
-  type ProjectStatus,
 } from '../../../../src/cli/commands/status.js';
+
+function feature(overrides: Partial<FeatureInfo>): FeatureInfo {
+  const base: Omit<FeatureInfo, 'stage'> = {
+    id: 'pricing/cart',
+    title: '카트',
+    status: 'draft',
+    hasSpec: true,
+    hasPlan: true,
+    hasTasks: true,
+    taskProgress: { completed: 0, total: 3 },
+    ...overrides,
+  };
+  return { ...base, stage: overrides.stage ?? getFeatureStage(base) };
+}
+
+describe('getFeatureStage', () => {
+  it('plan.md가 없으면 plan 단계다', () => {
+    expect(feature({ hasPlan: false, hasTasks: false, taskProgress: undefined }).stage).toBe('plan');
+  });
+
+  it('tasks.md가 없거나 작업이 0개면 tasks 단계다', () => {
+    expect(feature({ hasTasks: false, taskProgress: undefined }).stage).toBe('tasks');
+    expect(feature({ taskProgress: { completed: 0, total: 0 } }).stage).toBe('tasks');
+  });
+
+  it('미완료 작업이 있으면 implement 단계다', () => {
+    expect(feature({ status: 'implementing', taskProgress: { completed: 1, total: 3 } }).stage).toBe('implement');
+  });
+
+  it('모든 작업이 완료됐지만 스펙이 implemented가 아니면 finalize 단계다', () => {
+    expect(feature({ status: 'tasked', taskProgress: { completed: 3, total: 3 } }).stage).toBe('finalize');
+  });
+
+  it('모든 작업 완료 + implemented(레거시 completed 포함)면 done이다', () => {
+    expect(feature({ status: 'implemented', taskProgress: { completed: 3, total: 3 } }).stage).toBe('done');
+    expect(feature({ status: 'completed', taskProgress: { completed: 3, total: 3 } }).stage).toBe('done');
+  });
+
+  it('deprecated 스펙은 파일과 관계없이 done이다', () => {
+    expect(feature({ status: 'deprecated', hasPlan: false }).stage).toBe('done');
+  });
+
+  it('implemented 스펙은 plan.md/tasks.md가 없어도 done이다', () => {
+    expect(feature({ status: 'implemented', hasPlan: false, hasTasks: false, taskProgress: undefined }).stage).toBe('done');
+    expect(feature({ status: 'completed', hasPlan: false, hasTasks: false, taskProgress: undefined }).stage).toBe('done');
+    expect(feature({ status: 'implemented', hasPlan: false, taskProgress: { completed: 2, total: 2 } }).stage).toBe('done');
+  });
+
+  it('implemented 스펙이라도 미완료 작업이 있으면 implement 단계다', () => {
+    expect(feature({ status: 'implemented', taskProgress: { completed: 1, total: 3 } }).stage).toBe('implement');
+  });
+});
+
+describe('buildStatusNextSteps', () => {
+  it('기능이 없으면 sdd new를 안내한다', () => {
+    expect(buildStatusNextSteps([])).toEqual(['sdd new <name> - 새 기능 생성']);
+  });
+
+  it('기능별 단계에 맞는 현재 명령/스킬 이름을 안내한다', () => {
+    const steps = buildStatusNextSteps([
+      feature({ id: 'a/plan-me', hasPlan: false, hasTasks: false, taskProgress: undefined }),
+      feature({ id: 'a/tasks-me', hasTasks: false, taskProgress: undefined }),
+      feature({ id: 'a/impl-me', taskProgress: { completed: 2, total: 5 } }),
+      feature({ id: 'a/final-me', status: 'implementing', taskProgress: { completed: 2, total: 2 } }),
+      feature({ id: 'a/done', status: 'implemented', taskProgress: { completed: 2, total: 2 } }),
+    ]);
+
+    expect(steps).toHaveLength(4);
+    expect(steps[0]).toContain('sdd new plan a/plan-me');
+    expect(steps[0]).toContain('/sdd-plan');
+    expect(steps[0]).toContain('$sdd-plan');
+    expect(steps[1]).toContain('sdd new tasks a/tasks-me');
+    expect(steps[2]).toContain('(2/5)');
+    expect(steps[2]).toContain('sdd new task a/impl-me <task-id> completed');
+    expect(steps[3]).toContain('sdd new status a/final-me implemented');
+    expect(steps.join('\n')).not.toContain('a/done');
+    expect(steps.join('\n')).not.toMatch(/sdd:/);
+  });
+
+  it('모든 기능이 완료되면 빈 목록 대신 완료를 명시한다', () => {
+    const steps = buildStatusNextSteps([
+      feature({ status: 'implemented', taskProgress: { completed: 4, total: 4 } }),
+      feature({ id: 'pricing/old', status: 'deprecated' }),
+    ]);
+
+    expect(steps).toHaveLength(1);
+    expect(steps[0]).toContain('모든 기능(2개)이 구현 완료');
+  });
+
+  it('implemented인데 미완료 작업이 있으면 불일치를 명시한다', () => {
+    const step = getFeatureNextStep(feature({ status: 'implemented', taskProgress: { completed: 1, total: 3 } }));
+
+    expect(step).toContain('(1/3)');
+    expect(step).toContain('스펙 상태(implemented)와 작업 진행률(1/3)이 맞지 않습니다');
+  });
+
+  it('tasks.md는 있지만 작업을 못 찾으면 형식 확인/--force 재생성을 안내한다', () => {
+    const step = getFeatureNextStep(feature({ id: 'pricing/cart', taskProgress: { completed: 0, total: 0 } }));
+
+    expect(step).toContain('`### cart-task-NNN: 제목`');
+    expect(step).toContain('sdd new tasks pricing/cart --force');
+    expect(step).toContain('기존 내용 덮어씀');
+  });
+
+  it('tasks.md가 없으면 --force 없이 sdd new tasks를 안내한다', () => {
+    const step = getFeatureNextStep(feature({ hasTasks: false, taskProgress: undefined }));
+
+    expect(step).toContain('sdd new tasks pricing/cart (');
+    expect(step).not.toContain('--force');
+  });
+
+  it('done 기능에는 개별 안내가 없다', () => {
+    expect(getFeatureNextStep(feature({ status: 'implemented', taskProgress: { completed: 1, total: 1 } }))).toBeUndefined();
+  });
+});
 
 describe('getStatusIcon', () => {
   it('draft 상태 아이콘을 반환한다', () => {
@@ -140,6 +257,22 @@ completed: 2
     expect(info.taskProgress).toBeDefined();
     expect(info.taskProgress?.total).toBe(3);
     expect(info.taskProgress?.completed).toBe(2);
+    // No plan.md yet, so the stage is still plan
+    expect(info.stage).toBe('plan');
+  });
+
+  it('파일·스펙 상태·작업 진행률로 단계를 계산한다', async () => {
+    await fs.writeFile(path.join(featurePath, 'spec.md'), '---\ntitle: "x"\nstatus: implementing\n---\n# x\n');
+    await fs.writeFile(path.join(featurePath, 'plan.md'), '# Plan');
+    await fs.writeFile(
+      path.join(featurePath, 'tasks.md'),
+      '# 작업\n\n### t-1: 하나\n- **Status:** completed\n\n### t-2: 둘\n- **Status:** completed\n'
+    );
+
+    const info = await getFeatureInfo('test', featurePath);
+
+    expect(info.taskProgress).toEqual({ completed: 2, total: 2 });
+    expect(info.stage).toBe('finalize');
   });
 });
 

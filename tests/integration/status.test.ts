@@ -77,6 +77,35 @@ describe('sdd status', () => {
     // 도메인 기반 구조에서 feature ID는 common/auth 형식
     expect(stdout).toContain('common/auth');
   });
+
+  it('다음 단계를 기능 단계별로 안내하고 완료 시 완료를 명시한다', async () => {
+    const run = async (args: string) => (await execAsync(`node "${cliPath}" ${args}`, { cwd: tempDir })).stdout;
+    await run('init');
+    await run('new auth --no-branch');
+
+    let stdout = await run('status');
+    expect(stdout).toContain('sdd new plan common/auth');
+    expect(stdout).toContain('/sdd-plan');
+    expect(stdout).not.toContain('/sdd:');
+
+    await run('new plan auth');
+    await run('new tasks auth');
+    stdout = await run('status');
+    expect(stdout).toContain('(common/auth) — 작업 0/3');
+    expect(stdout).toContain('구현 진행 중 (0/3)');
+
+    for (const n of [1, 2, 3]) {
+      await run(`new task auth ${n} completed`);
+    }
+    stdout = await run('status');
+    expect(stdout).toContain('— 작업 3/3');
+    expect(stdout).toContain('sdd new status common/auth implemented');
+
+    await run('new status auth implemented');
+    stdout = await run('status');
+    const nextSteps = stdout.slice(stdout.indexOf('다음 단계'));
+    expect(nextSteps).toContain('모든 기능(1개)이 구현 완료되었습니다');
+  });
 });
 
 describe('sdd list', () => {
