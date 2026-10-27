@@ -55,6 +55,8 @@ export const SyncResultSchema = z.object({
   orphans: z.array(CodeLocationSchema),
   totalRequirements: z.number(),
   totalImplemented: z.number(),
+  /** Ambiguous/unresolved reference warnings */
+  warnings: z.array(z.string()).optional(),
 });
 
 export type SyncResult = z.infer<typeof SyncResultSchema>;
@@ -94,6 +96,8 @@ export type ExtractedRequirement = z.infer<typeof ExtractedRequirementSchema>;
  */
 export const CodeReferenceSchema = z.object({
   reqId: z.string(), // REQ-001
+  /** Spec qualifier from `<spec>#REQ-001` (canonical id or bare feature), absent for bare refs */
+  specRef: z.string().optional(),
   file: z.string(),
   line: z.number(),
   type: z.enum(['code', 'test']),

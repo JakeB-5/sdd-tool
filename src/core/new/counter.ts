@@ -94,12 +94,11 @@ export async function readCounter(sddPath: string): Promise<Result<CounterData, 
 export async function saveCounter(sddPath: string, data: CounterData): Promise<Result<void, CounterError>> {
   const counterPath = getCounterPath(sddPath);
 
-  try {
-    await writeFile(counterPath, JSON.stringify(data, null, 2));
-    return success(undefined);
-  } catch {
+  const writeResult = await writeFile(counterPath, JSON.stringify(data, null, 2));
+  if (!writeResult.success) {
     return failure(new CounterError('카운터 파일을 저장할 수 없습니다', 'WRITE_ERROR'));
   }
+  return success(undefined);
 }
 
 /**

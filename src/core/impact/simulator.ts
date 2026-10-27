@@ -4,6 +4,11 @@
  * 변경 제안을 실제로 적용하지 않고 영향도를 미리 분석합니다.
  */
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import { parse as parseYaml } from 'yaml';
+import { parseDeltaBody, splitMarkdownSections } from '../change/delta.js';
+import { readFrontmatter } from '../../utils/frontmatter.js';
+import { toStringList } from '../spec/schemas.js';
 import {
   DependencyGraph,
   ImpactLevel,
@@ -38,12 +43,16 @@ export interface DeltaItem {
   after?: string;
   newDependencies?: string[];
   removedDependencies?: string[];
+  /** Target came from a heading (`### <spec-ref>`): dropped unless it resolves to an existing spec */
+  requiresExistingSpec?: boolean;
 }
 
 /**
  * 시뮬레이션 결과
  */
 export interface SimulationResult {
+  /** 실제로 적용된 델타 (스펙 참조 해석 후) */
+  deltas?: DeltaItem[];
   /** 현재 상태 */
   current: {
     totalSpecs: number;
@@ -79,7 +88,23 @@ export interface SimulationResult {
 }
 
 /**
- * 변경 제안 파일에서 델타 파싱
+ * 시뮬레이션에 사용할 델타 파일 경로 결정
+ *
+ * Delta data lives in `delta.md` next to `proposal.md`; the proposal itself is only
+ * used for legacy changes that have no delta.md.
+ */
+export async function resolveDeltaSourcePath(proposalPath: string): Promise<string> {
+  if (path.basename(proposalPath) === 'proposal.md') {
+    const deltaPath = path.join(path.dirname(proposalPath), 'delta.md');
+    if (await fileExists(deltaPath)) {
+      return deltaPath;
+    }
+  }
+  return proposalPath;
+}
+
+/**
+ * 델타 파일(delta.md 또는 레거시 proposal.md)에서 델타 파싱
  */
 export async function parseDeltaFromProposal(
   proposalPath: string
@@ -90,43 +115,36 @@ export async function parseDeltaFromProposal(
     }
 
     const content = await fs.readFile(proposalPath, 'utf-8');
+    const { added, modified, removed } = parseDeltaBody(readFrontmatter(content).body);
     const deltas: DeltaItem[] = [];
 
-    // ADDED 섹션 파싱
-    const addedSection = content.match(/##\s*ADDED([\s\S]*?)(?=##\s*(?:MODIFIED|REMOVED)|---|\n$)/i);
-    if (addedSection) {
-      const items = parseListItems(addedSection[1]);
-      for (const item of items) {
+    // ADDED/REMOVED hold spec body text (requirements); only explicit spec targets count
+    for (const section of added) {
+      deltas.push(...extractSectionTargets('ADDED', section.content));
+    }
+
+    // MODIFIED: `### <target>` 대상별 Before/After, 대상이 없으면 명시적 스펙 목록 항목
+    for (const item of modified) {
+      if (item.target) {
         deltas.push({
-          type: 'ADDED',
-          specId: extractSpecIdFromText(item),
-          description: item,
+          type: 'MODIFIED',
+          specId: normalizeSpecTarget(item.target),
+          description: item.target,
+          before: item.before,
+          after: item.after,
+          requiresExistingSpec: true,
+          ...extractDependencyChanges(item.before, item.after),
         });
+      } else {
+        for (const ref of parseExplicitSpecItems(item.content)) {
+          deltas.push({ type: 'MODIFIED', specId: ref.specId, description: ref.line });
+        }
       }
     }
 
-    // MODIFIED 섹션 파싱
-    const modifiedSection = content.match(/##\s*MODIFIED([\s\S]*?)(?=##\s*(?:ADDED|REMOVED)|---|\n$)/i);
-    if (modifiedSection) {
-      const items = parseModifiedItems(modifiedSection[1]);
-      deltas.push(...items);
+    for (const section of removed) {
+      deltas.push(...extractSectionTargets('REMOVED', section.content));
     }
-
-    // REMOVED 섹션 파싱
-    const removedSection = content.match(/##\s*REMOVED([\s\S]*?)(?=##\s*(?:ADDED|MODIFIED)|---|\n$)/i);
-    if (removedSection) {
-      const items = parseListItems(removedSection[1]);
-      for (const item of items) {
-        deltas.push({
-          type: 'REMOVED',
-          specId: extractSpecIdFromText(item),
-          description: item,
-        });
-      }
-    }
-
-    // depends 변경 추출
-    extractDependencyChanges(content, deltas);
 
     return success(deltas);
   } catch (error) {
@@ -137,98 +155,120 @@ export async function parseDeltaFromProposal(
 }
 
 /**
- * 리스트 아이템 파싱
+ * 명시적 스펙 목록 항목 파싱: `` - `spec-ref` - 설명 `` (백틱 참조로 시작하는 항목만)
+ *
+ * Plain bullets are requirement text (e.g. `- 시스템은 ... (SHALL)`) and are ignored.
  */
-function parseListItems(section: string): string[] {
-  const items: string[] = [];
-  const lines = section.split('\n');
-
-  for (const line of lines) {
-    const match = line.match(/^\s*-\s+(.+)/);
+function parseExplicitSpecItems(section: string): Array<{ specId: string; line: string }> {
+  const items: Array<{ specId: string; line: string }> = [];
+  for (const line of section.split('\n')) {
+    const match = line.match(/^\s*[-*]\s+`([^`\s]+)`/);
     if (match) {
-      items.push(match[1].trim());
+      items.push({ specId: normalizeSpecTarget(match[1]), line: line.trim().replace(/^[-*]\s+/, '') });
     }
   }
-
   return items;
 }
 
 /**
- * MODIFIED 섹션 파싱 (Before/After 포함)
+ * ADDED/REMOVED 섹션에서 스펙 대상 추출
+ *
+ * - `` - `spec-ref` - 설명 ``: 스펙 자체의 추가/제거
+ * - `### <spec-ref>`: 기존 스펙 안의 요구사항 추가/제거 → 그 스펙의 수정으로 취급
+ *   (기존 스펙으로 해석되지 않는 제목, 예: `### REQ-02: ...`는 runSimulation에서 버려짐)
  */
-function parseModifiedItems(section: string): DeltaItem[] {
-  const items: DeltaItem[] = [];
+function extractSectionTargets(type: 'ADDED' | 'REMOVED', content: string): DeltaItem[] {
+  const deltas: DeltaItem[] = parseExplicitSpecItems(content).map((ref) => ({
+    type,
+    specId: ref.specId,
+    description: ref.line,
+  }));
 
-  // ### 형식의 수정 항목 찾기
-  const itemBlocks = section.split(/###\s+/);
-
-  for (const block of itemBlocks) {
-    if (!block.trim()) continue;
-
-    const titleMatch = block.match(/^(.+?)(?:\n|$)/);
-    if (!titleMatch) continue;
-
-    const specId = extractSpecIdFromText(titleMatch[1]);
-    const beforeMatch = block.match(/\*\*Before\*\*:?\s*(.+?)(?=\*\*After\*\*|$)/is);
-    const afterMatch = block.match(/\*\*After\*\*:?\s*(.+?)(?=###|$)/is);
-
-    items.push({
+  for (const section of splitMarkdownSections(content, 3)) {
+    if (section.heading === null) continue;
+    deltas.push({
       type: 'MODIFIED',
-      specId,
-      description: titleMatch[1].trim(),
-      before: beforeMatch?.[1]?.trim(),
-      after: afterMatch?.[1]?.trim(),
+      specId: normalizeSpecTarget(section.heading),
+      description: `${type}: ${section.heading}`,
+      requiresExistingSpec: true,
     });
   }
 
-  // 리스트 형식도 지원
-  if (items.length === 0) {
-    const listItems = parseListItems(section);
-    for (const item of listItems) {
-      items.push({
-        type: 'MODIFIED',
-        specId: extractSpecIdFromText(item),
-        description: item,
-      });
-    }
-  }
-
-  return items;
+  return deltas;
 }
 
 /**
- * 텍스트에서 스펙 ID 추출
+ * MODIFIED 대상 제목을 스펙 참조로 정규화
+ * (`specs/auth/login/spec.md`, `.sdd/specs/auth/login`, `` `auth/login` `` → `auth/login`)
  */
-function extractSpecIdFromText(text: string): string {
-  // `spec-id` 형식
-  const backtickMatch = text.match(/`([a-z0-9-]+)`/i);
-  if (backtickMatch) return backtickMatch[1];
-
-  // 첫 번째 단어 사용 (폴백)
-  const wordMatch = text.match(/^([a-z0-9-]+)/i);
-  return wordMatch ? wordMatch[1] : text.slice(0, 20).replace(/\s/g, '-').toLowerCase();
+function normalizeSpecTarget(target: string): string {
+  return target
+    .replace(/`/g, '')
+    .trim()
+    .replace(/^\.?\/?(?:\.sdd\/)?specs\//, '')
+    .replace(/\/spec\.md$/, '')
+    .replace(/\/+$/, '');
 }
 
 /**
- * 의존성 변경 추출
+ * Before/After 텍스트의 `depends:` 키를 YAML로 파싱 (키가 없거나 YAML 오류면 undefined)
+ *
+ * Accepts flow lists, block lists, comma strings; `null`/`~`/empty → [].
  */
-function extractDependencyChanges(content: string, deltas: DeltaItem[]): void {
-  // depends 추가 패턴
-  const _addDepsPattern = /depends?\s*(?:에|를|:)?\s*(?:추가|add)/gi;
-  const _removeDepsPattern = /depends?\s*(?:에서|를|:)?\s*(?:제거|remove)/gi;
+function parseDependsLine(text: string | undefined): string[] | undefined {
+  if (!text) return undefined;
+  const lines = text.split('\n');
+  const start = lines.findIndex((line) => /^\s*depends:/.test(line));
+  if (start === -1) return undefined;
 
-  for (const delta of deltas) {
-    // 관련 텍스트에서 의존성 변경 찾기
-    if (delta.after) {
-      const depsMatch = delta.after.match(/depends?:\s*\[?([^\]\n]+)\]?/i);
-      if (depsMatch) {
-        delta.newDependencies = depsMatch[1]
-          .split(',')
-          .map((d) => d.trim().replace(/["`']/g, ''))
-          .filter(Boolean);
-      }
+  // The `depends:` line plus its indented / `- item` continuation lines
+  const indent = lines[start].match(/^\s*/)?.[0].length ?? 0;
+  const block = [lines[start]];
+  for (const line of lines.slice(start + 1)) {
+    const lineIndent = line.match(/^\s*/)?.[0].length ?? 0;
+    if (line.trim() === '' || lineIndent > indent || /^\s*-\s/.test(line)) {
+      block.push(line);
+    } else {
+      break;
     }
   }
+
+  let value: unknown;
+  try {
+    const parsed = parseYaml(block.map((line) => line.slice(indent)).join('\n')) as
+      | { depends?: unknown }
+      | null;
+    value = parsed?.depends;
+  } catch {
+    return undefined;
+  }
+
+  const list = toStringList(value ?? []);
+  return Array.isArray(list) ? list.map((d) => String(d).trim()).filter(Boolean) : [];
+}
+
+/**
+ * Before/After의 depends 비교로 추가/제거된 의존성 계산
+ */
+function extractDependencyChanges(
+  before: string | undefined,
+  after: string | undefined
+): Pick<DeltaItem, 'newDependencies' | 'removedDependencies'> {
+  const beforeDeps = parseDependsLine(before);
+  const afterDeps = parseDependsLine(after);
+  if (!afterDeps) {
+    // Without an After depends line the dependency change is unknown
+    return {};
+  }
+  if (!beforeDeps) {
+    return { newDependencies: afterDeps };
+  }
+  const added = afterDeps.filter((d) => !beforeDeps.includes(d));
+  const removed = beforeDeps.filter((d) => !afterDeps.includes(d));
+  return {
+    ...(added.length > 0 ? { newDependencies: added } : {}),
+    ...(removed.length > 0 ? { removedDependencies: removed } : {}),
+  };
 }
 
 /**
@@ -247,7 +287,12 @@ export async function runSimulation(
       return failure(new ChangeError(resolvedTarget.error.message));
     }
     const targetSpec = resolvedTarget.data.id;
-    const deltas = rawDeltas.map((delta) => resolveDeltaRefs(allSpecs, delta));
+    const deltas = resolveSimulationDeltas(allSpecs, rawDeltas);
+    if (deltas.length === 0) {
+      return failure(
+        new ChangeError('변경 제안에서 델타를 찾을 수 없습니다. (기존 스펙으로 해석되는 대상이 없음)')
+      );
+    }
 
     // 1. 현재 그래프 구축
     const currentGraphResult = await buildDependencyGraph(specsPath);
@@ -329,20 +374,29 @@ export async function runSimulation(
         addedSpecs,
         removedSpecs,
         modifiedSpecs,
-        addedEdges: projectedGraph.edges.length - currentGraph.edges.length,
-        removedEdges: 0, // 간략화
+        ...countEdgeChanges(currentGraph, projectedGraph),
       },
       newlyAffected,
       noLongerAffected,
       riskDelta,
       warnings,
       recommendations,
+      deltas,
     });
   } catch (error) {
     return failure(
       new ChangeError(`시뮬레이션 실패: ${error instanceof Error ? error.message : String(error)}`)
     );
   }
+}
+
+/**
+ * 델타를 canonical id로 해석하고, 기존 스펙이 필요한 대상(제목 기반)이 해석되지 않으면 제외
+ */
+export function resolveSimulationDeltas(allSpecs: SpecLocation[], deltas: DeltaItem[]): DeltaItem[] {
+  return deltas
+    .filter((delta) => !delta.requiresExistingSpec || resolveSpecRef(allSpecs, delta.specId))
+    .map((delta) => resolveDeltaRefs(allSpecs, delta));
 }
 
 /**
@@ -358,6 +412,22 @@ function resolveDeltaRefs(allSpecs: SpecLocation[], delta: DeltaItem): DeltaItem
     specId: own?.id ?? delta.specId,
     newDependencies: delta.newDependencies?.map(resolveDep),
     removedDependencies: delta.removedDependencies?.map(resolveDep),
+  };
+}
+
+/**
+ * 현재/예상 그래프 간 추가·제거된 엣지 수 (from→to 기준)
+ */
+function countEdgeChanges(
+  current: DependencyGraph,
+  projected: DependencyGraph
+): { addedEdges: number; removedEdges: number } {
+  const key = (e: { from: string; to: string }): string => `${e.from}\u0000${e.to}`;
+  const currentKeys = new Set(current.edges.map(key));
+  const projectedKeys = new Set(projected.edges.map(key));
+  return {
+    addedEdges: [...projectedKeys].filter((k) => !currentKeys.has(k)).length,
+    removedEdges: [...currentKeys].filter((k) => !projectedKeys.has(k)).length,
   };
 }
 
@@ -445,7 +515,23 @@ function applyDeltas(graph: DependencyGraph, deltas: DeltaItem[]): void {
         break;
 
       case 'MODIFIED':
-        // 의존성 변경 적용
+        // 제거된 의존성 적용
+        if (graph.nodes.has(delta.specId) && delta.removedDependencies) {
+          const node = graph.nodes.get(delta.specId)!;
+          const removed = new Set(delta.removedDependencies);
+          node.dependsOn = node.dependsOn.filter((dep) => !removed.has(dep));
+          graph.edges = graph.edges.filter(
+            (e) => !(e.from === delta.specId && removed.has(e.to))
+          );
+          for (const dep of removed) {
+            const depNode = graph.nodes.get(dep);
+            if (depNode) {
+              depNode.dependedBy = depNode.dependedBy.filter((id) => id !== delta.specId);
+            }
+          }
+        }
+
+        // 추가된 의존성 적용
         if (graph.nodes.has(delta.specId) && delta.newDependencies) {
           const node = graph.nodes.get(delta.specId)!;
           const oldDeps = new Set(node.dependsOn);

@@ -2,7 +2,7 @@
  * Delta 파서 및 생성기
  */
 import { z } from 'zod';
-import { DeltaItem } from './schemas.js';
+import { DeltaItem, localDateString } from './schemas.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { parseFrontmatter } from '../../utils/frontmatter.js';
@@ -39,6 +39,137 @@ const PreprocessedDeltaMetadataSchema = z.object({
 });
 
 /**
+ * Split markdown at headings of exactly `level` (deeper headings stay inside the
+ * section; headings inside fenced code blocks are ignored). Returns sections keyed
+ * by the heading's first word in upper case (first occurrence wins), in order.
+ */
+function splitSections(text: string, level: number): Map<string, string> {
+  const result = new Map<string, string>();
+  for (const section of splitMarkdownSections(text, level)) {
+    if (section.heading === null) continue;
+    const key = section.heading.split(/\s+/)[0].toUpperCase();
+    if (!result.has(key)) {
+      result.set(key, section.content);
+    }
+  }
+  return result;
+}
+
+export interface MarkdownSection {
+  /** Heading text, or null for content before the first heading */
+  heading: string | null;
+  content: string;
+}
+
+/**
+ * Split markdown at headings of exactly `level`, ignoring headings inside fenced code blocks.
+ */
+export function splitMarkdownSections(text: string, level: number): MarkdownSection[] {
+  const headingPattern = new RegExp(`^#{${level}}(?!#)\\s*(.*)$`);
+  const sections: Array<{ heading: string | null; lines: string[] }> = [
+    { heading: null, lines: [] },
+  ];
+  let fenceChar: string | null = null;
+
+  for (const line of text.split('\n')) {
+    const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);
+    if (fenceMatch) {
+      const char = fenceMatch[1][0];
+      if (fenceChar === null) {
+        fenceChar = char;
+      } else if (fenceChar === char) {
+        fenceChar = null;
+      }
+    }
+
+    const headingMatch = fenceChar === null && !fenceMatch ? line.match(headingPattern) : null;
+    if (headingMatch) {
+      sections.push({ heading: headingMatch[1].trim(), lines: [] });
+    } else {
+      sections[sections.length - 1].lines.push(line);
+    }
+  }
+
+  return sections.map((s) => ({ heading: s.heading, content: s.lines.join('\n') }));
+}
+
+/**
+ * Extract the first fenced block that follows a `#### Before` / `**Before:**` label.
+ */
+function extractFencedBlock(text: string, label: 'Before' | 'After'): string | undefined {
+  const pattern = new RegExp(
+    `(?:#{3,4}[ \\t]*${label}|\\*\\*${label}:?\\*\\*:?)[ \\t]*\\n+(\`{3,}|~{3,})[^\\n]*\\n([\\s\\S]*?)\\n\\1`,
+    'i'
+  );
+  return text.match(pattern)?.[2]?.trim();
+}
+
+/**
+ * Parse the MODIFIED section into one item per `### <target>` sub-heading.
+ * Content without any target heading becomes a single untargeted item.
+ */
+function parseModifiedSection(sectionContent: string): DeltaItem[] {
+  const trimmed = sectionContent.trim();
+  // Empty section or the bare template placeholder
+  if (!trimmed || trimmed === '기존 내용') {
+    return [];
+  }
+
+  const targets = splitMarkdownSections(sectionContent, 3).filter(
+    (s): s is { heading: string; content: string } => s.heading !== null
+  );
+
+  if (targets.length === 0) {
+    return [
+      {
+        type: 'MODIFIED',
+        content: trimmed,
+        before: extractFencedBlock(trimmed, 'Before'),
+        after: extractFencedBlock(trimmed, 'After'),
+      },
+    ];
+  }
+
+  return targets
+    // Skip unfilled template targets
+    .filter((s) => !s.heading.includes('{{SPEC_PATH}}'))
+    .map((s) => {
+      const content = s.content.trim();
+      return {
+        type: 'MODIFIED' as const,
+        target: s.heading,
+        content,
+        before: extractFencedBlock(content, 'Before'),
+        after: extractFencedBlock(content, 'After'),
+      };
+    });
+}
+
+/**
+ * Delta 본문(frontmatter 제외)의 `## ADDED/MODIFIED/REMOVED` 섹션 파싱
+ *
+ * ADDED/REMOVED keep their whole section (including `###` sub-headings) as one item;
+ * MODIFIED yields one item per `### <target>`.
+ */
+export function parseDeltaBody(body: string): {
+  added: DeltaItem[];
+  modified: DeltaItem[];
+  removed: DeltaItem[];
+} {
+  // HTML comments are template placeholders, never delta content
+  const sections = splitSections(body.replace(/<!--[\s\S]*?-->/g, ''), 2);
+
+  const addedContent = sections.get('ADDED')?.trim() ?? '';
+  const removedContent = sections.get('REMOVED')?.trim() ?? '';
+
+  return {
+    added: addedContent ? [{ type: 'ADDED', content: addedContent }] : [],
+    modified: parseModifiedSection(sections.get('MODIFIED') ?? ''),
+    removed: removedContent ? [{ type: 'REMOVED', content: removedContent }] : [],
+  };
+}
+
+/**
  * Delta 파싱
  */
 export function parseDelta(content: string): Result<ParsedDelta, ChangeError> {
@@ -57,55 +188,10 @@ export function parseDelta(content: string): Result<ParsedDelta, ChangeError> {
     const titleMatch = body.match(/^#\s+(?:Delta:\s*)?(.+)$/m);
     const title = titleMatch?.[1]?.trim() || '';
 
-    // ADDED 섹션 추출
-    const addedMatch = body.match(/##\s*ADDED\s*([\s\S]*?)(?=\n##|$)/i);
-    const added: DeltaItem[] = [];
-    if (addedMatch && addedMatch[1].trim()) {
-      added.push({
-        type: 'ADDED',
-        content: addedMatch[1].trim(),
-      });
-    }
-
-    // MODIFIED 섹션 추출
-    const modifiedMatch = body.match(/##\s*MODIFIED\s*([\s\S]*?)(?=\n##\s+(?:REMOVED|ADDED)|$)/i);
-    const modified: DeltaItem[] = [];
-    if (modifiedMatch) {
-      const contentTrimmed = modifiedMatch[1].trim();
-
-      // 빈 섹션이나 템플릿만 있는 경우 스킵
-      if (contentTrimmed.length > 0 &&
-          !contentTrimmed.includes('{{SPEC_PATH}}') &&
-          contentTrimmed !== '기존 내용') {
-        // Before/After 블록 추출 - 더 유연한 패턴
-        const beforeMatch = contentTrimmed.match(/####?\s*Before\s*\n+```(?:markdown)?\n([\s\S]*?)\n```/i);
-        const afterMatch = contentTrimmed.match(/####?\s*After\s*\n+```(?:markdown)?\n([\s\S]*?)\n```/i);
-
-        modified.push({
-          type: 'MODIFIED',
-          content: contentTrimmed,
-          before: beforeMatch?.[1]?.trim(),
-          after: afterMatch?.[1]?.trim(),
-        });
-      }
-    }
-
-    // REMOVED 섹션 추출
-    const removedMatch = body.match(/##\s*REMOVED\s*([\s\S]*?)(?=\n##|$)/i);
-    const removed: DeltaItem[] = [];
-    if (removedMatch && removedMatch[1].trim()) {
-      removed.push({
-        type: 'REMOVED',
-        content: removedMatch[1].trim(),
-      });
-    }
-
     return success({
       metadata: metadataResult.data,
       title,
-      added,
-      modified,
-      removed,
+      ...parseDeltaBody(body),
       rawContent: body,
     });
   } catch (error) {
@@ -132,7 +218,7 @@ export interface GenerateDeltaOptions {
  * Delta 템플릿 생성
  */
 export function generateDelta(options: GenerateDeltaOptions): string {
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateString();
 
   let content = `---
 proposal: ${options.proposalId}
@@ -230,11 +316,13 @@ export function validateDelta(content: string): DeltaValidationResult {
     result.errors.push('델타에 변경 내용이 없습니다. ADDED, MODIFIED, REMOVED 중 하나 이상이 필요합니다.');
   }
 
-  // MODIFIED에 Before/After가 있는지 확인
+  // MODIFIED 대상마다 Before/After가 있는지 확인
   if (result.hasModified) {
-    const mod = delta.modified[0];
-    if (!mod.before || !mod.after) {
-      result.warnings.push('MODIFIED 섹션에 Before/After 블록이 없습니다.');
+    for (const mod of delta.modified) {
+      if (!mod.before || !mod.after) {
+        const where = mod.target ? ` (${mod.target})` : '';
+        result.warnings.push(`MODIFIED 섹션${where}에 Before/After 블록이 없습니다.`);
+      }
     }
   }
 

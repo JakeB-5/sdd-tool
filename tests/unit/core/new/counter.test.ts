@@ -99,6 +99,26 @@ describe('saveCounter', () => {
     const parsed = JSON.parse(saved);
     expect(parsed.nextFeatureNumber).toBe(10);
   });
+
+  it('파일을 쓸 수 없으면 WRITE_ERROR 실패를 반환한다', async () => {
+    const counterPath = path.join(tempDir, 'counter.json');
+    await fs.writeFile(counterPath, '{}');
+    await fs.chmod(counterPath, 0o444);
+
+    try {
+      const result = await saveCounter(tempDir, {
+        nextFeatureNumber: 1,
+        lastUpdated: '2025-01-01T00:00:00Z',
+        history: [],
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.code).toBe('WRITE_ERROR');
+      }
+    } finally {
+      await fs.chmod(counterPath, 0o644);
+    }
+  });
 });
 
 describe('getNextFeatureNumber', () => {

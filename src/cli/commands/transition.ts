@@ -5,12 +5,16 @@
  */
 import { Command } from 'commander';
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
 import * as logger from '../../utils/logger.js';
 import { ExitCode } from '../../errors/index.js';
 import { findSddRoot, fileExists, readFile, ensureDir, writeFile, directoryExists } from '../../utils/fs.js';
 import { resolveSpec } from '../../core/spec/locator.js';
-import { generateChangeId, isValidChangeId } from '../../core/change/index.js';
+import {
+  generateChangeId,
+  isValidChangeId,
+  collectUsedChangeIds,
+  localDateString,
+} from '../../core/change/index.js';
 import { Result, success, failure } from '../../types/index.js';
 import { isSafePathSegment } from '../../utils/path.js';
 import { stringifyFrontmatter } from '../../utils/frontmatter.js';
@@ -56,16 +60,10 @@ export interface ChangeToNewResult {
 }
 
 /**
- * 기존 변경 ID 목록 가져오기 (테스트 가능)
+ * 기존 변경 ID 목록 가져오기 - 진행 중 + 아카이브 (테스트 가능)
  */
 export async function getExistingChangeIds(sddPath: string): Promise<string[]> {
-  const changesPath = path.join(sddPath, 'changes');
-  try {
-    const dirs = await fs.readdir(changesPath);
-    return dirs.filter((d) => d.startsWith('CHG-'));
-  } catch {
-    return [];
-  }
+  return collectUsedChangeIds(sddPath);
 }
 
 /**
@@ -104,21 +102,24 @@ export async function transitionNewToChange(
   const changeId = generateChangeId(existingIds);
   const changesPath = path.join(sddPath, 'changes');
   const changePath = path.join(changesPath, changeId);
-  await ensureDir(changePath);
+  const dirResult = await ensureDir(changePath);
+  if (!dirResult.success) {
+    return failure(dirResult.error);
+  }
 
-  // proposal.md 생성
   const title = options.title || `${specId} 기능 확장`;
   const reason = options.reason || 'new 워크플로우에서 전환됨';
-  const proposalContent = generateTransitionProposal(specId, title, reason, 'new-to-change');
-  await writeFile(path.join(changePath, 'proposal.md'), proposalContent);
-
-  // delta.md 생성
-  const deltaContent = generateDeltaTemplate(specId);
-  await writeFile(path.join(changePath, 'delta.md'), deltaContent);
-
-  // tasks.md 생성
-  const tasksContent = generateTasksTemplate();
-  await writeFile(path.join(changePath, 'tasks.md'), tasksContent);
+  const files: Array<[string, string]> = [
+    ['proposal.md', generateTransitionProposal(changeId, specId, title, reason, 'new-to-change')],
+    ['delta.md', generateDeltaTemplate(changeId, specId)],
+    ['tasks.md', generateTasksTemplate()],
+  ];
+  for (const [fileName, content] of files) {
+    const writeResult = await writeFile(path.join(changePath, fileName), content);
+    if (!writeResult.success) {
+      return failure(writeResult.error);
+    }
+  }
 
   return success({
     changeId,
@@ -169,29 +170,40 @@ export async function transitionChangeToNew(
     return failure(new Error(`스펙이 이미 존재합니다: ${featureName}`));
   }
 
-  await ensureDir(newSpecPath);
+  const dirResult = await ensureDir(newSpecPath);
+  if (!dirResult.success) {
+    return failure(dirResult.error);
+  }
 
-  // spec.md 생성
   const reason = options.reason || 'change 워크플로우에서 전환됨';
-  const specContent = generateTransitionSpec(featureName, extractedTitle || featureName, reason, changeId);
-  await writeFile(path.join(newSpecPath, 'spec.md'), specContent);
-
-  // plan.md 생성
-  const planContent = generatePlanTemplate(featureName);
-  await writeFile(path.join(newSpecPath, 'plan.md'), planContent);
-
-  // tasks.md 생성
-  const tasksContent = generateTasksTemplate();
-  await writeFile(path.join(newSpecPath, 'tasks.md'), tasksContent);
-
-  // 원본 변경 제안 상태 업데이트
-  const statusPath = path.join(changePath, '.status');
-  await writeFile(statusPath, JSON.stringify({
-    status: 'transitioned',
-    transitionedTo: featureName,
-    transitionedAt: new Date().toISOString(),
-    reason,
-  }, null, 2));
+  const files: Array<[string, string]> = [
+    [
+      path.join(newSpecPath, 'spec.md'),
+      generateTransitionSpec(featureName, extractedTitle || featureName, reason, changeId),
+    ],
+    [path.join(newSpecPath, 'plan.md'), generatePlanTemplate(featureName)],
+    [path.join(newSpecPath, 'tasks.md'), generateTasksTemplate()],
+    // 원본 변경 제안 상태 업데이트
+    [
+      path.join(changePath, '.status'),
+      JSON.stringify(
+        {
+          status: 'transitioned',
+          transitionedTo: featureName,
+          transitionedAt: new Date().toISOString(),
+          reason,
+        },
+        null,
+        2
+      ),
+    ],
+  ];
+  for (const [filePath, content] of files) {
+    const writeResult = await writeFile(filePath, content);
+    if (!writeResult.success) {
+      return failure(writeResult.error);
+    }
+  }
 
   return success({
     featureName,
@@ -395,17 +407,19 @@ function displayTransitionGuide(): void {
  * 전환용 proposal.md 생성
  */
 function generateTransitionProposal(
+  changeId: string,
   specId: string,
   title: string,
   reason: string,
   direction: TransitionDirection
 ): string {
-  const now = new Date().toISOString().split('T')[0];
+  const now = localDateString();
+  // Field names follow the proposal schema (id: CHG-XXX, target) so parseProposal accepts it
   return stringifyFrontmatter(
     {
-      id: `${specId}-change`,
+      id: changeId,
       title,
-      target_spec: specId,
+      target: specId,
       status: 'draft',
       created: now,
       transition_from: direction === 'new-to-change' ? 'new' : 'change',
@@ -428,7 +442,9 @@ function generateTransitionProposal(
 
 ## 영향 범위
 
-- 대상 스펙: \`${specId}\`
+### 영향받는 스펙
+
+- \`${specId}\`
 
 <!-- 관련된 다른 스펙이 있다면 나열하세요 -->
 
@@ -445,8 +461,13 @@ function generateTransitionProposal(
 /**
  * delta.md 템플릿 생성
  */
-function generateDeltaTemplate(specId: string): string {
+function generateDeltaTemplate(changeId: string, specId: string): string {
+  const now = localDateString();
+  // proposal/created are required by the delta schema. The MODIFIED target stays the
+  // {{SPEC_PATH}} placeholder so an untouched template is recognised as unfilled.
   return `---
+proposal: ${changeId}
+created: ${now}
 target: ${specId}
 ---
 
@@ -458,17 +479,19 @@ target: ${specId}
 
 ## MODIFIED
 
-<!-- 변경되는 내용 (Before/After) -->
+<!-- 변경되는 내용 (Before/After). {{SPEC_PATH}}를 대상 스펙(예: specs/${specId}/spec.md)으로 바꾸세요 -->
 
-### 요구사항 변경
+### {{SPEC_PATH}}
 
-**Before:**
-\`\`\`
+#### Before
+
+\`\`\`markdown
 <!-- 기존 내용 -->
 \`\`\`
 
-**After:**
-\`\`\`
+#### After
+
+\`\`\`markdown
 <!-- 변경된 내용 -->
 \`\`\`
 
@@ -487,7 +510,7 @@ function generateTransitionSpec(
   reason: string,
   fromChangeId: string
 ): string {
-  const now = new Date().toISOString().split('T')[0];
+  const now = localDateString();
   return stringifyFrontmatter(
     {
       id: featureName,

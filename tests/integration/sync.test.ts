@@ -135,7 +135,8 @@ describe('sdd sync', () => {
 
     const result = await runCli(['sync'], tempDir);
 
-    expect(result.code).toBe(7); // 미구현 요구사항이 있으면 exit code 7 (VALIDATION_ERROR)
+    // Without --ci/--threshold sync only reports
+    expect(result.code).toBe(0);
     expect(result.stdout).toContain('동기화 검증');
     expect(result.stdout).toContain('동기화율');
   });
@@ -161,12 +162,63 @@ describe('sdd sync', () => {
 
     const result = await runCli(['sync', '--ci', '--threshold', '100'], tempDir);
 
-    // CI 모드에서 임계값 미달 시 실패 (exit code 7)
-    expect(result.code).toBe(7);
+    // CI 모드에서 임계값 미달 시 실패 (ExitCode.VALIDATION_FAILED)
+    expect(result.code).toBe(2);
 
-    // stdout 또는 stderr에 출력이 있어야 함
-    const output = result.stdout + result.stderr;
-    expect(output).toContain('동기화율');
+    // 실패해도 리포트는 stdout에 출력된다
+    expect(result.stdout).toContain('동기화 검증');
+    expect(result.stdout).toContain('REQ-003');
+    expect(result.stderr).toContain('임계값 100%');
+  });
+
+  it('--ci에서 동기화율이 임계값 이상이면 미구현이 있어도 성공한다', async () => {
+    await setupSddProject(tempDir);
+
+    // 2/3 = 66.67%
+    const result = await runCli(['sync', '--ci', '--threshold', '60'], tempDir);
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain('REQ-003');
+  });
+
+  it('숫자가 아닌 --threshold는 에러로 처리한다', async () => {
+    await setupSddProject(tempDir);
+
+    const result = await runCli(['sync', '--ci', '--threshold', 'abc'], tempDir);
+
+    expect(result.code).not.toBe(0);
+    expect(result.stderr).toContain('0~100');
+  });
+
+  it('--json --ci 실패 시에도 stdout은 JSON만 담는다', async () => {
+    await setupSddProject(tempDir);
+
+    const result = await runCli(['sync', '--json', '--ci'], tempDir);
+
+    expect(result.code).toBe(2);
+    expect(JSON.parse(result.stdout).syncRate).toBeCloseTo(66.67, 1);
+  });
+
+  it('스펙 한정 참조(<spec>#REQ-xx)로 같은 REQ ID를 스펙별로 구분한다', async () => {
+    await setupSddProject(tempDir);
+    const otherSpec = path.join(tempDir, '.sdd', 'specs', 'billing');
+    await fs.mkdir(otherSpec, { recursive: true });
+    await fs.writeFile(path.join(otherSpec, 'spec.md'), '# billing\n\n### REQ-001: 결제\n');
+    await fs.writeFile(
+      path.join(tempDir, 'src', 'billing.ts'),
+      '// @spec billing#REQ-001\nexport const pay = 1;\n'
+    );
+
+    const result = await runCli(['sync', '--json'], tempDir);
+    const json = JSON.parse(result.stdout);
+    const status = (specId: string, id: string): string =>
+      json.requirements.find((r: { specId: string; id: string }) => r.specId === specId && r.id === id).status;
+
+    expect(status('billing', 'REQ-001')).toBe('implemented');
+    // Bare REQ-001 refs (src/auth.ts, auth.test.ts) are now ambiguous → ignored with a warning
+    expect(status('user-auth', 'REQ-001')).toBe('missing');
+    expect(status('user-auth', 'REQ-002')).toBe('implemented');
+    expect(json.warnings.some((w: string) => w.includes('REQ-001'))).toBe(true);
   });
 
   it('--json 옵션으로 JSON 형식을 출력한다', async () => {

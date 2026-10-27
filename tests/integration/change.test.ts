@@ -154,6 +154,33 @@ created: ${new Date().toISOString().split('T')[0]}
 
       expect(stdout).toMatch(/적용|apply/i);
     });
+
+    it('apply는 상태만 바꾼다고 안내하고 템플릿 문자열을 그대로 출력하지 않는다', async () => {
+      await execAsync(`node "${cliPath}" change -t "적용 안내"`, { cwd: tempDir });
+      const changeId = (await fs.readdir(path.join(tempDir, '.sdd', 'changes')))[0];
+
+      const { stdout } = await execAsync(`node "${cliPath}" change apply ${changeId}`, { cwd: tempDir });
+
+      expect(stdout).not.toContain('${id}');
+      expect(stdout).toContain(`sdd change archive ${changeId}`);
+      expect(stdout).toContain('적용됨(applied)으로 표시');
+      expect(stdout).toContain('스펙 파일은 자동으로 수정되지 않습니다');
+
+      const proposal = await fs.readFile(
+        path.join(tempDir, '.sdd', 'changes', changeId, 'proposal.md'),
+        'utf-8'
+      );
+      expect(proposal).toMatch(/status: applied/);
+    });
+
+    it('아카이브 후 새 변경은 아카이브된 ID를 재사용하지 않는다', async () => {
+      await execAsync(`node "${cliPath}" change -t "첫 변경"`, { cwd: tempDir });
+      await execAsync(`node "${cliPath}" change archive CHG-001`, { cwd: tempDir });
+      await execAsync(`node "${cliPath}" change -t "두번째 변경"`, { cwd: tempDir });
+
+      const changes = await fs.readdir(path.join(tempDir, '.sdd', 'changes'));
+      expect(changes).toEqual(['CHG-002']);
+    });
   });
 
   describe('변경 아카이브', () => {
@@ -204,6 +231,21 @@ created: ${new Date().toISOString().split('T')[0]}
   });
 
   describe('에러 처리', () => {
+    it('proposal.md 파싱에 실패하면 0이 아닌 코드로 종료한다', async () => {
+      const changeDir = path.join(tempDir, '.sdd', 'changes', 'CHG-001');
+      await fs.mkdir(changeDir, { recursive: true });
+      await fs.writeFile(path.join(changeDir, 'proposal.md'), '---\nid: not-a-change-id\n---\n# 깨진 제안\n');
+
+      try {
+        await execAsync(`node "${cliPath}" change CHG-001`, { cwd: tempDir });
+        expect.fail('Should have thrown an error');
+      } catch (error: unknown) {
+        const execError = error as { code?: number; stdout?: string; stderr?: string };
+        expect(execError.code).toBe(2);
+        expect((execError.stdout || '') + (execError.stderr || '')).toContain('파싱 실패');
+      }
+    });
+
     it('존재하지 않는 변경 ID에 에러를 반환한다', async () => {
       try {
         await execAsync(

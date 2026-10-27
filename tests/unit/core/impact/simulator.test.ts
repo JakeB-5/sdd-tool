@@ -7,10 +7,13 @@ import path from 'node:path';
 import os from 'node:os';
 import {
   parseDeltaFromProposal,
+  resolveDeltaSourcePath,
   runSimulation,
   formatSimulationResult,
   type DeltaItem,
 } from '../../../../src/core/impact/simulator.js';
+import { generateDelta } from '../../../../src/core/change/delta.js';
+import { transitionNewToChange } from '../../../../src/cli/commands/transition.js';
 
 describe('parseDeltaFromProposal', () => {
   let tempDir: string;
@@ -134,6 +137,215 @@ id: change-004
     const result = await parseDeltaFromProposal('/nonexistent/path/proposal.md');
     expect(result.success).toBe(false);
   });
+
+  it('delta.md 형식의 여러 MODIFIED 대상과 depends 추가/제거를 파싱한다', async () => {
+    const deltaPath = path.join(tempDir, 'delta-multi.md');
+    await fs.writeFile(deltaPath, `---
+proposal: CHG-001
+created: 2025-01-01
+---
+
+# Delta
+
+## MODIFIED
+
+### specs/auth/login/spec.md
+
+#### Before
+
+\`\`\`yaml
+depends: [core, session]
+\`\`\`
+
+#### After
+
+\`\`\`yaml
+depends: [core, token]
+\`\`\`
+
+### \`auth/logout\`
+
+#### Before
+
+\`\`\`
+old
+\`\`\`
+
+#### After
+
+\`\`\`
+new
+\`\`\`
+`);
+
+    const result = await parseDeltaFromProposal(deltaPath);
+    expect(result.success).toBe(true);
+
+    const modified = (result.data as DeltaItem[]).filter((d) => d.type === 'MODIFIED');
+    expect(modified).toHaveLength(2);
+    expect(modified[0].specId).toBe('auth/login');
+    expect(modified[0].newDependencies).toEqual(['token']);
+    expect(modified[0].removedDependencies).toEqual(['session']);
+    expect(modified[1].specId).toBe('auth/logout');
+    expect(modified[1].newDependencies).toBeUndefined();
+    expect(modified[1].removedDependencies).toBeUndefined();
+  });
+});
+
+describe('parseDeltaFromProposal - 스펙 대상만 사용', () => {
+  let tempDir: string;
+  let sddPath: string;
+  let specsPath: string;
+
+  beforeAll(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-sim-targets-'));
+    sddPath = path.join(tempDir, '.sdd');
+    specsPath = path.join(sddPath, 'specs');
+    await fs.mkdir(path.join(specsPath, 'auth', 'login'), { recursive: true });
+    await fs.mkdir(path.join(specsPath, 'auth', 'session'), { recursive: true });
+    await fs.writeFile(path.join(specsPath, 'auth', 'login', 'spec.md'), '---\nid: login\ndepends: session\n---\n# 로그인\n');
+    await fs.writeFile(path.join(specsPath, 'auth', 'session', 'spec.md'), '---\nid: session\n---\n# 세션\n');
+  });
+
+  afterAll(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  const writeDelta = async (name: string, body: string): Promise<string> => {
+    const p = path.join(tempDir, name);
+    await fs.writeFile(p, `---\nproposal: CHG-001\ncreated: 2025-01-01\n---\n\n# Delta\n\n${body}`);
+    return p;
+  };
+
+  it('ADDED/REMOVED의 요구사항 bullet은 스펙으로 취급하지 않는다', async () => {
+    const deltaPath = await writeDelta('bullets.md', `## ADDED
+
+### REQ-02: 토큰 갱신
+
+- 시스템은 만료 5분 전에 토큰을 갱신해야 한다(SHALL)
+- 시스템은 갱신 실패 시 재로그인을 요구해야 한다(SHALL)
+
+### auth/login
+
+- 시스템은 \`token\`을 발급해야 한다(SHALL)
+
+## REMOVED
+
+- 레거시 쿠키 세션 (MUST NOT)
+`);
+
+    const parsed = await parseDeltaFromProposal(deltaPath);
+    expect(parsed.success).toBe(true);
+    const sim = await runSimulation(specsPath, 'auth/login', parsed.data as DeltaItem[]);
+    expect(sim.success).toBe(true);
+
+    const data = sim.data!;
+    expect(data.changes.addedSpecs).toEqual([]);
+    expect(data.changes.removedSpecs).toEqual([]);
+    // `### auth/login` resolves to an existing spec → modification; `### REQ-02` is dropped
+    expect(data.changes.modifiedSpecs).toEqual(['auth/login']);
+    expect(data.projected.totalSpecs).toBe(data.current.totalSpecs);
+  });
+
+  it('sdd change가 만든 미작성 delta 템플릿은 적용할 델타가 없다', async () => {
+    const deltaPath = path.join(tempDir, 'template.md');
+    await fs.writeFile(deltaPath, generateDelta({ proposalId: 'CHG-001', title: '템플릿' }));
+
+    const parsed = await parseDeltaFromProposal(deltaPath);
+    expect(parsed.success).toBe(true);
+    expect(parsed.data).toEqual([]);
+  });
+
+  it('transition이 만든 미작성 delta 템플릿도 적용할 델타가 없다', async () => {
+    const result = await transitionNewToChange(sddPath, 'auth/login', {});
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const parsed = await parseDeltaFromProposal(path.join(result.data.changePath, 'delta.md'));
+    expect(parsed.success).toBe(true);
+    const sim = await runSimulation(specsPath, 'auth/login', parsed.data as DeltaItem[]);
+    expect(sim.success).toBe(false);
+    expect(sim.success ? '' : sim.error.message).toContain('델타를 찾을 수 없습니다');
+  });
+
+  it('depends: null / 여러 줄 YAML 목록을 파싱한다', async () => {
+    const deltaPath = await writeDelta('yaml-deps.md', `## MODIFIED
+
+### auth/session
+
+#### Before
+
+\`\`\`yaml
+depends: null
+\`\`\`
+
+#### After
+
+\`\`\`yaml
+depends:
+  - auth/login
+  - core
+\`\`\`
+
+### auth/login
+
+#### Before
+
+\`\`\`yaml
+id: login
+depends:
+  - session
+\`\`\`
+
+#### After
+
+\`\`\`yaml
+id: login
+depends: ~
+\`\`\`
+`);
+
+    const parsed = await parseDeltaFromProposal(deltaPath);
+    expect(parsed.success).toBe(true);
+    const [session, login] = parsed.data as DeltaItem[];
+    expect(session.newDependencies).toEqual(['auth/login', 'core']);
+    expect(session.removedDependencies).toBeUndefined();
+    expect(login.newDependencies).toBeUndefined();
+    expect(login.removedDependencies).toEqual(['session']);
+  });
+});
+
+describe('resolveDeltaSourcePath', () => {
+  let tempDir: string;
+
+  beforeAll(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-delta-source-'));
+  });
+
+  afterAll(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('proposal.md 옆에 delta.md가 있으면 delta.md를 사용한다', async () => {
+    const changeDir = path.join(tempDir, 'CHG-001');
+    await fs.mkdir(changeDir, { recursive: true });
+    await fs.writeFile(path.join(changeDir, 'proposal.md'), '');
+    await fs.writeFile(path.join(changeDir, 'delta.md'), '');
+
+    expect(await resolveDeltaSourcePath(path.join(changeDir, 'proposal.md'))).toBe(
+      path.join(changeDir, 'delta.md')
+    );
+  });
+
+  it('delta.md가 없으면 레거시 proposal.md를 사용한다', async () => {
+    const changeDir = path.join(tempDir, 'CHG-002');
+    await fs.mkdir(changeDir, { recursive: true });
+    await fs.writeFile(path.join(changeDir, 'proposal.md'), '');
+
+    expect(await resolveDeltaSourcePath(path.join(changeDir, 'proposal.md'))).toBe(
+      path.join(changeDir, 'proposal.md')
+    );
+  });
 });
 
 describe('runSimulation', () => {
@@ -194,6 +406,21 @@ A에 의존하는 기능
     const data = result.data!;
     expect(data.changes.addedSpecs).toContain('feature-c');
     expect(data.projected.totalSpecs).toBeGreaterThan(data.current.totalSpecs);
+  });
+
+  it('MODIFIED의 removedDependencies를 적용하고 제거된 엣지를 센다', async () => {
+    const deltas: DeltaItem[] = [
+      { type: 'MODIFIED', specId: 'feature-b', removedDependencies: ['feature-a'] },
+    ];
+
+    const result = await runSimulation(specsPath, 'feature-a', deltas);
+    expect(result.success).toBe(true);
+
+    const data = result.data!;
+    expect(data.changes.removedEdges).toBe(1);
+    expect(data.changes.addedEdges).toBe(0);
+    expect(data.projected.totalEdges).toBe(data.current.totalEdges - 1);
+    expect(data.noLongerAffected).toContain('feature-b');
   });
 
   it('스펙 제거 시뮬레이션을 실행한다', async () => {

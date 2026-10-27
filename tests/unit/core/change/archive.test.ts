@@ -1,7 +1,7 @@
 /**
  * 변경 아카이브 기능 테스트
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -9,7 +9,69 @@ import {
   archiveChange,
   listArchives,
   listPendingChanges,
+  collectUsedChangeIds,
+  generateNextChangeId,
 } from '../../../../src/core/change/archive.js';
+
+describe('generateNextChangeId', () => {
+  let sddPath: string;
+
+  beforeEach(async () => {
+    sddPath = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-change-id-'));
+  });
+
+  afterEach(async () => {
+    await fs.rm(sddPath, { recursive: true, force: true });
+  });
+
+  it('아무 변경도 없으면 CHG-001', async () => {
+    expect(await generateNextChangeId(sddPath)).toBe('CHG-001');
+  });
+
+  it('아카이브된 ID를 재사용하지 않는다', async () => {
+    await fs.mkdir(path.join(sddPath, 'changes', 'CHG-001'), { recursive: true });
+    await fs.mkdir(path.join(sddPath, 'archive', '2025-01', '2025-01-15-CHG-003'), { recursive: true });
+
+    expect(await collectUsedChangeIds(sddPath)).toEqual(expect.arrayContaining(['CHG-001', 'CHG-003']));
+    expect(await generateNextChangeId(sddPath)).toBe('CHG-004');
+  });
+
+  it('archiveChange 후에도 같은 ID가 다시 발급되지 않는다', async () => {
+    await fs.mkdir(path.join(sddPath, 'changes', 'CHG-001'), { recursive: true });
+    const archived = await archiveChange(sddPath, 'CHG-001');
+    expect(archived.success).toBe(true);
+
+    expect(await generateNextChangeId(sddPath)).toBe('CHG-002');
+  });
+});
+
+describe('archiveChange 날짜 폴더', () => {
+  let sddPath: string;
+
+  beforeEach(async () => {
+    sddPath = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-archive-date-'));
+    await fs.mkdir(path.join(sddPath, 'changes', 'CHG-001'), { recursive: true });
+  });
+
+  afterEach(async () => {
+    vi.useRealTimers();
+    await fs.rm(sddPath, { recursive: true, force: true });
+  });
+
+  it('월 폴더와 날짜 프리픽스가 모두 로컬 날짜를 사용한다', async () => {
+    // Local 00:30 on the first day of a month: in UTC+ zones UTC is still the previous month
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2025, 1, 1, 0, 30));
+
+    const result = await archiveChange(sddPath, 'CHG-001');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(path.basename(path.dirname(result.data.archiveDir))).toBe('2025-02');
+      expect(path.basename(result.data.archiveDir)).toBe('2025-02-01-CHG-001');
+    }
+  });
+});
 
 describe('archiveChange', () => {
   let tempDir: string;

@@ -15,6 +15,7 @@ import {
 import { parseSpec } from '../../../../src/core/spec/parser.js';
 import { validateSpecs } from '../../../../src/core/spec/validator.js';
 import { readFrontmatter } from '../../../../src/utils/frontmatter.js';
+import { parseProposal, parseDelta, validateDelta } from '../../../../src/core/change/index.js';
 
 describe('getExistingChangeIds', () => {
   let tempDir: string;
@@ -148,6 +149,42 @@ describe('transitionNewToChange', () => {
     expect(data.transition_reason).toBe('a: b');
     expect(data.created).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(data.created_at).toBeUndefined();
+  });
+
+  it('생성된 proposal.md/delta.md는 변경 스키마로 파싱된다', async () => {
+    const specPath = path.join(sddPath, 'specs', 'auth', 'login');
+    await fs.mkdir(specPath, { recursive: true });
+    await fs.writeFile(path.join(specPath, 'spec.md'), '---\nid: login\n---\n# Login');
+    // An archived CHG-002 must not be reissued
+    await fs.mkdir(path.join(sddPath, 'archive', '2025-01', '2025-01-01-CHG-002'), { recursive: true });
+
+    const result = await transitionNewToChange(sddPath, 'auth/login', { title: '로그인 확장' });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(result.data.changeId).toBe('CHG-003');
+
+    const proposal = parseProposal(
+      await fs.readFile(path.join(result.data.changePath, 'proposal.md'), 'utf-8')
+    );
+    expect(proposal.success).toBe(true);
+    if (proposal.success) {
+      expect(proposal.data.metadata.id).toBe('CHG-003');
+      expect(proposal.data.metadata.target).toBe('auth/login');
+      expect(proposal.data.affectedSpecs).toContain('auth/login');
+    }
+
+    const deltaContent = await fs.readFile(path.join(result.data.changePath, 'delta.md'), 'utf-8');
+    const delta = parseDelta(deltaContent);
+    expect(delta.success).toBe(true);
+    if (delta.success) {
+      expect(delta.data.metadata.proposal).toBe('CHG-003');
+    }
+
+    // An untouched template must be reported as unfilled by `sdd change validate`
+    const validation = validateDelta(deltaContent);
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.join('\n')).toContain('변경 내용이 없습니다');
   });
 });
 

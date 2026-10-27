@@ -1,5 +1,10 @@
 /**
  * 매처 - 스펙 요구사항과 코드 참조 매칭
+ *
+ * 참조 해석 규칙:
+ * - `<spec>#REQ-xxx`: 해당 스펙의 REQ-xxx에만 매칭 (<spec>은 canonical id 또는 유일한 feature 이름)
+ * - bare `REQ-xxx`: REQ-xxx를 가진 스펙이 하나뿐일 때만 매칭, 여러 스펙에 있으면 경고 후 무시
+ * - 요구사항은 코드 또는 테스트 중 하나 이상에서 참조되면 implemented로 본다
  */
 import type {
   ExtractedRequirement,
@@ -10,26 +15,60 @@ import type {
   CodeLocation,
 } from './schemas.js';
 
+/**
+ * 참조 해석 결과
+ */
+type RefResolution =
+  | { kind: 'matched'; specId: string }
+  | { kind: 'orphan' }
+  | { kind: 'ambiguous'; candidates: string[] };
+
+function requirementKey(specId: string, reqId: string): string {
+  return `${specId}#${reqId}`;
+}
+
 export class SyncMatcher {
   /**
    * 스펙 요구사항과 코드 참조를 매칭하여 동기화 결과 생성
+   *
+   * @param allRequirements 참조 해석(모호성/고아 판정)에 사용할 전체 요구사항.
+   *   특정 스펙만 검사할 때도 다른 스펙의 같은 REQ ID를 고려하도록 전달한다. 기본값은 requirements.
    */
   match(
     requirements: ExtractedRequirement[],
     codeRefs: CodeReference[],
-    testRefs: CodeReference[]
+    testRefs: CodeReference[],
+    allRequirements: ExtractedRequirement[] = requirements
   ): SyncResult {
     // 모든 참조 병합
     const allRefs = [...codeRefs, ...testRefs];
 
+    // 참조별 대상 스펙 해석
+    const universe = [...allRequirements, ...requirements];
+    const resolutions = allRefs.map((ref) => this.resolveRef(ref, universe));
+
+    // 요구사항 키(spec#REQ)별 매칭 참조
+    const refsByKey = new Map<string, CodeReference[]>();
+    allRefs.forEach((ref, i) => {
+      const resolution = resolutions[i];
+      if (resolution.kind !== 'matched') return;
+      const key = requirementKey(resolution.specId, ref.reqId);
+      const list = refsByKey.get(key) ?? [];
+      list.push(ref);
+      refsByKey.set(key, list);
+    });
+
     // 요구사항별 상태 계산
-    const requirementStatuses = this.calculateStatuses(requirements, allRefs);
+    const requirementStatuses = this.calculateStatuses(requirements, refsByKey);
 
     // 스펙별 요약 계산
     const specs = this.calculateSpecSummaries(requirements, requirementStatuses);
 
-    // 고아 코드 찾기 (스펙에 없는 REQ-xxx 참조)
-    const orphans = this.findOrphans(requirements, allRefs);
+    // 고아 코드 찾기 (어느 스펙에도 없는 참조)
+    const orphans = this.findOrphans(allRefs.filter((_, i) => resolutions[i].kind === 'orphan'));
+
+    // 모호한 bare 참조 경고
+    const warnings = this.collectAmbiguityWarnings(allRefs, resolutions);
 
     // 전체 통계
     const implemented = requirementStatuses
@@ -50,7 +89,36 @@ export class SyncMatcher {
       orphans,
       totalRequirements,
       totalImplemented,
+      warnings,
     };
+  }
+
+  /**
+   * 참조가 가리키는 스펙 해석
+   */
+  private resolveRef(ref: CodeReference, requirements: ExtractedRequirement[]): RefResolution {
+    const specsWithReq = [
+      ...new Set(requirements.filter(r => r.id === ref.reqId).map(r => r.specId)),
+    ];
+
+    if (ref.specRef) {
+      const specRef = ref.specRef.replace(/^\/+|\/+$/g, '');
+      const allSpecIds = [...new Set(requirements.map(r => r.specId))];
+      const exact = allSpecIds.find(id => id === specRef);
+      const byFeature = allSpecIds.filter(id => id.split('/').pop() === specRef);
+      const specId = exact ?? (byFeature.length === 1 ? byFeature[0] : undefined);
+
+      if (!specId) {
+        return byFeature.length > 1
+          ? { kind: 'ambiguous', candidates: byFeature }
+          : { kind: 'orphan' };
+      }
+      return specsWithReq.includes(specId) ? { kind: 'matched', specId } : { kind: 'orphan' };
+    }
+
+    if (specsWithReq.length === 0) return { kind: 'orphan' };
+    if (specsWithReq.length === 1) return { kind: 'matched', specId: specsWithReq[0] };
+    return { kind: 'ambiguous', candidates: specsWithReq };
   }
 
   /**
@@ -58,13 +126,12 @@ export class SyncMatcher {
    */
   private calculateStatuses(
     requirements: ExtractedRequirement[],
-    allRefs: CodeReference[]
+    refsByKey: Map<string, CodeReference[]>
   ): RequirementStatus[] {
     return requirements.map(req => {
-      // 이 요구사항을 참조하는 코드/테스트 찾기
-      const matchingRefs = allRefs.filter(ref => ref.reqId === req.id);
+      // 이 요구사항(스펙 범위)을 참조하는 코드/테스트
+      const matchingRefs = refsByKey.get(requirementKey(req.specId, req.id)) ?? [];
 
-      // 코드와 테스트 분리
       const codeLocations: CodeLocation[] = matchingRefs.map(ref => ({
         file: ref.file,
         line: ref.line,
@@ -72,16 +139,9 @@ export class SyncMatcher {
         text: ref.context,
       }));
 
-      // 상태 결정
-      let status: RequirementStatus['status'];
-      if (matchingRefs.length === 0) {
-        status = 'missing';
-      } else {
-        const hasCode = matchingRefs.some(r => r.type === 'code');
-        const hasTest = matchingRefs.some(r => r.type === 'test');
-        // 코드와 테스트 모두 있으면 implemented, 하나만 있으면 partial
-        status = hasCode || hasTest ? 'implemented' : 'missing';
-      }
+      // 코드 또는 테스트 중 하나 이상에서 참조되면 implemented
+      const status: RequirementStatus['status'] =
+        matchingRefs.length > 0 ? 'implemented' : 'missing';
 
       return {
         id: req.id,
@@ -127,20 +187,13 @@ export class SyncMatcher {
   }
 
   /**
-   * 고아 코드 찾기 (스펙에 없는 REQ-xxx 참조)
+   * 고아 코드 정리 (같은 파일의 같은 참조는 한 번만)
    */
-  private findOrphans(
-    requirements: ExtractedRequirement[],
-    allRefs: CodeReference[]
-  ): CodeLocation[] {
-    const knownReqIds = new Set(requirements.map(r => r.id));
-    const orphanRefs = allRefs.filter(ref => !knownReqIds.has(ref.reqId));
-
-    // 중복 제거 (같은 파일의 같은 REQ-xxx)
+  private findOrphans(orphanRefs: CodeReference[]): CodeLocation[] {
     const seen = new Set<string>();
     return orphanRefs
       .filter(ref => {
-        const key = `${ref.file}:${ref.reqId}`;
+        const key = `${ref.file}:${ref.specRef ?? ''}#${ref.reqId}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -149,7 +202,27 @@ export class SyncMatcher {
         file: ref.file,
         line: ref.line,
         type: ref.type,
-        text: `${ref.reqId}: ${ref.context || ''}`,
+        text: `${ref.specRef ? `${ref.specRef}#` : ''}${ref.reqId}: ${ref.context || ''}`,
       }));
+  }
+
+  /**
+   * 모호한 참조 경고 생성
+   */
+  private collectAmbiguityWarnings(
+    refs: CodeReference[],
+    resolutions: RefResolution[]
+  ): string[] {
+    const warnings = new Set<string>();
+    refs.forEach((ref, i) => {
+      const resolution = resolutions[i];
+      if (resolution.kind !== 'ambiguous') return;
+      const label = ref.specRef ? `${ref.specRef}#${ref.reqId}` : ref.reqId;
+      warnings.add(
+        `${ref.file}:${ref.line} - ${label} 참조가 여러 스펙(${resolution.candidates.join(', ')})에 해당하여 무시되었습니다. ` +
+          `<domain>/<feature>#${ref.reqId} 형식으로 지정하세요.`
+      );
+    });
+    return [...warnings];
   }
 }

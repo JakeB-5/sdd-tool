@@ -14,7 +14,7 @@ export const sddSyncSkill: SkillDefinition = {
 
 ## Overview
 
-Verify that every REQ-xxx requirement in a spec has a corresponding implementation in source code or a matching test. Detect gaps early to prevent spec drift.
+Verify that every REQ-xx requirement in a spec is referenced by source code or a test. Detect gaps early to prevent spec drift.
 
 ---
 
@@ -25,12 +25,12 @@ Verify that every REQ-xxx requirement in a spec has a corresponding implementati
 sdd sync
 
 # Verify a specific spec
-sdd sync user-auth
+sdd sync auth/login
 
-# Output as JSON
+# Output as JSON (stdout carries only JSON)
 sdd sync --json
 
-# CI mode: fail if sync rate is below threshold
+# CI mode: exit 2 if the sync rate is below the threshold (default 100)
 sdd sync --ci --threshold 80
 
 # Generate a Markdown report
@@ -41,13 +41,19 @@ sdd sync --markdown
 
 ## Code Annotation Convention
 
-Link implementation code to requirements using \`@spec\` annotations:
+Without \`--ci\`/\`--threshold\`, \`sdd sync\` only reports and exits 0.
+
+Requirement IDs are numbered per spec, so qualify \`@spec\` annotations with the spec:
+\`<domain>/<feature>#REQ-xx\` (or \`<feature>#REQ-xx\` when the feature name is unique).
+A bare \`@spec REQ-01\` matches only when exactly one spec has \`REQ-01\`; if several specs do,
+the reference is ignored and reported as a warning (JSON: \`warnings\`). References that match
+no spec are reported as orphans.
 
 \`\`\`typescript
 /**
  * Authenticate a user with email and password.
- * @spec REQ-001
- * @spec REQ-002
+ * @spec auth/login#REQ-01
+ * @spec auth/login#REQ-02
  */
 export async function login(email: string, password: string) { ... }
 \`\`\`
@@ -56,11 +62,11 @@ export async function login(email: string, password: string) { ... }
 
 ## Test Mapping Convention
 
-Name tests to reference requirement IDs:
+Name tests with the same reference:
 
 \`\`\`typescript
-it('REQ-001: logs in with valid credentials', () => { ... });
-it('REQ-002: rejects invalid password', () => { ... });
+it('auth/login#REQ-01: logs in with valid credentials', () => { ... });
+it('auth/login#REQ-02: rejects invalid password', () => { ... });
 \`\`\`
 
 ---
@@ -73,14 +79,14 @@ it('REQ-002: rejects invalid password', () => { ... });
 Specs: 3   Requirements: 15
 
 Implemented (12/15):
-  REQ-001  login                    src/auth/login.ts:45
-  REQ-002  password validation      src/auth/login.ts:62
+  auth/login#REQ-01  login                 src/auth/login.ts:45
+  auth/login#REQ-02  password validation   src/auth/login.ts:62
   ...
 
 Not implemented (3/15):
-  REQ-010  password reset
-  REQ-013  account lockout
-  REQ-015  audit logging
+  auth/reset#REQ-01  password reset
+  auth/login#REQ-05  account lockout
+  audit/log#REQ-01   audit logging
 
 Sync rate: 80% (12/15)
 \`\`\`
@@ -89,12 +95,11 @@ Sync rate: 80% (12/15)
 
 ## Workflow
 
-1. Run \`sdd sync\` to collect the full requirement list.
-2. For each REQ-xxx, search source files for \`@spec REQ-xxx\` annotations.
-3. Search test files for \`REQ-xxx:\` in test names.
-4. Mark each requirement as Implemented, Partially implemented, or Not implemented.
-5. Calculate and display the overall sync rate.
-6. In CI mode (\`--ci\`), exit non-zero if the rate falls below the threshold.
+1. Run \`sdd sync --json\` to collect requirement statuses, orphans and warnings.
+2. A requirement is \`implemented\` when code **or** a test references it, otherwise \`missing\`.
+3. For each ignored-reference warning, rewrite the bare \`REQ-xx\` as \`<domain>/<feature>#REQ-xx\`.
+4. Report the overall sync rate and the missing requirements per spec.
+5. In CI mode (\`--ci\`), the command exits 2 if the rate falls below the threshold.
 
 ---
 

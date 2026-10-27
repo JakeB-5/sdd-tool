@@ -15,6 +15,7 @@ import {
   parseDomainFeatureName,
   detectDomain,
   validateDomain,
+  buildNextSteps,
 } from '../../../../src/cli/commands/new.js';
 import { executeDomainCreate } from '../../../../src/cli/commands/domain.js';
 import { executeContextSet, executeContextClear } from '../../../../src/cli/commands/context.js';
@@ -180,6 +181,79 @@ title: "추출된 제목"
     if (result.success) {
       const planContent = await fs.readFile(result.data, 'utf-8');
       expect(planContent).toContain('추출된 제목');
+    }
+  });
+
+  it('명시한 title이 spec.md 제목보다 우선한다', async () => {
+    await fs.writeFile(
+      path.join(featurePath, 'spec.md'),
+      '---\nid: test-feature\ntitle: "스펙 제목"\n---\n'
+    );
+
+    const result = await createPlan(featurePath, 'test-feature', '계획 전용 제목');
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const planContent = await fs.readFile(result.data, 'utf-8');
+      expect(planContent).toContain('계획 전용 제목');
+      expect(planContent).not.toContain('스펙 제목');
+    }
+  });
+
+  it('plan.md를 쓸 수 없으면 실패를 반환한다', async () => {
+    const planPath = path.join(featurePath, 'plan.md');
+    await fs.writeFile(planPath, 'old');
+    await fs.chmod(planPath, 0o444);
+
+    try {
+      const result = await createPlan(featurePath, 'test-feature');
+      expect(result.success).toBe(false);
+    } finally {
+      await fs.chmod(planPath, 0o644);
+    }
+  });
+});
+
+describe('buildNextSteps', () => {
+  it('생성된 파일 단계를 건너뛰어도 번호가 연속된다', () => {
+    expect(buildNextSteps('/f', 'login', { plan: true })).toEqual([
+      '/f/spec.md 편집',
+      'sdd new tasks login - 작업 분해',
+      'sdd validate - 명세 검증',
+    ]);
+    expect(buildNextSteps('/f', 'login', { all: true })).toHaveLength(2);
+    expect(buildNextSteps('/f', 'login', {})).toHaveLength(4);
+  });
+});
+
+describe('createFeature - 쓰기 실패', () => {
+  let tempDir: string;
+  let sddPath: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-new-write-'));
+    sddPath = path.join(tempDir, '.sdd');
+    await fs.mkdir(sddPath, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('spec.md를 쓸 수 없으면 실패를 반환한다', async () => {
+    const featureDir = path.join(sddPath, 'specs', 'common', 'locked');
+    await fs.mkdir(featureDir, { recursive: true });
+    await fs.writeFile(path.join(featureDir, 'spec.md'), 'old');
+    await fs.chmod(path.join(featureDir, 'spec.md'), 0o444);
+
+    try {
+      const result = await createFeature(sddPath, 'locked', {});
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('파일 생성 실패');
+      }
+    } finally {
+      await fs.chmod(path.join(featureDir, 'spec.md'), 0o644);
     }
   });
 });

@@ -5,7 +5,6 @@
  */
 import { Command } from 'commander';
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
 import {
   generateProposal,
   generateDelta,
@@ -15,7 +14,7 @@ import {
   updateProposalStatus,
   listPendingChanges,
   archiveChange,
-  generateChangeId,
+  generateNextChangeId,
   isValidChangeId,
 } from '../../core/change/index.js';
 import { findSddRoot, directoryExists, ensureDir, writeFile, readFile, fileExists } from '../../utils/fs.js';
@@ -66,7 +65,7 @@ export interface ChangeListItem {
  */
 export interface DeltaInfo {
   added: Array<{ content: string }>;
-  modified: Array<{ content: string; before?: string; after?: string }>;
+  modified: Array<{ content: string; target?: string; before?: string; after?: string }>;
   removed: Array<{ content: string }>;
 }
 
@@ -137,23 +136,17 @@ export async function createChange(
   options: { title?: string; spec?: string }
 ): Promise<Result<CreateChangeResult, Error>> {
   const changesPath = path.join(sddPath, 'changes');
-  await ensureDir(changesPath);
 
-  // 기존 ID 수집
-  const existingIds: string[] = [];
-  try {
-    const dirs = await fs.readdir(changesPath);
-    existingIds.push(...dirs.filter((d) => d.startsWith('CHG-')));
-  } catch {
-    // 디렉토리가 없을 수 있음
-  }
-
-  const newId = generateChangeId(existingIds);
+  // Archived IDs count as used so an ID is never reissued after archiving
+  const newId = await generateNextChangeId(sddPath);
   const title = options.title || '새 변경 제안';
   const affectedSpecs = options.spec ? [options.spec] : [];
 
   const changePath = path.join(changesPath, newId);
-  await ensureDir(changePath);
+  const dirResult = await ensureDir(changePath);
+  if (!dirResult.success) {
+    return failure(new Error(`변경 디렉토리 생성 실패: ${dirResult.error.message}`));
+  }
 
   // proposal.md 생성
   const proposal = generateProposal({
@@ -162,7 +155,10 @@ export async function createChange(
     affectedSpecs,
   });
   const proposalPath = path.join(changePath, 'proposal.md');
-  await writeFile(proposalPath, proposal);
+  const proposalWrite = await writeFile(proposalPath, proposal);
+  if (!proposalWrite.success) {
+    return failure(new Error(`proposal.md 생성 실패: ${proposalWrite.error.message}`));
+  }
 
   // delta.md 생성
   const delta = generateDelta({
@@ -170,7 +166,10 @@ export async function createChange(
     title,
   });
   const deltaPath = path.join(changePath, 'delta.md');
-  await writeFile(deltaPath, delta);
+  const deltaWrite = await writeFile(deltaPath, delta);
+  if (!deltaWrite.success) {
+    return failure(new Error(`delta.md 생성 실패: ${deltaWrite.error.message}`));
+  }
 
   return success({
     id: newId,
@@ -180,7 +179,10 @@ export async function createChange(
 }
 
 /**
- * 변경 적용 (테스트 가능)
+ * 변경을 적용됨(applied)으로 표시 (테스트 가능)
+ *
+ * Only the proposal status changes; spec files are edited by the user/AI
+ * following delta.md. This command does not rewrite specs.
  */
 export async function applyChange(changePath: string): Promise<Result<void, Error>> {
   const proposalPath = path.join(changePath, 'proposal.md');
@@ -199,7 +201,10 @@ export async function applyChange(changePath: string): Promise<Result<void, Erro
     return failure(new Error('proposal.md를 업데이트할 수 없습니다.'));
   }
 
-  await writeFile(proposalPath, updateResult.data);
+  const writeResult = await writeFile(proposalPath, updateResult.data);
+  if (!writeResult.success) {
+    return failure(new Error(`proposal.md 저장 실패: ${writeResult.error.message}`));
+  }
   return success(undefined);
 }
 
@@ -307,7 +312,7 @@ export function registerChangeCommand(program: Command): void {
   // apply 서브커맨드
   change
     .command('apply <id>')
-    .description('변경 제안을 스펙에 적용합니다')
+    .description('변경 제안을 적용됨(applied)으로 표시합니다 (스펙 수정은 delta.md를 참고해 직접 수행)')
     .action(async (id: string) => {
       try {
         await runApply(id);
@@ -424,6 +429,7 @@ async function runChange(
       }
     } else {
       logger.error(infoResult.error.message);
+      process.exit(ExitCode.VALIDATION_FAILED);
     }
     return;
   }
@@ -473,11 +479,12 @@ async function runApply(id: string): Promise<void> {
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  logger.success(`변경이 적용 상태로 변경되었습니다: ${id}`);
+  logger.success(`변경을 적용됨(applied)으로 표시했습니다: ${id}`);
+  logger.info('스펙 파일은 자동으로 수정되지 않습니다.');
   logger.newline();
   logger.info('다음 단계:');
-  logger.listItem('delta.md를 참조하여 스펙을 수정하세요');
-  logger.listItem('구현이 완료되면 `sdd change archive ${id}`를 실행하세요');
+  logger.listItem(`.sdd/changes/${id}/delta.md를 참조하여 스펙을 직접 수정하세요`);
+  logger.listItem(`구현이 완료되면 \`sdd change archive ${id}\`를 실행하세요`);
 }
 
 /**
@@ -545,6 +552,9 @@ async function runDiff(id: string): Promise<void> {
   if (delta.modified.length > 0) {
     logger.info('📘 MODIFIED:');
     for (const item of delta.modified) {
+      if (item.target) {
+        logger.info(`  ${item.target}`);
+      }
       if (item.before && item.after) {
         logger.info('  Before:');
         for (const line of item.before.split('\n').slice(0, 3)) {

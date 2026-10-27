@@ -5,128 +5,60 @@
 ## 사용법
 
 ```bash
-sdd impact [spec-id] [options]
+sdd impact <spec> [options]
+sdd impact report [--json]
+sdd impact change <change-id> [--json]
+sdd impact simulate <spec> <change-id> [--json]
 ```
+
+`<spec>`은 `<domain>/<feature>` 또는 유일한 `<feature>`입니다.
 
 ## 옵션
 
 | 옵션 | 설명 |
 |------|------|
-| `--json` | JSON 형식으로 출력 |
-| `--depth <n>` | 분석 깊이 (기본: 3) |
-| `--code` | 코드 영향도 포함 |
-| `--report` | 상세 리포트 생성 |
+| `-g, --graph` | 의존성 그래프 출력 (Mermaid) |
+| `-c, --code` | 코드 영향도 분석 |
+| `--json` | JSON 형식 출력 — 모든 하위 커맨드에서 사용 가능하며 stdout에는 JSON만 출력 |
 
-## 분석 항목
+## 서브커맨드
 
-1. **스펙 의존성**: 해당 스펙에 의존하는 다른 스펙
-2. **코드 참조**: 스펙을 참조하는 소스 코드 파일
-3. **테스트 영향**: 관련 테스트 파일
-4. **도메인 영향**: 영향받는 도메인
+| 커맨드 | 설명 |
+|--------|------|
+| `report` | 전체 프로젝트 의존성 리포트 |
+| `change <id>` | 변경 제안이 영향을 주는 스펙 분석 |
+| `simulate <spec> <id>` | 변경을 적용했다고 가정한 영향도 예측 (What-if) |
+
+## 분석 내용
+
+- **의존하는 스펙**: 대상 스펙이 사용하는 스펙 (frontmatter `depends`)
+- **직접/간접 영향 스펙**: 대상 스펙에 의존하는 스펙
+- **리스크 점수**와 권장사항
+
+## simulate
+
+`simulate`는 `.sdd/changes/<id>/delta.md`를 읽습니다 (delta.md가 없는 레거시 변경만 proposal.md 사용).
+
+- `## ADDED` / `## REMOVED`: 명시적 스펙 대상만 사용 — `` `spec-id` ``로 시작하는 목록 항목은 그 스펙의 추가/제거,
+  기존 스펙으로 해석되는 `### <스펙>` 제목은 그 스펙의 수정으로 봅니다. 요구사항 본문(일반 bullet, `### REQ-xx` 제목)과
+  `<!-- -->` 플레이스홀더는 무시합니다
+- `## MODIFIED`: `### <대상 스펙>`마다 Before/After의 `depends:` 줄을 비교해
+  추가·제거된 의존성을 계산합니다 (`newDependencies`, `removedDependencies`)
+- 결과의 `changes.addedEdges` / `changes.removedEdges`는 현재와 예상 그래프의 실제 엣지 차이입니다
+- 델타가 하나도 없으면 에러로 종료합니다 (종료 코드 1)
+
+```bash
+sdd impact simulate auth/login CHG-001 --json
+```
 
 ## 예시
 
-### 기본 영향도 분석
-
 ```bash
-sdd impact user-auth
-```
-
-출력:
-```
-=== 영향도 분석: user-auth ===
-
-📊 직접 의존:
-  • user-profile (depends: user-auth)
-  • order-checkout (depends: user-auth)
-
-🔗 간접 의존 (depth 2):
-  • payment-flow → order-checkout → user-auth
-
-📁 관련 코드:
-  • src/auth/login.ts
-  • src/auth/session.ts
-  • src/middleware/auth.ts
-
-🧪 관련 테스트:
-  • tests/auth/login.test.ts
-  • tests/integration/auth.test.ts
-
-⚠️  영향 요약:
-  - 직접 의존: 2개 스펙
-  - 간접 의존: 1개 스펙
-  - 코드 파일: 3개
-  - 테스트 파일: 2개
-```
-
-### JSON 출력
-
-```bash
-sdd impact user-auth --json
-```
-
-```json
-{
-  "specId": "user-auth",
-  "directDependents": ["user-profile", "order-checkout"],
-  "indirectDependents": ["payment-flow"],
-  "codeFiles": [
-    "src/auth/login.ts",
-    "src/auth/session.ts"
-  ],
-  "testFiles": [
-    "tests/auth/login.test.ts"
-  ],
-  "summary": {
-    "directCount": 2,
-    "indirectCount": 1,
-    "codeCount": 3,
-    "testCount": 2
-  }
-}
-```
-
-### 코드 영향도 포함
-
-```bash
-sdd impact user-auth --code
-```
-
-출력:
-```
-=== 코드 영향도 분석: user-auth ===
-
-📁 src/auth/login.ts
-   Line 15: implements REQ-AUTH-001
-   Line 42: implements REQ-AUTH-002
-
-📁 src/auth/session.ts
-   Line 8: implements REQ-AUTH-003
-
-📁 src/middleware/auth.ts
-   Line 23: depends on user-auth
-```
-
-### 상세 리포트 생성
-
-```bash
-sdd impact user-auth --report
-```
-
-`.sdd/reports/impact-user-auth.md` 파일이 생성됩니다.
-
-## 영향도 시각화
-
-```bash
-sdd impact user-auth --graph
-```
-
-Mermaid 다이어그램 출력:
-```mermaid
-graph TD
-    user-auth --> user-profile
-    user-auth --> order-checkout
-    order-checkout --> payment-flow
+sdd impact auth/login              # 영향도 분석
+sdd impact auth/login --graph      # Mermaid 그래프
+sdd impact auth/login -c --json    # 코드 영향도 (JSON)
+sdd impact report --json           # 전체 리포트 (JSON)
+sdd impact change CHG-001 --json   # 변경 제안 영향 (JSON)
 ```
 
 ## 관련 문서

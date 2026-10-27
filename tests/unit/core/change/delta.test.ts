@@ -1,7 +1,7 @@
 /**
  * Delta 파서 테스트
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   parseDelta,
   generateDelta,
@@ -199,5 +199,188 @@ created: 2025-12-21
 
     expect(result.hasModified).toBe(true);
     expect(result.warnings.some((w) => w.includes('Before/After'))).toBe(true);
+  });
+
+  it('MODIFIED 대상마다 Before/After 누락을 경고한다', () => {
+    const content = `---
+proposal: CHG-001
+created: 2025-12-21
+---
+
+# Delta
+
+## MODIFIED
+
+### auth/login
+
+#### Before
+
+\`\`\`markdown
+a
+\`\`\`
+
+#### After
+
+\`\`\`markdown
+b
+\`\`\`
+
+### auth/logout
+
+설명만 있음
+`;
+
+    const result = validateDelta(content);
+
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('auth/logout');
+  });
+});
+
+describe('parseDelta - 섹션 경계', () => {
+  const header = `---
+proposal: CHG-001
+created: 2025-12-21
+---
+
+# Delta: 경계
+`;
+
+  it('ADDED/REMOVED는 ### 하위 제목에서 잘리지 않는다', () => {
+    const content = `${header}
+## ADDED
+
+### REQ-10: 새 요구사항
+
+시스템은 OAuth를 지원해야 한다(SHALL).
+
+### REQ-11: 두 번째
+
+두 번째 내용
+
+## REMOVED
+
+### REQ-01: 레거시
+
+삭제 사유
+`;
+
+    const result = parseDelta(content);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.added[0].content).toContain('REQ-10');
+      expect(result.data.added[0].content).toContain('OAuth');
+      expect(result.data.added[0].content).toContain('REQ-11');
+      expect(result.data.added[0].content).toContain('두 번째 내용');
+      expect(result.data.added[0].content).not.toContain('REQ-01');
+      expect(result.data.removed[0].content).toContain('REQ-01');
+      expect(result.data.removed[0].content).toContain('삭제 사유');
+    }
+  });
+
+  it('MODIFIED의 여러 대상을 각각의 Before/After로 분리한다', () => {
+    const content = `${header}
+## MODIFIED
+
+### specs/auth/login/spec.md
+
+#### Before
+
+\`\`\`markdown
+## 로그인 v1
+\`\`\`
+
+#### After
+
+\`\`\`markdown
+## 로그인 v2
+\`\`\`
+
+### specs/auth/logout/spec.md
+
+**Before:**
+
+\`\`\`
+로그아웃 v1
+\`\`\`
+
+**After:**
+
+\`\`\`
+로그아웃 v2
+\`\`\`
+
+## REMOVED
+
+(없음)
+`;
+
+    const result = parseDelta(content);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const { modified } = result.data;
+      expect(modified).toHaveLength(2);
+      expect(modified[0].target).toBe('specs/auth/login/spec.md');
+      expect(modified[0].before).toBe('## 로그인 v1');
+      expect(modified[0].after).toBe('## 로그인 v2');
+      expect(modified[1].target).toBe('specs/auth/logout/spec.md');
+      expect(modified[1].before).toBe('로그아웃 v1');
+      expect(modified[1].after).toBe('로그아웃 v2');
+      // A `## ` line inside a fenced block must not end the MODIFIED section
+      expect(result.data.removed[0].content).toBe('(없음)');
+    }
+  });
+
+  it('HTML 주석 플레이스홀더만 있는 섹션은 비어 있는 것으로 본다', () => {
+    const content = `${header}
+## ADDED
+
+<!-- 추가되는 요구사항 -->
+
+## MODIFIED
+
+<!-- 변경 내용 -->
+
+### {{SPEC_PATH}}
+
+#### Before
+
+\`\`\`markdown
+<!-- 기존 내용 -->
+\`\`\`
+
+## REMOVED
+
+<!-- 제거되는 내용 -->
+`;
+
+    const result = validateDelta(content);
+
+    expect(result.valid).toBe(false);
+    expect(result.hasAdded).toBe(false);
+    expect(result.hasModified).toBe(false);
+    expect(result.hasRemoved).toBe(false);
+  });
+
+  it('created는 로컬 날짜를 사용한다', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date(2025, 1, 1, 0, 30));
+      expect(generateDelta({ proposalId: 'CHG-001', title: 't' })).toContain('created: 2025-02-01');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('템플릿 대상({{SPEC_PATH}})은 무시한다', () => {
+    const template = generateDelta({ proposalId: 'CHG-001', title: 't' });
+    const result = parseDelta(template);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.modified).toHaveLength(0);
+    }
   });
 });

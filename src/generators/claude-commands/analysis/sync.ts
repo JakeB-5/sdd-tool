@@ -15,8 +15,11 @@ argument-hint: [specId] [--json] [--ci]
 
 ## 개요
 
-스펙의 REQ-xxx 요구사항이 코드에 구현되어 있는지 확인합니다.
-코드에서 \`@spec REQ-xxx\` 주석이나 테스트에서 \`it('REQ-xxx: ...')\` 형식을 인식합니다.
+스펙의 REQ-xx 요구사항이 코드 또는 테스트에서 참조되는지 확인합니다.
+REQ ID는 스펙마다 따로 매겨지므로 \`<domain>/<feature>#REQ-xx\` 형식으로 스펙을 지정합니다
+(feature 이름이 유일하면 \`<feature>#REQ-xx\`도 가능).
+bare \`@spec REQ-01\`은 그 ID를 가진 스펙이 하나뿐일 때만 매칭되고, 여러 스펙에 있으면 무시되며
+"무시된 참조" 경고로 보고됩니다. 코드 또는 테스트 중 하나에서 참조되면 구현됨, 아니면 미구현입니다.
 
 ## 명령어
 
@@ -25,12 +28,12 @@ argument-hint: [specId] [--json] [--ci]
 sdd sync
 
 # 특정 스펙만 검증
-sdd sync user-auth
+sdd sync auth/login
 
-# JSON 출력
+# JSON 출력 (stdout에는 JSON만)
 sdd sync --json
 
-# CI 모드 (동기화율 임계값 검사)
+# CI 모드 (동기화율이 임계값 미만이면 종료 코드 2, 기본 임계값 100)
 sdd sync --ci --threshold 80
 
 # 마크다운 리포트
@@ -42,8 +45,8 @@ sdd sync --markdown
 \`\`\`typescript
 /**
  * 사용자 로그인
- * @spec REQ-001
- * @spec REQ-002
+ * @spec auth/login#REQ-01
+ * @spec auth/login#REQ-02
  */
 export async function login() { ... }
 \`\`\`
@@ -51,7 +54,7 @@ export async function login() { ... }
 ## 테스트 매핑
 
 \`\`\`typescript
-it('REQ-001: 올바른 자격 증명으로 로그인한다', () => { ... });
+it('auth/login#REQ-01: 올바른 자격 증명으로 로그인한다', () => { ... });
 \`\`\`
 
 ## 출력 예시

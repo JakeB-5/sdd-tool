@@ -141,4 +141,77 @@ describe('SyncMatcher', () => {
       expect(result.syncRate).toBe(100);
     });
   });
+
+  describe('스펙 범위 참조', () => {
+    const requirements: ExtractedRequirement[] = [
+      { id: 'REQ-01', specId: 'auth/login', line: 1 },
+      { id: 'REQ-01', specId: 'billing/pay', line: 1 },
+      { id: 'REQ-02', specId: 'auth/login', line: 2 },
+    ];
+
+    const statusOf = (result: ReturnType<SyncMatcher['match']>, specId: string, id: string) =>
+      result.requirements.find(r => r.specId === specId && r.id === id)?.status;
+
+    it('<domain>/<feature>#REQ-xx는 해당 스펙만 구현으로 표시한다', () => {
+      const result = new SyncMatcher().match(requirements, [
+        { reqId: 'REQ-01', specRef: 'auth/login', file: 'src/a.ts', line: 1, type: 'code' },
+      ], []);
+
+      expect(statusOf(result, 'auth/login', 'REQ-01')).toBe('implemented');
+      expect(statusOf(result, 'billing/pay', 'REQ-01')).toBe('missing');
+    });
+
+    it('유일한 feature 이름(<feature>#REQ-xx)으로도 지정할 수 있다', () => {
+      const result = new SyncMatcher().match(requirements, [
+        { reqId: 'REQ-01', specRef: 'pay', file: 'src/p.ts', line: 1, type: 'code' },
+      ], []);
+
+      expect(statusOf(result, 'billing/pay', 'REQ-01')).toBe('implemented');
+      expect(statusOf(result, 'auth/login', 'REQ-01')).toBe('missing');
+    });
+
+    it('여러 스펙에 있는 bare REQ 참조는 무시하고 경고한다', () => {
+      const result = new SyncMatcher().match(requirements, [
+        { reqId: 'REQ-01', file: 'src/a.ts', line: 3, type: 'code' },
+      ], []);
+
+      expect(statusOf(result, 'auth/login', 'REQ-01')).toBe('missing');
+      expect(statusOf(result, 'billing/pay', 'REQ-01')).toBe('missing');
+      expect(result.orphans).toHaveLength(0);
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings![0]).toContain('src/a.ts:3');
+      expect(result.warnings![0]).toContain('auth/login, billing/pay');
+    });
+
+    it('한 스펙에만 있는 bare REQ 참조는 그대로 매칭한다', () => {
+      const result = new SyncMatcher().match(requirements, [
+        { reqId: 'REQ-02', file: 'src/a.ts', line: 3, type: 'code' },
+      ], []);
+
+      expect(statusOf(result, 'auth/login', 'REQ-02')).toBe('implemented');
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it('특정 스펙만 검사해도 전체 요구사항 기준으로 모호성을 판단한다', () => {
+      const loginOnly = requirements.filter(r => r.specId === 'auth/login');
+      const result = new SyncMatcher().match(loginOnly, [
+        { reqId: 'REQ-01', file: 'src/a.ts', line: 3, type: 'code' },
+        { reqId: 'REQ-01', specRef: 'billing/pay', file: 'src/p.ts', line: 1, type: 'code' },
+      ], [], requirements);
+
+      expect(statusOf(result, 'auth/login', 'REQ-01')).toBe('missing');
+      expect(result.warnings).toHaveLength(1);
+      // A ref to another spec's requirement is not an orphan
+      expect(result.orphans).toHaveLength(0);
+    });
+
+    it('존재하지 않는 스펙을 한정한 참조는 고아로 보고한다', () => {
+      const result = new SyncMatcher().match(requirements, [
+        { reqId: 'REQ-01', specRef: 'nope', file: 'src/x.ts', line: 1, type: 'code' },
+      ], []);
+
+      expect(result.orphans).toHaveLength(1);
+      expect(result.orphans[0].text).toContain('nope#REQ-01');
+    });
+  });
 });

@@ -116,6 +116,15 @@ export function isValidChangeId(id: string): boolean {
 }
 
 /**
+ * 로컬 날짜 문자열 (YYYY-MM-DD) - 변경 문서의 created/updated와 아카이브 폴더에 공통 사용
+ */
+export function localDateString(date: Date = new Date()): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/**
  * 다음 변경 ID 생성
  */
 export function generateChangeId(existingIds: string[]): string {

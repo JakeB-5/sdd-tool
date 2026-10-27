@@ -19,7 +19,13 @@ sdd new <name> [options]
 | 옵션 | 설명 |
 |------|------|
 | `-d, --domain <domain>` | 도메인 지정 (v1.3.0) |
-| `--all` | spec, plan, tasks 모두 생성 |
+| `--title <title>` / `--description <desc>` | 기능 제목 / 설명 |
+| `--plan` / `--tasks` / `--checklist` | plan.md / tasks.md / checklist.md도 함께 생성 |
+| `--all` | spec, plan, tasks, checklist 모두 생성 |
+| `--numbered` | 자동 번호 부여: ID `001-<name>`, 브랜치 `feature/001-<name>` |
+| `--no-branch` | git 브랜치 생성 안 함 (기본 브랜치: `feature/<id>`) |
+
+파일을 하나라도 쓰지 못하면 0이 아닌 종료 코드로 실패합니다.
 
 ## 생성되는 파일
 
@@ -66,6 +72,7 @@ sdd new user-auth --all -d auth
 
 ```bash
 sdd new plan user-auth
+sdd new plan auth/user-auth --title "인증 적용 계획"   # 명시한 제목이 스펙 제목보다 우선
 ```
 
 ### sdd new tasks

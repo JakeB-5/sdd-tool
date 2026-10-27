@@ -29,6 +29,82 @@ import {
 import { DomainGraph } from './graph.js';
 import { validateDomains, DomainValidationResult, DomainValidationOptions } from '../validators/domain-validator.js';
 import { generateDomainMd } from '../../templates/domain.md.js';
+import { parseDocument } from 'yaml';
+import { listSpecs } from '../spec/locator.js';
+import {
+  readFrontmatter,
+  updateFrontmatter,
+  normalizeLineEndings,
+} from '../../utils/frontmatter.js';
+
+/**
+ * 도메인 이름 변경 결과 (갱신된 항목 수)
+ */
+export interface DomainRenameReport {
+  /** frontmatter `domain`이 갱신된 스펙 수 */
+  specDomainFields: number;
+  /** `<old>/...` → `<new>/...`로 바뀐 참조 수 (스펙 depends/dependencies, 변경 제안 target) */
+  references: number;
+}
+
+/**
+ * 계획된 파일 수정 (실패 시 original로 되돌림)
+ */
+interface FileEdit {
+  path: string;
+  original: string;
+  updated: string;
+}
+
+/**
+ * 파일 수정 적용 - 하나라도 실패하면 이미 쓴 파일을 되돌리고 실패 반환
+ */
+async function applyFileEdits(edits: FileEdit[]): Promise<Result<void, Error>> {
+  const applied: FileEdit[] = [];
+  for (const edit of edits) {
+    const writeResult = await writeFile(edit.path, edit.updated);
+    if (!writeResult.success) {
+      await restoreFileEdits(applied);
+      return failure(new Error(`${edit.path} 저장 실패: ${writeResult.error.message}`));
+    }
+    applied.push(edit);
+  }
+  return success(undefined);
+}
+
+/**
+ * 파일 수정 되돌리기 (best effort)
+ */
+async function restoreFileEdits(edits: FileEdit[]): Promise<void> {
+  for (const edit of edits) {
+    await writeFile(edit.path, edit.original);
+  }
+}
+
+/** Opening delimiter, YAML, closing delimiter (same shape as utils/frontmatter) */
+const FRONTMATTER_BLOCK = /^---[ \t]*\n((?:[\s\S]*?\n)?)---[ \t]*(?:\n|$)/;
+
+/**
+ * frontmatter에서 키 하나만 제거 (주석/서식/나머지 키 유지, 본문 그대로)
+ *
+ * Throws on missing or invalid frontmatter so callers never rewrite unparsed content.
+ */
+function removeFrontmatterKey(content: string, key: string): string {
+  const normalized = normalizeLineEndings(content);
+  const match = normalized.match(FRONTMATTER_BLOCK);
+  if (!match) {
+    throw new Error('frontmatter가 없어 파일을 수정할 수 없습니다');
+  }
+  const doc = parseDocument(match[1]);
+  if (doc.errors.length > 0) {
+    throw new Error(`frontmatter YAML 오류로 파일을 수정할 수 없습니다: ${doc.errors[0].message}`);
+  }
+  doc.delete(key);
+  // flowCollectionPadding: false keeps `[a, b]` as written instead of `[ a, b ]`
+  const yamlText =
+    doc.contents === null ? '' : doc.toString({ lineWidth: 0, flowCollectionPadding: false });
+  return `---\n${yamlText}---\n${normalized.slice(match[0].length)}`;
+}
 
 /**
  * domains.yml 파일 경로
@@ -62,6 +138,13 @@ export class DomainService {
    */
   get domainsDir(): string {
     return path.join(this.projectPath, DOMAINS_DIR);
+  }
+
+  /**
+   * 스펙 디렉토리 경로 (.sdd/specs)
+   */
+  get specsDir(): string {
+    return path.join(this.projectPath, '.sdd', 'specs');
   }
 
   /**
@@ -238,7 +321,12 @@ export class DomainService {
    */
   async delete(
     id: string,
-    options: { unlinkSpecs?: boolean } = {}
+    options: {
+      /** Allow deleting a domain that still has linked specs (links go with the domain) */
+      unlinkSpecs?: boolean;
+      /** Also remove `domain: <id>` from spec frontmatter */
+      clearSpecDomainField?: boolean;
+    } = {}
   ): Promise<Result<void, Error>> {
     const loadResult = await this.load();
     if (!loadResult.success) {
@@ -267,9 +355,24 @@ export class DomainService {
       return removeResult;
     }
 
+    // 스펙 frontmatter를 먼저 수정하고, 설정 저장이 실패하면 되돌림
+    let edits: FileEdit[] = [];
+    if (options.clearSpecDomainField) {
+      const planResult = await this.planDomainFieldRemoval(id);
+      if (!planResult.success) {
+        return planResult;
+      }
+      edits = planResult.data;
+      const applyResult = await applyFileEdits(edits);
+      if (!applyResult.success) {
+        return applyResult;
+      }
+    }
+
     // 저장
     const saveResult = await this.save(removeResult.data);
     if (!saveResult.success) {
+      await restoreFileEdits(edits);
       return saveResult;
     }
 
@@ -287,7 +390,7 @@ export class DomainService {
   /**
    * 도메인 이름 변경
    */
-  async rename(oldId: string, newId: string): Promise<Result<void, Error>> {
+  async rename(oldId: string, newId: string): Promise<Result<DomainRenameReport, Error>> {
     // ID 형식 확인 (경로 조작 방지)
     if (!isValidDomainId(newId)) {
       return failure(
@@ -311,6 +414,16 @@ export class DomainService {
 
     if (config.domains[newId]) {
       return failure(new Error(`도메인이 이미 존재합니다: ${newId}`));
+    }
+
+    // 스펙 폴더(.sdd/specs/<old>/) 이동 가능 여부를 설정 변경 전에 확인
+    const oldSpecsDir = path.join(this.specsDir, oldId);
+    const newSpecsDir = path.join(this.specsDir, newId);
+    // A top-level folder containing spec.md is a legacy flat spec, not a domain folder
+    const moveSpecs =
+      (await directoryExists(oldSpecsDir)) && !(await fileExists(path.join(oldSpecsDir, 'spec.md')));
+    if (moveSpecs && (await fileExists(newSpecsDir))) {
+      return failure(new Error(`스펙 폴더가 이미 존재합니다: ${path.relative(this.projectPath, newSpecsDir)}`));
     }
 
     // 새 이름으로 추가
@@ -349,13 +462,45 @@ export class DomainService {
       }));
     }
 
-    // 저장
+    // 스펙 폴더 이동 (설정 저장 전: 이동 실패 시 아무것도 바뀌지 않음)
+    if (moveSpecs) {
+      try {
+        await fs.rename(oldSpecsDir, newSpecsDir);
+      } catch (error) {
+        return failure(
+          new Error(`스펙 폴더 이동 실패: ${error instanceof Error ? error.message : String(error)}`)
+        );
+      }
+    }
+    // Roll back the folder move so the project stays consistent on later failures
+    const undoMove = async (): Promise<void> => {
+      if (moveSpecs) {
+        await fs.rename(newSpecsDir, oldSpecsDir).catch(() => undefined);
+      }
+    };
+
+    // 스펙 domain 필드와 `<old>/...` 참조(depends, 변경 제안 target)를 먼저 갱신
+    const planResult = await this.planRenameEdits(oldId, newId);
+    if (!planResult.success) {
+      await undoMove();
+      return planResult;
+    }
+    const { edits, report } = planResult.data;
+    const applyResult = await applyFileEdits(edits);
+    if (!applyResult.success) {
+      await undoMove();
+      return applyResult;
+    }
+
+    // 설정 저장 (실패 시 파일 수정과 폴더 이동을 모두 되돌림)
     const saveResult = await this.save(newConfig);
     if (!saveResult.success) {
+      await restoreFileEdits(edits);
+      await undoMove();
       return saveResult;
     }
 
-    // 디렉토리 이동
+    // 도메인 문서 디렉토리 이동
     try {
       const oldDir = path.join(this.domainsDir, oldId);
       const newDir = path.join(this.domainsDir, newId);
@@ -366,7 +511,105 @@ export class DomainService {
       // 무시
     }
 
-    return success(undefined);
+    return success(report);
+  }
+
+  /**
+   * 도메인 이름 변경에 필요한 frontmatter 수정 계획 (파일은 쓰지 않음)
+   *
+   * - 스펙 `domain: <old>` → `<new>`
+   * - 스펙 `depends`/`dependencies`의 `<old>/<feature>` → `<new>/<feature>`
+   * - 변경 제안(.sdd/changes/*\/proposal.md) `target`의 `<old>/...` → `<new>/...`
+   */
+  private async planRenameEdits(
+    oldId: string,
+    newId: string
+  ): Promise<Result<{ edits: FileEdit[]; report: DomainRenameReport }, Error>> {
+    const edits: FileEdit[] = [];
+    const report: DomainRenameReport = { specDomainFields: 0, references: 0 };
+    const renameRef = (ref: string): string =>
+      ref.startsWith(`${oldId}/`) ? `${newId}/${ref.slice(oldId.length + 1)}` : ref;
+
+    const sddPath = path.join(this.projectPath, '.sdd');
+    const files = (await listSpecs(sddPath)).map((s) => s.specPath);
+    const changesDir = path.join(sddPath, 'changes');
+    for (const entry of await fs.readdir(changesDir).catch(() => [] as string[])) {
+      const proposalPath = path.join(changesDir, entry, 'proposal.md');
+      if (await fileExists(proposalPath)) files.push(proposalPath);
+    }
+
+    for (const filePath of files) {
+      const readResult = await readFile(filePath);
+      if (!readResult.success) continue;
+      const doc = readFrontmatter(readResult.data);
+      if (!doc.hasFrontmatter) continue;
+
+      const updates: Record<string, unknown> = {};
+      if (doc.data.domain === oldId) {
+        updates.domain = newId;
+        report.specDomainFields++;
+      }
+      for (const key of ['depends', 'dependencies', 'target'] as const) {
+        const value = doc.data[key];
+        if (typeof value === 'string') {
+          const refs = value.split(',').map((s) => s.trim());
+          const renamed = refs.map(renameRef);
+          const count = renamed.filter((r, i) => r !== refs[i]).length;
+          if (count > 0) {
+            updates[key] = renamed.join(', ');
+            report.references += count;
+          }
+        } else if (Array.isArray(value)) {
+          const renamed = value.map((v) => (typeof v === 'string' ? renameRef(v) : v));
+          const count = renamed.filter((r, i) => r !== value[i]).length;
+          if (count > 0) {
+            updates[key] = renamed;
+            report.references += count;
+          }
+        }
+      }
+      if (Object.keys(updates).length === 0) continue;
+
+      try {
+        edits.push({
+          path: filePath,
+          original: readResult.data,
+          updated: updateFrontmatter(readResult.data, updates),
+        });
+      } catch (error) {
+        return failure(
+          new Error(`${filePath} 수정 실패: ${error instanceof Error ? error.message : String(error)}`)
+        );
+      }
+    }
+
+    return success({ edits, report });
+  }
+
+  /**
+   * frontmatter `domain`이 `domainId`인 스펙에서 domain 필드를 제거하는 수정 계획 (파일은 쓰지 않음)
+   */
+  private async planDomainFieldRemoval(domainId: string): Promise<Result<FileEdit[], Error>> {
+    const edits: FileEdit[] = [];
+    for (const spec of await listSpecs(path.join(this.projectPath, '.sdd'))) {
+      const readResult = await readFile(spec.specPath);
+      if (!readResult.success) continue;
+      const doc = readFrontmatter(readResult.data);
+      if (!doc.hasFrontmatter || doc.data.domain !== domainId) continue;
+
+      try {
+        edits.push({
+          path: spec.specPath,
+          original: readResult.data,
+          updated: removeFrontmatterKey(readResult.data, 'domain'),
+        });
+      } catch (error) {
+        return failure(
+          new Error(`${spec.specPath} 수정 실패: ${error instanceof Error ? error.message : String(error)}`)
+        );
+      }
+    }
+    return success(edits);
   }
 
   /**

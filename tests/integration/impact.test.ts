@@ -169,6 +169,7 @@ describe('sdd impact', () => {
       const changesPath = path.join(tempDir, '.sdd', 'changes');
       const changes = await fs.readdir(changesPath);
       const changeId = changes[0];
+      await writeDelta(changeId);
 
       const { stdout } = await execAsync(
         `node "${cliPath}" impact simulate simulate-base ${changeId}`,
@@ -177,7 +178,99 @@ describe('sdd impact', () => {
 
       expect(stdout).toMatch(/시뮬레이션|simulate|영향/i);
     });
+
+    it('delta.md를 읽고 --json에서는 JSON만 출력한다 (제거된 의존성 반영)', async () => {
+      await execAsync(`node "${cliPath}" new simulate-base --no-branch`, { cwd: tempDir });
+      const depDir = path.join(tempDir, '.sdd', 'specs', 'common', 'consumer');
+      await fs.mkdir(depDir, { recursive: true });
+      await fs.writeFile(
+        path.join(depDir, 'spec.md'),
+        '---\nid: consumer\ntitle: "소비자"\nstatus: draft\ndepends:\n  - simulate-base\n---\n\n# 소비자\n'
+      );
+      await execAsync(`node "${cliPath}" change -t "의존성 제거"`, { cwd: tempDir });
+      await writeDelta('CHG-001');
+
+      const { stdout } = await execAsync(
+        `node "${cliPath}" impact simulate simulate-base CHG-001 --json`,
+        { cwd: tempDir }
+      );
+
+      const parsed = JSON.parse(stdout);
+      expect(parsed.changes.removedEdges).toBe(1);
+      expect(parsed.changes.addedSpecs).toContain('new-consumer');
+      expect(parsed.noLongerAffected).toContain('common/consumer');
+      expect(parsed.deltas.some((d: { removedDependencies?: string[] }) =>
+        d.removedDependencies?.includes('common/simulate-base'))).toBe(true);
+    });
+
+    it('델타가 없으면 0이 아닌 코드로 종료한다', async () => {
+      await execAsync(`node "${cliPath}" new simulate-base --no-branch`, { cwd: tempDir });
+      await execAsync(`node "${cliPath}" change -t "빈 델타"`, { cwd: tempDir });
+
+      await expect(
+        execAsync(`node "${cliPath}" impact simulate simulate-base CHG-001`, { cwd: tempDir })
+      ).rejects.toMatchObject({ code: 1 });
+    });
   });
+
+  describe('서브커맨드 --json', () => {
+    beforeEach(async () => {
+      await execAsync(`node "${cliPath}" new json-sub --no-branch`, { cwd: tempDir });
+    });
+
+    it('impact report --json은 JSON을 출력한다', async () => {
+      const { stdout } = await execAsync(`node "${cliPath}" impact report --json`, { cwd: tempDir });
+      expect(() => JSON.parse(stdout)).not.toThrow();
+    });
+
+    it('impact change <id> --json은 JSON을 출력한다', async () => {
+      await execAsync(`node "${cliPath}" change -t "json"`, { cwd: tempDir });
+      const { stdout } = await execAsync(`node "${cliPath}" impact change CHG-001 --json`, { cwd: tempDir });
+      expect(JSON.parse(stdout).changeId).toBe('CHG-001');
+    });
+
+    it('impact <f> -c --json은 stdout에 JSON만 출력한다', async () => {
+      const { stdout } = await execAsync(`node "${cliPath}" impact json-sub -c --json`, { cwd: tempDir });
+      expect(() => JSON.parse(stdout)).not.toThrow();
+    });
+  });
+
+  async function writeDelta(changeId: string): Promise<void> {
+    await fs.writeFile(
+      path.join(tempDir, '.sdd', 'changes', changeId, 'delta.md'),
+      `---
+proposal: ${changeId}
+created: 2025-01-01
+---
+
+# Delta
+
+## ADDED
+
+- \`new-consumer\` - 새 소비자
+
+## MODIFIED
+
+### specs/common/consumer/spec.md
+
+#### Before
+
+\`\`\`yaml
+depends: [simulate-base]
+\`\`\`
+
+#### After
+
+\`\`\`yaml
+depends: []
+\`\`\`
+
+## REMOVED
+
+(없음)
+`
+    );
+  }
 
   describe('의존성 분석', () => {
     it('의존하는 스펙을 분석한다', async () => {

@@ -139,7 +139,9 @@ sdd transition to-change user-auth --dry-run
 
 ## 전환 시 주의사항
 
-1. **new → change**: 원본 스펙은 유지됩니다
+1. **new → change**: 원본 스펙은 유지됩니다. 생성되는 제안은 다음 `CHG-XXX` ID를 받고
+   (아카이브된 ID는 재사용하지 않음) 제안 스키마 필드(`id`, `target`)를 사용하므로
+   `sdd change validate` / `sdd impact change`에서 읽을 수 있습니다.
 2. **change → new**: 원본 변경 제안은 취소됨으로 표시됩니다
 3. **진행 중인 작업**: 진행 중인 작업이 있으면 경고가 표시됩니다
 

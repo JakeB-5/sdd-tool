@@ -7,6 +7,7 @@ import {
   ChangeStatus,
   DeltaType,
   ImpactLevel,
+  localDateString,
 } from './schemas.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
@@ -160,7 +161,7 @@ export interface GenerateProposalOptions {
  * Proposal 템플릿 생성
  */
 export function generateProposal(options: GenerateProposalOptions): string {
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateString();
   const specs = options.affectedSpecs || [];
   const types = options.changeType || ['MODIFIED'];
 
@@ -238,7 +239,7 @@ export function updateProposalStatus(
 ): Result<string, ChangeError> {
   try {
     const { data: frontmatter, content: body } = parseFrontmatter(content);
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateString();
 
     const updatedFrontmatter = {
       ...frontmatter,

@@ -42,7 +42,7 @@ export class SyncReporter {
     if (result.implemented.length > 0) {
       lines.push(this.success(`✓ 구현됨 (${result.implemented.length}/${result.totalRequirements})`));
       for (const status of result.requirements.filter(r => r.status === 'implemented')) {
-        lines.push(this.formatImplementedReq(status));
+        lines.push(this.formatImplementedReq(status, this.reqLabel(result, status)));
       }
       lines.push('');
     }
@@ -50,9 +50,17 @@ export class SyncReporter {
     // 미구현 요구사항
     if (result.missing.length > 0) {
       lines.push(this.error(`✗ 미구현 (${result.missing.length}/${result.totalRequirements})`));
-      for (const reqId of result.missing) {
-        const status = result.requirements.find(r => r.id === reqId);
-        lines.push(`  - ${reqId}${status?.title ? `: ${status.title}` : ''}`);
+      for (const status of result.requirements.filter(r => r.status === 'missing')) {
+        lines.push(`  - ${this.reqLabel(result, status)}${status.title ? `: ${status.title}` : ''}`);
+      }
+      lines.push('');
+    }
+
+    // 모호한 참조 경고
+    if (result.warnings && result.warnings.length > 0) {
+      lines.push(this.warning(`⚠ 무시된 참조 (${result.warnings.length}개)`));
+      for (const warning of result.warnings) {
+        lines.push(`  - ${warning}`);
       }
       lines.push('');
     }
@@ -125,7 +133,7 @@ export class SyncReporter {
       lines.push('## 구현된 요구사항');
       lines.push('');
       for (const status of result.requirements.filter(r => r.status === 'implemented')) {
-        lines.push(`### ${status.id}${status.title ? `: ${status.title}` : ''}`);
+        lines.push(`### ${this.reqLabel(result, status)}${status.title ? `: ${status.title}` : ''}`);
         lines.push('');
         if (status.locations.length > 0) {
           lines.push('**참조 위치:**');
@@ -141,9 +149,18 @@ export class SyncReporter {
     if (result.missing.length > 0) {
       lines.push('## 미구현 요구사항');
       lines.push('');
-      for (const reqId of result.missing) {
-        const status = result.requirements.find(r => r.id === reqId);
-        lines.push(`- **${reqId}**${status?.title ? `: ${status.title}` : ''}`);
+      for (const status of result.requirements.filter(r => r.status === 'missing')) {
+        lines.push(`- **${this.reqLabel(result, status)}**${status.title ? `: ${status.title}` : ''}`);
+      }
+      lines.push('');
+    }
+
+    // 모호한 참조 경고
+    if (result.warnings && result.warnings.length > 0) {
+      lines.push('## 무시된 참조');
+      lines.push('');
+      for (const warning of result.warnings) {
+        lines.push(`- ${warning}`);
       }
       lines.push('');
     }
@@ -163,9 +180,16 @@ export class SyncReporter {
   }
 
   /**
+   * 요구사항 표시 이름 (여러 스펙을 다룰 때는 `<spec>#REQ-xxx`)
+   */
+  private reqLabel(result: SyncResult, status: RequirementStatus): string {
+    return result.specs.length > 1 ? `${status.specId}#${status.id}` : status.id;
+  }
+
+  /**
    * 구현된 요구사항 포맷
    */
-  private formatImplementedReq(status: RequirementStatus): string {
+  private formatImplementedReq(status: RequirementStatus, label: string): string {
     const title = status.title ? `: ${status.title}` : '';
     const locations = status.locations
       .slice(0, 2)
@@ -173,7 +197,7 @@ export class SyncReporter {
       .join(', ');
     const more = status.locations.length > 2 ? ` +${status.locations.length - 2}` : '';
 
-    return `  - ${status.id}${title} ${this.gray(`(${locations}${more})`)}`;
+    return `  - ${label}${title} ${this.gray(`(${locations}${more})`)}`;
   }
 
   /**

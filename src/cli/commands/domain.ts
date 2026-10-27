@@ -5,7 +5,7 @@
  */
 import { Command } from 'commander';
 import path from 'node:path';
-import { DomainService, DOMAINS_DIR } from '../../core/domain/service.js';
+import { DomainService, DOMAINS_DIR, type DomainRenameReport } from '../../core/domain/service.js';
 import { DomainGraph } from '../../core/domain/graph.js';
 import { validateDomains, formatValidationResult } from '../../core/validators/domain-validator.js';
 import { DomainInfo, DependencyType } from '../../schemas/domains.schema.js';
@@ -232,25 +232,22 @@ export async function executeDomainDelete(
 
   const domain = domainResult.data;
 
-  // 스펙이 있고 force가 아니면 에러
-  if (domain.specs.length > 0 && !options.force) {
+  // 스펙이 있으면 --force 또는 --unlink-specs가 필요
+  const allowLinked = Boolean(options.force || options.unlinkSpecs);
+  if (domain.specs.length > 0 && !allowLinked) {
     return failure(
       new Error(
         `도메인 '${domainId}'에 ${domain.specs.length}개의 스펙이 연결되어 있습니다. ` +
-          `삭제하려면 --force 옵션을 사용하세요.`
+          `삭제하려면 --force 또는 --unlink-specs 옵션을 사용하세요.`
       )
     );
   }
 
-  // 스펙 연결 해제
-  if (options.unlinkSpecs && domain.specs.length > 0) {
-    for (const specId of domain.specs) {
-      await service.unlinkSpec(domainId, specId);
-    }
-  }
-
-  // 도메인 삭제
-  return service.delete(domainId);
+  // 도메인 삭제 (domains.yml의 스펙 연결도 함께 제거, --unlink-specs면 스펙 domain 필드도 제거)
+  return service.delete(domainId, {
+    unlinkSpecs: allowLinked,
+    clearSpecDomainField: options.unlinkSpecs,
+  });
 }
 
 /**
@@ -260,7 +257,7 @@ export async function executeDomainRename(
   oldId: string,
   newId: string,
   projectPath?: string
-): Promise<Result<void, Error>> {
+): Promise<Result<DomainRenameReport, Error>> {
   const root = projectPath || (await findSddRoot(process.cwd()));
   if (!root) {
     return failure(new Error('SDD 프로젝트를 찾을 수 없습니다.'));
@@ -292,6 +289,10 @@ export async function executeDomainGraph(
   const graph = new DomainGraph(configResult.data);
   const format = options.format || 'mermaid';
 
+  if (options.direction && !['LR', 'TD', 'BT', 'RL'].includes(options.direction)) {
+    return failure(new Error(`지원하지 않는 방향: ${options.direction} (LR, TD, BT, RL)`));
+  }
+
   let output: string;
 
   switch (format) {
@@ -299,7 +300,7 @@ export async function executeDomainGraph(
       output = graph.toMermaid({ direction: options.direction || 'LR' });
       break;
     case 'dot':
-      output = graph.toDot();
+      output = graph.toDot({ direction: options.direction || 'LR' });
       break;
     case 'json':
       output = JSON.stringify(graph.toJson(), null, 2);
@@ -572,8 +573,8 @@ export function registerDomainCommand(program: Command): void {
     .command('delete <domain>')
     .alias('rm')
     .description('도메인 삭제')
-    .option('-f, --force', '강제 삭제 (연결된 스펙 있어도)')
-    .option('--unlink-specs', '연결된 스펙의 domain 필드 제거')
+    .option('-f, --force', '강제 삭제 (연결된 스펙이 있어도 domains.yml 연결을 해제하고 삭제)')
+    .option('--unlink-specs', '삭제와 함께 스펙 frontmatter의 domain 필드도 제거 (스펙 파일은 유지)')
     .action(async (domainId: string, options: DomainDeleteOptions) => {
       const result = await executeDomainDelete(domainId, options);
 
@@ -588,7 +589,7 @@ export function registerDomainCommand(program: Command): void {
   // rename 서브커맨드
   domainCmd
     .command('rename <oldName> <newName>')
-    .description('도메인 이름 변경')
+    .description('도메인 이름 변경 (.sdd/specs/<old>/ 폴더와 스펙 domain 필드도 함께 변경)')
     .action(async (oldId: string, newId: string) => {
       const result = await executeDomainRename(oldId, newId);
 
@@ -598,6 +599,10 @@ export function registerDomainCommand(program: Command): void {
       }
 
       logger.success('도메인 이름 변경 완료', `'${oldId}' → '${newId}'`);
+      logger.info(
+        `스펙 domain 필드 ${result.data.specDomainFields}개, ` +
+          `'${oldId}/...' 참조(depends·변경 제안 target) ${result.data.references}개를 갱신했습니다.`
+      );
     });
 
   // graph 서브커맨드
@@ -637,7 +642,7 @@ export function registerDomainCommand(program: Command): void {
       console.log(result.data.message);
 
       if (!result.data.valid) {
-        process.exit(ExitCode.VALIDATION_ERROR);
+        process.exit(ExitCode.VALIDATION_FAILED);
       }
     });
 
