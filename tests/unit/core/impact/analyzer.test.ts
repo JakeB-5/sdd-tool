@@ -475,7 +475,20 @@ describe('의존성 그래프 정확성 (도메인 레이아웃)', () => {
       expect(impact.data.dependsOn).toEqual([]);
       expect(impact.data.affectedBy.map((s) => s.id)).toEqual(['pricing/cart']);
       expect(impact.data.references).toEqual(['pricing/cart']);
+      expect(impact.data.referencedBy).toEqual([]);
       expect(formatImpactResult(impact.data)).toContain('본문 참조 (의존성 아님');
+    }
+
+    // Incoming side: cart is mentioned by coupon's body
+    const target = await analyzeImpact(tempDir, 'pricing/cart');
+    expect(target.success).toBe(true);
+    if (target.success) {
+      expect(target.data.dependsOn.map((s) => s.id)).toEqual(['pricing/coupon']);
+      expect(target.data.references).toEqual([]);
+      expect(target.data.referencedBy).toEqual(['pricing/coupon']);
+      const text = formatImpactResult(target.data);
+      expect(text).toContain('📎 본문에서 이 스펙을 언급하는 스펙 (의존성 아님):\n  └─ pricing/coupon');
+      expect(JSON.parse(JSON.stringify(target.data)).referencedBy).toEqual(['pricing/coupon']);
     }
   });
 

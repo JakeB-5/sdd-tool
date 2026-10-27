@@ -237,7 +237,7 @@ sdd new status <feature> implemented            # draft | review | approved | pl
 커밋 메시지는 commit-msg 훅 형식 \`<type>(<scope>): <message>\`를 따릅니다.
 type은 스펙 타입 \`spec|spec-update|spec-status|plan|tasks|constitution|sdd-config\` 또는
 Conventional Commits 타입 \`feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert\`입니다.
-scope는 생략할 수 있고, \`Merge ...\` / \`Revert ...\` 메시지도 허용됩니다. 작업 커밋 예: \`feat(<feature>): <task-id> - <설명>\`
+scope는 생략할 수 있고, \`Merge ...\` / \`Revert ...\` 메시지도 허용됩니다. 작업 커밋 예: \`feat(<기능 이름>): <task-id> - <설명>\`
 
 ---
 

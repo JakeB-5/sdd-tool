@@ -41,6 +41,8 @@ export interface FeatureInfo {
     total: number;
     /** Tasks currently in progress (0 when omitted) */
     inProgress?: number;
+    /** Blocked tasks (0 when omitted) */
+    blocked?: number;
   };
   stage: FeatureStage;
 }
@@ -100,12 +102,13 @@ export function getFeatureNextStep(feature: FeatureInfo): string | undefined {
       }
       return `${id}: 작업 분해 — sdd new tasks ${id} (Claude Code /sdd-tasks · Codex $sdd-tasks)`;
     case 'implement': {
-      const { completed, total, inProgress = 0 } = feature.taskProgress ?? { completed: 0, total: 0 };
+      const { completed, total, inProgress = 0, blocked = 0 } = feature.taskProgress ?? { completed: 0, total: 0 };
       // "In progress" only once a task has started or finished; spec status is never changed here
+      const blockedNote = blocked > 0 ? `, 차단됨 ${blocked}개` : '';
       const step =
         completed > 0 || inProgress > 0
           ? `${id}: 구현 진행 중 (${completed}/${total}) — Claude Code /sdd-implement · Codex $sdd-implement, 작업 완료 시 sdd new task ${id} <task-id> completed`
-          : `${id}: 구현 시작 전 (${completed}/${total}) — Claude Code /sdd-implement · Codex $sdd-implement, 작업 시작 시 sdd new task ${id} <task-id> in-progress`;
+          : `${id}: 구현 시작 전 (${completed}/${total}${blockedNote}) — Claude Code /sdd-implement · Codex $sdd-implement, 작업 시작 시 sdd new task ${id} <task-id> in-progress${blocked > 0 ? ' (차단된 작업은 차단 해소 후 진행)' : ''}`;
       if (normalizeSpecStatus(feature.status) === 'implemented') {
         return `${step} (스펙 상태(implemented)와 작업 진행률(${completed}/${total})이 맞지 않습니다)`;
       }
@@ -175,6 +178,7 @@ export async function getFeatureInfo(id: string, featurePath: string): Promise<F
       completed,
       total: tasks.length,
       inProgress: tasks.filter(t => t.status === 'in_progress').length,
+      blocked: tasks.filter(t => t.status === 'blocked').length,
     };
   }
 

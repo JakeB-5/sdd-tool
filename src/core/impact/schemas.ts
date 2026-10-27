@@ -84,6 +84,8 @@ export interface ImpactAnalysisResult {
   danglingDependencies?: string[];
   /** Specs mentioned in the target spec body (references, not dependencies) */
   references?: string[];
+  /** Specs whose body mentions the target spec (references, not dependencies) */
+  referencedBy?: string[];
 }
 
 /**

@@ -108,6 +108,9 @@ export async function analyzeImpact(
       references: (graph.references ?? [])
         .filter((r) => r.from === effectiveTargetSpec)
         .map((r) => r.to),
+      referencedBy: (graph.references ?? [])
+        .filter((r) => r.to === effectiveTargetSpec)
+        .map((r) => r.from),
     });
   } catch (error) {
     return failure(
@@ -337,6 +340,15 @@ export function formatImpactResult(result: ImpactAnalysisResult): string {
   if (references.length > 0) {
     lines.push('📎 본문 참조 (의존성 아님 — 의존성은 frontmatter `depends`로 선언):');
     for (const ref of references) {
+      lines.push(`  └─ ${ref}`);
+    }
+    lines.push('');
+  }
+
+  const referencedBy = result.referencedBy ?? [];
+  if (referencedBy.length > 0) {
+    lines.push('📎 본문에서 이 스펙을 언급하는 스펙 (의존성 아님):');
+    for (const ref of referencedBy) {
       lines.push(`  └─ ${ref}`);
     }
     lines.push('');

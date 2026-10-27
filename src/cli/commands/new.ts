@@ -693,15 +693,18 @@ export async function setTaskStatus(
   });
 
   if (task.status === to) {
-    // Status unchanged: still rewrite stale counts
+    // Status unchanged: still rewrite stale counts. Only the numbers decide, so a
+    // whitespace-only normalization of the progress block does not rewrite the file.
     const refreshed = refreshTaskProgress(content);
-    if (refreshed !== content) {
+    const numbers = (text: string): string => (text.match(/\d+/g) ?? []).join(',');
+    const recounted = numbers(refreshed) !== numbers(content);
+    if (recounted) {
       const writeResult = await writeFile(tasksPath, refreshed);
       if (!writeResult.success) {
         return failure(new Error(`작업 파일 쓰기 실패: ${writeResult.error.message}`));
       }
     }
-    return success(result(parseTasks(content), false, refreshed !== content));
+    return success(result(parseTasks(content), false, recounted));
   }
 
   const updated = updateTaskStatus(content, task.id, to);

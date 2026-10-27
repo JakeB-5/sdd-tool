@@ -111,6 +111,15 @@ describe('buildStatusNextSteps', () => {
     expect(step).toContain('sdd new task pricing/cart <task-id> in-progress');
   });
 
+  it('시작 전이지만 차단된 작업이 있으면 차단됨 개수를 덧붙인다', () => {
+    const step = getFeatureNextStep(
+      feature({ status: 'tasked', taskProgress: { completed: 0, total: 3, inProgress: 0, blocked: 1 } })
+    );
+
+    expect(step).toContain('구현 시작 전 (0/3, 차단됨 1개)');
+    expect(step).toContain('차단된 작업은 차단 해소 후 진행');
+  });
+
   it('진행 중 작업이 하나라도 있으면 "구현 진행 중"으로 안내한다', () => {
     const step = getFeatureNextStep(feature({ status: 'tasked', taskProgress: { completed: 0, total: 3, inProgress: 1 } }));
 
@@ -286,7 +295,7 @@ completed: 2
 
     const info = await getFeatureInfo('test', featurePath);
 
-    expect(info.taskProgress).toEqual({ completed: 2, total: 2, inProgress: 0 });
+    expect(info.taskProgress).toEqual({ completed: 2, total: 2, inProgress: 0, blocked: 0 });
     expect(info.stage).toBe('finalize');
   });
 });

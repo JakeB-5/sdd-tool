@@ -35,7 +35,7 @@ Each feature's stage is derived from its files, spec status and task progress (f
 | `implement` | spec `implemented` but some tasks not completed | finish the open tasks; the line adds "스펙 상태(implemented)와 작업 진행률(n/m)이 맞지 않습니다" |
 | `plan` | no plan.md | `sdd new plan <feature>` (Claude Code `/sdd-plan` · Codex `$sdd-plan`) |
 | `tasks` | no tasks.md | `sdd new tasks <feature>` (`/sdd-tasks` · `$sdd-tasks`) |
-| `tasks` | tasks.md exists but no `### <feature>-task-NNN: title` task was recognized | check the format, or regenerate with `sdd new tasks <feature> --force` (overwrites the file) |
+| `tasks` | tasks.md exists but no `### <name>-task-NNN: title` task (`<name>` = feature name without domain) was recognized | check the format, or regenerate with `sdd new tasks <feature> --force` (overwrites the file) |
 | `implement` | some tasks not completed | implement (`/sdd-implement` · `$sdd-implement`), then `sdd new task <feature> <task-id> completed`. The line reads "구현 진행 중 (n/m)" once a task is in progress or completed, and "구현 시작 전 (0/m)" (start with `sdd new task <feature> <task-id> in-progress`) before that. The spec status is never changed automatically |
 | `finalize` | all tasks completed, spec status is not `implemented` | `sdd validate` · `sdd sync`, then `sdd new status <feature> implemented` |
 

@@ -51,7 +51,7 @@ export const sddImplementSkill: SkillDefinition = {
 4. **Refactor**: clean up while keeping all tests green
 5. Add traceability references (see below)
 6. \`sdd new task <feature> <task-id> completed\`
-7. Commit: \`feat(<feature>): <task-id> - <description>\`
+7. Commit: \`feat(<name>): <task-id> - <description>\` (\`<name>\` = the feature name without its domain)
 
 ## Traceability
 

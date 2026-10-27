@@ -1027,6 +1027,17 @@ describe('setTaskStatus', () => {
     expect(await fs.readFile(tasksPath, 'utf-8')).toBe(content);
   });
 
+  it('집계 숫자가 맞으면 공백만 다른 진행 상황 블록은 다시 쓰지 않는다', async () => {
+    const spaced = (await fs.readFile(tasksPath, 'utf-8')).replace('## 진행 상황\n', '## 진행 상황   \n').replace('- 완료: 0\n', '- 완료: 0  \n');
+    await fs.writeFile(tasksPath, spaced);
+
+    const result = await setTaskStatus(sddPath, 'cart', 'cart-task-001', 'pending');
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toMatchObject({ changed: false, recounted: false });
+    expect(await fs.readFile(tasksPath, 'utf-8')).toBe(spaced);
+  });
+
   it('tasks.md가 없으면 sdd new tasks를 안내하며 실패한다', async () => {
     await fs.rm(tasksPath);
 
