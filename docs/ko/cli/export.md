@@ -23,6 +23,13 @@ sdd export [specId...] [options]
 | `-o, --output <path>` | 출력 경로 |
 | `--theme <theme>` | 테마 (light, dark) |
 | `--no-toc` | 목차 제외 |
+| `--include-constitution` | `.sdd/constitution.md`를 부록으로 포함 (없으면 실패) |
+| `--include-changes` | 대기 중인 변경 제안(proposal.md)을 부록으로 포함 |
+| `--json` | 결과 메타정보를 JSON으로 출력 (stdout은 JSON만) |
+
+PDF는 직접 생성하지 않습니다. HTML로 내보낸 뒤 브라우저에서 PDF로 인쇄하세요.
+지원하지 않는 형식이나 내보내기 실패 시 0이 아닌 종료 코드로 종료합니다.
+Markdown의 기본 출력 파일은 `specs.md`(단일 스펙은 `<id>.md`)입니다.
 
 ## 형식
 
@@ -106,24 +113,32 @@ sdd export user-auth --no-toc
 
 ### JSON 구조
 
+스펙 수와 관계없이 항상 `specs` 배열을 가진 객체입니다. `constitution` / `changes`는 해당 옵션을 지정했을 때만 포함됩니다.
+
 ```json
 {
-  "id": "user-auth",
-  "title": "사용자 인증",
-  "requirements": [
+  "specs": [
     {
-      "id": "REQ-001",
-      "title": "로그인",
-      "keyword": "SHALL"
+      "id": "auth/user-auth",
+      "title": "사용자 인증",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "title": "로그인",
+          "keyword": "SHALL"
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "scenario-1",
+          "given": ["유효한 계정"],
+          "when": ["로그인 시도"],
+          "then": ["성공"]
+        }
+      ]
     }
   ],
-  "scenarios": [
-    {
-      "id": "scenario-1",
-      "given": ["유효한 계정"],
-      "when": ["로그인 시도"],
-      "then": ["성공"]
-    }
-  ]
+  "constitution": { "title": "Constitution", "content": "..." },
+  "changes": [{ "id": "CHG-001", "title": "...", "content": "..." }]
 }
 ```

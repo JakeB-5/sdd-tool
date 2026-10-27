@@ -24,11 +24,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `sdd impact report|change|simulate --json` now emit JSON (the flag was swallowed by the parent command), and `--json` modes print only JSON to stdout
 - `sdd change apply` is described truthfully: it marks the proposal `applied` and does not edit specs; change ids are never reused after archiving
 - `sdd domain delete --force` works with linked specs; `--unlink-specs` removes the spec `domain` field; `sdd domain rename` moves `.sdd/specs/<old>/` and rewrites `<old>/…` references in spec `depends` and proposal `target`
+- **Breaking:** `sdd export --format json` always writes `{ "specs": [...] }` (previously a single spec was an object and several specs a bare array); `constitution` / `changes` keys are added when included
+- **Breaking:** `sdd cicd check` now runs spec validation and exits `2` (VALIDATION_FAILED) on failure instead of `7`
+
+### Fixed (CLI output, flags, exit codes)
+
+- `sdd list changes` prints id/title/status instead of `[object Object]`
+- `sdd cicd setup <unknown>` / `sdd cicd hooks <unknown>` fail without writing files; generated GitHub/GitLab pipelines install only the global CLI (no `npm ci` / npm cache) and GitLab no longer declares the JSON report as a dotenv report
+- `sdd watch --impact` reports impact for changed specs; validation errors print their messages; chokidar ignores use a path matcher; double `start()` creates a single watcher
+- `sdd export`: `--include-constitution` / `--include-changes` are implemented, Markdown is written as `.md` without a duplicated title, `pdf` is rejected as unsupported, `(API)`-style text is kept in requirement descriptions, failures exit non-zero
+- `sdd search` rejects invalid `--limit`, `--sort-by`, `--sort-order`, dates and statuses; specs without `created` no longer match `--created-*` filters
+- `sdd context remove` fails for a domain that is not in the context
+- `--json` (also on a parent command) and `--format json` to stdout keep stdout pure JSON (human logs go to stderr); the logger no longer doubles symbols such as `✓ ✅`
+- `sdd init --force` backs up changed `.sdd/` files to `<file>.bak` (`<file>.1.bak`… without clobbering earlier backups) and reports them
+- `sdd quality` counts unparseable specs as 0% in the project average and lists them; `sdd prepare` keyword detection uses word boundaries
+- `sdd reverse scan` skips the ambiguous `vendor`/`target` only at the scan root or a package root (manifest present), so `src/vendor/` etc. are scanned; `dist`/`build`/`out`/`coverage` stay ignored at every depth
+- `sdd start` outside a project, `sdd status --domain <unknown>` and partial `sdd migrate` failures exit non-zero; `sdd validate` / `sdd export` output is Korean
+- `sdd prompt` docs list exactly the available prompts
 
 ### Removed
 
 - `sdd impact -r/--reverse` (was declared but never implemented; the default output already lists what a spec depends on)
-
+- Unused validation cache (`src/core/cache`) and the `sdd cache` command; `sdd validate --use-cache` / `--no-cache` remain as hidden no-ops
 - Serena MCP integration (`src/integrations/serena`), `sdd reverse extract`, `--check-serena`, `--skip-serena-check`, `--ai`, `--compare`, `--no-create-domains`, `finalize --domain`, confidence scoring, `.sdd/.reverse-meta.json`, and the Serena setup guide
 - Unused reverse modules (AI assistant, editor, intent inferrer, cleanup, diff, domain generator, reporter, confidence)
 

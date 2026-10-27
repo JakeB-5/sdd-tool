@@ -40,7 +40,7 @@ describe('json-exporter', () => {
   describe('generateJson', () => {
     it('유효한 JSON을 생성한다', () => {
       const json = generateJson([sampleSpec]);
-      const parsed = JSON.parse(json);
+      const parsed = JSON.parse(json).specs[0];
 
       expect(parsed.id).toBe('auth');
       expect(parsed.title).toBe('사용자 인증');
@@ -48,7 +48,7 @@ describe('json-exporter', () => {
 
     it('요구사항을 포함한다', () => {
       const json = generateJson([sampleSpec]);
-      const parsed = JSON.parse(json);
+      const parsed = JSON.parse(json).specs[0];
 
       expect(parsed.requirements).toHaveLength(1);
       expect(parsed.requirements[0].id).toBe('REQ-001');
@@ -57,7 +57,7 @@ describe('json-exporter', () => {
 
     it('시나리오를 포함한다', () => {
       const json = generateJson([sampleSpec]);
-      const parsed = JSON.parse(json);
+      const parsed = JSON.parse(json).specs[0];
 
       expect(parsed.scenarios).toHaveLength(1);
       expect(parsed.scenarios[0].given).toContain('유효한 사용자 계정이 있을 때');
@@ -73,33 +73,35 @@ describe('json-exporter', () => {
 
     it('rawContent를 제외한다', () => {
       const json = generateJson([sampleSpec], { includeRawContent: false });
-      const parsed = JSON.parse(json);
+      const parsed = JSON.parse(json).specs[0];
 
       expect(parsed.rawContent).toBeUndefined();
     });
 
     it('rawContent를 포함할 수 있다', () => {
       const json = generateJson([sampleSpec], { includeRawContent: true });
-      const parsed = JSON.parse(json);
+      const parsed = JSON.parse(json).specs[0];
 
       expect(parsed.rawContent).toBe('# 사용자 인증');
     });
 
-    it('여러 스펙을 배열로 반환한다', () => {
+    it('여러 스펙을 specs 배열로 반환한다', () => {
       const spec2: ParsedSpec = { ...sampleSpec, id: 'profile', title: '프로필' };
       const json = generateJson([sampleSpec, spec2]);
       const parsed = JSON.parse(json);
 
-      expect(Array.isArray(parsed)).toBe(true);
-      expect(parsed).toHaveLength(2);
+      expect(Array.isArray(parsed.specs)).toBe(true);
+      expect(parsed.specs).toHaveLength(2);
     });
 
-    it('단일 스펙은 객체로 반환한다', () => {
+    it('단일 스펙도 같은 { specs: [...] } 형태로 반환한다', () => {
       const json = generateJson([sampleSpec]);
       const parsed = JSON.parse(json);
 
-      expect(Array.isArray(parsed)).toBe(false);
-      expect(parsed.id).toBe('auth');
+      expect(Array.isArray(parsed.specs)).toBe(true);
+      expect(parsed.specs[0].id).toBe('auth');
+      expect(parsed.constitution).toBeUndefined();
+      expect(parsed.changes).toBeUndefined();
     });
   });
 

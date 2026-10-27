@@ -72,12 +72,14 @@ sdd validate --quiet --json
 ## Output Example
 
 ```
-SDD Validate
+ℹ 검증 중: /path/to/project/.sdd/specs
 
-  ✓ user-auth/spec.md
-  ✓ profile/spec.md
-  ⚠ settings/spec.md
-    - Missing RFC 2119 keywords
+✓ auth/user-auth/spec.md
+✓ auth/profile/spec.md
+✓ common/settings/spec.md
+  ⚠ RFC 2119 키워드가 없습니다
 
-Summary: 2 passed, 1 warning, 0 errors
+결과: 3개 통과, 0개 실패, 1개 경고
 ```
+
+The summary line reads "Result: N passed, M failed, K warnings" (CLI output is Korean). Warnings do not fail validation unless `--strict` is used.

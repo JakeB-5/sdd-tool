@@ -32,7 +32,7 @@ describe('sdd validate', () => {
       { cwd: tempDir }
     );
 
-    expect(stdout).toContain('passed');
+    expect(stdout).toContain('통과');
   });
 
   it('유효한 스펙을 검증하면 통과한다', async () => {
@@ -47,7 +47,7 @@ describe('sdd validate', () => {
       { cwd: tempDir }
     );
 
-    expect(stdout).toContain('passed');
+    expect(stdout).toContain('통과');
   });
 
   it('특정 파일을 검증한다', async () => {
@@ -63,7 +63,7 @@ describe('sdd validate', () => {
       { cwd: tempDir }
     );
 
-    expect(stdout).toContain('passed');
+    expect(stdout).toContain('통과');
   });
 
   it('--strict 옵션으로 경고를 에러로 처리한다', async () => {
@@ -78,7 +78,7 @@ describe('sdd validate', () => {
         `node "${cliPath}" validate --strict`,
         { cwd: tempDir }
       );
-      expect(stdout).toContain('passed');
+      expect(stdout).toContain('통과');
     } catch (error: unknown) {
       // strict 모드에서 경고가 있으면 실패할 수 있음
       const execError = error as { stdout?: string; stderr?: string };
@@ -99,7 +99,7 @@ describe('sdd validate', () => {
     );
 
     // 요약만 출력
-    expect(stdout).toContain('passed');
+    expect(stdout).toContain('통과');
     // 상세 파일 목록은 없어야 함
     expect(stdout.split('\n').length).toBeLessThan(5);
   });
@@ -110,7 +110,7 @@ describe('sdd validate', () => {
       { cwd: tempDir }
     );
 
-    expect(stdout).toContain('passed');
+    expect(stdout).toContain('통과');
   });
 
   it('--check-links 옵션으로 링크를 검증한다', async () => {
@@ -138,7 +138,7 @@ describe('sdd validate', () => {
       { cwd: tempDir }
     );
 
-    expect(stdout).toContain('passed');
+    expect(stdout).toContain('통과');
     expect(stdout).not.toContain('Constitution');
   });
 
@@ -163,7 +163,7 @@ invalid: yaml: content
     } catch (error: unknown) {
       const execError = error as { stdout?: string; stderr?: string };
       const output = (execError.stdout || '') + (execError.stderr || '');
-      expect(output).toContain('failed');
+      expect(output).toContain('실패');
     }
   });
 

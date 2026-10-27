@@ -146,11 +146,48 @@ describe('scanProject', () => {
   it('skips vendored and generated directories by default', async () => {
     for (const dir of ['vendor', 'target', 'out', '__pycache__', 'venv', 'bower_components']) {
       await write(root, `${dir}/x.py`, 'x\n');
+    }
+    for (const dir of ['__pycache__', 'venv', 'bower_components', 'node_modules', 'dist', 'build', 'coverage']) {
       await write(root, `src/auth/${dir}/y.py`, 'y\n');
     }
     const result = await scanProject(root);
     if (!result.success) throw result.error;
     expect(result.data.summary.fileCount).toBe(8);
+  });
+
+  it('keeps ambiguous vendor/target source directories that are not at a package root', async () => {
+    await write(root, 'src/vendor/adapter.ts', 'v\n');
+    await write(root, 'src/target/aim.ts', 't\n');
+
+    const result = await scanProject(root);
+    if (!result.success) throw result.error;
+
+    const domainIds = result.data.domains.map((d) => d.id);
+    expect(domainIds).toContain('vendor');
+    expect(domainIds).toContain('target');
+    expect(result.data.summary.fileCount).toBe(10);
+  });
+
+  it('skips generated output inside monorepo packages', async () => {
+    await write(root, 'packages/web/package.json', '{}\n');
+    await write(root, 'packages/web/src/app.ts', 'a\n');
+    await write(root, 'packages/web/dist/bundle.js', 'x\n');
+    await write(root, 'packages/web/coverage/lcov-report/index.js', 'x\n');
+    await write(root, 'packages/web/.next/server.js', 'x\n');
+    await write(root, 'packages/web/.turbo/log.js', 'x\n');
+    await write(root, 'packages/engine/Cargo.toml', '[package]\n');
+    await write(root, 'packages/engine/src/lib.rs', 'fn x() {}\n');
+    await write(root, 'packages/engine/target/debug/build.rs', 'x\n');
+    await write(root, 'packages/php/composer.json', '{}\n');
+    await write(root, 'packages/php/vendor/lib/x.php', '<?php\n');
+
+    const result = await scanProject(root, { include: ['packages/**'] });
+    if (!result.success) throw result.error;
+
+    const files = result.data.domains.flatMap((d) => d.files).concat(result.data.unassigned);
+    expect(files).toContain('packages/web/src/app.ts');
+    expect(files).toContain('packages/engine/src/lib.rs');
+    expect(files.some((f) => /\/(dist|coverage|\.next|\.turbo|target|vendor)\//.test(f))).toBe(false);
   });
 
   it('normalizes backslashes in include/exclude patterns', async () => {

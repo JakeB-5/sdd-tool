@@ -13,12 +13,30 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 let currentLevel: LogLevel = 'info';
+let jsonMode = false;
 
 /**
  * 로그 레벨 설정
  */
 export function setLogLevel(level: LogLevel): void {
   currentLevel = level;
+}
+
+/**
+ * JSON 모드 설정
+ *
+ * When enabled, every human-readable log goes to stderr so that stdout carries
+ * only the command's JSON payload.
+ */
+export function setJsonMode(enabled: boolean): void {
+  jsonMode = enabled;
+}
+
+/**
+ * JSON 모드 여부
+ */
+export function isJsonMode(): boolean {
+  return jsonMode;
 }
 
 /**
@@ -29,11 +47,32 @@ function shouldLog(level: LogLevel): boolean {
 }
 
 /**
+ * Human-readable output stream (stderr in JSON mode)
+ */
+function out(...args: unknown[]): void {
+  if (jsonMode) {
+    console.error(...args);
+  } else {
+    console.log(...args);
+  }
+}
+
+// Messages that already start with a status symbol/emoji get no extra prefix
+const LEADING_SYMBOL = /^\s*(?:\p{Extended_Pictographic}|[✓✔✗✘•○●◆◇★☆→▶])/u;
+
+/**
+ * 메시지가 이미 기호로 시작하면 접두사를 생략
+ */
+function withPrefix(prefix: string, message: string): string {
+  return LEADING_SYMBOL.test(message) ? message : `${prefix} ${message}`;
+}
+
+/**
  * 디버그 로그
  */
 export function debug(message: string, ...args: unknown[]): void {
   if (shouldLog('debug')) {
-    console.log(chalk.gray(`[DEBUG] ${message}`), ...args);
+    out(chalk.gray(`[DEBUG] ${message}`), ...args);
   }
 }
 
@@ -42,7 +81,7 @@ export function debug(message: string, ...args: unknown[]): void {
  */
 export function info(message: string, ...args: unknown[]): void {
   if (shouldLog('info')) {
-    console.log(chalk.blue(`ℹ ${message}`), ...args);
+    out(chalk.blue(withPrefix('ℹ', message)), ...args);
   }
 }
 
@@ -51,7 +90,7 @@ export function info(message: string, ...args: unknown[]): void {
  */
 export function success(message: string, ...args: unknown[]): void {
   if (shouldLog('info')) {
-    console.log(chalk.green(`✓ ${message}`), ...args);
+    out(chalk.green(withPrefix('✓', message)), ...args);
   }
 }
 
@@ -60,7 +99,7 @@ export function success(message: string, ...args: unknown[]): void {
  */
 export function warn(message: string, ...args: unknown[]): void {
   if (shouldLog('warn')) {
-    console.log(chalk.yellow(`⚠ ${message}`), ...args);
+    out(chalk.yellow(withPrefix('⚠', message)), ...args);
   }
 }
 
@@ -69,7 +108,7 @@ export function warn(message: string, ...args: unknown[]): void {
  */
 export function error(message: string, ...args: unknown[]): void {
   if (shouldLog('error')) {
-    console.error(chalk.red(`✗ ${message}`), ...args);
+    console.error(chalk.red(withPrefix('✗', message)), ...args);
   }
 }
 
@@ -77,22 +116,22 @@ export function error(message: string, ...args: unknown[]): void {
  * 제목 출력
  */
 export function title(message: string): void {
-  console.log();
-  console.log(chalk.bold.cyan(message));
-  console.log(chalk.cyan('─'.repeat(message.length)));
+  out();
+  out(chalk.bold.cyan(message));
+  out(chalk.cyan('─'.repeat(message.length)));
 }
 
 /**
  * 목록 항목 출력
  */
 export function listItem(item: string, indent = 0): void {
-  const prefix = '  '.repeat(indent) + '• ';
-  console.log(prefix + item);
+  const prefix = '  '.repeat(indent) + (LEADING_SYMBOL.test(item) ? '' : '• ');
+  out(prefix + item);
 }
 
 /**
  * 빈 줄 출력
  */
 export function newline(): void {
-  console.log();
+  out();
 }

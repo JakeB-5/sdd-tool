@@ -23,6 +23,13 @@ sdd export [specId...] [options]
 | `-o, --output <path>` | Output path |
 | `--theme <theme>` | Theme (light, dark) |
 | `--no-toc` | Exclude table of contents |
+| `--include-constitution` | Append `.sdd/constitution.md` (fails if missing) |
+| `--include-changes` | Append pending change proposals (proposal.md) |
+| `--json` | Print result metadata as JSON (stdout carries JSON only) |
+
+PDF is not generated directly: export HTML and print it to PDF from the browser.
+Unsupported formats and export failures exit with a non-zero code.
+The default Markdown output file is `specs.md` (`<id>.md` for a single spec).
 
 ## Formats
 
@@ -106,24 +113,32 @@ sdd export user-auth --no-toc
 
 ### JSON Structure
 
+Always an object with a `specs` array, regardless of how many specs are exported. `constitution` / `changes` are present only when the corresponding option is given.
+
 ```json
 {
-  "id": "user-auth",
-  "title": "User Authentication",
-  "requirements": [
+  "specs": [
     {
-      "id": "REQ-001",
-      "title": "Login",
-      "keyword": "SHALL"
+      "id": "auth/user-auth",
+      "title": "User Authentication",
+      "requirements": [
+        {
+          "id": "REQ-001",
+          "title": "Login",
+          "keyword": "SHALL"
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "scenario-1",
+          "given": ["Valid account"],
+          "when": ["Login attempt"],
+          "then": ["Success"]
+        }
+      ]
     }
   ],
-  "scenarios": [
-    {
-      "id": "scenario-1",
-      "given": ["Valid account"],
-      "when": ["Login attempt"],
-      "then": ["Success"]
-    }
-  ]
+  "constitution": { "title": "Constitution", "content": "..." },
+  "changes": [{ "id": "CHG-001", "title": "...", "content": "..." }]
 }
 ```

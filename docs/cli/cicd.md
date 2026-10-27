@@ -49,13 +49,16 @@ If you prefer direct Git hooks, use `sdd git hooks install` instead.
 
 ### check
 
-Performs spec validation in CI environment.
+Checks the project structure and validates every spec in the CI environment (the same checks as `sdd validate`).
+Exits with code `2` (VALIDATION_FAILED) when validation fails.
 
 ```bash
 sdd cicd check
 sdd cicd check --strict
 sdd cicd check --fail-on-warning
 ```
+
+An unsupported platform or hook name is rejected with an error and no files are written.
 
 ## Options
 
@@ -101,7 +104,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: npm ci
       - run: npm install -g sdd-tool
       - run: sdd validate
 ```

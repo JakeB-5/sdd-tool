@@ -204,7 +204,7 @@ async function handleStatus(options: StatusOptions): Promise<void> {
 
     if (!domainResult.success || !domainResult.data) {
       logger.error(`도메인을 찾을 수 없습니다: ${options.domain}`);
-      return;
+      process.exit(ExitCode.GENERAL_ERROR);
     }
 
     // domains.yml 스펙 참조를 spec locator로 해석하여 canonical id로 비교

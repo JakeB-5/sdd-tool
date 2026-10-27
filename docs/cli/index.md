@@ -95,8 +95,6 @@ sdd validate [options]
 **Options:**
 - `--spec <name>` - Validate specific spec only
 - `--strict` - Enable strict validation mode
-- `--use-cache` - Use cached validation results
-- `--no-cache` - Skip cache and validate fresh
 
 **Validates:**
 - RFC 2119 keyword usage

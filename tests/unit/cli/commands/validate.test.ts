@@ -206,9 +206,9 @@ describe('formatValidateSummary', () => {
 
     const summary = formatValidateSummary(result, false);
 
-    expect(summary).toContain('5 passed');
-    expect(summary).toContain('2 failed');
-    expect(summary).toContain('3 warnings');
+    expect(summary).toContain('5개 통과');
+    expect(summary).toContain('2개 실패');
+    expect(summary).toContain('3개 경고');
   });
 
   it('경고가 없으면 생략한다', () => {
@@ -221,8 +221,8 @@ describe('formatValidateSummary', () => {
 
     const summary = formatValidateSummary(result, false);
 
-    expect(summary).toContain('3 passed');
-    expect(summary).not.toContain('warnings');
+    expect(summary).toContain('3개 통과');
+    expect(summary).not.toContain('경고');
   });
 });
 

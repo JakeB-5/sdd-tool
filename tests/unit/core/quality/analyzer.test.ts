@@ -358,7 +358,40 @@ depends: null
       expect(result.data.averagePercentage).toBeGreaterThanOrEqual(0);
       expect(result.data.averagePercentage).toBeLessThanOrEqual(100);
       expect(['A', 'B', 'C', 'D', 'F']).toContain(result.data.grade);
+      expect(result.data.failedSpecs).toEqual([]);
     }
+  });
+
+  it('분석에 실패한 스펙을 0점으로 평균에 포함한다', async () => {
+    const goodDir = path.join(specsDir, 'good');
+    await fs.mkdir(goodDir);
+    await fs.writeFile(
+      path.join(goodDir, 'spec.md'),
+      `---
+id: good
+title: "좋은 스펙"
+status: draft
+---
+
+# 좋은 스펙
+
+시스템은 기능을 제공해야 한다(SHALL).
+`
+    );
+    const badDir = path.join(specsDir, 'bad');
+    await fs.mkdir(badDir);
+    await fs.writeFile(path.join(badDir, 'spec.md'), 'invalid content without frontmatter');
+
+    const single = await analyzeProjectQuality(tempDir);
+    expect(single.success).toBe(true);
+    if (!single.success) return;
+
+    expect(single.data.totalSpecs).toBe(2);
+    expect(single.data.specResults).toHaveLength(1);
+    expect(single.data.failedSpecs).toHaveLength(1);
+    expect(single.data.averagePercentage).toBe(
+      Math.round(single.data.specResults[0].percentage / 2)
+    );
   });
 });
 
@@ -425,11 +458,14 @@ describe('formatProjectQualityResult', () => {
           topSuggestions: [],
         },
       ],
+      failedSpecs: [{ specPath: '/path/spec3.md', error: '스펙 파싱 실패' }],
       summary: '프로젝트 요약',
     };
 
     const formatted = formatProjectQualityResult(result);
 
+    expect(formatted).toContain('분석 실패');
+    expect(formatted).toContain('/path/spec3.md');
     expect(formatted).toContain('70%');
     expect(formatted).toContain('C');
     expect(formatted).toContain('spec1');
@@ -449,6 +485,7 @@ describe('formatProjectQualityResult', () => {
         { specId: 'd-spec', specPath: '', totalScore: 65, maxScore: 100, percentage: 65, grade: 'D' as const, items: [], summary: '', topSuggestions: [] },
         { specId: 'f-spec', specPath: '', totalScore: 50, maxScore: 100, percentage: 50, grade: 'F' as const, items: [], summary: '', topSuggestions: [] },
       ],
+      failedSpecs: [],
       summary: '',
     };
 

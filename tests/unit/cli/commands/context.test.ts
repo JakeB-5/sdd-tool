@@ -147,6 +147,16 @@ describe('sdd context', () => {
         expect(result.data.activeDomains).toContain('auth');
       }
     });
+
+    it('컨텍스트에 없는 도메인은 실패로 보고해야 함', async () => {
+      await executeContextSet(['auth'], {}, testDir);
+      const result = await executeContextRemove('ghost', testDir);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('ghost');
+      }
+    });
   });
 
   describe('executeContextSpecs', () => {

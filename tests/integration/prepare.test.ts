@@ -166,17 +166,8 @@ describe('sdd prepare', () => {
 
     expect(result.code).toBe(0);
 
-    // JSON 파싱 가능해야 함
-    let parsed: any;
-    try {
-      parsed = JSON.parse(result.stdout);
-    } catch (e) {
-      // stdout에 다른 로그가 섞여있을 수 있으므로 JSON 부분만 추출 시도
-      const jsonMatch = result.stdout.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0]);
-      }
-    }
+    // stdout은 순수 JSON이어야 함 (사람용 로그는 stderr)
+    const parsed = JSON.parse(result.stdout);
 
     expect(parsed).toBeDefined();
     expect(parsed).toHaveProperty('feature');

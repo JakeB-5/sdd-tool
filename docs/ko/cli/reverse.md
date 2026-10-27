@@ -43,9 +43,11 @@ sdd reverse scan [path] [options]
 | `--json` | 표준 출력에 순수 JSON 출력 |
 
 슬래시가 없는 glob은 위치와 관계없이 파일 이름에 매칭되고(`*.test.ts`), 슬래시가 있는 glob은
-스캔 루트 기준 경로에 매칭됩니다(`src/legacy/**`). 백슬래시는 `/`로 처리합니다. 숨김 디렉토리와
-`node_modules`, `bower_components`, `dist`, `build`, `out`, `target`, `coverage`, `vendor`,
-`__pycache__`, `venv`는 건너뜁니다.
+스캔 루트 기준 경로에 매칭됩니다(`src/legacy/**`). 백슬래시는 `/`로 처리합니다. 숨김 디렉토리
+(`.next`, `.turbo` 등)와 `node_modules`, `bower_components`, `__pycache__`, `venv`, `dist`, `build`,
+`out`, `coverage`는 모든 깊이(모노레포 패키지 포함)에서 건너뜁니다. 모호한 이름인 `vendor`, `target`은
+스캔 루트나 패키지 매니페스트(`package.json`, `Cargo.toml`, `go.mod`, `composer.json`, `pom.xml`,
+`build.gradle`)가 있는 디렉토리에서만 건너뜁니다(`src/vendor/`는 스캔됨).
 
 도메인 후보는 `src/`, `lib/`, `packages/`, `modules/`, `apps/`의 하위 디렉토리와
 스캔 루트의 그 밖의 최상위 디렉토리(예: `app/`)에서 추정합니다. 디렉토리 이름은 유효한 도메인 ID로

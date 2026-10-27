@@ -1,99 +1,47 @@
 # sdd prompt
 
-SDD 프롬프트를 출력합니다.
+SDD 워크플로우 단계별 프롬프트 템플릿을 출력합니다. 다른 AI 도구에서 재사용할 때 사용합니다.
 
 ## 사용법
 
 ```bash
-sdd prompt [type] [options]
+sdd prompt [name]
+sdd prompt --list
 ```
 
-## 프롬프트 타입
+이름 없이 실행하거나 `--list`를 지정하면 사용 가능한 프롬프트 목록을 출력합니다.
+목록에 없는 이름을 지정하면 에러로 종료합니다.
 
-| 타입 | 설명 |
-|------|------|
-| `system` | 시스템 프롬프트 (기본) |
-| `spec` | 스펙 작성 프롬프트 |
-| `plan` | 계획 작성 프롬프트 |
-| `tasks` | 작업 분해 프롬프트 |
-| `review` | 리뷰 프롬프트 |
+## 프롬프트
+
+| 이름 | 설명 | 관련 스킬 / 명령어 |
+|------|------|--------------------|
+| `new` | 신규 기능 명세 작성 | `/sdd-spec` |
+| `plan` | 구현 계획 작성 | `/sdd-plan` |
+| `tasks` | 작업 분해 | `/sdd-tasks` |
+| `change` | 변경 제안 작성 | `/sdd-spec` |
+| `apply` | 승인된 변경 적용 | `sdd change apply <id>` |
+| `archive` | 완료된 변경 아카이브 | `sdd change archive <id>` |
+| `impact` | 영향도 분석 | `/sdd-impact` |
+| `validate` | 스펙 검증 | `/sdd-validate` |
 
 ## 옵션
 
 | 옵션 | 설명 |
 |------|------|
-| `--raw` | 마크다운 없이 원본 텍스트 출력 |
-| `--copy` | 클립보드에 복사 |
-| `-o, --output <file>` | 파일로 저장 |
+| `-l, --list` | 사용 가능한 프롬프트 목록 |
 
 ## 예시
 
-### 시스템 프롬프트 출력
-
 ```bash
-sdd prompt
-```
+# 목록 확인
+sdd prompt --list
 
-출력:
-```
-=== SDD System Prompt ===
+# 변경 제안 프롬프트 출력
+sdd prompt change
 
-당신은 Spec-Driven Development(SDD) 전문가입니다.
-
-## 핵심 원칙
-
-1. 명세 우선: 코드보다 명세가 먼저입니다
-2. RFC 2119: SHALL, MUST, SHOULD, MAY 키워드 사용
-3. GIVEN-WHEN-THEN: 시나리오 기반 요구사항 정의
-
-## 워크플로우
-
-...
-```
-
-### 스펙 작성 프롬프트
-
-```bash
-sdd prompt spec
-```
-
-### 파일로 저장
-
-```bash
-sdd prompt system -o ./prompts/sdd-system.md
-```
-
-### 클립보드에 복사
-
-```bash
-sdd prompt spec --copy
-```
-
-출력:
-```
-✅ 프롬프트가 클립보드에 복사되었습니다.
-```
-
-## 사용 시나리오
-
-### 외부 AI 도구에서 사용
-
-SDD 프롬프트를 다른 AI 도구(ChatGPT, Gemini 등)에서 사용할 때:
-
-```bash
-# 프롬프트를 클립보드에 복사
-sdd prompt system --copy
-
-# 외부 AI 도구에 붙여넣기
-```
-
-### 커스텀 워크플로우
-
-```bash
-# 프롬프트를 파일로 저장
-sdd prompt spec -o ./custom-prompts/spec.md
-
-# 필요에 따라 수정 후 사용
+# 파일로 저장
+sdd prompt plan > ./prompts/plan.md
 ```
 
 ## 관련 문서

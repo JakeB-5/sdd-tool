@@ -187,12 +187,11 @@ function filterByOptions(
       }
     }
 
-    // 생성일 필터
-    if (options.createdAfter && item.created) {
-      if (item.created < options.createdAfter) return false;
-    }
-    if (options.createdBefore && item.created) {
-      if (item.created > options.createdBefore) return false;
+    // 생성일 필터 (생성일이 없는 스펙은 날짜 필터와 일치하지 않음)
+    if (options.createdAfter || options.createdBefore) {
+      if (!item.created) return false;
+      if (options.createdAfter && item.created < options.createdAfter) return false;
+      if (options.createdBefore && item.created > options.createdBefore) return false;
     }
 
     // 수정일 필터

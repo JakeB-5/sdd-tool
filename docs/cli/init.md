@@ -12,7 +12,7 @@ sdd init [options]
 
 | Option | Description |
 |--------|-------------|
-| `-f, --force` | Overwrite existing configuration |
+| `-f, --force` | Overwrite existing configuration (changed `.sdd/` files are backed up to `<file>.bak`, or `<file>.1.bak`… if one exists, and reported; delete backups after review and do not commit them — add `.sdd/**/*.bak` to `.gitignore`) |
 | `--skip-git-setup` | Skip Git/CI-CD setup |
 | `--auto-approve` | Auto-approve all settings |
 | `--no-skills` | Skip `.claude/skills/` generation |

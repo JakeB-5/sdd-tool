@@ -1,18 +1,23 @@
 /**
  * JSON 내보내기
  */
-import type { ParsedSpec } from './schemas.js';
+import type { ExportAppendix, ParsedSpec } from './schemas.js';
 
 interface JsonExportOptions {
   pretty?: boolean;
   includeRawContent?: boolean;
+  /** Appendix documents (constitution, change proposals) to include */
+  appendices?: ExportAppendix[];
 }
 
 /**
  * 스펙을 JSON 형식으로 변환
+ *
+ * Output shape is always `{ "specs": [...] }` (regardless of how many specs are
+ * exported), plus `constitution` / `changes` when those appendices are included.
  */
 export function generateJson(specs: ParsedSpec[], options: JsonExportOptions = {}): string {
-  const { pretty = true, includeRawContent = false } = options;
+  const { pretty = true, includeRawContent = false, appendices = [] } = options;
 
   const exportData = specs.map(spec => {
     const result: Record<string, unknown> = {
@@ -49,8 +54,16 @@ export function generateJson(specs: ParsedSpec[], options: JsonExportOptions = {
     return result;
   });
 
-  // 단일 스펙이면 배열이 아닌 객체로 반환
-  const output = specs.length === 1 ? exportData[0] : exportData;
+  const output: Record<string, unknown> = { specs: exportData };
+
+  const constitution = appendices.find((a) => a.kind === 'constitution');
+  if (constitution) {
+    output.constitution = { title: constitution.title, content: constitution.content };
+  }
+  const changes = appendices.filter((a) => a.kind === 'change');
+  if (changes.length > 0) {
+    output.changes = changes.map((c) => ({ id: c.id, title: c.title, content: c.content }));
+  }
 
   return pretty ? JSON.stringify(output, null, 2) : JSON.stringify(output);
 }

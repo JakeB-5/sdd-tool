@@ -188,16 +188,6 @@ sdd validate --changed
 sdd validate --domain auth
 ```
 
-### Caching
-
-```yaml
-# .sdd/config.yml
-cache:
-  enabled: true
-  ttl: 3600  # 1 hour
-  path: .sdd/.cache/
-```
-
 ### Parallel Processing
 
 ```bash

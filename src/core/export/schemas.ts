@@ -6,8 +6,28 @@ import { z } from 'zod';
 /**
  * 내보내기 형식
  */
-export const ExportFormatSchema = z.enum(['html', 'pdf', 'json', 'markdown']);
+export const ExportFormatSchema = z.enum(['html', 'json', 'markdown']);
 export type ExportFormat = z.infer<typeof ExportFormatSchema>;
+
+/**
+ * 출력 파일 확장자
+ */
+export const EXPORT_FILE_EXTENSIONS: Record<ExportFormat, string> = {
+  html: 'html',
+  json: 'json',
+  markdown: 'md',
+};
+
+/**
+ * 스펙 외 부록 문서 (Constitution, 변경 제안)
+ */
+export interface ExportAppendix {
+  kind: 'constitution' | 'change';
+  id: string;
+  title: string;
+  /** Markdown body (frontmatter stripped) */
+  content: string;
+}
 
 /**
  * 테마
@@ -82,7 +102,8 @@ export type ParsedSpec = z.infer<typeof ParsedSpecSchema>;
 export const ExportResultSchema = z.object({
   success: z.boolean(),
   outputPath: z.string().optional(),
-  format: ExportFormatSchema,
+  // Echoes the requested format, which may be unsupported on failure
+  format: z.string(),
   specsExported: z.number(),
   size: z.number().optional(),
   error: z.string().optional(),

@@ -47,7 +47,10 @@ export async function executeQuality(
   projectRoot: string
 ): Promise<Result<QualityCommandResult, Error>> {
   const sddPath = path.join(projectRoot, '.sdd');
-  const minScore = parseInt(options.minScore || '0', 10);
+  const minScore = Number(options.minScore || '0');
+  if (!Number.isFinite(minScore) || minScore < 0 || minScore > 100) {
+    return failure(new Error(`--min-score 값은 0~100 사이의 숫자여야 합니다: ${options.minScore}`));
+  }
 
   // 전체 프로젝트 분석
   if (options.all || !feature) {
@@ -136,7 +139,7 @@ async function runQuality(
   console.log(result.data.formatted);
 
   if (!result.data.passed) {
-    const minScore = parseInt(options.minScore || '0', 10);
+    const minScore = Number(options.minScore || '0');
     logger.newline();
     logger.error(`품질 점수가 최소 기준(${minScore}%) 미달입니다.`);
     process.exit(ExitCode.VALIDATION_FAILED);

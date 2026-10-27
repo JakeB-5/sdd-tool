@@ -50,8 +50,11 @@ sdd export user-auth --no-toc
 |--------|-------------|
 | \`html\` | Styled HTML document (default) |
 | \`json\` | Structured JSON with full spec data |
-| \`markdown\` | Consolidated Markdown (all specs merged) |
-| \`pdf\` | Generates HTML then prompts browser print-to-PDF |
+| \`markdown\` | Consolidated Markdown (all specs merged, written as \`.md\`) |
+
+PDF is not generated directly: export HTML and use the browser's print dialog.
+
+Optional appendices: \`--include-constitution\` appends \`.sdd/constitution.md\`, \`--include-changes\` appends pending change proposals (all formats).
 
 ---
 
@@ -68,25 +71,21 @@ sdd export user-auth --no-toc
 
 ## JSON Structure
 
+Always an object with a \`specs\` array (even for a single spec); \`constitution\` / \`changes\` appear only when included.
+
 \`\`\`json
 {
-  "id": "user-auth",
-  "title": "User Authentication",
-  "status": "approved",
-  "requirements": [
+  "specs": [
     {
-      "id": "REQ-001",
-      "title": "Login",
-      "keyword": "SHALL",
-      "priority": "high"
-    }
-  ],
-  "scenarios": [
-    {
-      "title": "Successful Login",
-      "given": "...",
-      "when": "...",
-      "then": "..."
+      "id": "auth/user-auth",
+      "title": "User Authentication",
+      "status": "approved",
+      "requirements": [
+        { "id": "REQ-001", "title": "Login", "keyword": "SHALL", "priority": "high" }
+      ],
+      "scenarios": [
+        { "title": "Successful Login", "given": ["..."], "when": ["..."], "then": ["..."] }
+      ]
     }
   ]
 }
@@ -96,19 +95,13 @@ sdd export user-auth --no-toc
 
 ## Output Format
 
-\`\`\`
-=== SDD Export ===
-
-Format : HTML
-Specs  : 3
-Output : ./specs.html
-Size   : 45.32 KB
-\`\`\`
+The CLI prints a short summary: format, number of exported specs, output path and file size.
+Failures (unknown spec, unsupported format, missing constitution) exit with a non-zero code.
 
 ---
 
 ## Next Steps
 
-After exporting, verify the output file opens correctly in a browser or can be parsed by the consuming system. For PDF output, open the HTML file and use the browser's print dialog to save as PDF.
+After exporting, verify the output file opens correctly in a browser or can be parsed by the consuming system. For a PDF, open the exported HTML file and use the browser's print dialog to save as PDF.
 `,
 };

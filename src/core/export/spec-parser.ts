@@ -16,12 +16,21 @@ function optionalString(value: unknown): string | undefined {
   return value === undefined || value === null ? undefined : String(value);
 }
 
+const RFC_KEYWORDS = 'SHALL NOT|SHALL|MUST NOT|MUST|SHOULD NOT|SHOULD|MAY|REQUIRED|RECOMMENDED|OPTIONAL';
+
 /**
  * RFC 2119 키워드 추출
  */
 function extractKeyword(text: string): string | undefined {
-  const match = text.match(/\((SHALL NOT|SHALL|MUST NOT|MUST|SHOULD NOT|SHOULD|MAY|REQUIRED|RECOMMENDED|OPTIONAL)\)/i);
+  const match = text.match(new RegExp(`\\((${RFC_KEYWORDS})\\)`, 'i'));
   return match ? match[1].toUpperCase() : undefined;
+}
+
+/**
+ * 설명에서 RFC 2119 키워드 표기만 제거 (`(API)` 같은 일반 괄호 표기는 유지)
+ */
+function stripKeywordMarkers(text: string): string {
+  return text.replace(new RegExp(`\\((?:${RFC_KEYWORDS})\\)`, 'gi'), '').trim();
 }
 
 /**
@@ -57,7 +66,7 @@ function parseRequirements(content: string): ParsedRequirement[] {
         requirements.push({
           id: currentReq.id,
           title: currentReq.title || '',
-          description: description.replace(/\([A-Z\s]+\)/g, '').trim(),
+          description: stripKeywordMarkers(description),
           keyword,
           priority: getPriority(keyword),
         });
@@ -77,7 +86,7 @@ function parseRequirements(content: string): ParsedRequirement[] {
         requirements.push({
           id: currentReq.id!,
           title: currentReq.title || '',
-          description: description.replace(/\([A-Z\s]+\)/g, '').trim(),
+          description: stripKeywordMarkers(description),
           keyword,
           priority: getPriority(keyword),
         });
@@ -96,7 +105,7 @@ function parseRequirements(content: string): ParsedRequirement[] {
     requirements.push({
       id: currentReq.id,
       title: currentReq.title || '',
-      description: description.replace(/\([A-Z\s]+\)/g, '').trim(),
+      description: stripKeywordMarkers(description),
       keyword,
       priority: getPriority(keyword),
     });

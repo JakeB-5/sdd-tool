@@ -107,6 +107,10 @@ pre code {
   padding: 0;
 }
 
+.appendix-content {
+  white-space: pre-wrap;
+}
+
 /* 목차 */
 .toc {
   background: var(--toc-bg);
