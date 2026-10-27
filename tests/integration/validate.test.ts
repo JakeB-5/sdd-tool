@@ -104,6 +104,15 @@ describe('sdd validate', () => {
     expect(stdout.split('\n').length).toBeLessThan(5);
   });
 
+  it('구버전 훅의 --ci 옵션을 거부하지 않는다', async () => {
+    const { stdout } = await execAsync(
+      `node "${cliPath}" validate --ci`,
+      { cwd: tempDir }
+    );
+
+    expect(stdout).toContain('passed');
+  });
+
   it('--check-links 옵션으로 링크를 검증한다', async () => {
     await execAsync(
       `node "${cliPath}" new links-feature --no-branch`,

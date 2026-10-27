@@ -77,7 +77,7 @@ jobs:
         run: npm install -g sdd-tool
 
       - name: Validate Specs
-        run: sdd validate --ci
+        run: sdd validate
 ```
 
 ### Customization
@@ -173,7 +173,7 @@ Check if running in CI environment:
 
 ```bash
 # Run in CI environment (simplified output)
-sdd validate --ci
+sdd validate
 
 # CI check
 sdd cicd check

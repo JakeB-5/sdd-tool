@@ -77,7 +77,7 @@ jobs:
         run: npm install -g sdd-tool
 
       - name: Validate Specs
-        run: sdd validate --ci
+        run: sdd validate
 ```
 
 ### 커스터마이징
@@ -173,7 +173,7 @@ CI 환경인지 확인:
 
 ```bash
 # CI 환경에서 실행 (출력 간소화)
-sdd validate --ci
+sdd validate
 
 # CI 체크
 sdd cicd check

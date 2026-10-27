@@ -138,7 +138,7 @@ jobs:
       - name: Install SDD
         run: npm install -g sdd-tool
       - name: Validate Specs
-        run: sdd validate --ci
+        run: sdd validate
 ```
 
 ### 상태 체크 추가 방법

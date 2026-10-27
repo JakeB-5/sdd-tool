@@ -49,7 +49,7 @@ if [ -n "$CHANGED_SPECS" ]; then
 
   # sdd validate 실행
   if command -v sdd &> /dev/null; then
-    sdd validate --ci
+    sdd validate
     if [ $? -ne 0 ]; then
       echo "\${RED}❌ 스펙 검증 실패. 커밋이 취소됩니다.\${NC}"
       echo "오류를 수정하고 다시 시도하세요."
@@ -147,7 +147,7 @@ fi
 
 # 전체 스펙 검증
 echo "스펙 검증 중..."
-sdd validate --ci
+sdd validate
 if [ $? -ne 0 ]; then
   echo "\${RED}❌ 스펙 검증 실패. 푸시가 취소됩니다.\${NC}"
   exit 1
@@ -155,7 +155,7 @@ fi
 
 # Constitution 정합성 확인
 echo "Constitution 정합성 확인 중..."
-sdd validate --constitution --ci 2>/dev/null
+sdd validate --constitution 2>/dev/null
 if [ $? -ne 0 ]; then
   echo "\${YELLOW}⚠️  Constitution 검증 경고 (계속 진행)\${NC}"
 fi

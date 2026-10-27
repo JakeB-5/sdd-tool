@@ -419,7 +419,7 @@ jobs:
         run: npm install -g sdd-tool
 
       - name: Validate Specs
-        run: sdd validate --ci
+        run: sdd validate
 
       - name: Check Dependencies
         run: sdd deps check

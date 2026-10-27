@@ -32,14 +32,14 @@ jobs:
         run: npm install -g sdd-tool
 
       - name: Validate Specs
-        run: sdd validate --ci
+        run: sdd validate
 
       - name: Check Dependencies
-        run: sdd validate --ci || true
+        run: sdd validate || true
         continue-on-error: true
 
       - name: Constitution Check
-        run: sdd validate --constitution --ci || true
+        run: sdd validate --constitution || true
         continue-on-error: true
 
       - name: Comment on PR (failure)

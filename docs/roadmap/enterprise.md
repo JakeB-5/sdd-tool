@@ -786,7 +786,7 @@ jobs:
 sdd:validate:
   image: sdd-tool/cli:latest
   script:
-    - sdd validate --ci
+    - sdd validate
     - sdd sync --ci --threshold 80
   rules:
     - changes:
