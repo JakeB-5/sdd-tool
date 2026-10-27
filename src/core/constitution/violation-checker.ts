@@ -53,19 +53,6 @@ export interface ConstitutionCheckResult {
 }
 
 /**
- * 금지 키워드 패턴
- * Constitution의 금지 사항에서 추출한 키워드를 스펙에서 검색
- */
-interface ForbiddenPattern {
-  /** 원본 금지 규칙 */
-  rule: string;
-  /** 검색할 키워드 패턴 */
-  patterns: string[];
-  /** 부정적 표현 (이것이 있으면 위반 아님) */
-  negativePatterns: string[];
-}
-
-/**
  * Constitution 위반 검사
  *
  * NOTE: 키워드 기반 위반 검사는 false positive가 많아 비활성화됨
@@ -162,111 +149,6 @@ function checkVersionMismatch(
   }
 
   return undefined;
-}
-
-/**
- * 금지 규칙에서 키워드 패턴 추출
- */
-function extractForbiddenPattern(rule: string): ForbiddenPattern {
-  const patterns: string[] = [];
-  const negativePatterns: string[] = [];
-
-  // SHALL NOT / MUST NOT 앞뒤의 내용 모두 추출
-  const forbiddenMatch = rule.match(/(.+?)(?:SHALL\s+NOT|MUST\s+NOT)\s*(.+?)(?:\(|$)/i);
-
-  if (forbiddenMatch) {
-    const beforeKeyword = forbiddenMatch[1].trim();
-    const afterKeyword = forbiddenMatch[2].trim();
-
-    // 앞뒤 모두에서 핵심 키워드 추출
-    const keywords = [
-      ...extractKeywords(beforeKeyword),
-      ...extractKeywords(afterKeyword),
-    ];
-    patterns.push(...keywords);
-  } else {
-    // 전체 규칙에서 키워드 추출 (폴백)
-    patterns.push(...extractKeywords(rule));
-  }
-
-  // 부정적 패턴 (예: "암호화된", "해시된" 등은 위반이 아님)
-  const safePatterns = [
-    '암호화',
-    '해시',
-    'encrypt',
-    'hash',
-    'bcrypt',
-    'argon2',
-    '보안',
-    'secure',
-  ];
-  negativePatterns.push(...safePatterns);
-
-  return {
-    rule,
-    patterns,
-    negativePatterns,
-  };
-}
-
-/**
- * 텍스트에서 핵심 키워드 추출
- */
-function extractKeywords(text: string): string[] {
-  const keywords: string[] = [];
-
-  // 한글 키워드
-  const koreanKeywords = text.match(/[가-힣]+/g) || [];
-  keywords.push(...koreanKeywords.filter((k) => k.length >= 2));
-
-  // 영문 키워드
-  const englishKeywords = text.match(/[a-zA-Z]+/g) || [];
-  keywords.push(...englishKeywords.filter((k) => k.length >= 3));
-
-  // 불용어 제거
-  const stopwords = ['을', '를', '이', '가', '는', '은', '에', '의', 'the', 'a', 'an', 'and', 'or', 'not'];
-  return keywords.filter((k) => !stopwords.includes(k.toLowerCase()));
-}
-
-/**
- * 금지 규칙 위반 검사
- */
-function checkForbiddenViolation(
-  content: string,
-  pattern: ForbiddenPattern,
-  ruleId: string
-): Violation | null {
-  const lines = content.split('\n');
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineLower = line.toLowerCase();
-
-    // 패턴 매칭
-    for (const keyword of pattern.patterns) {
-      const keywordLower = keyword.toLowerCase();
-
-      if (lineLower.includes(keywordLower)) {
-        // 부정적 패턴 확인 (안전한 표현이 있으면 위반 아님)
-        const hasSafePattern = pattern.negativePatterns.some((safe) =>
-          lineLower.includes(safe.toLowerCase())
-        );
-
-        if (!hasSafePattern) {
-          return {
-            ruleId,
-            rule: pattern.rule,
-            matchedContent: line.trim(),
-            line: i + 1,
-            severity: 'critical',
-            message: `금지된 내용 발견: "${keyword}" - 규칙: ${pattern.rule}`,
-          };
-        }
-      }
-    }
-  }
-
-  return null;
 }
 
 /**

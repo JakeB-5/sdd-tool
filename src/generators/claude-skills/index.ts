@@ -8,7 +8,7 @@
  * - Skill definitions live under `./core`, `./management`, `./analysis`,
  *   `./domain`, and `./utils` (added in Phase 2).
  * - Each definition is a `SkillDefinition` with an English body.
- * - `generateClaudeSkills()` returns all 28 skills for `sdd init` to write.
+ * - `generateClaudeSkills()` returns all 32 skills for `sdd init` to write.
  */
 
 export type {

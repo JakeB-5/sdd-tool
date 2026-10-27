@@ -7,7 +7,7 @@ import { Command } from 'commander';
 import * as logger from '../../utils/logger.js';
 import { findSddRoot } from '../../utils/fs.js';
 import { ExitCode } from '../../errors/index.js';
-import { getGlobalCache, clearGlobalCache, getCacheOptions, setCacheOptions } from '../../core/cache/index.js';
+import { getGlobalCache, clearGlobalCache, setCacheOptions } from '../../core/cache/index.js';
 
 export function registerCacheCommand(program: Command): void {
   const cache = program

@@ -365,7 +365,13 @@ export async function loadDraftSpecs(
 
         const filePath = path.join(domainPath, file);
         const content = await fs.readFile(filePath, 'utf-8');
-        const spec = JSON.parse(content) as ExtractedSpec;
+        let spec: ExtractedSpec;
+        try {
+          spec = JSON.parse(content) as ExtractedSpec;
+        } catch {
+          // Skip malformed draft files rather than aborting the entire load.
+          continue;
+        }
 
         // 날짜 필드 복원
         spec.metadata.extractedAt = new Date(spec.metadata.extractedAt);
