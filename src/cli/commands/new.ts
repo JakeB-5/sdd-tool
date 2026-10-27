@@ -18,7 +18,6 @@ import {
   updateTaskStatus,
   type GenerateTasksOptions,
 } from '../../core/new/index.js';
-import { normalizeTaskStatus } from '../../core/new/task-generator.js';
 import type { TaskItem, TaskStatus } from '../../core/new/schemas.js';
 import { logger } from '../../utils/index.js';
 import { ensureDir, fileExists, readFile, writeFile, findSddRoot } from '../../utils/fs.js';
@@ -482,9 +481,36 @@ export async function createChecklist(
 }
 
 /**
- * Task status values accepted on the command line (normalized by normalizeTaskStatus).
+ * Task status values accepted on the command line (exact match after trim/lowercase).
+ * Stricter than the tasks.md parser, which tolerates markup and trailing notes.
  */
-const TASK_STATUS_INPUTS = 'pending, in-progress (in_progress), completed, blocked, 대기, 진행 중, 완료, 차단됨';
+const TASK_STATUS_INPUTS: Record<string, TaskStatus> = {
+  pending: 'pending',
+  'in-progress': 'in_progress',
+  in_progress: 'in_progress',
+  completed: 'completed',
+  blocked: 'blocked',
+  대기: 'pending',
+  '진행 중': 'in_progress',
+  진행중: 'in_progress',
+  완료: 'completed',
+  차단됨: 'blocked',
+};
+
+/**
+ * Parse a CLI task status argument; undefined when it is not an exact accepted value.
+ */
+export function parseTaskStatusArg(value: string): TaskStatus | undefined {
+  const key = value.trim().toLowerCase().replace(/\s+/g, ' ');
+  return Object.hasOwn(TASK_STATUS_INPUTS, key) ? TASK_STATUS_INPUTS[key] : undefined;
+}
+
+/**
+ * Task status as shown in text output (`in-progress`, matching the CLI input form).
+ */
+function displayTaskStatus(status: TaskStatus): string {
+  return status === 'in_progress' ? 'in-progress' : status;
+}
 
 /**
  * 스펙 상태 변경 결과
@@ -509,6 +535,8 @@ export interface TaskStatusChange {
   to: TaskStatus;
   changed: boolean;
   progress: { completed: number; total: number };
+  /** Spec frontmatter status of the feature (undefined when absent or unreadable) */
+  specStatus?: string;
 }
 
 /**
@@ -569,6 +597,11 @@ export async function setSpecStatus(
     return failure(new Error(`${specPath}: ${(error as Error).message}`));
   }
 
+  // updateFrontmatter normalizes to LF; keep the file's CRLF line endings
+  if (content.includes('\r\n')) {
+    updated = updated.replace(/\n/g, '\r\n');
+  }
+
   const writeResult = await writeFile(specPath, updated);
   if (!writeResult.success) {
     return failure(new Error(`스펙 파일 쓰기 실패: ${writeResult.error.message}`));
@@ -609,9 +642,13 @@ export async function setTaskStatus(
   taskId: string,
   status: string
 ): Promise<Result<TaskStatusChange, Error>> {
-  const to = normalizeTaskStatus(status);
+  const to = parseTaskStatusArg(status);
   if (!to) {
-    return failure(new Error(`유효하지 않은 작업 상태입니다: '${status}' (허용: ${TASK_STATUS_INPUTS})`));
+    return failure(
+      new Error(
+        `유효하지 않은 작업 상태입니다: '${status}' (허용: ${Object.keys(TASK_STATUS_INPUTS).join(', ')})`
+      )
+    );
   }
 
   const resolved = await resolveFeature(sddPath, feature);
@@ -634,6 +671,10 @@ export async function setTaskStatus(
   if (!found.success) return found;
   const task = found.data;
 
+  const specRead = await readFile(resolved.data.specPath);
+  const rawSpecStatus = specRead.success ? readFrontmatter(specRead.data).data.status : undefined;
+  const specStatus = rawSpecStatus === undefined || rawSpecStatus === null ? undefined : String(rawSpecStatus);
+
   const result = (tasks: TaskItem[], changed: boolean): TaskStatusChange => ({
     featureId,
     tasksPath,
@@ -642,6 +683,7 @@ export async function setTaskStatus(
     to,
     changed,
     progress: { completed: tasks.filter((t) => t.status === 'completed').length, total: tasks.length },
+    specStatus,
   });
 
   if (task.status === to) {
@@ -737,6 +779,10 @@ export function registerNewCommand(program: Command): void {
       await handleChecklist(cmd.optsWithGlobals<{ force?: boolean }>());
     });
 
+  // `status` / `task` are subcommands, so a feature with that bare name needs the domain form
+  const reservedNameHint = (name: string) =>
+    `(sdd new ${name}는 상태 변경 서브커맨드입니다. '${name}' 이름의 기능을 만들려면 sdd new <domain>/${name} 형식을 사용하세요)`;
+
   // status 서브커맨드 (스펙 상태 전이)
   newCmd
     .command('status')
@@ -744,6 +790,8 @@ export function registerNewCommand(program: Command): void {
     .argument('<feature>', '기능 ID (<domain>/<feature> 또는 <feature>)')
     .argument('<status>', `새 상태 (${SPEC_STATUSES.join('|')})`)
     .option('--json', 'JSON 형식으로 출력')
+    .allowExcessArguments(false)
+    .showHelpAfterError(reservedNameHint('status'))
     .action(async (feature: string, status: string, opts: { json?: boolean }) => {
       await handleSpecStatus(feature, status, opts);
     });
@@ -754,8 +802,15 @@ export function registerNewCommand(program: Command): void {
     .description('작업 상태 변경 (tasks.md, 진행 상황 갱신)')
     .argument('<feature>', '기능 ID (<domain>/<feature> 또는 <feature>)')
     .argument('<task-id>', '작업 ID (예: login-task-001, 번호만 쓰면 유일할 때 일치)')
-    .argument('<status>', '새 상태 (pending|in-progress|completed|blocked 또는 대기|진행 중|완료|차단됨)')
+    .argument(
+      '<status>',
+      '새 상태 (pending|in-progress|completed|blocked 또는 대기|"진행 중"|진행중|완료|차단됨)'
+    )
     .option('--json', 'JSON 형식으로 출력')
+    .allowExcessArguments(false)
+    .showHelpAfterError(
+      `(공백이 있는 상태는 "진행 중"처럼 따옴표로 감싸거나 in-progress를 사용하세요)\n${reservedNameHint('task')}`
+    )
     .action(async (feature: string, taskId: string, status: string, opts: { json?: boolean }) => {
       await handleTaskStatus(feature, taskId, status, opts);
     });
@@ -1027,18 +1082,27 @@ async function handleTaskStatus(
     process.exit(ExitCode.GENERAL_ERROR);
   }
 
-  const { featureId, from, to, changed, progress } = result.data;
+  const { featureId, from, to, changed, progress, specStatus } = result.data;
   if (options.json) {
     console.log(JSON.stringify(result.data, null, 2));
     return;
   }
   const progressText = `작업 ${progress.completed}/${progress.total} 완료`;
   if (changed) {
-    logger.info(`✅ ${featureId} ${result.data.taskId}: ${from} → ${to} (${progressText})`);
+    logger.info(
+      `✅ ${featureId} ${result.data.taskId}: ${displayTaskStatus(from)} → ${displayTaskStatus(to)} (${progressText})`
+    );
   } else {
-    logger.info(`ℹ ${featureId} ${result.data.taskId} 상태가 이미 ${to}입니다 (변경 없음, ${progressText})`);
+    logger.info(
+      `ℹ ${featureId} ${result.data.taskId} 상태가 이미 ${displayTaskStatus(to)}입니다 (변경 없음, ${progressText})`
+    );
   }
-  if (changed && to === 'completed' && progress.completed === progress.total) {
+  if (
+    changed &&
+    to === 'completed' &&
+    progress.completed === progress.total &&
+    normalizeSpecStatus(specStatus) !== 'implemented'
+  ) {
     logger.info(
       `모든 작업 완료 — sdd validate · sdd sync로 확인한 뒤 sdd new status ${featureId} implemented`
     );

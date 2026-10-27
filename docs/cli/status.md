@@ -27,15 +27,16 @@ Displays the current SDD project status:
 
 ### Next steps
 
-Each feature's stage is derived from its files, spec status and task progress:
+Each feature's stage is derived from its files, spec status and task progress (first matching row wins):
 
 | Stage | Condition | Suggested next step |
 |-------|-----------|---------------------|
+| `done` | spec `deprecated`, or `implemented` (legacy `completed`) with no open tasks — plan.md / tasks.md are optional | — |
+| `implement` | some tasks not completed | implement (`/sdd-implement` · `$sdd-implement`), then `sdd new task <feature> <task-id> completed`. For an `implemented` spec the line adds "스펙 상태(implemented)와 작업 진행률(n/m)이 맞지 않습니다" |
 | `plan` | no plan.md | `sdd new plan <feature>` (Claude Code `/sdd-plan` · Codex `$sdd-plan`) |
-| `tasks` | no tasks.md, or no tasks in it | `sdd new tasks <feature>` (`/sdd-tasks` · `$sdd-tasks`) |
-| `implement` | some tasks not completed | implement (`/sdd-implement` · `$sdd-implement`), then `sdd new task <feature> <task-id> completed` |
+| `tasks` | no tasks.md | `sdd new tasks <feature>` (`/sdd-tasks` · `$sdd-tasks`) |
+| `tasks` | tasks.md exists but no `### <feature>-task-NNN: title` task was recognized | check the format, or regenerate with `sdd new tasks <feature> --force` (overwrites the file) |
 | `finalize` | all tasks completed, spec status is not `implemented` | `sdd validate` · `sdd sync`, then `sdd new status <feature> implemented` |
-| `done` | spec `implemented` with all tasks completed, or `deprecated` | — |
 
 When every feature is done, the section says so explicitly. With `--json`, each feature carries its `stage`.
 

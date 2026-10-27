@@ -97,7 +97,7 @@ sdd new status auth/user-auth implemented
 
 - Valid statuses: `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated` (legacy `specified` / `completed` are written as `review` / `implemented`)
 - `<feature>` is `<domain>/<feature>`, or a bare `<feature>` when only one domain has it
-- Only `status` is rewritten, plus `updated:` (today) when the frontmatter already has that field; other fields are left as written
+- Only `status` is rewritten, plus `updated:` (today) when the frontmatter already has that field; other fields are left as written, and CRLF line endings are kept
 - Exit code 1 for an unknown feature (available ids are listed) or an invalid status (valid values are listed)
 - `--json` prints `{ featureId, specPath, from, to, changed }`
 
@@ -108,15 +108,20 @@ Change one task's status in the feature's tasks.md:
 ```bash
 sdd new task auth/user-auth user-auth-task-002 in-progress
 sdd new task user-auth 2 completed      # numeric suffix, when it matches one task
-# ✅ auth/user-auth user-auth-task-002: in_progress → completed (작업 2/3 완료)
+# ✅ auth/user-auth user-auth-task-002: in-progress → completed (작업 2/3 완료)
 ```
 
-- Statuses: `pending`, `in-progress` (or `in_progress`), `completed`, `blocked`, or `대기`, `진행 중`, `완료`, `차단됨`. The value is written in the language of the task's label (`**상태:** 완료` / `**Status:** completed`)
-- The `## 진행 상황` counts and the frontmatter `completed:` count are refreshed
+- Statuses (exact value, case and surrounding spaces ignored): `pending`, `in-progress` (or `in_progress`), `completed`, `blocked`, `대기`, `진행 중` (or `진행중`), `완료`, `차단됨`. Anything else (`"완료 안 됨"`, `completed-ish`, `**pending**`) is rejected. Quote values with a space (`"진행 중"`) or use `in-progress`; extra arguments are an error
+- The value is written in the language already used in the file: English under `**Status:**`, or when the current value is English (`**상태:** pending` → `**상태:** in-progress`); otherwise Korean (`**상태:** 완료`)
+- Refreshed counts: the Korean `## 진행 상황` block, and the frontmatter `completed:` / `total:` fields when present. Other progress blocks in the body (e.g. an English `## Progress`) are left as written
 - Exit code 1 for an unknown task id (available ids are listed), an ambiguous number, an invalid status, a missing tasks.md, or a task without a status line; the file is not modified
-- `--json` prints `{ featureId, tasksPath, taskId, from, to, changed, progress }`
+- Text output shows `in-progress`; `--json` prints `{ featureId, tasksPath, taskId, from, to, changed, progress, specStatus }` with the internal value `in_progress`
 
-When the last task is completed, finish with `sdd validate` and `sdd sync`, then `sdd new status <feature> implemented`.
+When the last task is completed and the spec is not `implemented` yet, the command suggests finishing with `sdd validate` and `sdd sync`, then `sdd new status <feature> implemented`.
+
+::: tip Reserved names
+`status` and `task` (like `plan`, `tasks`, `checklist`, `counter`) are subcommands of `sdd new`, so `sdd new status` does not create a feature named `status`. Use the domain form instead: `sdd new common/status` or `sdd new <domain>/task`.
+:::
 
 ## Generated spec.md Example
 

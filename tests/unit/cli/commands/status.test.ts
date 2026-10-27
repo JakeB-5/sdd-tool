@@ -55,6 +55,16 @@ describe('getFeatureStage', () => {
   it('deprecated 스펙은 파일과 관계없이 done이다', () => {
     expect(feature({ status: 'deprecated', hasPlan: false }).stage).toBe('done');
   });
+
+  it('implemented 스펙은 plan.md/tasks.md가 없어도 done이다', () => {
+    expect(feature({ status: 'implemented', hasPlan: false, hasTasks: false, taskProgress: undefined }).stage).toBe('done');
+    expect(feature({ status: 'completed', hasPlan: false, hasTasks: false, taskProgress: undefined }).stage).toBe('done');
+    expect(feature({ status: 'implemented', hasPlan: false, taskProgress: { completed: 2, total: 2 } }).stage).toBe('done');
+  });
+
+  it('implemented 스펙이라도 미완료 작업이 있으면 implement 단계다', () => {
+    expect(feature({ status: 'implemented', taskProgress: { completed: 1, total: 3 } }).stage).toBe('implement');
+  });
 });
 
 describe('buildStatusNextSteps', () => {
@@ -91,6 +101,28 @@ describe('buildStatusNextSteps', () => {
 
     expect(steps).toHaveLength(1);
     expect(steps[0]).toContain('모든 기능(2개)이 구현 완료');
+  });
+
+  it('implemented인데 미완료 작업이 있으면 불일치를 명시한다', () => {
+    const step = getFeatureNextStep(feature({ status: 'implemented', taskProgress: { completed: 1, total: 3 } }));
+
+    expect(step).toContain('(1/3)');
+    expect(step).toContain('스펙 상태(implemented)와 작업 진행률(1/3)이 맞지 않습니다');
+  });
+
+  it('tasks.md는 있지만 작업을 못 찾으면 형식 확인/--force 재생성을 안내한다', () => {
+    const step = getFeatureNextStep(feature({ id: 'pricing/cart', taskProgress: { completed: 0, total: 0 } }));
+
+    expect(step).toContain('`### cart-task-NNN: 제목`');
+    expect(step).toContain('sdd new tasks pricing/cart --force');
+    expect(step).toContain('기존 내용 덮어씀');
+  });
+
+  it('tasks.md가 없으면 --force 없이 sdd new tasks를 안내한다', () => {
+    const step = getFeatureNextStep(feature({ hasTasks: false, taskProgress: undefined }));
+
+    expect(step).toContain('sdd new tasks pricing/cart (');
+    expect(step).not.toContain('--force');
   });
 
   it('done 기능에는 개별 안내가 없다', () => {

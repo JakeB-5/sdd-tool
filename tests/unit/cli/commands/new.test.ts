@@ -18,6 +18,7 @@ import {
   buildNextSteps,
   setSpecStatus,
   setTaskStatus,
+  parseTaskStatusArg,
 } from '../../../../src/cli/commands/new.js';
 import { executeDomainCreate } from '../../../../src/cli/commands/domain.js';
 import { executeContextSet, executeContextClear } from '../../../../src/cli/commands/context.js';
@@ -831,6 +832,16 @@ depends: null
     }
   });
 
+  it('CRLF 스펙은 CRLF 줄바꿈을 유지한다', async () => {
+    const crlf = SPEC.replace(/\n/g, '\r\n');
+    await fs.writeFile(specPath, crlf);
+
+    const result = await setSpecStatus(sddPath, 'cart', 'approved');
+
+    expect(result.success).toBe(true);
+    expect(await fs.readFile(specPath, 'utf-8')).toBe(crlf.replace('status: draft', 'status: approved'));
+  });
+
   it('frontmatter가 없는 스펙은 수정하지 않고 실패한다', async () => {
     await fs.writeFile(specPath, '# 카트\n');
 
@@ -940,6 +951,37 @@ describe('setTaskStatus', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.message).toContain('pending, in-progress');
+  });
+
+  it.each(['완료 안 됨', '123 completed', 'completed-ish', '**pending**', '✅ 완료', 'done', ''])(
+    'CLI 상태 인자는 정확한 값만 허용한다: %j',
+    async (input) => {
+      const before = await fs.readFile(tasksPath, 'utf-8');
+
+      const result = await setTaskStatus(sddPath, 'cart', 'cart-task-001', input);
+
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error.message).toContain('유효하지 않은 작업 상태');
+      expect(await fs.readFile(tasksPath, 'utf-8')).toBe(before);
+    }
+  );
+
+  it.each([
+    [' Completed ', 'completed'],
+    ['IN-PROGRESS', 'in_progress'],
+    ['진행중', 'in_progress'],
+    ['진행  중', 'in_progress'],
+    ['차단됨', 'blocked'],
+    ['대기', 'pending'],
+  ])('CLI 상태 인자 %j는 대소문자/공백을 무시하고 %s로 정규화한다', (input, expected) => {
+    expect(parseTaskStatusArg(input)).toBe(expected);
+  });
+
+  it('결과에 스펙 상태를 포함한다', async () => {
+    const result = await setTaskStatus(sddPath, 'cart', 'cart-task-001', 'completed');
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.specStatus).toBe('draft');
   });
 
   it('상태 줄이 없는 작업은 파일을 바꾸지 않고 실패한다', async () => {

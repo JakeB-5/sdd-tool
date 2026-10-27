@@ -20,9 +20,9 @@ import { hasSddBlock } from '../../generators/agents-md.js';
  * 기능 워크플로우 단계 (파일 · 스펙 상태 · 작업 진행률로 판정)
  * - plan: plan.md 없음
  * - tasks: tasks.md 없음 또는 작업 0개
- * - implement: 미완료 작업 있음
+ * - implement: 미완료 작업 있음 (스펙이 implemented여도)
  * - finalize: 모든 작업 완료, 스펙 상태가 implemented 아님
- * - done: 구현 완료 (또는 deprecated)
+ * - done: implemented이고 미완료 작업 없음 (plan/tasks 파일 유무 무관), 또는 deprecated
  */
 export type FeatureStage = 'plan' | 'tasks' | 'implement' | 'finalize' | 'done';
 
@@ -72,10 +72,14 @@ export interface StatusOptions {
 export function getFeatureStage(info: Omit<FeatureInfo, 'stage'>): FeatureStage {
   const status = normalizeSpecStatus(info.status);
   if (status === 'deprecated') return 'done';
+  const tasksIncomplete =
+    info.taskProgress !== undefined && info.taskProgress.completed < info.taskProgress.total;
+  // An implemented spec is done unless its tasks.md still has open tasks (plan/tasks files optional)
+  if (status === 'implemented') return tasksIncomplete ? 'implement' : 'done';
   if (!info.hasPlan) return 'plan';
   if (!info.hasTasks || !info.taskProgress || info.taskProgress.total === 0) return 'tasks';
-  if (info.taskProgress.completed < info.taskProgress.total) return 'implement';
-  return status === 'implemented' ? 'done' : 'finalize';
+  if (tasksIncomplete) return 'implement';
+  return 'finalize';
 }
 
 /**
@@ -87,10 +91,19 @@ export function getFeatureNextStep(feature: FeatureInfo): string | undefined {
     case 'plan':
       return `${id}: 명세 완성 후 계획 작성 — sdd new plan ${id} (Claude Code /sdd-plan · Codex $sdd-plan)`;
     case 'tasks':
+      if (feature.hasTasks) {
+        // tasks.md exists but no task heading was recognized; `sdd new tasks` would refuse to overwrite it
+        const featureName = id.split('/').pop();
+        return `${id}: tasks.md에서 \`### ${featureName}-task-NNN: 제목\` 형식의 작업을 찾지 못했습니다 — 형식을 확인하거나 sdd new tasks ${id} --force로 재생성(기존 내용 덮어씀)`;
+      }
       return `${id}: 작업 분해 — sdd new tasks ${id} (Claude Code /sdd-tasks · Codex $sdd-tasks)`;
     case 'implement': {
       const { completed, total } = feature.taskProgress ?? { completed: 0, total: 0 };
-      return `${id}: 구현 진행 중 (${completed}/${total}) — Claude Code /sdd-implement · Codex $sdd-implement, 작업 완료 시 sdd new task ${id} <task-id> completed`;
+      const step = `${id}: 구현 진행 중 (${completed}/${total}) — Claude Code /sdd-implement · Codex $sdd-implement, 작업 완료 시 sdd new task ${id} <task-id> completed`;
+      if (normalizeSpecStatus(feature.status) === 'implemented') {
+        return `${step} (스펙 상태(implemented)와 작업 진행률(${completed}/${total})이 맞지 않습니다)`;
+      }
+      return step;
     }
     case 'finalize':
       return `${id}: 모든 작업 완료 — sdd validate · sdd sync 확인 후 sdd new status ${id} implemented`;

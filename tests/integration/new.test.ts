@@ -278,7 +278,7 @@ describe('sdd new', () => {
     const tasksPath = path.join(tempDir, '.sdd', 'specs', 'pricing', 'cart', 'tasks.md');
 
     const { stdout } = await execAsync(`node "${cliPath}" new task cart cart-task-001 in-progress`, { cwd: tempDir });
-    expect(stdout).toContain('cart-task-001: pending → in_progress (작업 0/3 완료)');
+    expect(stdout).toContain('cart-task-001: pending → in-progress (작업 0/3 완료)');
     expect(await fs.readFile(tasksPath, 'utf-8')).toContain('- 진행 중: 1');
 
     const json = await execAsync(`node "${cliPath}" new task cart 1 완료 --json`, { cwd: tempDir });
@@ -291,5 +291,40 @@ describe('sdd new', () => {
     const unknown = await runFailing('new task cart cart-task-999 completed');
     expect(unknown.code).toBe(1);
     expect(unknown.output).toContain('cart-task-001, cart-task-002, cart-task-003');
+
+    // Unquoted `진행 중` is two arguments: rejected instead of silently reading `진행`
+    const excess = await runFailing('new task cart 2 진행 중');
+    expect(excess.code).toBe(1);
+    expect(await fs.readFile(tasksPath, 'utf-8')).toContain('### cart-task-002: 핵심 기능 구현\n\n- **상태:** 대기');
+    const quoted = await execAsync(`node "${cliPath}" new task cart 2 "진행 중"`, { cwd: tempDir });
+    expect(quoted.stdout).toContain('pending → in-progress');
+  });
+
+  it('마지막 작업 완료 시 스펙이 implemented가 아닐 때만 new status를 안내한다', async () => {
+    await execAsync(`node "${cliPath}" new pricing/cart --tasks --no-branch`, { cwd: tempDir });
+    for (const n of [1, 2]) {
+      await execAsync(`node "${cliPath}" new task cart ${n} completed`, { cwd: tempDir });
+    }
+
+    const last = await execAsync(`node "${cliPath}" new task cart 3 completed`, { cwd: tempDir });
+    expect(last.stdout).toContain('sdd new status pricing/cart implemented');
+
+    await execAsync(`node "${cliPath}" new task cart 3 pending`, { cwd: tempDir });
+    await execAsync(`node "${cliPath}" new status cart implemented`, { cwd: tempDir });
+    const again = await execAsync(`node "${cliPath}" new task cart 3 completed`, { cwd: tempDir });
+    expect(again.stdout).toContain('(작업 3/3 완료)');
+    expect(again.stdout).not.toContain('sdd new status');
+  });
+
+  it('status/task 서브커맨드 인자 오류 시 <domain>/<name> 우회 방법을 안내한다', async () => {
+    const result = await runFailing('new status --no-branch');
+
+    expect(result.code).toBe(1);
+    expect(result.output).toContain('sdd new <domain>/status');
+
+    await execAsync(`node "${cliPath}" new common/status --no-branch`, { cwd: tempDir });
+    expect(
+      await fs.stat(path.join(tempDir, '.sdd', 'specs', 'common', 'status', 'spec.md')).then(() => true)
+    ).toBe(true);
   });
 });

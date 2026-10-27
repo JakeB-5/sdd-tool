@@ -27,15 +27,16 @@ sdd status [options]
 
 ### 다음 단계
 
-기능의 단계는 파일 · 스펙 상태 · 작업 진행률로 판정합니다:
+기능의 단계는 파일 · 스펙 상태 · 작업 진행률로 판정합니다 (위에서부터 처음 맞는 행):
 
 | 단계 | 조건 | 안내 |
 |------|------|------|
+| `done` | 스펙 `deprecated`, 또는 `implemented`(레거시 `completed`)이고 미완료 작업 없음 — plan.md / tasks.md 유무 무관 | — |
+| `implement` | 미완료 작업 있음 | 구현(`/sdd-implement` · `$sdd-implement`) 후 `sdd new task <feature> <task-id> completed`. 스펙이 `implemented`이면 "스펙 상태(implemented)와 작업 진행률(n/m)이 맞지 않습니다"를 덧붙임 |
 | `plan` | plan.md 없음 | `sdd new plan <feature>` (Claude Code `/sdd-plan` · Codex `$sdd-plan`) |
-| `tasks` | tasks.md 없음 또는 작업 0개 | `sdd new tasks <feature>` (`/sdd-tasks` · `$sdd-tasks`) |
-| `implement` | 미완료 작업 있음 | 구현(`/sdd-implement` · `$sdd-implement`) 후 `sdd new task <feature> <task-id> completed` |
+| `tasks` | tasks.md 없음 | `sdd new tasks <feature>` (`/sdd-tasks` · `$sdd-tasks`) |
+| `tasks` | tasks.md는 있지만 `### <feature>-task-NNN: 제목` 형식의 작업을 찾지 못함 | 형식 확인, 또는 `sdd new tasks <feature> --force`로 재생성(기존 내용 덮어씀) |
 | `finalize` | 모든 작업 완료, 스펙 상태가 `implemented` 아님 | `sdd validate` · `sdd sync` 후 `sdd new status <feature> implemented` |
-| `done` | 스펙 `implemented` + 모든 작업 완료, 또는 `deprecated` | — |
 
 모든 기능이 완료되면 완료되었다고 명시합니다. `--json` 출력의 각 기능에는 `stage`가 포함됩니다.
 
