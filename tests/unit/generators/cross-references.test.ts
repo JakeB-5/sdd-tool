@@ -14,11 +14,6 @@ import { PROMPTS } from '../../../src/prompts/index.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../../..');
 
-// Note: the reverse skill is reworked on feat/reverse-ai-driven; remove this
-// exclusion when that branch is merged.
-const EXCLUDED_SKILLS = new Set(['sdd-reverse']);
-const EXCLUDED_COMMANDS = new Set(['sdd.reverse']);
-
 const skillNames = new Set(generateClaudeSkills().map((s) => s.name));
 const commandNames = new Set(generateClaudeCommands().map((c) => c.name));
 
@@ -41,7 +36,6 @@ function sources(): Source[] {
   const list: Source[] = [];
 
   for (const skill of generateClaudeSkills()) {
-    if (EXCLUDED_SKILLS.has(skill.name)) continue;
     list.push({
       label: `skill ${skill.name}`,
       text: [skill.description, skill.argumentHint ?? '', skill.content].join('\n'),
@@ -50,7 +44,6 @@ function sources(): Source[] {
   }
 
   for (const cmd of generateClaudeCommands()) {
-    if (EXCLUDED_COMMANDS.has(cmd.name)) continue;
     list.push({ label: `command ${cmd.name}`, text: cmd.content, legacy: true });
   }
 

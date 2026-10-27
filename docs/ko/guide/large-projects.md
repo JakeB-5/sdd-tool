@@ -25,7 +25,7 @@
 │   │   ├── create-order.md
 │   │   └── payment.md
 │   └── ...
-└── drafts/                 # 역추출 임시 파일
+└── .reverse-drafts/        # 역추출 초안 (임시)
 ```
 
 ### 도메인 계층
@@ -236,13 +236,14 @@ domains:
 
 ```bash
 # 1단계: 핵심 도메인부터
-sdd reverse scan src/core/
-sdd reverse extract --domain core
+sdd reverse scan src/core/ --json     # AI가 코드를 읽고 초안 작성
+sdd validate .sdd/.reverse-drafts
+sdd reverse review --list
+sdd reverse review <ref> --approve
 sdd reverse finalize
 
 # 2단계: 의존 도메인
-sdd reverse scan src/auth/
-sdd reverse extract --domain auth
+sdd reverse scan src/auth/ --json
 ```
 
 ### 레거시 통합

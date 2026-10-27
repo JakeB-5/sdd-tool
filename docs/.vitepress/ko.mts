@@ -50,12 +50,6 @@ export const koConfig: LocaleSpecificConfig<DefaultTheme.Config> = {
             { text: '대규모 프로젝트', link: '/ko/guide/large-projects' },
           ],
         },
-        {
-          text: 'Serena 통합',
-          items: [
-            { text: 'Serena 설정', link: '/ko/guide/serena-setup' },
-          ],
-        },
       ],
       '/ko/tutorial/': [
         {

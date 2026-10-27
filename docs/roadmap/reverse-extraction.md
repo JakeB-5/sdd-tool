@@ -1,10 +1,12 @@
 # Reverse Spec Extraction
 
-> **Document Status**: Implemented (v1.2.0)
+> **Superseded**: This is a historical design document. The Serena MCP-based design below is no longer current. The Serena integration has been removed, and `sdd reverse` is now AI-driven: the CLI scans structure and manages review, while the AI reads the code and writes drafts. See the [Reverse Extraction Guide](../guide/reverse-extraction.md) for the current workflow. Statements below that Serena is required, and the `extract` command, `--ai`, and confidence scores, no longer apply.
+
+> **Document Status**: Superseded (originally implemented in v1.2.0)
 > **Created**: 2024-12-24
 > **Updated**: 2025-12-29
 > **Purpose**: Code -> Spec reverse extraction for SDD adoption in legacy/existing projects
-> **Core Strategy**: Leveraging Serena MCP significantly reduces development difficulty
+> **Core Strategy**: ~~Leveraging Serena MCP~~ (superseded, see the note below)
 > **Related Docs**: [CLI Reference](/cli/reverse), [Slash Commands](/commands/sdd-reverse), [Reverse Extraction Guide](/guide/reverse-extraction)
 
 ---

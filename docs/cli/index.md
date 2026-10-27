@@ -508,22 +508,16 @@ sdd context clear
 
 ### reverse
 
-Extract specifications from existing code.
+Extract specifications from existing code. The CLI scans structure and manages review; the AI (`/sdd.reverse`) reads the code and writes drafts to `.sdd/.reverse-drafts/`.
 
 ```bash
 sdd reverse <subcommand> [options]
 ```
 
 **Subcommands:**
-- `scan` - Scan project for spec candidates
-- `extract` - Extract spec drafts
-- `review` - Review extracted specs
-- `finalize` - Finalize approved specs
-
-**Options:**
-- `--depth <depth>` - Scan depth (shallow, deep)
-- `--ai` - Use AI for intent inference
-- `--auto-approve` - Auto-approve extractions
+- `scan [path]` - Scan project structure (`--json`, `-i/--include`, `-e/--exclude`, `-l/--language`, `-d/--depth`, `-o/--output`)
+- `review [ref]` - List, show, approve, or reject drafts (`--list`, `--approve`, `--reject [--reason <text>]`)
+- `finalize [ref]` - Move approved drafts to `.sdd/specs/` (`--all`, `--force`)
 
 **Use cases:**
 - Reverse-engineer specs from legacy code
@@ -532,13 +526,14 @@ sdd reverse <subcommand> [options]
 
 **Examples:**
 ```bash
-sdd reverse scan                     # Scan project
-sdd reverse scan --depth deep        # Deep scan
-sdd reverse extract                  # Extract drafts
-sdd reverse extract --ai             # AI-powered extraction
-sdd reverse review                   # Review specs
-sdd reverse finalize                 # Finalize specs
+sdd reverse scan --json                  # Scan structure
+sdd validate .sdd/.reverse-drafts        # Validate AI-written drafts
+sdd reverse review --list                # List drafts
+sdd reverse review <ref> --approve       # Approve a draft
+sdd reverse finalize                     # Finalize approved drafts
 ```
+
+See the [`sdd reverse` reference](/cli/reverse) for details.
 
 ---
 

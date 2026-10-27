@@ -249,13 +249,14 @@ sdd context clear               # Reset context
 
 ## Reverse Extraction (v1.2.0+)
 
-Extract specs from existing code:
+Extract specs from existing code. The AI (`/sdd.reverse`) writes drafts to `.sdd/.reverse-drafts/`; the CLI scans, reviews, and finalizes:
 
 ```bash
-sdd reverse scan                # Scan project
-sdd reverse extract             # Extract drafts
-sdd reverse review              # Review specs
-sdd reverse finalize            # Finalize
+sdd reverse scan --json                 # Scan structure
+sdd validate .sdd/.reverse-drafts       # Validate drafts
+sdd reverse review --list               # List drafts
+sdd reverse review <ref> --approve      # Approve (or --reject --reason "...")
+sdd reverse finalize                    # Move approved drafts to .sdd/specs/
 ```
 
 ## Spec Export

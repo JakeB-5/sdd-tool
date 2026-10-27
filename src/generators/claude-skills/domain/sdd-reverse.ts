@@ -1,149 +1,153 @@
 /**
- * sdd-reverse skill definition — reverse extraction of spec drafts from existing code.
+ * sdd-reverse skill definition — AI-driven extraction of spec drafts from existing code.
  */
 import type { SkillDefinition } from '../types.js';
 
 export const sddReverseSkill: SkillDefinition = {
   name: 'sdd-reverse',
-  description: 'Extract spec drafts from an existing codebase for brownfield SDD onboarding',
-  allowedTools: ['Read', 'Glob', 'Grep', 'Bash(sdd reverse*)'],
-  context: 'fork',
+  description:
+    'Draft specs from an existing codebase for brownfield onboarding. Use when a project has code but no specs, or when the user asks to document the current behaviour of existing modules as SDD specs.',
+  argumentHint: '[scan|review|finalize] [args]',
+  allowedTools: ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'Bash(sdd reverse *)', 'Bash(sdd validate *)'],
   content: `# SDD Reverse
 
 ## Overview
 
-Analyzes an existing codebase and automatically generates SDD spec drafts through reverse extraction.
-Use this workflow when adopting SDD on a brownfield project — one that already has code but no specs.
-
-Drafts go through a review and approval process before being finalized as official specs.
-
-## Instructions
-
-**Always use the CLI commands. Do not write spec files directly.**
-
-- Never hand-author spec files during reverse extraction
-- Run \`sdd reverse <subcommand>\` for each stage
-- Drafts are stored in \`.sdd/.reverse-drafts/\` — do not edit these files directly
-- Specs are only created under \`.sdd/specs/\` after running \`finalize\`
-
-## Subcommands
+Turns existing code into SDD spec drafts. The CLI handles the deterministic parts
+(structure scan, draft validation, review state, finalization); **you** read the code and
+write the drafts. Drafts only become official specs after the user approves them.
 
 \`\`\`
-/sdd-reverse scan [path]         # Scan project structure (runs CLI)
-/sdd-reverse extract [path]      # Extract specs from code (runs CLI)
-/sdd-reverse review [spec-id]    # Review extracted drafts (runs CLI)
-/sdd-reverse finalize [spec-id]  # Finalize approved specs (runs CLI)
+scan → read code → write drafts → validate → review (user approval) → finalize
 \`\`\`
+
+## Rules
+
+- Describe **observed behaviour only**. Never invent requirements the code does not implement.
+- When intent is unclear (dead code, ambiguous branches, missing tests), say so in the draft's
+  description or overview (e.g. "Uncertain: ...") instead of guessing.
+- Write drafts only under \`.sdd/.reverse-drafts/<domain>/<feature>/spec.md\`.
+  Never write to \`.sdd/specs/\` directly — \`sdd reverse finalize\` does that.
+- \`<domain>\` must be a valid domain id (lowercase letter first, then lowercase letters, digits, hyphens).
+  \`<feature>\` is a kebab-case id (lowercase letters, digits, hyphens). The frontmatter \`id\` must
+  equal \`<feature>\` and \`domain\` (if set) must equal \`<domain>\`.
+- Never approve a draft without explicit user confirmation.
+- Match the language of existing specs / the constitution when writing prose.
 
 ## Workflow
 
-\`\`\`
-scan (+ auto-create domains) → extract → review → finalize
-\`\`\`
-
-**Execute each stage in order. Do not skip any stage.**
-
-### 1. Scan (project scan + domain creation)
-
-Run \`sdd reverse scan\` to analyze the project and auto-create domains.
+### 1. Scan
 
 \`\`\`bash
-sdd reverse scan                      # Scan and auto-create domains
-sdd reverse scan src/                 # Scan a specific path
-sdd reverse scan --no-create-domains  # Scan only, skip domain creation
+sdd reverse scan --json                       # whole project
+sdd reverse scan src/ --json                  # a sub-tree
+sdd reverse scan --json --exclude "**/*.test.ts" --language ts
 \`\`\`
 
-**What this does:**
-- Analyzes project structure (src/, lib/, packages/, etc.)
-- Detects language distribution
-- Auto-creates domains (appended to \`.sdd/domains.yml\`)
-- Saves scan metadata to \`.sdd/.reverse-meta.json\`
+The JSON contains \`summary\` (file count, line count, language distribution),
+\`domains[]\` (suggested domain \`id\`, \`path\`, \`files\`, \`lines\`, \`languages\`) and
+\`unassigned\` source files. Domain suggestions are directory-based; merge, split or rename
+them when the code suggests a better boundary.
 
-**After completion:** "Scan complete. Run \`/sdd-reverse extract\` to extract specs from the code."
+### 2. Read the code
 
-### 2. Extract
+For each domain, read the relevant files with Read / Glob / Grep: entry points, public APIs,
+route handlers, data models, validation rules, error handling and existing tests (tests are
+the best evidence of intended behaviour). Group behaviour into features (one spec per feature).
 
-Run \`sdd reverse extract\` to generate spec drafts from the scanned code.
+### 3. Write drafts
 
-> Do not write spec files manually. The CLI writes drafts to \`.sdd/.reverse-drafts/\`.
+Create \`.sdd/.reverse-drafts/<domain>/<feature>/spec.md\` using the same spec format that \`/sdd-spec\` produces:
+
+\`\`\`markdown
+---
+id: <feature>
+title: <Feature title>
+status: draft
+created: <YYYY-MM-DD>
+domain: <domain>
+depends: null
+---
+
+# <Feature title>
+
+> One-sentence summary of what the code does.
+
+## Overview
+
+What the feature does, which files implement it (e.g. \`src/auth/login.ts\`), and any
+uncertainty about intent.
+
+## Requirements
+
+### REQ-01: <Requirement title>
+
+The system SHALL <observed behaviour>.
+
+### REQ-02: <Requirement title>
+
+The system SHOULD <observed behaviour>.
+
+## Scenarios
+
+### Scenario 1: <Scenario name>
+
+- **GIVEN** <precondition>
+- **WHEN** <action>
+- **THEN** <observed result>
+\`\`\`
+
+- RFC 2119 keywords must be UPPERCASE (SHALL, MUST, SHOULD, MAY, and their NOT forms).
+- Every draft needs at least one requirement and one GIVEN/WHEN/THEN scenario.
+- Add \`constitution_version\` if the project has a constitution, and list other spec ids in
+  \`depends\` only when the code really depends on them.
+- Do not leave template placeholders such as \`[requirement title]\`.
+
+### 4. Validate and fix
 
 \`\`\`bash
-sdd reverse extract                   # Extract all
-sdd reverse extract --domain auth     # Extract a specific domain only
-sdd reverse extract --depth deep      # Deep analysis
+sdd validate .sdd/.reverse-drafts
 \`\`\`
 
-**What this does:**
-- Analyzes code symbols
-- Generates spec drafts → \`.sdd/.reverse-drafts/<domain>/<name>.json\`
-- Status of each draft: \`pending\` (not yet approved)
+Fix every error (and warnings where reasonable) by editing the drafts, then re-run until it passes.
 
-**After completion:** "Extraction complete. Run \`/sdd-reverse review\` to review the drafts."
-
-### 3. Review
-
-Run \`sdd reverse review\` to inspect extracted drafts and approve or reject them.
+### 5. Present drafts to the user
 
 \`\`\`bash
-sdd reverse review                        # List drafts pending review
-sdd reverse review auth/login             # View a specific draft
-sdd reverse review auth/login --approve   # Approve the draft
-sdd reverse review auth/login --reject    # Reject the draft
+sdd reverse review --list                 # all drafts, statuses and validation results
+sdd reverse review <domain>/<feature>     # one draft with its content
 \`\`\`
 
-**What this does:**
-- Displays extracted drafts for inspection
-- \`--approve\` marks a draft for finalization
-- \`--reject\` discards the draft
+Summarize each draft for the user (requirements, scenarios, open uncertainties) and ask which
+ones to approve, change or reject. Apply requested changes to the draft files first.
 
-**After completion:** "Review complete. Run \`/sdd-reverse finalize\` to finalize approved specs."
-
-### 4. Finalize
-
-Run \`sdd reverse finalize\` to write approved drafts as official specs under \`.sdd/specs/\`.
-
-> Spec files under \`.sdd/specs/\` are only created after this step.
+### 6. Record the decision (only after the user confirms)
 
 \`\`\`bash
-sdd reverse finalize --all          # Finalize all approved specs
-sdd reverse finalize auth/login     # Finalize a specific spec
-sdd reverse finalize -d auth        # Finalize all specs in a domain
+sdd reverse review <domain>/<feature> --approve
+sdd reverse review <domain>/<feature> --reject --reason "<why>"
 \`\`\`
 
-**What this does:**
-- Reads approved drafts from \`.sdd/.reverse-drafts/\`
-- Creates \`.sdd/specs/<domain>/<feature-id>/spec.md\` (same format as \`/sdd-new\`)
-- Removes processed draft files
+Approval is refused while the draft has validation errors. Approval is tied to a hash of the
+draft content: any change to the file after review (even line-ending normalization such as
+CRLF → LF) returns it to pending, so re-approve after changes.
 
-**Generated spec format** (identical to \`/sdd-new\`):
-- YAML frontmatter: id, title, status, domain, depends, ...
-- \`## Requirements\` with REQ-IDs and RFC 2119 keywords (SHALL)
-- \`## Scenarios\` with GIVEN / WHEN / THEN format
-- \`## Non-functional Requirements\`, \`## Constraints\`, \`## Glossary\`
+### 7. Finalize
 
-Additional metadata added by reverse extraction:
-- \`extracted_from: reverse-extraction\`
-- \`confidence: <score>\`
-- \`source_files: [list of source files]\`
+\`\`\`bash
+sdd reverse finalize                      # all approved drafts
+sdd reverse finalize <domain>/<feature>   # one approved draft
+sdd reverse finalize --force              # overwrite existing specs (ask the user first)
+\`\`\`
 
-**After completion:** "Finalization complete. Run \`/sdd-validate\` to validate specs, or \`/sdd-new\` to add new features."
-
-## Output Files
-
-> All files are created by CLI commands. Do not create them manually.
-
-| File | Description | Created by |
-|------|-------------|------------|
-| \`.sdd/domains.yml\` | Domain config (YAML format, not JSON) | scan |
-| \`.sdd/domains/<domain>/domain.md\` | Per-domain documentation | scan |
-| \`.sdd/.reverse-meta.json\` | Scan and extraction metadata | scan, extract |
-| \`.sdd/.reverse-drafts/\` | Spec draft directory | extract |
-| \`.sdd/specs/<feature-id>/spec.md\` | Finalized spec | finalize |
+Finalize moves approved drafts to \`.sdd/specs/<domain>/<feature>/spec.md\`, registers the
+domain in \`.sdd/domains.yml\` if needed, links the spec to it and removes the draft.
+It refuses to overwrite an existing spec unless \`--force\` is given.
 
 ## Next Steps
 
-- After finalizing: run \`/sdd-validate\` to validate specs
-- Adjust domains: use \`/sdd-domain\` to rename, add dependencies, etc.
-- Add new features: use \`/sdd-new\` to author specs going forward
+- Validate the finalized specs with \`sdd validate .sdd/specs\`
+- Adjust domains with \`/sdd-domain\` (rename, dependencies)
+- Author new features with \`/sdd-spec\`
 `,
 };

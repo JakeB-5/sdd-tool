@@ -351,10 +351,11 @@ Don't try to spec everything at once.
 Document existing code.
 
 ```bash
-sdd reverse scan                # Analyze code
-sdd reverse extract             # Create drafts
-sdd reverse review              # Team review
-sdd reverse finalize            # Approve
+sdd reverse scan --json         # Analyze structure; the AI then writes drafts
+sdd validate .sdd/.reverse-drafts
+sdd reverse review --list       # Team review
+sdd reverse review <ref> --approve
+sdd reverse finalize            # Move approved drafts to .sdd/specs/
 ```
 
 **Good for:**

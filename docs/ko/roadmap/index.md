@@ -67,7 +67,7 @@
 ```
 
 1. [Git 워크플로우](./scaling.md) 설정
-2. [역방향 스펙 추출](./reverse-extraction.md) (Serena MCP 활용)
+2. [역방향 스펙 추출](./reverse-extraction.md) (AI 주도)
 3. 추출된 스펙 검토 및 확정
 4. 이후 Greenfield와 동일
 
@@ -79,7 +79,7 @@
 |------|------|------|
 | v1.x | 기본 CLI, 스펙 검증, Constitution | ✅ 완료 |
 | v2.0 | Phase 0 + 1-G (도메인 시스템) | 예정 |
-| v2.1 | Phase 1-R (역추출, Serena) | 예정 |
+| v2.1 | Phase 1-R (역추출) | 예정 |
 | v2.5 | Phase 2 + 3 (코드 연결, DAG) | 예정 |
 | v3.0 | Phase 4 (변경 기반 작업) | 예정 |
 

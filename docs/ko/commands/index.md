@@ -106,9 +106,17 @@ Claude Code에서 슬래시로 시작하는 스킬 이름을 입력합니다:
 
 ### 역추출 워크플로우
 
-레거시 코드에서 SDD 스펙을 자동 추출합니다:
+레거시 코드에서 SDD 스펙을 추출합니다. AI가 코드를 읽고 초안을 작성하며, CLI는 스캔·검증·리뷰·확정을 담당합니다:
 
 `/sdd-reverse`를 실행하면 프로젝트 스캔, 코드 기반 스펙 초안 작성, 초안 리뷰, 확정 단계를 안내합니다. 자세한 내용은 [/sdd-reverse](/ko/commands/sdd-reverse)를 참고하세요.
+
+```
+/sdd-reverse                              # AI 주도: 스캔, 코드 읽기, 초안 작성
+sdd validate .sdd/.reverse-drafts         # 초안 검증
+sdd reverse review --list                 # 초안 리뷰
+sdd reverse review <ref> --approve        # 승인 (사용자 확인 후)
+sdd reverse finalize                      # 승인된 초안을 .sdd/specs/로 이동
+```
 
 ### 도메인 시스템
 

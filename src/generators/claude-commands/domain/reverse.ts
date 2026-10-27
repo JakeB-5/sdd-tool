@@ -5,141 +5,125 @@ import type { ClaudeCommand } from '../types.js';
 
 export const reverseCommand: ClaudeCommand = {
   name: 'sdd.reverse',
-  content: `레거시 코드베이스에서 SDD 스펙을 역추출합니다.
+  content: `기존 코드베이스에서 SDD 스펙 초안을 작성합니다 (브라운필드 도입).
 
 ## 개요
 
-기존 코드를 분석하여 SDD 스펙 초안을 자동 생성합니다.
-리뷰와 승인 과정을 통해 정식 스펙으로 확정합니다.
-
-## 중요 지시사항
-
-**반드시 CLI 명령어를 사용하세요!**
-- 스펙 파일을 직접 작성하지 마세요
-- \`sdd reverse <subcommand>\` CLI를 실행하세요
-- 초안은 \`.sdd/.reverse-drafts/\`에 저장됩니다 (직접 건드리지 마세요)
-- \`.sdd/specs/\`에는 finalize 후에만 파일이 생성됩니다
-
-## 하위 명령어
+CLI는 결정적인 부분(구조 스캔, 초안 검증, 리뷰 상태, 확정)만 담당합니다.
+**코드를 읽고 초안을 작성하는 것은 Claude의 역할입니다.** 초안은 사용자 승인 후에만 정식 스펙이 됩니다.
 
 \`\`\`
-/sdd.reverse scan [path]         # 프로젝트 구조 스캔 (CLI 실행)
-/sdd.reverse extract [path]      # 코드에서 스펙 추출 (CLI 실행)
-/sdd.reverse review [spec-id]    # 추출된 스펙 리뷰 (CLI 실행)
-/sdd.reverse finalize [spec-id]  # 승인된 스펙 확정 (CLI 실행)
+scan → 코드 읽기 → 초안 작성 → validate → review (사용자 승인) → finalize
 \`\`\`
+
+## 규칙
+
+- 코드에서 **관찰된 동작만** 기술합니다. 코드에 없는 요구사항을 만들어내지 마세요.
+- 의도가 불분명하면 추측하지 말고 개요에 "불확실: ..."로 명시합니다.
+- 초안은 \`.sdd/.reverse-drafts/<domain>/<feature>/spec.md\`에만 작성합니다. \`.sdd/specs/\`에 직접 쓰지 마세요.
+- \`<domain>\`은 유효한 도메인 ID(영문 소문자로 시작, 소문자/숫자/하이픈)여야 하고, \`<feature>\`는 소문자/숫자/하이픈 형식이어야 합니다.
+- frontmatter \`id\`는 \`<feature>\`와, \`domain\`(지정 시)은 \`<domain>\`과 같아야 합니다.
+- 사용자 확인 없이 초안을 승인하지 마세요.
 
 ## 워크플로우
 
-\`\`\`
-scan (+ 도메인 자동 생성) → extract → review → finalize
-\`\`\`
-
-**각 단계는 순차적으로 진행합니다. 이전 단계를 건너뛰지 마세요!**
-
-### 1. Scan (스캔 + 도메인 생성)
-
-**Claude 지시:** \`sdd reverse scan\` CLI 명령어를 실행하세요.
+### 1. 스캔
 
 \`\`\`bash
-sdd reverse scan                    # 스캔 + 도메인 자동 생성
-sdd reverse scan src/               # 특정 경로 스캔
-sdd reverse scan --no-create-domains  # 도메인 생성 없이 스캔만
+sdd reverse scan --json
+sdd reverse scan src/ --json --exclude "**/*.test.ts" --language ts
 \`\`\`
 
-**수행 작업:**
-- 프로젝트 구조 분석 (src/, lib/, packages/ 등)
-- 언어 분포 확인
-- 도메인 자동 생성 (.sdd/domains.yml에 추가)
-- 스캔 메타데이터 저장 (.sdd/.reverse-meta.json)
+JSON에는 \`summary\`(파일 수, 라인 수, 언어 분포), \`domains[]\`(도메인 후보 \`id\`, \`path\`, \`files\`),
+\`unassigned\`(도메인 미지정 소스 파일)가 포함됩니다. 도메인 후보는 디렉토리 기반이므로 필요하면 합치거나 나눕니다.
 
-**완료 후 안내:** "스캔이 완료되었습니다. \`/sdd.reverse extract\`로 코드에서 스펙을 추출하세요."
+### 2. 코드 읽기
 
-### 2. Extract (추출)
+도메인별로 진입점, 공개 API, 데이터 모델, 검증/에러 처리, 기존 테스트를 Read/Glob/Grep으로 읽고
+기능 단위(스펙 1개 = 기능 1개)로 묶습니다.
 
-**Claude 지시:** \`sdd reverse extract\` CLI 명령어를 실행하세요.
-**주의:** 스펙 파일을 직접 작성하지 마세요! CLI가 \`.sdd/.reverse-drafts/\`에 초안을 생성합니다.
+### 3. 초안 작성
+
+\`.sdd/.reverse-drafts/<domain>/<feature>/spec.md\`를 \`sdd new\`와 같은 형식으로 작성합니다:
+
+\`\`\`markdown
+---
+id: <feature>
+title: <기능 제목>
+status: draft
+created: <YYYY-MM-DD>
+domain: <domain>
+depends: null
+---
+
+# <기능 제목>
+
+> 코드가 하는 일 한 문장 요약
+
+## 개요
+
+구현 파일(예: \`src/auth/login.ts\`)과 동작 설명, 불확실한 부분
+
+## 요구사항
+
+### REQ-01: <요구사항 제목>
+
+시스템은 <관찰된 동작>을 수행해야 한다(SHALL).
+
+## 시나리오
+
+### Scenario 1: <시나리오명>
+
+- **GIVEN** <전제 조건>
+- **WHEN** <행동>
+- **THEN** <관찰된 결과>
+\`\`\`
+
+- RFC 2119 키워드는 대문자(SHALL, MUST, SHOULD, MAY)로 작성합니다.
+- 요구사항 1개 이상, GIVEN/WHEN/THEN 시나리오 1개 이상이 필요합니다.
+
+### 4. 검증 및 수정
 
 \`\`\`bash
-sdd reverse extract                 # 전체 추출
-sdd reverse extract --domain auth   # 특정 도메인만
-sdd reverse extract --depth deep    # 깊은 분석
+sdd validate .sdd/.reverse-drafts
 \`\`\`
 
-**수행 작업:**
-- 코드 심볼 분석
-- 스펙 초안 생성 → \`.sdd/.reverse-drafts/<domain>/<name>.json\`
-- 상태: \`pending\` (아직 승인되지 않음)
+에러가 없어질 때까지 초안을 수정합니다.
 
-**완료 후 안내:** "추출이 완료되었습니다. \`/sdd.reverse review\`로 스펙을 리뷰하세요."
-
-### 3. Review (리뷰)
-
-**Claude 지시:** \`sdd reverse review\` CLI 명령어를 실행하세요.
+### 5. 사용자에게 초안 제시
 
 \`\`\`bash
-sdd reverse review                      # 리뷰 대기 목록 확인
-sdd reverse review auth/login           # 특정 스펙 상세 보기
-sdd reverse review auth/login --approve # 스펙 승인
-sdd reverse review auth/login --reject  # 스펙 거부
+sdd reverse review --list                 # 모든 초안, 상태, 검증 결과
+sdd reverse review <domain>/<feature>     # 초안 상세
 \`\`\`
 
-**수행 작업:**
-- 추출된 초안 검토
-- \`--approve\`로 승인, \`--reject\`로 거부
+초안별 요구사항/시나리오/불확실한 부분을 요약하고 승인·수정·거부 여부를 사용자에게 묻습니다.
 
-**완료 후 안내:** "리뷰가 완료되었습니다. \`/sdd.reverse finalize\`로 승인된 스펙을 확정하세요."
-
-### 4. Finalize (확정)
-
-**Claude 지시:** \`sdd reverse finalize\` CLI 명령어를 실행하세요.
-**주의:** finalize 후에만 \`.sdd/specs/\`에 스펙이 생성됩니다!
+### 6. 결정 기록 (사용자 확인 후에만)
 
 \`\`\`bash
-sdd reverse finalize --all        # 모든 승인 스펙 확정
-sdd reverse finalize auth/login   # 특정 스펙 확정
-sdd reverse finalize -d auth      # 특정 도메인 확정
+sdd reverse review <domain>/<feature> --approve
+sdd reverse review <domain>/<feature> --reject --reason "<사유>"
 \`\`\`
 
-**수행 작업:**
-- \`.sdd/.reverse-drafts/\`에서 승인된 스펙 읽기
-- \`.sdd/specs/<domain>/<feature-id>/spec.md\` 생성 (\`/sdd.new\`와 동일한 형식)
-- 초안 파일 삭제
+검증 에러가 있는 초안은 승인되지 않습니다. 승인은 초안 내용의 해시에 묶여 있어, 리뷰 후 파일이
+조금이라도 바뀌면(CRLF → LF 같은 줄바꿈 정규화 포함) 다시 대기 상태가 됩니다.
 
-**생성되는 스펙 형식:**
+### 7. 확정
 
-finalize로 생성되는 스펙은 \`/sdd.new\`와 **동일한 형식**입니다:
+\`\`\`bash
+sdd reverse finalize                      # 승인된 모든 초안
+sdd reverse finalize <domain>/<feature>   # 특정 초안
+sdd reverse finalize --force              # 기존 스펙 덮어쓰기 (사용자 확인 후)
+\`\`\`
 
-- YAML frontmatter (id, title, status, domain, depends, ...)
-- \`## 요구사항\` + REQ-ID + RFC 2119 키워드 (SHALL)
-- \`## 시나리오\` + \`- **GIVEN/WHEN/THEN**\` 형식
-- \`## 비기능 요구사항\`, \`## 제약사항\`, \`## 용어 정의\`
-
-추가 메타데이터 (역추출 전용):
-- \`extracted_from: reverse-extraction\`
-- \`confidence: <신뢰도 점수>\`
-- \`source_files: [원본 파일 목록]\`
-
-**완료 후 안내:** "스펙 확정이 완료되었습니다. \`/sdd.validate\`로 스펙을 검증하거나 \`/sdd.new\`로 새 기능을 추가할 수 있습니다."
-
-## 출력 파일
-
-**주의:** CLI가 생성하는 파일 형식을 정확히 따르세요!
-
-| 파일 | 설명 | 생성 시점 |
-|------|------|----------|
-| \`.sdd/domains.yml\` | 도메인 설정 (YAML 형식, JSON 아님!) | scan |
-| \`.sdd/domains/<domain>/domain.md\` | 도메인별 문서 | scan |
-| \`.sdd/.reverse-meta.json\` | 스캔/추출 메타데이터 | scan, extract |
-| \`.sdd/.reverse-drafts/\` | 스펙 초안 디렉토리 | extract |
-| \`.sdd/specs/<feature-id>/spec.md\` | 확정된 스펙 | finalize |
-
-**파일을 직접 생성하지 마세요!** 모든 파일은 CLI 명령어로 생성됩니다.
+승인된 초안을 \`.sdd/specs/<domain>/<feature>/spec.md\`로 이동하고, 필요하면 \`.sdd/domains.yml\`에
+도메인을 등록하고 스펙을 연결한 뒤 초안을 삭제합니다. 기존 스펙은 \`--force\` 없이 덮어쓰지 않습니다.
 
 ## 다음 단계
 
-- 확정 후: \`/sdd.validate\`로 스펙 검증
-- 도메인 수정: \`/sdd.domain\`으로 도메인 상세 조정 (이름 변경, 의존성 추가 등)
-- 새 기능: \`/sdd.new\`로 새 스펙 작성
+- \`/sdd.validate\`로 확정된 스펙 검증
+- \`/sdd.domain\`으로 도메인 조정
+- \`/sdd.spec\`으로 새 기능 작성
 `,
 };

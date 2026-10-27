@@ -443,15 +443,16 @@ sdd context specs                   # 컨텍스트 내 스펙 목록
 sdd context clear                   # 컨텍스트 해제
 ```
 
-### 역추출 (v1.2.0)
+### 역추출
+
+CLI는 구조 스캔, 초안 검증, 리뷰 결정 기록을 담당합니다. 코드를 읽고 초안(`.sdd/.reverse-drafts/<도메인>/<기능>/spec.md`)을 작성하는 것은 AI(Claude Code의 `sdd-reverse` 스킬 또는 `/sdd.reverse`)입니다.
 
 ```bash
-sdd reverse scan                    # 프로젝트 구조 스캔
-sdd reverse scan --depth deep       # 심층 분석
-sdd reverse extract                 # 스펙 초안 추출
-sdd reverse extract --ai            # AI 기반 의도 추론
-sdd reverse review                  # 추출된 스펙 리뷰
-sdd reverse finalize                # 승인된 스펙 확정
+sdd reverse scan --json             # 구조 스캔 (파일, 라인, 언어, 제안 도메인)
+sdd validate .sdd/.reverse-drafts   # AI가 작성한 초안 검증
+sdd reverse review --list           # 초안 목록 (상태 + 검증 결과)
+sdd reverse review <ref> --approve  # 초안 승인 (또는 --reject --reason "...")
+sdd reverse finalize                # 승인된 초안을 .sdd/specs/로 이동
 ```
 
 ### Git 워크플로우 (v1.0.0)

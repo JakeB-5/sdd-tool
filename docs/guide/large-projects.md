@@ -25,7 +25,7 @@ Large-scale projects with hundreds of specs and multiple domains require systema
 │   │   ├── create-order.md
 │   │   └── payment.md
 │   └── ...
-└── drafts/                 # Reverse extraction temp files
+└── .reverse-drafts/        # Reverse extraction drafts (temporary)
 ```
 
 ### Domain Hierarchy
@@ -236,13 +236,14 @@ domains:
 
 ```bash
 # Step 1: Start with core domain
-sdd reverse scan src/core/
-sdd reverse extract --domain core
+sdd reverse scan src/core/ --json     # AI reads the code and writes drafts
+sdd validate .sdd/.reverse-drafts
+sdd reverse review --list
+sdd reverse review <ref> --approve
 sdd reverse finalize
 
 # Step 2: Dependent domains
-sdd reverse scan src/auth/
-sdd reverse extract --domain auth
+sdd reverse scan src/auth/ --json
 ```
 
 ### Legacy Integration

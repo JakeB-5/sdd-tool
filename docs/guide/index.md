@@ -76,7 +76,7 @@ Team-wide guidance and patterns:
 - [CLI Reference](../cli/#cicd-integration-commands) - CI/CD commands
 
 ### Advanced Features
-- [Reverse Extraction](https://github.com/JakeB-5/sdd-tool#reverse-extraction-v120) - Extract specs from code
+- [Reverse Extraction](https://github.com/JakeB-5/sdd-tool#reverse-extraction) - Extract specs from code
 - [Domain Management](https://github.com/JakeB-5/sdd-tool#domain-management-v120) - Organize large projects
 - [Context Management](https://github.com/JakeB-5/sdd-tool#context-management-v120) - Focused work
 

@@ -1,201 +1,72 @@
 # /sdd.reverse
 
-A slash command for reverse engineering SDD specs from legacy codebases.
+Drafts SDD specs from an existing codebase with Claude Code (skill: `sdd-reverse`).
 
 ## Overview
 
-`/sdd.reverse` analyzes existing code and automatically generates SDD spec drafts. You can proceed with review and approval through Claude Code's conversational interface.
-
-## Usage
-
-```
-/sdd.reverse scan [path]         # Scan project structure
-/sdd.reverse extract [path]      # Extract specs from code
-/sdd.reverse review [spec-id]    # Review extracted specs
-/sdd.reverse finalize [spec-id]  # Finalize approved specs
-```
+`/sdd.reverse` (or the `sdd-reverse` skill) makes Claude read your code and write spec drafts,
+while the `sdd reverse` CLI handles the deterministic parts: structure scan, draft validation,
+review state and finalization. Drafts only become specs after you approve them.
 
 ## Workflow
 
 ```
-scan -> extract -> review -> finalize
+scan → read code → write drafts → validate → review (your approval) → finalize
 ```
 
 ### 1. Scan
 
-Analyzes the project to estimate directory structure, language distribution, and domains.
+Claude runs `sdd reverse scan --json` to get the file list, language distribution and
+directory-based domain suggestions with per-domain file lists.
 
-```
-/sdd.reverse scan
-/sdd.reverse scan src/
-```
+### 2. Read the code
 
-**Example output:**
-```
-Project scan results
+For each domain Claude reads entry points, public APIs, data models, validation and error
+handling, and existing tests, then groups behaviour into features (one spec per feature).
 
-Structure:
-  src/
-  ├── auth/ (3 files)
-  ├── order/ (5 files)
-  └── core/ (8 files)
+### 3. Write drafts
 
-Statistics:
-  - Language: TypeScript (100%)
-  - Files: 16
-  - Symbols: 45
+Claude writes `.sdd/.reverse-drafts/<domain>/<feature>/spec.md` in the same format as `sdd new`:
+frontmatter (`id`, `title`, `status: draft`, `created`, `domain`, `depends`), requirements with
+uppercase RFC 2119 keywords and GIVEN/WHEN/THEN scenarios. Drafts describe **observed behaviour
+only**; unclear intent is marked as uncertain instead of guessed.
 
-Estimated domains:
-  1. auth - Authentication related
-  2. order - Order related
-  3. core - Common modules
-```
+### 4. Validate
 
-### 2. Extract
+Claude runs `sdd validate .sdd/.reverse-drafts` and fixes errors.
 
-Extracts spec drafts from code based on scan results.
+### 5. Review
 
-```
-/sdd.reverse extract
-/sdd.reverse extract --domain auth
-/sdd.reverse extract --depth deep
+Claude runs `sdd reverse review --list`, summarizes each draft and asks you which drafts to
+approve, change or reject.
+
+### 6. Approve / reject (after your confirmation)
+
+```bash
+sdd reverse review auth/login --approve
+sdd reverse review auth/logout --reject --reason "covers two features"
 ```
 
-**Options:**
-- `--domain <name>`: Extract only a specific domain
-- `--depth <level>`: Analysis depth (shallow, medium, deep)
-- `--min-confidence <n>`: Minimum confidence filter
+Drafts with validation errors cannot be approved. Editing a draft after review resets it to pending.
 
-### 3. Review
+### 7. Finalize
 
-Review and approve/reject extracted spec drafts.
-
-```
-/sdd.reverse review              # List pending reviews
-/sdd.reverse review auth/login   # Specific spec details
+```bash
+sdd reverse finalize
 ```
 
-**Review statuses:**
-- `pending`: Awaiting review
-- `approved`: Approved
-- `rejected`: Rejected
-- `needs_revision`: Needs revision
+Approved drafts move to `.sdd/specs/<domain>/<feature>/spec.md`, the domain is registered in
+`.sdd/domains.yml` if needed, and the drafts are removed. Existing specs are only overwritten
+with `--force`.
 
-### 4. Finalize
+## Tool permissions
 
-Convert approved specs to official SDD specs.
-
-```
-/sdd.reverse finalize --all      # Finalize all approved specs
-/sdd.reverse finalize auth/login # Finalize specific spec
-```
-
-## Output Files
-
-| File | Description |
-|------|-------------|
-| `.sdd/.reverse-meta.json` | Scan result metadata |
-| `.sdd/.reverse-drafts/` | Spec drafts directory |
-| `.sdd/specs/` | Finalized specs directory |
-
-## Example: Complete Workflow
-
-```
-User: /sdd.reverse scan
-
-Claude: Project scan complete!
-
-Structure found:
-  src/
-  ├── auth/ (3 files, 450 LOC)
-  ├── order/ (5 files, 890 LOC)
-  └── core/ (8 files, 1200 LOC)
-
-Estimated domains: auth, order, core
-
-Next step: Run /sdd.reverse extract
-
----
-
-User: /sdd.reverse extract --depth deep
-
-Claude: Spec extraction complete!
-
-Generated drafts:
-  - auth/user-authentication (confidence: 72%)
-  - auth/token-management (confidence: 85%)
-  - order/checkout (confidence: 78%)
-
-Items needing review: 8
-
-Next step: Run /sdd.reverse review
-
----
-
-User: /sdd.reverse review auth/user-authentication
-
-Claude: Spec Review: auth/user-authentication
-
-Confidence: 72%
-
-## Extracted Requirements:
-1. REQ-001: Email/password login [85%]
-2. REQ-002: JWT token issuance [90%]
-3. REQ-003: Session expiration 24 hours [70%]
-
-## Extracted Scenarios:
-1. Normal login [95%]
-2. Wrong password [95%]
-
-Would you like to approve this spec?
-1. Approve
-2. Needs revision
-3. Reject
-
----
-
-User: 1
-
-Claude: auth/user-authentication approved
-
-Next step: /sdd.reverse finalize auth/user-authentication
-
----
-
-User: /sdd.reverse finalize --all
-
-Claude: Spec finalization complete!
-
-Finalized specs:
-  - .sdd/specs/auth/user-authentication.md
-  - .sdd/specs/auth/token-management.md
-  - .sdd/specs/order/checkout.md
-
-Next steps:
-  1. Validate specs with sdd validate
-  2. Manually refine if needed
-```
-
-## Confidence Score
-
-The confidence of extracted specs is calculated from the following factors:
-
-| Factor | Weight | Evaluation Criteria |
-|--------|--------|---------------------|
-| documentation | 25% | JSDoc, comment quality |
-| naming | 20% | Naming convention adherence |
-| structure | 20% | Code organization |
-| testCoverage | 20% | Test existence |
-| typing | 15% | Type information quality |
-
-## Notes
-
-- Symbol-level analysis is available when Serena MCP is connected
-- Extracted specs must be reviewed before finalization
-- Specs with low confidence may need modifications
+The generated `sdd-reverse` skill allows `Read`, `Glob`, `Grep`, `Write`, `Edit`,
+`Bash(sdd reverse *)` and `Bash(sdd validate *)`. It runs in the main conversation (no forked
+context) because it asks for your approval mid-flow.
 
 ## Related Commands
 
-- [`sdd reverse`](/cli/reverse) - CLI version
+- [`sdd reverse`](/cli/reverse) - CLI reference
 - [`/sdd.spec`](/commands/sdd-spec) - Write/modify specs
 - [`/sdd.validate`](/commands/sdd-validate) - Validate specs

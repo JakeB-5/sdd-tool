@@ -42,6 +42,13 @@ describe('serializeSkill', () => {
     expect(data['allowed-tools']).toEqual(['Read', 'Write', 'Bash(sdd *)']);
   });
 
+  it('emits argument-hint when set', () => {
+    const out = serializeSkill({ ...minimal(), argumentHint: '[scan|review] [args]' });
+    const { data } = matter(out);
+    expect(data['argument-hint']).toBe('[scan|review] [args]');
+    expect(matter(serializeSkill(minimal())).data).not.toHaveProperty('argument-hint');
+  });
+
   it('omits allowed-tools when the array is empty', () => {
     const out = serializeSkill({ ...minimal(), allowedTools: [] });
     const { data } = matter(out);
