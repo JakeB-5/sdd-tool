@@ -5,53 +5,55 @@
 ## 사용법
 
 ```bash
-sdd list [type]
+sdd list                       # 프로젝트 요약
+sdd list <subcommand> [options]
 ```
 
-## 인자
+별칭: `sdd ls`.
 
-| 인자 | 설명 | 기본값 |
-|------|------|--------|
-| `type` | 목록 유형 (specs, changes, all) | `specs` |
+## 서브커맨드
+
+| 커맨드 | 설명 |
+|--------|------|
+| `features` (`f`) | 기능 목록과 상태 |
+| `changes` (`c`) | 변경 제안 목록 |
+| `specs` (`s`) | 스펙 파일 트리 |
+| `templates` (`t`) | `.sdd/templates/`의 템플릿 목록 |
 
 ## 옵션
 
-| 옵션 | 설명 |
-|------|------|
-| `--phase <n>` | 특정 Phase만 표시 |
-| `--status <status>` | 특정 상태만 표시 |
-| `--json` | JSON 형식 출력 |
+| 서브커맨드 | 옵션 | 설명 |
+|------------|------|------|
+| `features` | `--status <status>` | 한 가지 상태만: `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated` |
+| `changes` | `--pending` | 대기 중인 변경만 |
+| `changes` | `--archived` | 아카이브된 변경만 |
 
 ## 예시
 
 ```bash
-# 모든 스펙 목록
+# 요약 (기능 수, 대기 · 아카이브된 변경 수)
 sdd list
 
-# 특정 Phase 스펙
-sdd list --phase 1
+# 전체 기능
+sdd list features
 
-# 변경 제안 목록
-sdd list changes
+# 구현 완료된 기능만
+sdd list features --status implemented
 
-# JSON 출력
-sdd list --json
+# 대기 중인 변경 제안
+sdd list changes --pending
+
+# 스펙 파일 트리
+sdd list specs
 ```
 
 ## 출력 예시
 
 ```
-📋 스펙 목록 (12개)
-
-Phase 1:
-  ✅ user-auth (implemented)
-  ✅ data-model (implemented)
-  📝 api-design (review)
-  📄 error-handling (draft)
-
-Phase 2:
-  ✅ search-feature (approved)
-  ...
+📋 기능 목록
+──────────────────────────────────────────────────
+📝 login (auth/login) - draft
+✅ pay (billing/pay) - implemented
 ```
 
 ## 관련 명령어

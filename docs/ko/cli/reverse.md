@@ -6,7 +6,7 @@
 
 `sdd reverse`는 브라운필드 프로젝트의 SDD 도입을 돕습니다. CLI는 결정적인 부분(구조 스캔,
 초안 검증, 리뷰 상태, 확정)만 담당하고, 코드를 읽고 스펙 초안을 작성하는 일은 AI가
-`sdd-reverse` 스킬(또는 `/sdd.reverse` 커맨드)로 수행합니다.
+`sdd-reverse` 스킬(Claude Code `/sdd-reverse`, Codex `$sdd-reverse`)로 수행합니다.
 
 ## 워크플로우
 

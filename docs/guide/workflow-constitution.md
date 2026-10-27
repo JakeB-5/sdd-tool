@@ -114,42 +114,31 @@ All business logic must be located in the service layer (MUST).
 ### 4. Impact Analysis
 
 ```bash
-# Check Constitution compliance
+# Check each spec's constitution_version against the constitution (on by default)
 sdd validate --constitution
-
-# Check list of violating specs
-sdd validate --constitution --verbose
 ```
 
-**Example output**:
+`sdd validate` compares every spec's `constitution_version` with the current constitution and reports a version
+difference as a warning (a major change is more serious than a minor one). It does not read the principles themselves,
+so checking specs against rules such as "API Version Management" is a review task; use `sdd search` to find affected specs.
+
+**Example output** (the CLI prints Korean):
 ```
-❌ Constitution violations found: 5 specs
-
-Violation list:
-  1. api/user-endpoint
-     - Violation: "API Version Management" (2.1)
-     - Content: No version in URL
-
-  2. api/product-endpoint
-     - Violation: "API Version Management" (2.1)
-     - Content: No version in URL
-     - Violation: "Response Format" (2.2)
-     - Content: Error response format mismatch
-
-  ...
-
-💡 Update these specs or defer Constitution enforcement.
+✓ api/user-endpoint/spec.md
+  ⚠ Constitution Minor 버전이 변경되었습니다 (1.0.0 → 1.1.0). 새 원칙을 확인하세요.
 ```
 
 ### 5. Version Update
 
 ```bash
-# Version bump (future CLI support)
-# sdd constitution bump --minor
+# Bump the version and record the change (--major | --minor | --patch is required)
+sdd constitution bump --minor -m "Add API design principles"
 
-# Manually update version
-# Modify Version field in constitution.md
+# Show the history
+sdd constitution history
 ```
+
+The command updates the Version field in constitution.md and writes the change to `.sdd/CHANGELOG.md`.
 
 **Semantic version**:
 - **Major** (x.0.0): Breaking Change, large-scale principle changes

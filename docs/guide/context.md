@@ -10,10 +10,13 @@ Context defines the domain scope you're currently working on. It helps improve w
 
 When context is set:
 
-- Only specs from that domain are displayed
-- Dependent domains are included as read-only
-- AI assistant recognizes domain boundaries
-- Domain is auto-detected when creating new specs
+- The domains you work on are marked active (editable)
+- Domains they depend on are included as read-only
+- `sdd context specs` lists the specs in scope
+- `sdd new <feature>` uses the active domain when there is exactly one
+
+The context does not filter other commands: `sdd list`, `sdd validate` and `sdd status` still cover every spec.
+Use their `--domain` options (`sdd validate --domain auth`, `sdd status --domain auth`) to narrow them.
 
 ## Setting Context
 
@@ -35,7 +38,8 @@ sdd context set auth order payment
 sdd context set auth
 ```
 
-If `auth` depends on `core`, `core` is also included as read-only.
+If `auth` depends on `core` (`sdd domain depends auth --on core`), `core` is also included as read-only.
+Pass `--no-include-deps` to leave dependent domains out.
 
 ## Viewing Context
 
@@ -45,25 +49,27 @@ If `auth` depends on `core`, `core` is also included as read-only.
 sdd context show
 ```
 
-Example output:
+Example output (CLI output is Korean):
 ```
-📍 Current Context
+현재 컨텍스트:
 
-Active Domains:
-  ✏️  auth (editable)
-  ✏️  order (editable)
+  활성 도메인 (편집 가능):
+    auth - auth 도메인 (4 specs)
+    order - order 도메인 (5 specs)
 
-Read-only:
-  📖 core
+  읽기 전용 도메인 (의존성):
+    core - core 도메인 (3 specs)
 
-Spec count: 12
+요약:
+  총 도메인: 3
+  총 스펙: 12
 ```
 
 ### Spec List
 
 ```bash
 sdd context specs
-sdd context specs --status draft
+sdd context specs --json
 ```
 
 ## Context Management
@@ -92,9 +98,10 @@ State is saved in `.sdd/.context.json`:
 
 ```json
 {
-  "active_domains": ["auth", "order"],
-  "read_only_domains": ["core"],
-  "updated_at": "2025-12-29T10:00:00Z"
+  "activeDomains": ["auth", "order"],
+  "readOnlyDomains": ["core"],
+  "updatedAt": "2025-12-29T10:00:00.000Z",
+  "includeDependencies": true
 }
 ```
 
@@ -105,7 +112,7 @@ State is saved in `.sdd/.context.json`:
 ```bash
 # Auth-related work
 sdd context set auth
-sdd list                    # Shows only auth specs
+sdd context specs           # Shows the auth specs (plus read-only dependencies)
 sdd new mfa-setup          # Auto-created as auth/mfa-setup
 ```
 
@@ -116,54 +123,39 @@ sdd new mfa-setup          # Auto-created as auth/mfa-setup
 sdd context set order payment
 ```
 
+With several active domains, `sdd new <feature>` cannot pick one and falls back to `common`,
+so name the domain: `sdd new payment/refund`.
+
 ### 3. Review Mode
 
 ```bash
 # Review specific domain
 sdd context set auth
-sdd validate                # Validates auth-related only
+sdd validate --domain auth  # Validates only the auth domain
 ```
 
 ## Context with Other Commands
 
 ### sdd new
 
-With context set:
+With exactly one active domain, the feature goes there:
 
 ```bash
 sdd context set auth
 sdd new user-login          # → Creates auth/user-login
 ```
 
-### sdd list
+With no context or several active domains the default is `common`. An explicit `<domain>/<feature>` or `-d <domain>`
+always wins, and a domain that does not exist yet is created. There is no "outside the context" warning, and
+`--force` does not bypass anything here (it overwrites existing files, see [sdd new](/cli/new)).
+
+### sdd list / sdd validate
+
+These ignore the context. Narrow them explicitly:
 
 ```bash
-sdd context set auth
-sdd list                    # Shows only auth domain specs
-sdd list --all              # Shows all specs
-```
-
-### sdd validate
-
-```bash
-sdd context set auth
-sdd validate                # Validates auth-related specs only
-sdd validate --all          # Full validation
-```
-
-## Warning System
-
-When modifying domains outside context:
-
-```
-⚠️ Warning: payment domain is not in current context.
-Continue? [y/N]
-```
-
-Bypass with `--force` option:
-
-```bash
-sdd new payment/refund --force
+sdd validate --domain auth
+sdd status --domain auth
 ```
 
 ## Best Practices

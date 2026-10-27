@@ -105,6 +105,9 @@ sdd domain link auth user-login
 
 # 연결 해제
 sdd domain unlink auth user-login
+
+# 도메인 이름 변경 (.sdd/specs/<old>/를 옮기고 depends · 제안서 대상을 갱신)
+sdd domain rename auth authentication
 ```
 
 ### 의존성 설정
@@ -152,10 +155,10 @@ graph LR
 ## 도메인 검증
 
 ```bash
-# 모든 도메인 검증
-sdd validate --domain
+# 도메인 구조 검증 (잘못되면 종료 코드 2)
+sdd domain validate
 
-# 특정 도메인만
+# 특정 도메인의 스펙만 검증
 sdd validate --domain auth
 
 # 고아 스펙 확인
@@ -166,7 +169,7 @@ sdd validate --orphan-specs
 
 - 도메인 존재 여부
 - 스펙-도메인 일관성
-- 의존성 규칙 준수
+- 의존성 규칙 준수 (domains.yml의 `rules:`)
 - 순환 의존성 없음
 
 ## 스펙 생성과 도메인
@@ -179,9 +182,10 @@ sdd new mfa-setup -d auth
 ```
 
 이 명령은:
-1. `auth` 도메인 존재 확인
+1. `auth` 도메인이 없으면 새로 만듭니다 (`sdd domain create auth`와 동일, 안내 메시지 출력)
 2. `.sdd/specs/auth/mfa-setup/` 디렉토리에 스펙 생성
 3. domains.yml 자동 업데이트
+4. git 브랜치 `feature/mfa-setup`을 만들어 전환 (`--no-branch`로 건너뜀)
 
 ::: tip v1.3.0 구조
 스펙은 항상 `specs/<domain>/<feature>/spec.md` 형식으로 생성됩니다.
@@ -190,21 +194,11 @@ sdd new mfa-setup -d auth
 
 ### 도메인 자동 감지
 
-컨텍스트가 설정된 경우 도메인을 자동 감지합니다:
+컨텍스트에 활성 도메인이 정확히 하나이면 그 도메인이 기본값이 됩니다:
 
 ```bash
 sdd context set auth
 sdd new mfa-setup  # auth/mfa-setup으로 생성
-```
-
-## 도메인별 템플릿
-
-각 도메인에 커스텀 템플릿을 정의할 수 있습니다:
-
-```
-.sdd/domains/auth/templates/
-├── spec.md        # 스펙 템플릿
-└── scenario.md    # 시나리오 템플릿
 ```
 
 ## 모범 사례

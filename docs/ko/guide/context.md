@@ -10,10 +10,13 @@
 
 컨텍스트가 설정되면:
 
-- 해당 도메인의 스펙만 표시됩니다
-- 의존 도메인은 읽기 전용으로 포함됩니다
-- AI 어시스턴트가 도메인 경계를 인식합니다
-- 새 스펙 생성 시 도메인이 자동 감지됩니다
+- 작업 중인 도메인이 활성(편집 가능)으로 표시됩니다
+- 그 도메인이 의존하는 도메인은 읽기 전용으로 포함됩니다
+- `sdd context specs`로 범위 안의 스펙을 볼 수 있습니다
+- 활성 도메인이 정확히 하나이면 `sdd new <feature>`가 그 도메인을 사용합니다
+
+컨텍스트는 다른 명령을 필터링하지 않습니다. `sdd list`, `sdd validate`, `sdd status`는 여전히 모든 스펙을 대상으로 하며,
+`--domain` 옵션(`sdd validate --domain auth`, `sdd status --domain auth`)으로 범위를 좁힙니다.
 
 ## 컨텍스트 설정
 
@@ -35,7 +38,8 @@ sdd context set auth order payment
 sdd context set auth
 ```
 
-`auth`가 `core`에 의존하면 `core`도 읽기 전용으로 포함됩니다.
+`auth`가 `core`에 의존하면(`sdd domain depends auth --on core`) `core`도 읽기 전용으로 포함됩니다.
+의존 도메인을 빼려면 `--no-include-deps`를 붙이세요.
 
 ## 컨텍스트 조회
 
@@ -47,23 +51,25 @@ sdd context show
 
 출력 예시:
 ```
-📍 현재 컨텍스트
+현재 컨텍스트:
 
-활성 도메인:
-  ✏️  auth (수정 가능)
-  ✏️  order (수정 가능)
+  활성 도메인 (편집 가능):
+    auth - auth 도메인 (4 specs)
+    order - order 도메인 (5 specs)
 
-읽기 전용:
-  📖 core
+  읽기 전용 도메인 (의존성):
+    core - core 도메인 (3 specs)
 
-스펙 수: 12
+요약:
+  총 도메인: 3
+  총 스펙: 12
 ```
 
 ### 스펙 목록
 
 ```bash
 sdd context specs
-sdd context specs --status draft
+sdd context specs --json
 ```
 
 ## 컨텍스트 관리
@@ -92,9 +98,10 @@ sdd context clear
 
 ```json
 {
-  "active_domains": ["auth", "order"],
-  "read_only_domains": ["core"],
-  "updated_at": "2025-12-29T10:00:00Z"
+  "activeDomains": ["auth", "order"],
+  "readOnlyDomains": ["core"],
+  "updatedAt": "2025-12-29T10:00:00.000Z",
+  "includeDependencies": true
 }
 ```
 
@@ -105,7 +112,7 @@ sdd context clear
 ```bash
 # 인증 관련 작업
 sdd context set auth
-sdd list                    # auth 스펙만 표시
+sdd context specs           # auth 스펙(과 읽기 전용 의존 스펙) 표시
 sdd new mfa-setup          # auth/mfa-setup으로 자동 생성
 ```
 
@@ -116,54 +123,39 @@ sdd new mfa-setup          # auth/mfa-setup으로 자동 생성
 sdd context set order payment
 ```
 
+활성 도메인이 여러 개이면 `sdd new <feature>`가 도메인을 고르지 못하고 `common`으로 가므로
+`sdd new payment/refund`처럼 도메인을 명시하세요.
+
 ### 3. 리뷰 모드
 
 ```bash
 # 특정 도메인 리뷰
 sdd context set auth
-sdd validate                # auth 관련만 검증
+sdd validate --domain auth  # auth 도메인만 검증
 ```
 
 ## 컨텍스트와 다른 명령어
 
 ### sdd new
 
-컨텍스트가 설정된 상태에서:
+활성 도메인이 정확히 하나이면 그 도메인에 만들어집니다:
 
 ```bash
 sdd context set auth
 sdd new user-login          # → auth/user-login 생성
 ```
 
-### sdd list
+컨텍스트가 없거나 활성 도메인이 여러 개이면 기본값은 `common`입니다. 명시한 `<domain>/<feature>` 또는 `-d <domain>`이
+항상 우선하고, 아직 없는 도메인은 새로 만들어집니다. "컨텍스트 밖" 경고는 없으며, `--force`로 우회할 것도 없습니다
+(`--force`는 기존 파일을 덮어쓰는 옵션입니다. [sdd new](/ko/cli/new) 참고).
+
+### sdd list / sdd validate
+
+컨텍스트를 무시합니다. 명시적으로 좁히세요:
 
 ```bash
-sdd context set auth
-sdd list                    # auth 도메인 스펙만 표시
-sdd list --all              # 전체 스펙 표시
-```
-
-### sdd validate
-
-```bash
-sdd context set auth
-sdd validate                # auth 관련 스펙만 검증
-sdd validate --all          # 전체 검증
-```
-
-## 경고 시스템
-
-컨텍스트 외부 도메인 수정 시:
-
-```
-⚠️ 경고: payment 도메인은 현재 컨텍스트에 없습니다.
-계속하시겠습니까? [y/N]
-```
-
-`--force` 옵션으로 우회:
-
-```bash
-sdd new payment/refund --force
+sdd validate --domain auth
+sdd status --domain auth
 ```
 
 ## 모범 사례

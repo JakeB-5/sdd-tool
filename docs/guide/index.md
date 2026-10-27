@@ -2,7 +2,7 @@
 
 ## Welcome to SDD Tool Documentation
 
-SDD Tool is a command-line interface for implementing Spec-Driven Development (SDD) methodology with AI assistance through Claude Code.
+SDD Tool is a command-line interface for implementing Spec-Driven Development (SDD) methodology with AI assistance through Claude Code and OpenAI Codex.
 
 ## Quick Navigation
 
@@ -42,8 +42,8 @@ Team-wide guidance and patterns:
 - [README.en.md](https://github.com/JakeB-5/sdd-tool#installation) - Install globally
 - [Getting Started](./getting-started#installation) - Detailed setup
 
-### Slash Commands (AI-Powered)
-- [README.en.md](https://github.com/JakeB-5/sdd-tool#slash-commands-20-total) - Complete slash command list
+### Skills (AI-Powered)
+- [Workflow](./workflow) - The `sdd-*` skills in order (Claude Code `/sdd-spec`, Codex `$sdd-spec`)
 - [Main Commands](https://github.com/JakeB-5/sdd-tool#core-workflow) - Core workflow commands
 
 ### CLI Commands
@@ -124,7 +124,7 @@ Optimizing SDD implementation:
 |-------|--------|-------|
 | Installation | ✓ Complete | README, Getting Started |
 | Quick Start | ✓ Complete | README, Getting Started |
-| Slash Commands | ✓ Complete | README (20+ commands) |
+| Skills | ✓ Complete | Workflow guide (30 skills for Claude Code and Codex) |
 | CLI Commands | ✓ Complete | CLI Reference (25+ commands) |
 | Spec Writing | ✓ Complete | Spec Writing, RFC 2119, Scenarios |
 | Domains | ✓ Complete | README, CLI Reference |
@@ -145,7 +145,7 @@ Optimizing SDD implementation:
 - ✓ GIVEN-WHEN-THEN scenario format
 - ✓ Constitution for project principles
 - ✓ Spec validation and quality scoring
-- ✓ AI-powered slash commands (20+)
+- ✓ AI-powered skills (30, for Claude Code and Codex)
 
 ### Development Support
 - ✓ Implementation planning
@@ -285,7 +285,7 @@ DOCUMENTATION_SUMMARY.md                # Documentation overview
 
 ## Contributing to Documentation
 
-Documentation improvements welcome! This guide covers the current v1.4.3 release.
+Documentation improvements welcome! This guide covers the current v2.1.0 release.
 
 To suggest improvements:
 1. Open an issue on GitHub
@@ -296,9 +296,9 @@ To suggest improvements:
 
 ## Version Information
 
-- **Current Version:** v1.4.3
-- **Documentation Updated:** 2025-01-30
-- **Coverage:** All documented features up to v1.4.3
+- **Current Version:** v2.1.0
+- **Documentation Updated:** 2026-10-27
+- **Coverage:** All documented features up to v2.1.0
 - **Node.js Required:** >= 20.0.0
 
 ---

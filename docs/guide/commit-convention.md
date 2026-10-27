@@ -45,8 +45,12 @@ For code/documentation changes outside of specs, follow Conventional Commits.
 | `docs` | Documentation change |
 | `style` | Code formatting |
 | `refactor` | Refactoring |
+| `perf` | Performance improvement |
 | `test` | Tests |
+| `build` | Build system / dependencies |
+| `ci` | CI configuration |
 | `chore` | Other tasks |
+| `revert` | Revert a commit |
 
 ---
 
@@ -143,10 +147,18 @@ git config commit.template .gitmessage
 
 ```
 # <type>(<scope>): <subject>
-# |<---- Within 50 chars ---->|
+# |<----  Within 50 chars  ---->|
+#
+# Spec types: spec, spec-update, spec-status, plan, tasks, constitution, sdd-config
+# General types: feat, fix, docs, style, refactor, test, chore
+#
+# Scope examples:
+#   spec(auth): ...              - whole domain
+#   spec(auth/user-login): ...   - a specific spec
+#   spec(auth,billing): ...      - several domains
+#   constitution: ...            - no scope
 
-# Body (optional)
-# |<---- Within 72 chars ---->|
+# Body (optional, 72-char wrap)
 
 # Footer (optional)
 # Refs: #issue-number
@@ -155,18 +167,26 @@ git config commit.template .gitmessage
 # Reviewed-By: @reviewer
 ```
 
+(The installed template is in Korean; the structure is the same.)
+
 ---
 
 ## Validation
 
-Commit messages are automatically validated through Git Hooks.
+Commit messages are automatically validated by the `commit-msg` Git hook.
 
 ### Validation Rules
 
-1. **Type required**: Must start with a valid type
-2. **Subject length**: Within 50 characters
-3. **Body line wrap**: Within 72 characters
-4. **Scope format**: Only lowercase letters, hyphens, and slashes allowed
+The hook checks the **first line** of the message (blank lines and `#` comment lines are skipped):
+
+1. **Type required**: `<type>(<scope>): <message>` or `<type>: <message>`, where `<type>` is one of the spec types
+   (`spec`, `spec-update`, `spec-status`, `plan`, `tasks`, `constitution`, `sdd-config`) or a Conventional Commits type
+   (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`)
+2. **Scope**: optional, any non-empty text in parentheses (the lowercase/slash style above is a convention, not enforced)
+3. **Merge and revert messages**: messages starting with `Merge ` or `Revert ` are accepted as they are
+
+Subject length (50) and body wrap (72) are style guidelines; the hook does not enforce them. A message that does not
+match is rejected with exit code 1.
 
 ### Setup
 
@@ -178,13 +198,19 @@ sdd git hooks install
 ### Validation Failure Example
 
 ```
-❌ Commit message format error
+❌ 커밋 메시지 형식 오류
 
-Expected: spec(<scope>): <message>
-Received: "added spec"
+올바른 형식:
+  스펙 커밋: spec(<scope>): <message>
+  일반 커밋: feat(<scope>): <message>
 
-Details: docs/guide/commit-convention.md
+스펙 타입: spec, spec-update, spec-status, plan, tasks, constitution, sdd-config
+일반 타입: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+
+자세한 내용: https://jakeb-5.github.io/sdd-tool/ko/guide/commit-convention
 ```
+
+(The hook output is in Korean.)
 
 ---
 
@@ -216,7 +242,7 @@ Depends-On: auth/user-login, billing/payment-gateway
 # ❌ Vague message
 spec: update
 
-# ❌ Missing scope (in spec commits)
+# ⚠️ Missing scope (the hook accepts it, but a scope is recommended for spec commits)
 spec: add login feature
 
 # ❌ Subject too long

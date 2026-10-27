@@ -13,16 +13,23 @@ sdd constitution [command] [options]
 | Command | Description |
 |---------|-------------|
 | `show` | Display current constitution |
+| `version` | Display the current constitution version |
+| `bump` | Update the constitution version |
 | `validate` | Validate constitution |
 | `history` | Show constitution change history |
-| `diff` | Compare constitution changes |
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--json` | Output in JSON format |
-| `--verbose` | Show detailed information |
+| Command | Option | Description |
+|---------|--------|-------------|
+| `show` | `--json` | Output in JSON format |
+| `bump` | `--major` / `--minor` / `--patch` | Version part to bump (core principle change / new principle / wording fix); a version part is required |
+| `bump` | `-m, --message <message>` | Reason for the change |
+| `history` | `-n, --count <count>` | Number of entries to show (default: 10) |
+
+```bash
+sdd constitution bump --minor -m "Add security principles"
+```
 
 ## What is a Constitution?
 

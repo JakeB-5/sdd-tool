@@ -34,8 +34,11 @@ git checkout -b spec-bundle/payment-v2
 
 ```bash
 # 여러 스펙 생성/수정
-sdd new billing/payment-gateway-v2
-sdd new billing/refund-policy-v2
+sdd new billing/payment-gateway-v2 --no-branch
+sdd new billing/refund-policy-v2 --no-branch
+
+# (--no-branch: 묶음 브랜치를 이미 만들었으므로 필요. 생략하면 `sdd new`가 스펙마다
+#  feature/<id> 브랜치를 만들어 전환합니다)
 
 # 기존 스펙 수정
 # .sdd/specs/billing/checkout/spec.md 편집
@@ -48,21 +51,23 @@ sdd new billing/refund-policy-v2
 # 변경된 스펙의 영향 확인
 sdd impact billing/payment-gateway-v2
 
-# 전체 의존성 확인
-sdd deps check
-
-# 순환 의존성 검사
-sdd deps check --cycles
+# 프로젝트 전체 의존성 리포트 (순환, 고립된 스펙, 건강도)
+sdd impact report
 ```
 
-**출력 예시**:
+영향 분석은 frontmatter `depends` 목록만 따릅니다. 실제 의존성은 거기에 선언하세요
+(`depends: [billing/payment-gateway-v2]`). 다른 스펙 본문에서 언급만 된 스펙은 영향받는 스펙이 아니라 참조로 표시됩니다.
+
+**출력 예시** (단순화):
 ```
 📊 영향 분석: billing/payment-gateway-v2
 
 직접 영향:
   ├── billing/checkout (의존)
-  ├── billing/subscription (의존)
-  └── billing/invoice (참조)
+  └── billing/subscription (의존)
+
+참조 (의존성 아님):
+  └── billing/invoice
 
 간접 영향:
   └── order/order-complete (billing/checkout 통해)
@@ -114,7 +119,7 @@ sdd validate
 sdd validate --constitution
 
 # 의존성 최종 확인
-sdd deps check
+sdd impact report
 ```
 
 ### 6. 푸시 & PR

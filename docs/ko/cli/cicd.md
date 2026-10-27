@@ -94,28 +94,40 @@ sdd cicd check
 
 ```yaml
 on:
+  push:
+    branches: [main, master, develop]
+    paths: ['.sdd/**']
   pull_request:
-    paths:
-      - '.sdd/**'
+    branches: [main, master, develop]
+    paths: ['.sdd/**']
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: npm install -g sdd-tool
+        with:
+          node-version: '20'
+      - run: npm install -g sdd-tool@2.1.0   # 파일을 생성한 버전으로 고정
       - run: sdd validate
+      - run: sdd constitution validate
+      - run: sdd impact report --json > impact-report.json   # 아티팩트로 업로드
 ```
+
+설치 단계는 `sdd cicd setup`을 실행한 CLI의 `sdd-tool@<버전>`으로 고정됩니다(GitLab 파일과 `sdd init`이 쓰는
+워크플로우도 같습니다). 업그레이드할 때 버전을 바꾸세요. 생성되는 워크플로우는 `sdd validate`만 실행하므로,
+스펙-코드 추적성을 CI 게이트로 쓰려면 `sdd sync --ci --threshold 80`을 직접 추가하세요
+(임계값 미만이면 종료 코드 2, [sdd sync](/cli/sync) 참고).
 
 ### sdd-labeler.yml
 
-PR에 자동으로 라벨을 추가합니다:
+PR에 자동으로 라벨을 추가합니다 (워크플로우가 `permissions`를 선언합니다: `contents: read`,
+`pull-requests: write`, `issues: write`):
 - `spec:<domain>` - 변경된 도메인
 - `constitution` - Constitution 변경 시
-- `spec:new` - 새 스펙 추가
-- `spec:update` - 스펙 수정
-- `spec:remove` - 스펙 삭제
 
 ## 관련 문서
 

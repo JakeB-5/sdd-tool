@@ -12,21 +12,21 @@ sdd report [options]
 
 | 옵션 | 설명 |
 |------|------|
-| `--json` | JSON 형식으로 출력 |
-| `--markdown` | 마크다운 파일로 저장 |
-| `-o, --output <file>` | 출력 파일 경로 |
-| `--include <sections>` | 포함할 섹션 (쉼표 구분) |
+| `-f, --format <format>` | 출력 형식: `html`(기본), `markdown`, `json` |
+| `-o, --output <path>` | 출력 파일 경로 (기본: 현재 디렉토리의 `sdd-report-<날짜>.<확장자>`) |
+| `--title <title>` | 리포트 제목 |
+| `--no-quality` | 품질 분석 제외 |
+| `--no-validation` | 검증 결과 제외 |
 
-## 리포트 섹션
+리포트는 항상 파일로 저장되며, 명령은 저장한 경로를 출력합니다.
+
+## 리포트 내용
 
 | 섹션 | 설명 |
 |------|------|
-| `summary` | 프로젝트 요약 |
-| `specs` | 스펙 현황 |
-| `domains` | 도메인 현황 |
-| `quality` | 품질 분석 |
-| `changes` | 변경 현황 |
-| `sync` | 동기화 상태 |
+| 스펙 | 모든 스펙의 ID, 제목, 상태 |
+| 품질 | 품질 분석 ([sdd quality](/cli/quality) 참고). `--no-quality`로 제외 |
+| 검증 | 검증 결과 ([sdd validate](/cli/validate) 참고). `--no-validation`으로 제외 |
 
 ## 예시
 
@@ -34,89 +34,35 @@ sdd report [options]
 
 ```bash
 sdd report
+# → sdd-report-2026-10-27.html
 ```
 
-출력:
-```
-=== SDD 프로젝트 리포트 ===
-
-📅 생성일: 2025-01-07
-
-📊 프로젝트 요약:
-  • 총 스펙: 12개
-  • 도메인: 4개
-  • 평균 품질: 78/100
-
-📋 스펙 상태:
-  • draft: 3개
-  • review: 2개
-  • approved: 5개
-  • implemented: 2개
-
-🏷️ 도메인 분포:
-  • auth: 4개 스펙
-  • user: 3개 스펙
-  • order: 3개 스펙
-  • payment: 2개 스펙
-
-🔄 변경 현황:
-  • 대기 중: 2개
-  • 이번 주 적용: 3개
-
-🔗 동기화 상태:
-  • 동기화됨: 8개
-  • 불일치: 2개
-  • 미연결: 2개
-```
-
-### 마크다운 파일로 저장
+### Markdown 리포트
 
 ```bash
-sdd report --markdown -o ./reports/weekly.md
+sdd report -f markdown -o ./reports/weekly.md
 ```
 
-### JSON 출력
+### JSON 리포트
 
 ```bash
-sdd report --json
+sdd report -f json -o sdd-report.json
 ```
 
 ```json
 {
-  "generatedAt": "2025-01-07T12:00:00Z",
-  "summary": {
-    "totalSpecs": 12,
-    "totalDomains": 4,
-    "averageQuality": 78
-  },
-  "specs": {
-    "byStatus": {
-      "draft": 3,
-      "review": 2,
-      "approved": 5,
-      "implemented": 2
-    }
-  },
-  "domains": [
-    { "name": "auth", "specCount": 4 },
-    { "name": "user", "specCount": 3 }
-  ],
-  "changes": {
-    "pending": 2,
-    "appliedThisWeek": 3
-  },
-  "sync": {
-    "synced": 8,
-    "outOfSync": 2,
-    "unlinked": 2
-  }
+  "title": "SDD 프로젝트 리포트",
+  "generatedAt": "2026-10-27T11:41:03.082Z",
+  "specs": [
+    { "id": "auth/login", "title": "login", "status": "draft" }
+  ]
 }
 ```
 
-### 특정 섹션만 포함
+### 품질 · 검증 제외
 
 ```bash
-sdd report --include summary,quality,sync
+sdd report --no-quality --no-validation
 ```
 
 ## CI/CD 통합
@@ -124,8 +70,7 @@ sdd report --include summary,quality,sync
 ```yaml
 # GitHub Actions 예시
 - name: Generate SDD Report
-  run: |
-    sdd report --json > sdd-report.json
+  run: sdd report -f json -o sdd-report.json
 
 - name: Upload Report
   uses: actions/upload-artifact@v4

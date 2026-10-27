@@ -97,6 +97,11 @@ When changing the Constitution:
 2. Record change history
 3. Review compatibility with existing specs
 
+```bash
+sdd constitution bump --minor -m "Added test coverage criteria"   # --major | --minor | --patch is required
+sdd constitution history
+```
+
 ```markdown
 ## Change History
 

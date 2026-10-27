@@ -12,7 +12,7 @@ sdd prepare <feature> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `feature` | Feature name |
+| `feature` | `<domain>/<feature>` or a unique feature name |
 
 ## Options
 
@@ -20,6 +20,10 @@ sdd prepare <feature> [options]
 |--------|-------------|
 | `--dry-run` | Preview only |
 | `--auto-approve` | Auto-generate |
+| `--json` | JSON format output |
+
+`sdd prepare` reads the feature's tasks.md and writes into the Claude Code layout (`.claude/agents/`, `.claude/skills/`).
+For Codex, the generated skills and `.codex/agents/*.toml` subagents are the equivalents; copy or adapt them by hand.
 
 ## Detection Keywords
 
@@ -77,7 +81,7 @@ sdd prepare user-auth --auto-approve
 
 ## Check Report
 
-Check results are saved to `.sdd/specs/<feature>/prepare.md`.
+Check results are saved to `.sdd/specs/<domain>/<feature>/prepare.md`.
 
 ```markdown
 # Tool Check Results

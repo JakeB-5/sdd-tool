@@ -192,22 +192,33 @@ Claude: 📋 스펙 초안
 
 새로운 할 일 항목을 생성합니다.
 
-### 시나리오
+### REQ-01: 할 일 생성
 
-**정상 생성**
-- GIVEN: 유효한 할 일 데이터 (제목: "테스트", 설명: "설명")
-- WHEN: 생성 요청
-- THEN: 새 할 일이 생성되고 ID가 반환됨
+시스템은 제목(1-200자), 선택적 설명, 선택적 마감일로 할 일을 생성해야 한다(SHALL).
 
-**제목 누락**
-- GIVEN: 제목이 없는 데이터
-- WHEN: 생성 요청
-- THEN: 400 에러 (TITLE_REQUIRED)
+### REQ-02: 잘못된 제목 거부
 
-**제목 길이 초과**
-- GIVEN: 201자 이상 제목
-- WHEN: 생성 요청
-- THEN: 400 에러 (TITLE_TOO_LONG)
+시스템은 제목이 없거나 너무 길면 400 에러로 거부해야 한다(SHALL).
+
+### Scenario 1: 정상 생성 (REQ-01)
+
+- **GIVEN** 유효한 할 일 데이터 (제목: "테스트", 설명: "설명")
+- **WHEN** 생성 요청을 보내면
+- **THEN** 새 할 일이 생성되고 ID가 반환된다
+
+### Scenario 2: 제목 누락 (REQ-02)
+
+- **GIVEN** 제목이 없는 데이터
+- **WHEN** 생성 요청을 보내면
+- **THEN** 400 에러(TITLE_REQUIRED)가 반환된다
+
+### Scenario 3: 제목 길이 초과 (REQ-02)
+
+- **GIVEN** 201자 이상 제목
+- **WHEN** 생성 요청을 보내면
+- **THEN** 400 에러(TITLE_TOO_LONG)가 반환된다
+
+이 스펙은 `core/validation`에 의존합니다 (frontmatter `depends: [core/validation]`).
 
 ### 계약
 
@@ -236,7 +247,7 @@ Claude: 📋 스펙 초안
 ```
 ✅ 스펙 저장 완료
 
-파일: .sdd/specs/create-todo/spec.md
+파일: .sdd/specs/todo/create-todo/spec.md
 상태: draft
 도메인: todo
 
@@ -339,38 +350,36 @@ Claude가 구현 계획을 작성합니다:
 ```
 
 ```
-📋 작업 분해: create-todo
+📋 작업 분해: create-todo (.sdd/specs/todo/create-todo/tasks.md에 기록)
 
-[ ] 1. 타입 정의
-    - CreateTodoInput 인터페이스 작성
-    - Todo 인터페이스 작성
-    - 예상 시간: 10분
+### create-todo-task-001: 타입 정의
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **설명:** CreateTodoInput, Todo 인터페이스
+- **의존성:** 없음
 
-[ ] 2. 테스트 작성 (Red)
-    - 정상 생성 테스트
-    - 제목 누락 테스트
-    - 제목 길이 초과 테스트
-    - 예상 시간: 20분
+### create-todo-task-002: 실패하는 테스트 작성 (Red)
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **설명:** 정상 생성, 제목 누락, 제목 길이 초과 (REQ-01, REQ-02)
+- **의존성:** create-todo-task-001
 
-[ ] 3. 검증 로직 구현 (Green)
-    - validateTitle 함수
-    - core/validation 연동
-    - 예상 시간: 15분
+### create-todo-task-003: 검증 및 비즈니스 로직 (Green)
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **설명:** validateTitle(core/validation 연동)과 createTodo
+- **의존성:** create-todo-task-002
 
-[ ] 4. 비즈니스 로직 구현 (Green)
-    - createTodo 함수
-    - 예상 시간: 20분
-
-[ ] 5. 리팩토링 (Refactor)
-    - 코드 정리
-    - 예상 시간: 10분
-
-[ ] 6. API 엔드포인트
-    - POST /todos 라우트
-    - 예상 시간: 15분
-
-총 예상 시간: 1시간 30분
+### create-todo-task-004: 리팩토링 및 API 엔드포인트
+- **상태:** 대기
+- **우선순위:** 🟡 MEDIUM
+- **설명:** 코드 정리와 POST /todos 라우트
+- **의존성:** create-todo-task-003
 ```
+
+각 작업은 `### <feature>-task-NNN: 제목` 헤딩과 `**상태:**` 줄(`대기`, `진행 중`, `완료`, `차단됨`. 영어 `pending`,
+`in-progress`, `completed`, `blocked`도 인식)로 이루어집니다. 진행 상황 블록과 frontmatter의 `total:` / `completed:`는
+`sdd new task`가 갱신합니다.
 
 ## Step 9: 구현
 
@@ -383,7 +392,9 @@ Claude가 TDD 방식으로 구현을 진행합니다:
 ```
 🔨 구현 시작: create-todo
 
-## 작업 1/6: 타입 정의
+$ sdd new task todo/create-todo create-todo-task-001 in-progress
+
+## 작업 1/4: 타입 정의
 
 src/todo/types.ts:
 
@@ -404,13 +415,18 @@ src/todo/types.ts:
 
 ✅ 타입 정의 완료
 
-## 작업 2/6: 테스트 작성
+$ sdd new task todo/create-todo create-todo-task-001 completed
+
+## 작업 2/4: 실패하는 테스트 작성
+
+$ sdd new task todo/create-todo create-todo-task-002 in-progress
 
 src/todo/create-todo.test.ts:
 
   import { describe, it, expect } from 'vitest';
   import { createTodo } from './create-todo';
 
+  // @spec todo/create-todo#REQ-01, todo/create-todo#REQ-02
   describe('createTodo', () => {
     it('유효한 데이터로 할 일을 생성한다', () => {
       const input = { title: '테스트 할 일' };
@@ -435,7 +451,17 @@ src/todo/create-todo.test.ts:
 
 테스트 실행 중... ❌ 3/3 실패 (예상대로)
 
-## 작업 3/6: 구현...
+## 작업 3/4: 구현...
+```
+
+모든 작업이 완료되면 터미널에서 스펙을 마무리합니다. `sdd status`는 스펙 상태를 자동으로 바꾸지 않고 이 단계를
+제안합니다:
+
+```bash
+sdd validate
+sdd sync todo/create-todo     # REQ-01, REQ-02가 테스트에서 참조됨: 100%
+sdd new status todo/create-todo implemented
+# ✅ todo/create-todo 스펙 상태: draft → implemented
 ```
 
 구현이 완료되면:

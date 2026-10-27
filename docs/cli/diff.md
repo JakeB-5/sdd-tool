@@ -21,6 +21,9 @@ sdd diff [commit1] [commit2] [options]
 |--------|-------------|
 | `--staged` | Staged changes only |
 | `--stat` | Statistics summary |
+| `--name-only` | Changed file names only |
+| `-s, --spec <id>` | Compare one spec only (`<domain>/<feature>`) |
+| `--no-color` | Disable colored output |
 | `--json` | JSON format output |
 
 ## Examples

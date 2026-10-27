@@ -5,53 +5,55 @@ Lists items.
 ## Usage
 
 ```bash
-sdd list [type]
+sdd list                       # project summary
+sdd list <subcommand> [options]
 ```
 
-## Arguments
+Alias: `sdd ls`.
 
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `type` | List type (specs, changes, all) | `specs` |
+## Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `features` (`f`) | List features with their status |
+| `changes` (`c`) | List change proposals |
+| `specs` (`s`) | List spec files as a tree |
+| `templates` (`t`) | List the templates in `.sdd/templates/` |
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--phase <n>` | Show specific phase only |
-| `--status <status>` | Show specific status only |
-| `--json` | JSON format output |
+| Subcommand | Option | Description |
+|------------|--------|-------------|
+| `features` | `--status <status>` | Only one status: `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated` |
+| `changes` | `--pending` | Only pending changes |
+| `changes` | `--archived` | Only archived changes |
 
 ## Examples
 
 ```bash
-# List all specs
+# Summary (feature, pending and archived change counts)
 sdd list
 
-# Specs for specific phase
-sdd list --phase 1
+# All features
+sdd list features
 
-# List change proposals
-sdd list changes
+# Only implemented features
+sdd list features --status implemented
 
-# JSON output
-sdd list --json
+# Pending change proposals
+sdd list changes --pending
+
+# Spec files as a tree
+sdd list specs
 ```
 
 ## Output Example
 
 ```
-📋 Spec List (12 items)
-
-Phase 1:
-  ✅ user-auth (implemented)
-  ✅ data-model (implemented)
-  📝 api-design (review)
-  📄 error-handling (draft)
-
-Phase 2:
-  ✅ search-feature (approved)
-  ...
+📋 기능 목록
+──────────────────────────────────────────────────
+📝 login (auth/login) - draft
+✅ pay (billing/pay) - implemented
 ```
 
 ## Related Commands

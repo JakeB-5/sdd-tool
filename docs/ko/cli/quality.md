@@ -5,68 +5,68 @@
 ## 사용법
 
 ```bash
-sdd quality [spec-id] [options]
+sdd quality [feature] [options]
 ```
+
+`feature`는 `<domain>/<feature>` 또는 유일한 `<feature>`입니다. 생략하거나 `--all`을 주면 프로젝트 전체를 분석합니다.
 
 ## 옵션
 
 | 옵션 | 설명 |
 |------|------|
-| `--all` | 모든 스펙 분석 |
+| `-a, --all` | 프로젝트 전체 분석 |
 | `--json` | JSON 형식으로 출력 |
-| `--threshold <n>` | 최소 품질 점수 (기본: 70) |
-| `--ci` | CI 모드 (임계값 미달 시 실패) |
+| `--min-score <score>` | 최소 점수(퍼센트, 0~100, 기본: 0). 미달이면 종료 코드 2로 실패 |
 
-## 품질 지표
+## 품질 기준
 
-| 지표 | 설명 | 가중치 |
-|------|------|--------|
-| RFC 2119 키워드 | SHALL, MUST, SHOULD 등 사용 | 25% |
-| 시나리오 완성도 | GIVEN-WHEN-THEN 형식 준수 | 25% |
-| 메타데이터 완성도 | 필수 필드 존재 여부 | 20% |
-| 요구사항 명확성 | 요구사항 구체성 | 15% |
-| 문서 구조 | 섹션 구조화 정도 | 15% |
+스펙 하나는 여덟 가지 기준으로 100점 만점 채점됩니다:
+
+| 기준 | 배점 | 확인 내용 |
+|------|------|-----------|
+| RFC 2119 키워드 | 10 | 대문자 SHALL / MUST / SHOULD / MAY (발견한 키워드 종류당 2점) |
+| GIVEN-WHEN-THEN 시나리오 | 20 | 완전한 시나리오(개당 5점). 요구사항 아래에 쓴 시나리오도 인정 |
+| 요구사항 명확성 | 15 | 요구사항 섹션과 `REQ-xx` ID (REQ 언급도 세며, `sdd sync`는 헤딩 정의만 셈) |
+| 의존성 명시 | 10 | `depends` 필드: `depends: [..]`, `depends: []`, `depends: null`, `dependencies` |
+| 문서 구조 | 15 | H1 제목, 요구사항 섹션, 시나리오 섹션, 개요 · 제약사항 · 비고 섹션 |
+| Constitution 준수 | 10 | `constitution_version`이 프로젝트 constitution과 일치 |
+| 참조 링크 | 10 | 관련 문서 링크 |
+| 메타데이터 완성도 | 10 | 필수 · 선택 frontmatter 필드 |
+
+플레이스홀더 시나리오 제목(`### 시나리오 없음`, `#### Scenario (TBD)`)과 코드 펜스 안의 제목은 무시합니다.
+
+## 등급
+
+| 점수 | 등급 |
+|------|------|
+| 90-100% | A |
+| 80-89% | B |
+| 70-79% | C |
+| 60-69% | D |
+| <60% | F |
 
 ## 예시
 
 ### 단일 스펙 분석
 
 ```bash
-sdd quality user-auth
+sdd quality auth/login
 ```
 
 출력:
 ```
-=== 품질 분석: user-auth ===
+📊 품질 분석: login
+   🟠 등급: D (64%)
+   📈 점수: 64/100
 
-📊 종합 점수: 85/100 (우수)
-
-📋 세부 점수:
-  • RFC 2119 키워드: 90/100
-    - SHALL: 5개
-    - SHOULD: 3개
-    - MAY: 1개
-
-  • 시나리오 완성도: 85/100
-    - GIVEN-WHEN-THEN: 4개
-    - 불완전 시나리오: 1개
-
-  • 메타데이터: 80/100
-    - ✅ id, title, status
-    - ⚠️  depends 미정의
-
-  • 요구사항 명확성: 85/100
-    - 구체적 요구사항: 8개
-    - 모호한 표현: 1개
-
-  • 문서 구조: 80/100
-    - ✅ 섹션 구분 양호
-    - ⚠️  예시 부족
+📋 항목별 점수:
+   🔴 RFC 2119 키워드: 4/10 (40%)
+      └─ 발견된 키워드: SHALL: 2개, SHOULD: 1개
+   🔴 GIVEN-WHEN-THEN 시나리오: 5/20 (25%)
+   ...
 
 💡 개선 제안:
-  1. depends 필드를 추가하세요
-  2. 시나리오 2번의 THEN 절을 구체화하세요
-  3. API 예시를 추가하면 좋겠습니다
+   - 추가 시나리오 작성을 권장합니다 (최소 2개)
 ```
 
 ### 전체 스펙 분석
@@ -75,67 +75,42 @@ sdd quality user-auth
 sdd quality --all
 ```
 
-출력:
-```
-=== 전체 품질 분석 ===
-
-📊 평균 점수: 78/100
-
-스펙별 점수:
-  🟢 user-auth: 85
-  🟢 user-profile: 82
-  🟡 order-checkout: 75
-  🟡 payment-flow: 72
-  🔴 notification: 58
-
-통계:
-  • 우수 (80+): 2개
-  • 양호 (70-79): 2개
-  • 미흡 (70 미만): 1개
-```
+평균 등급, 등급 분포, 스펙별 점수를 출력합니다. 파싱할 수 없는 스펙은 평균에 0%로 반영되고 목록에 표시됩니다.
 
 ### CI 모드
 
 ```bash
-sdd quality --all --ci --threshold 70
+sdd quality --all --min-score 70
 ```
 
-품질 점수가 임계값 미달 시 종료 코드 1을 반환합니다.
+리포트를 출력한 뒤, 점수가 `--min-score` 미만이면 종료 코드 2(`VALIDATION_FAILED`)로 끝납니다.
 
 ### JSON 출력
 
 ```bash
-sdd quality user-auth --json
+sdd quality auth/login --json
 ```
 
 ```json
 {
-  "specId": "user-auth",
-  "score": 85,
-  "grade": "excellent",
-  "breakdown": {
-    "rfc2119": 90,
-    "scenarios": 85,
-    "metadata": 80,
-    "clarity": 85,
-    "structure": 80
-  },
-  "suggestions": [
-    "depends 필드를 추가하세요",
-    "시나리오 2번의 THEN 절을 구체화하세요"
+  "specId": "login",
+  "specPath": ".sdd/specs/auth/login/spec.md",
+  "totalScore": 64,
+  "maxScore": 100,
+  "percentage": 64,
+  "grade": "D",
+  "items": [
+    {
+      "name": "RFC 2119 키워드",
+      "score": 4,
+      "maxScore": 10,
+      "percentage": 40,
+      "details": ["발견된 키워드: SHALL: 2개, SHOULD: 1개"],
+      "suggestions": []
+    }
   ]
 }
 ```
-
-## 품질 등급
-
-| 점수 | 등급 | 설명 |
-|------|------|------|
-| 90-100 | 🟢 최우수 | 프로덕션 준비 완료 |
-| 80-89 | 🟢 우수 | 약간의 개선 권장 |
-| 70-79 | 🟡 양호 | 개선 필요 |
-| 60-69 | 🟡 미흡 | 상당한 개선 필요 |
-| 60 미만 | 🔴 부적합 | 대폭 수정 필요 |
 
 ## 관련 문서
 

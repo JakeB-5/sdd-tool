@@ -114,42 +114,31 @@ Last Updated: 2024-01-20
 ### 4. 영향 분석
 
 ```bash
-# Constitution 준수 여부 검사
+# 각 스펙의 constitution_version을 constitution과 비교 (기본값으로 켜져 있음)
 sdd validate --constitution
-
-# 위반 스펙 목록 확인
-sdd validate --constitution --verbose
 ```
+
+`sdd validate`는 모든 스펙의 `constitution_version`을 현재 constitution과 비교해 버전 차이를 경고로 보고합니다
+(Major 변경이 Minor보다 심각합니다). 원칙의 내용 자체는 읽지 않으므로 "API 버전 관리" 같은 규칙에 대한 스펙 준수 여부는
+리뷰로 확인해야 하며, 영향받는 스펙은 `sdd search`로 찾을 수 있습니다.
 
 **출력 예시**:
 ```
-❌ Constitution 위반 발견: 5개 스펙
-
-위반 목록:
-  1. api/user-endpoint
-     - 위반: "API 버전 관리" (2.1)
-     - 내용: URL에 버전 없음
-
-  2. api/product-endpoint
-     - 위반: "API 버전 관리" (2.1)
-     - 내용: URL에 버전 없음
-     - 위반: "응답 형식" (2.2)
-     - 내용: 에러 응답 형식 불일치
-
-  ...
-
-💡 이 스펙들을 업데이트하거나, Constitution 적용을 유예하세요.
+✓ api/user-endpoint/spec.md
+  ⚠ Constitution Minor 버전이 변경되었습니다 (1.0.0 → 1.1.0). 새 원칙을 확인하세요.
 ```
 
 ### 5. 버전 업데이트
 
 ```bash
-# 버전 범프 (향후 CLI 지원)
-# sdd constitution bump --minor
+# 버전을 올리고 변경 기록 (--major | --minor | --patch 중 하나 필수)
+sdd constitution bump --minor -m "API 설계 원칙 추가"
 
-# 수동으로 버전 업데이트
-# constitution.md의 Version 필드 수정
+# 이력 확인
+sdd constitution history
 ```
+
+이 명령은 constitution.md의 Version 필드를 갱신하고 변경 내용을 `.sdd/CHANGELOG.md`에 기록합니다.
 
 **시맨틱 버전**:
 - **Major** (x.0.0): Breaking Change, 대규모 원칙 변경

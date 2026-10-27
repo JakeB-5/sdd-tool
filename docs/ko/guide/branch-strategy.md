@@ -74,9 +74,15 @@ spec/auth/login/oauth   # 너무 깊은 계층
 
 ### 브랜치 생성
 
+::: tip `sdd new`는 자체 브랜치를 만듭니다
+기본적으로 `sdd new <domain>/<feature>`는 `feature/<feature>` 브랜치를 만들어 전환합니다(`--numbered`면
+`feature/001-<name>`). 위 네이밍을 따르려면 브랜치를 직접 만들고 `sdd new ... --no-branch`를 실행하세요.
+:::
+
 ```bash
 # 개별 스펙
 git checkout -b spec/auth/user-login
+sdd new auth/user-login --no-branch
 
 # 스펙 묶음 (여러 관련 스펙)
 git checkout -b spec-bundle/payment-v2
@@ -114,8 +120,7 @@ main:
 
   # 필수 상태 체크
   required_status_checks:
-    - sdd-validate
-    - sdd-lint
+    - Validate Specs   # `sdd cicd setup github`가 만드는 워크플로우의 job
 
   # 직접 푸시 금지
   allow_force_push: false
@@ -163,8 +168,7 @@ constitution/*:
 1. **Settings** → **Branches** → `main` 규칙 편집
 2. **Require status checks to pass** 활성화
 3. 체크 추가:
-   - `sdd-validate`
-   - `sdd-lint` (있는 경우)
+   - `Validate Specs` (`sdd cicd setup github`가 생성, [CI/CD 설정](./cicd-setup.md) 참고)
 
 ---
 
@@ -181,10 +185,10 @@ constitution/*:
 # 작업 시작
 git checkout -b spec/auth/mfa-setup
 
-# 작업 중 (여러 커밋 OK)
-git commit -m "wip: mfa 초안"
-git commit -m "wip: 시나리오 추가"
-git commit -m "wip: 요구사항 정리"
+# 작업 중 (여러 커밋 OK, 단 commit-msg 훅은 유효한 타입을 요구)
+git commit -m "spec(auth/mfa-setup): mfa 초안"
+git commit -m "spec-update(auth/mfa-setup): 시나리오 추가"
+git commit -m "spec-update(auth/mfa-setup): 요구사항 정리"
 
 # PR 생성 후 squash merge
 ```
@@ -251,7 +255,7 @@ git merge main
 # 1. 파일 열어서 충돌 마커 확인
 # 2. 내용 병합 (의미적으로)
 # 3. 검증
-sdd validate auth/user-login
+sdd validate .sdd/specs/auth/user-login/spec.md
 
 # 해결 완료
 git add .sdd/specs/auth/user-login/spec.md
@@ -274,16 +278,11 @@ sdd validate --constitution
 
 ## 자동화
 
-### 브랜치 생성 도우미
+### 브랜치 생성
 
-```bash
-# SDD CLI로 브랜치 생성 (향후 지원)
-sdd branch spec auth/user-login
-# → git checkout -b spec/auth/user-login
-
-sdd branch constitution v2.0
-# → git checkout -b constitution/v2.0
-```
+`sdd new <domain>/<feature>`는 `feature/<feature>` 브랜치를 만들어 전환합니다(`--no-branch`로 건너뜀).
+별도의 브랜치 도우미 명령은 없으므로 `spec/...`, `spec-bundle/...`, `constitution/...` 브랜치는
+`git checkout -b`로 만드세요.
 
 ### 병합 후 자동 삭제
 

@@ -94,28 +94,40 @@ sdd cicd check
 
 ```yaml
 on:
+  push:
+    branches: [main, master, develop]
+    paths: ['.sdd/**']
   pull_request:
-    paths:
-      - '.sdd/**'
+    branches: [main, master, develop]
+    paths: ['.sdd/**']
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: npm install -g sdd-tool
+        with:
+          node-version: '20'
+      - run: npm install -g sdd-tool@2.1.0   # pinned to the version that generated the file
       - run: sdd validate
+      - run: sdd constitution validate
+      - run: sdd impact report --json > impact-report.json   # uploaded as an artifact
 ```
+
+The install step pins `sdd-tool@<version>` of the CLI that ran `sdd cicd setup` (the same applies to the GitLab file
+and the workflows written by `sdd init`); change the version when you upgrade. The generated workflows run
+`sdd validate` only; add `sdd sync --ci --threshold 80` yourself if CI should gate on spec-code traceability
+(it exits with code 2 below the threshold, see [sdd sync](/cli/sync)).
 
 ### sdd-labeler.yml
 
-Automatically adds labels to PRs:
+Automatically adds labels to PRs (the workflow declares `permissions`: `contents: read`, `pull-requests: write`,
+`issues: write`):
 - `spec:<domain>` - Changed domain
 - `constitution` - Constitution changes
-- `spec:new` - New spec added
-- `spec:update` - Spec modified
-- `spec:remove` - Spec removed
 
 ## Related Documentation
 

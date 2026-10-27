@@ -24,7 +24,7 @@ sdd change <subcommand> <id>
 |--------|-------------|
 | `-l, --list` | List pending changes |
 | `-t, --title <title>` | Change proposal title |
-| `-s, --spec <spec>` | Target spec path |
+| `-s, --spec <spec>` | Target spec (`<domain>/<feature>`). Repeat the option (`-s a -s b`) or comma-separate (`-s a,b`) to target several specs |
 
 ## Change Workflow
 
@@ -32,8 +32,9 @@ sdd change <subcommand> <id>
 create → write delta.md → validate → edit specs → apply → archive
 ```
 
-1. **create** (`sdd change -t "..."`): generates `proposal.md` and `delta.md`. IDs account for both
-   pending and archived changes, so an ID is never reused after archiving.
+1. **create** (`sdd change -t "..." -s <spec>`): generates `proposal.md` and `delta.md`. The proposal lists
+   every target spec, and `delta.md` gets one `MODIFIED` block (`### <spec>` with Before/After) per spec.
+   IDs account for both pending and archived changes, so an ID is never reused after archiving.
 2. **write delta.md**: fill in the ADDED / MODIFIED / REMOVED sections
 3. **validate**: check the format
 4. **edit specs**: the user or the AI edits the spec files following delta.md
@@ -44,6 +45,7 @@ create → write delta.md → validate → edit specs → apply → archive
 
 ```bash
 sdd change -t "Login Feature Enhancement" -s auth/login   # creates CHG-001
+sdd change -t "Auth and billing" -s auth/login -s billing/pay   # several specs (or -s auth/login,billing/pay)
 sdd change -l                                             # list
 sdd change CHG-001                                        # details (exit code 2 if proposal.md fails to parse)
 sdd change validate CHG-001
@@ -69,7 +71,7 @@ The system SHALL support OAuth 2.0.
 
 ## MODIFIED
 
-### specs/auth/login/spec.md
+### auth/login
 
 #### Before
 
@@ -83,7 +85,7 @@ old content
 new content
 ```
 
-### specs/auth/logout/spec.md
+### auth/logout
 
 #### Before
 ...

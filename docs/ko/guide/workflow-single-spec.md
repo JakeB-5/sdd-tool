@@ -24,20 +24,25 @@ git checkout -b spec/auth/user-login
 ### 2. 스펙 작성
 
 ```bash
-# 새 스펙 생성
-sdd new auth/user-login
+# 방금 만든 브랜치에서 새 스펙 생성
+sdd new auth/user-login --no-branch
 
 # 또는 기존 스펙 수정
 # .sdd/specs/auth/user-login/spec.md 편집
 ```
 
+`sdd new`는 없는 도메인을 자동으로 만들고, **`--no-branch`를 주지 않으면** 자체적으로 `feature/<id>` 브랜치를 만들어
+전환합니다. 1단계에서 작업 브랜치를 이미 만들었으므로 여기서는 `--no-branch`를 쓰세요(또는 1단계를 건너뛰고
+`sdd new`가 브랜치를 만들게 해도 됩니다). `--all`을 붙이면 plan.md, tasks.md, checklist.md도 함께 만들며, 기존 파일은
+`--force` 없이는 덮어쓰지 않습니다.
+
 ### 3. 로컬 검증
 
 ```bash
-# 스펙 검증
-sdd validate auth/user-login
+# 스펙 하나 검증 (validate는 경로를 받습니다)
+sdd validate .sdd/specs/auth/user-login/spec.md
 
-# 전체 검증 (의존성 포함)
+# 전체 검증
 sdd validate
 
 # Constitution 준수 확인
@@ -97,7 +102,7 @@ gh pr create \
 # spec.md 편집
 
 # 재검증
-sdd validate auth/user-login
+sdd validate .sdd/specs/auth/user-login/spec.md
 
 # 추가 커밋
 git add .
@@ -138,10 +143,10 @@ git checkout main && git pull
 git checkout -b spec/auth/user-login
 
 # 2. 스펙 작성
-sdd new auth/user-login
+sdd new auth/user-login --no-branch
 
 # 3. 검증
-sdd validate auth/user-login
+sdd validate .sdd/specs/auth/user-login/spec.md
 
 # 4. 커밋 & 푸시
 git add .sdd/specs/auth/user-login/
@@ -164,7 +169,7 @@ git branch -d spec/auth/user-login
 ### 스펙 작성
 
 - **한 스펙 = 한 기능**: 범위를 명확하게
-- **의존성 명시**: `depends_on` 필드 사용
+- **의존성 명시**: frontmatter `depends` 필드 사용 (`depends: [core/user-model]`, 없으면 `[]`). 본문에서 다른 스펙을 언급하는 것은 의존성이 아님
 - **GIVEN-WHEN-THEN**: 시나리오는 구체적으로
 
 ### 커밋
@@ -187,10 +192,11 @@ git branch -d spec/auth/user-login
 
 ```bash
 # 오류 확인
-sdd validate auth/user-login --verbose
+sdd validate .sdd/specs/auth/user-login/spec.md
 
 # 일반적인 원인:
-# - MUST/SHOULD 키워드 누락
+# - 대문자 SHALL/MUST/SHOULD 키워드 누락
+# - 채우지 않은 템플릿 플레이스홀더 ([요구사항 제목], {{...}})
 # - GIVEN-WHEN-THEN 형식 오류
 # - 의존성 스펙 미존재
 ```
@@ -213,7 +219,7 @@ git fetch origin
 git rebase origin/main
 
 # 충돌 해결 후
-sdd validate auth/user-login
+sdd validate .sdd/specs/auth/user-login/spec.md
 git add .
 git rebase --continue
 ```

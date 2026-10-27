@@ -45,9 +45,8 @@ PR에 자동으로 라벨을 추가합니다.
 **라벨 종류**:
 - `spec:도메인명` - 변경된 도메인
 - `constitution` - Constitution 변경 시
-- `spec:new` - 새 스펙 추가
-- `spec:update` - 스펙 수정
-- `spec:remove` - 스펙 삭제
+
+라벨러 워크플로우는 필요한 `permissions`(`contents: read`, `pull-requests: write`, `issues: write`)를 직접 선언합니다.
 
 ### 수동 설정
 
@@ -74,11 +73,27 @@ jobs:
           node-version: '20'
 
       - name: Install SDD
-        run: npm install -g sdd-tool
+        run: npm install -g sdd-tool@2.1.0   # 사용하는 버전으로 고정
 
       - name: Validate Specs
         run: sdd validate
 ```
+
+생성되는 워크플로우(GitHub, GitLab, `sdd init`이 쓰는 것 모두)는 생성한 CLI의 `sdd-tool@<버전>`으로 설치를 고정하므로
+CLI를 업그레이드해도 CI 동작이 몰래 바뀌지 않습니다. 업그레이드할 때 버전을 함께 올리세요.
+
+#### 스펙-코드 동기화 게이트
+
+생성되는 워크플로우는 스펙 검증만 합니다. 요구사항이 코드나 테스트에서 참조되지 않을 때(`@spec <domain>/<feature>#REQ-01`)도
+CI를 실패시키려면 단계를 추가하세요:
+
+```yaml
+      - name: Check spec-code sync
+        run: sdd sync --ci --threshold 80
+```
+
+`sdd sync`는 `--ci`나 `--threshold`가 없으면 리포트만 출력하고(종료 코드 0), 게이트가 켜진 상태에서 동기화율이 임계값(기본 100)
+미만이면 종료 코드 2로 끝납니다. [sdd sync](/cli/sync)를 참고하세요.
 
 ### 커스터마이징
 
@@ -161,8 +176,8 @@ sdd git hooks install
 
 | 훅 | 시점 | 검증 내용 |
 |----|------|----------|
-| `pre-commit` | 커밋 전 | 변경된 스펙만 검증 |
-| `commit-msg` | 커밋 메시지 작성 후 | 메시지 형식 검증 |
+| `pre-commit` | 커밋 전 | 스펙 파일이 스테이징되면 `sdd validate` 실행 |
+| `commit-msg` | 커밋 메시지 작성 후 | 메시지 형식 검증 ([커밋 컨벤션](./commit-convention.md)) |
 | `pre-push` | 푸시 전 | 전체 스펙 검증 |
 
 ---
@@ -198,17 +213,19 @@ sdd cicd check --strict
 # 로컬에서 먼저 검증
 sdd validate
 
-# 상세 출력
-sdd validate --verbose
+# 경고도 에러로 처리 (`sdd cicd setup github --strict`와 동일)
+sdd validate --strict
 ```
+
+스펙 검증이 실패하면 `sdd validate`는 종료 코드 2로 끝납니다.
 
 ### 권한 오류
 
-GitHub Actions에서 라벨 추가 실패 시:
+생성된 라벨러 워크플로우는 필요한 권한을 직접 선언합니다. 그래도 라벨 추가가 실패하면
+(`permissions`가 없는 예전 워크플로우 파일이거나 읽기 전용 토큰을 쓰는 포크 PR인 경우):
 
-1. Settings → Actions → General
-2. "Workflow permissions" 섹션
-3. "Read and write permissions" 선택
+1. `sdd cicd setup github`을 다시 실행(워크플로우 파일을 다시 씁니다)하거나 `permissions` 블록을 직접 추가
+2. 또는 Settings → Actions → General → "Workflow permissions" → "Read and write permissions" 선택
 
 ---
 

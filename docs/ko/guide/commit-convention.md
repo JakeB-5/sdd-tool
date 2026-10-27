@@ -45,8 +45,12 @@ SDD 워크플로우에서 사용하는 전용 커밋 타입입니다.
 | `docs` | 문서 변경 |
 | `style` | 코드 포맷팅 |
 | `refactor` | 리팩토링 |
+| `perf` | 성능 개선 |
 | `test` | 테스트 |
+| `build` | 빌드 시스템 / 의존성 |
+| `ci` | CI 설정 |
 | `chore` | 기타 작업 |
+| `revert` | 커밋 되돌리기 |
 
 ---
 
@@ -143,10 +147,18 @@ git config commit.template .gitmessage
 
 ```
 # <type>(<scope>): <subject>
-# |<---- 50자 이내 ---->|
+# |<----  50자 이내로 작성하세요  ---->|
+#
+# 스펙 타입: spec, spec-update, spec-status, plan, tasks, constitution, sdd-config
+# 일반 타입: feat, fix, docs, style, refactor, test, chore
+#
+# 스코프 예시:
+#   spec(auth): ...              - 도메인 전체
+#   spec(auth/user-login): ...   - 특정 스펙
+#   spec(auth,billing): ...      - 다중 도메인
+#   constitution: ...            - 스코프 없음
 
-# 본문 (선택사항)
-# |<---- 72자 이내 ---->|
+# 본문 (선택사항, 72자 줄바꿈)
 
 # Footer (선택사항)
 # Refs: #이슈번호
@@ -159,14 +171,20 @@ git config commit.template .gitmessage
 
 ## 검증
 
-커밋 메시지는 Git Hook을 통해 자동 검증됩니다.
+커밋 메시지는 `commit-msg` Git 훅이 자동 검증합니다.
 
 ### 검증 규칙
 
-1. **타입 필수**: 유효한 타입으로 시작
-2. **제목 길이**: 50자 이내
-3. **본문 줄바꿈**: 72자 이내
-4. **스코프 형식**: 영문 소문자, 하이픈, 슬래시만 허용
+훅은 메시지의 **첫 줄**을 검사합니다(빈 줄과 `#` 주석 줄은 건너뜀):
+
+1. **타입 필수**: `<type>(<scope>): <message>` 또는 `<type>: <message>`. `<type>`은 스펙 타입
+   (`spec`, `spec-update`, `spec-status`, `plan`, `tasks`, `constitution`, `sdd-config`) 또는 Conventional Commits 타입
+   (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`) 중 하나
+2. **스코프**: 선택. 괄호 안에 비어 있지 않은 텍스트면 됩니다(위의 소문자/슬래시 형식은 관례일 뿐 강제되지 않음)
+3. **머지/리버트 메시지**: `Merge `나 `Revert `로 시작하는 메시지는 그대로 허용
+
+제목 길이(50자)와 본문 줄바꿈(72자)은 스타일 가이드이며 훅이 강제하지 않습니다. 형식이 맞지 않으면 종료 코드 1로
+거부됩니다.
 
 ### 설정 방법
 
@@ -180,10 +198,14 @@ sdd git hooks install
 ```
 ❌ 커밋 메시지 형식 오류
 
-기대: spec(<scope>): <message>
-받음: "스펙 추가"
+올바른 형식:
+  스펙 커밋: spec(<scope>): <message>
+  일반 커밋: feat(<scope>): <message>
 
-자세한 내용: docs/guide/commit-convention.md
+스펙 타입: spec, spec-update, spec-status, plan, tasks, constitution, sdd-config
+일반 타입: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+
+자세한 내용: https://jakeb-5.github.io/sdd-tool/ko/guide/commit-convention
 ```
 
 ---
@@ -216,7 +238,7 @@ Depends-On: auth/user-login, billing/payment-gateway
 # ❌ 모호한 메시지
 spec: update
 
-# ❌ 스코프 누락 (스펙 커밋에서)
+# ⚠️ 스코프 누락 (훅은 허용하지만 스펙 커밋에는 스코프를 권장)
 spec: add login feature
 
 # ❌ 너무 긴 제목

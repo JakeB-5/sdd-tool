@@ -32,6 +32,10 @@ SDD Tool을 효과적으로 사용하기 위한 모범 사례입니다.
 시스템은 이메일/비밀번호 로그인을 지원해야 한다(SHALL).
 ```
 
+- 요구사항은 `### REQ-01: 제목` 헤딩으로 **정의**하고, ID는 스펙 안에서 고유하게 유지합니다(스펙마다 `REQ-01`부터 시작).
+- `sdd sync`는 헤딩으로 정의된 ID만 요구사항으로 셉니다. 본문에서 언급만 한 ID는 참조일 뿐입니다.
+- 다른 스펙에 대한 의존성은 frontmatter `depends: [<domain>/<feature>]`(없으면 `[]`)로만 선언합니다.
+
 ## Constitution 작성
 
 ### 1. 명확한 원칙 정의
@@ -71,9 +75,17 @@ SDD Tool을 효과적으로 사용하기 위한 모범 사례입니다.
 ### 2. 의존성 명시
 
 ```markdown
-- [ ] Task 1: 데이터 모델 정의
-- [ ] Task 2: API 구현 (depends on: Task 1)
-- [ ] Task 3: UI 구현 (depends on: Task 2)
+### login-task-001: 데이터 모델 정의
+
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **의존성:** 없음
+
+### login-task-002: API 구현
+
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **의존성:** login-task-001
 ```
 
 ### 3. 우선순위 표시
@@ -82,13 +94,19 @@ SDD Tool을 효과적으로 사용하기 위한 모범 사례입니다.
 - 🟡 MEDIUM: 다음 처리
 - 🟢 LOW: 나중에 처리
 
+### 4. 상태는 CLI로 갱신
+
+작업 상태를 직접 고치지 말고 `sdd new task <feature> <task-id> in-progress|completed|blocked`를 사용하세요.
+실행할 때마다 진행 상황 블록과 `completed:` / `total:`이 다시 계산됩니다. 모든 작업이 끝나면
+`sdd validate` · `sdd sync` 후 `sdd new status <feature> implemented`로 스펙을 마무리합니다.
+
 ## 코드와 명세 동기화
 
 ### 1. @spec 주석 사용
 
 ```typescript
 /**
- * @spec REQ-01
+ * @spec auth/login#REQ-01
  * 사용자 로그인 처리
  */
 function login(email: string, password: string) {
@@ -96,10 +114,14 @@ function login(email: string, password: string) {
 }
 ```
 
+REQ 번호는 스펙마다 `REQ-01`부터 시작하므로 `<domain>/<feature>#REQ-xx`로 스펙을 한정해 쓰세요.
+한정하지 않은 `REQ-xx`는 그 ID를 가진 스펙이 하나뿐일 때만 인정됩니다.
+
 ### 2. 정기적인 동기화 검사
 
 ```bash
-sdd sync
+sdd sync                        # 리포트만 (종료 코드 0)
+sdd sync --ci --threshold 80    # 80% 미만이면 종료 코드 2
 ```
 
 ### 3. 변경 시 명세 먼저 수정
@@ -116,7 +138,7 @@ sdd sync
 ```markdown
 ## 관련 명세
 
-- [사용자 인증](/.sdd/specs/auth/spec.md)
+- [사용자 인증](/.sdd/specs/auth/user-auth/spec.md)
 ```
 
 ### 2. 변경 제안 프로세스

@@ -227,9 +227,13 @@ sdd quality                     # Quality scoring
 
 ```bash
 sdd sync                        # All specs
-sdd sync --threshold 80         # With threshold
-sdd sync --ci                   # CI mode (fail if below)
+sdd sync --threshold 80         # With threshold (enables the gate)
+sdd sync --ci                   # CI mode (fail if below 100%)
 ```
+
+`sdd sync` only reports (exit code 0) unless `--ci` or `--threshold` is given; with the gate active it exits with
+code 2 when the sync rate is below the threshold. Requirements are the ids a spec defines with `### REQ-01: Title`
+headings; reference them from code and tests as `@spec <domain>/<feature>#REQ-01`.
 
 **In CI/CD:**
 ```bash
@@ -239,14 +243,15 @@ sdd sync --ci --threshold 80 --json
 ### Use Quality Scoring
 
 ```bash
-sdd quality --threshold 80
+sdd quality --all --min-score 80
 ```
 
-**Metrics checked:**
-- Requirement clarity
-- Scenario completeness
-- RFC 2119 usage
-- Format compliance
+**Criteria scored (100 points):**
+- GIVEN-WHEN-THEN scenarios (20)
+- Requirement clarity (15) and document structure (15)
+- RFC 2119 keywords, declared dependencies, constitution compliance, reference links, metadata (10 each)
+
+Exits with code 2 when the score is below `--min-score`. See [sdd quality](/cli/quality).
 
 ### Track Changes
 
@@ -296,8 +301,7 @@ Link code to spec requirements.
 ```typescript
 /**
  * User login handler
- * @spec REQ-001 Email/Password Login
- * @scenario Scenario 1: Successful Login
+ * @spec auth/login#REQ-01
  */
 export async function login(email: string, password: string) {
   // Implementation
@@ -382,10 +386,12 @@ sdd cicd setup github
 ```
 
 **Includes:**
-- Spec validation workflow
-- Sync verification
-- Quality checks
-- Automated reporting
+- Spec validation workflow (`sdd validate`, `sdd constitution validate`)
+- Impact report artifact (`sdd impact report --json`)
+- PR labeler (`spec:<domain>`, `constitution`)
+- CLI installed as `sdd-tool@<version>` (pinned)
+
+Add `sdd sync --ci` / `sdd quality --min-score` steps yourself if you want them to gate merges.
 
 ### Validation in Pipeline
 
@@ -397,8 +403,11 @@ sdd cicd setup github
 - name: Check Sync
   run: sdd sync --ci --threshold 80
 
-- name: Quality Report
-  run: sdd report --format json
+- name: Quality Gate
+  run: sdd quality --all --min-score 70
+
+- name: Report
+  run: sdd report -f json -o sdd-report.json
 ```
 
 ### Pre-commit Validation
@@ -421,7 +430,7 @@ Automatically validates before commit.
 ```bash
 sdd report                      # Overview
 sdd export --all                # Export all specs
-sdd export --format html        # HTML version
+sdd export --all --format html  # HTML version
 ```
 
 **Benefits:**
@@ -438,12 +447,12 @@ sdd export --all --format html --theme dark
 
 **JSON Export:**
 ```bash
-sdd export --format json
+sdd export --all --format json
 ```
 
 **Markdown Export:**
 ```bash
-sdd export --format markdown
+sdd export --all --format markdown
 ```
 
 ## 9. Common Patterns

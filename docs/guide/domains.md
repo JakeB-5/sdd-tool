@@ -105,6 +105,9 @@ sdd domain link auth user-login
 
 # Unlink
 sdd domain unlink auth user-login
+
+# Rename a domain (moves .sdd/specs/<old>/ and updates depends / proposal targets)
+sdd domain rename auth authentication
 ```
 
 ### Set Dependencies
@@ -152,10 +155,10 @@ Circular dependencies are automatically detected:
 ## Domain Validation
 
 ```bash
-# Validate all domains
-sdd validate --domain
+# Validate the domain structure (exit code 2 when invalid)
+sdd domain validate
 
-# Specific domain only
+# Validate only the specs of one domain
 sdd validate --domain auth
 
 # Check orphan specs
@@ -166,7 +169,7 @@ sdd validate --orphan-specs
 
 - Domain existence
 - Spec-domain consistency
-- Dependency rule compliance
+- Dependency rule compliance (`rules:` in domains.yml)
 - No circular dependencies
 
 ## Spec Creation and Domains
@@ -179,9 +182,10 @@ sdd new mfa-setup -d auth
 ```
 
 This command:
-1. Verifies `auth` domain exists
+1. Creates the `auth` domain if it does not exist yet (same as `sdd domain create auth`, with a notice)
 2. Creates spec in `.sdd/specs/auth/mfa-setup/` directory
 3. Auto-updates domains.yml
+4. Creates and switches to a `feature/mfa-setup` git branch (add `--no-branch` to skip)
 
 ::: tip v1.3.0 Structure
 Specs are always created in `specs/<domain>/<feature>/spec.md` format.
@@ -190,21 +194,11 @@ If no domain is specified, it's created in the `common` domain.
 
 ### Domain Auto-Detection
 
-When context is set, domain is auto-detected:
+When exactly one domain is active in the context, it is used as the default:
 
 ```bash
 sdd context set auth
 sdd new mfa-setup  # Created as auth/mfa-setup
-```
-
-## Domain-Specific Templates
-
-Custom templates can be defined for each domain:
-
-```
-.sdd/domains/auth/templates/
-├── spec.md        # Spec template
-└── scenario.md    # Scenario template
 ```
 
 ## Best Practices

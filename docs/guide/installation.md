@@ -25,7 +25,8 @@ sdd --version
 
 ## Claude Code Setup
 
-SDD Tool collaborates with AI through Claude Code skills (invoked as `/sdd-*` slash commands).
+SDD Tool collaborates with AI through skills: `sdd init` writes the same 30 skills for Claude Code (invoked as `/sdd-*`)
+and for OpenAI Codex (invoked as `$sdd-*`, or pick one with `/skills`).
 
 ### Install Claude Code
 

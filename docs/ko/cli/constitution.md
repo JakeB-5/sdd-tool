@@ -13,16 +13,23 @@ sdd constitution [command] [options]
 | 커맨드 | 설명 |
 |--------|------|
 | `show` | 현재 헌법 표시 |
+| `version` | 현재 헌법 버전 표시 |
+| `bump` | 헌법 버전 업데이트 |
 | `validate` | 헌법 유효성 검증 |
 | `history` | 헌법 변경 이력 |
-| `diff` | 헌법 변경사항 비교 |
 
 ## 옵션
 
-| 옵션 | 설명 |
-|------|------|
-| `--json` | JSON 형식으로 출력 |
-| `--verbose` | 상세 정보 출력 |
+| 커맨드 | 옵션 | 설명 |
+|--------|------|------|
+| `show` | `--json` | JSON 형식으로 출력 |
+| `bump` | `--major` / `--minor` / `--patch` | 올릴 버전 부분 (핵심 원칙 변경 / 새 원칙 추가 / 문구 수정). 버전 부분은 필수 |
+| `bump` | `-m, --message <message>` | 변경 사유 |
+| `history` | `-n, --count <count>` | 표시할 항목 수 (기본: 10) |
+
+```bash
+sdd constitution bump --minor -m "보안 원칙 추가"
+```
 
 ## 헌법(Constitution)이란?
 

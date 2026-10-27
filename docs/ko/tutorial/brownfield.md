@@ -63,10 +63,10 @@ sdd init
 
 ### Claude Code에서 시작
 
-이제 Claude Code에서 프로젝트를 열고 `/sdd.start`를 실행합니다:
+이제 Claude Code에서 프로젝트를 열고 `/sdd-start`를 실행합니다:
 
 ```
-/sdd.start
+/sdd-start
 ```
 
 Claude가 기존 프로젝트를 분석합니다:
@@ -82,7 +82,7 @@ Claude가 기존 프로젝트를 분석합니다:
 - 파일: 12개
 - 언어: JavaScript
 
-💡 기존 코드에서 스펙을 추출하려면 /sdd.reverse 를 실행하세요.
+💡 기존 코드에서 스펙을 추출하려면 /sdd-reverse 를 실행하세요.
 ```
 
 ## Step 2: 구조 스캔
@@ -90,7 +90,7 @@ Claude가 기존 프로젝트를 분석합니다:
 역추출은 AI 주도입니다. CLI가 구조를 스캔하고, Claude가 코드를 읽어 스펙 초안을 작성합니다.
 
 ```
-/sdd.reverse
+/sdd-reverse
 ```
 
 Claude는 먼저 결정적(deterministic) 스캔을 실행합니다:
@@ -240,7 +240,7 @@ sdd reverse finalize auth/login # 초안 하나
 ## Step 7: 검증
 
 ```
-/sdd.validate
+/sdd-validate
 ```
 
 ```
@@ -268,9 +268,11 @@ user-model 스펙을 생성합니다 (도메인: core):
 
   ---
   id: user-model
-  name: 사용자 모델
-  status: approved
+  title: "사용자 모델"
+  status: draft
+  created: 2026-10-27
   domain: core
+  depends: []
   ---
 
   # 사용자 모델
@@ -283,7 +285,8 @@ user-model 스펙을 생성합니다 (도메인: core):
     updatedAt: Date;
   }
 
-login의 의존성에 user-model 추가
+login의 frontmatter에 추가: depends: [core/user-model]
+(`sdd impact`는 `depends`만 의존성으로 인정하며, 본문에서 core/user-model을 언급하는 것은 의존성이 아닙니다)
 
 ✅ 경고 해결됨
 ```
@@ -291,7 +294,7 @@ login의 의존성에 user-model 추가
 ## Step 8: 프로젝트 상태 확인
 
 ```
-/sdd.status
+/sdd-status
 ```
 
 ```
@@ -314,14 +317,22 @@ login의 의존성에 user-model 추가
 다음 추천 작업:
   1. 남은 초안 검토: sdd reverse review --list
   2. 테스트 추가: "auth/login 테스트 작성해줘"
-  3. 새 기능: /sdd.spec
+  3. 새 기능: /sdd-spec
 ```
 
 ## Step 9: 점진적 개선
 
+### 확정된 스펙을 구현 완료로 표시
+
+확정된 초안은 `status: draft`로 시작합니다. 코드가 스펙대로 동작함을 확인했다면 기록하세요:
+
+```bash
+sdd new status auth/login implemented
+```
+
 ### 테스트 추가
 
-기존 코드에 테스트를 추가합니다:
+기존 코드에 테스트를 추가하고, 테스트가 다루는 요구사항을 `@spec auth/login#REQ-01`로 참조합니다:
 
 ```
 User: login에 테스트가 없어. 스펙 기반으로 테스트 작성해줘
@@ -390,7 +401,7 @@ src/auth/login.test.ts:
 새 기능은 처음부터 SDD 방식으로 개발합니다:
 
 ```
-/sdd.spec 비밀번호 재설정
+/sdd-spec 비밀번호 재설정
 ```
 
 ```
@@ -407,22 +418,31 @@ Claude: 📋 스펙 초안
 
 ## password-reset (도메인: auth)
 
-### 시나리오
+### REQ-01: 재설정 링크
 
-**재설정 요청**
-- GIVEN: 등록된 이메일
-- WHEN: POST /auth/password-reset/request
-- THEN: 재설정 링크가 이메일로 발송됨
+시스템은 등록된 이메일로 1시간 동안 유효한 재설정 링크를 발송해야 한다(SHALL).
 
-**비밀번호 변경**
-- GIVEN: 유효한 재설정 토큰, 새 비밀번호 (8자 이상)
-- WHEN: POST /auth/password-reset/confirm
-- THEN: 비밀번호가 변경됨
+### REQ-02: 비밀번호 변경
 
-**만료된 토큰**
-- GIVEN: 1시간 초과된 토큰
-- WHEN: POST /auth/password-reset/confirm
-- THEN: 400 에러 (TOKEN_EXPIRED)
+시스템은 유효한 재설정 토큰과 새 비밀번호(8자 이상)를 받아들이고 만료된 토큰은 거부해야 한다(SHALL).
+
+### Scenario 1: 재설정 요청 (REQ-01)
+
+- **GIVEN** 등록된 이메일
+- **WHEN** POST /auth/password-reset/request
+- **THEN** 재설정 링크가 이메일로 발송된다
+
+### Scenario 2: 비밀번호 변경 (REQ-02)
+
+- **GIVEN** 유효한 재설정 토큰과 새 비밀번호 (8자 이상)
+- **WHEN** POST /auth/password-reset/confirm
+- **THEN** 비밀번호가 변경된다
+
+### Scenario 3: 만료된 토큰 (REQ-02)
+
+- **GIVEN** 1시간 초과된 토큰
+- **WHEN** POST /auth/password-reset/confirm
+- **THEN** 400 에러(TOKEN_EXPIRED)가 반환된다
 
 스펙을 저장하시겠습니까? [Y/n]
 ```
@@ -432,36 +452,39 @@ Claude: 📋 스펙 초안
 ### 코드와 스펙 동기화 확인
 
 ```
-/sdd.sync
+/sdd-sync
+```
+
+`sdd sync`는 추적성을 검사합니다. 스펙이 `### REQ-01: 제목` 헤딩으로 정의한 모든 요구사항은 코드나 테스트에서
+`@spec <domain>/<feature>#REQ-01`로 참조되어야 합니다. 스킬이 대신 실행해 주며, 터미널에서는 다음과 같이 씁니다:
+
+```bash
+sdd sync                          # 리포트만 (종료 코드 0)
+sdd sync --ci --threshold 80      # 80% 미만이면 종료 코드 2로 실패
 ```
 
 ```
-🔄 스펙-코드 동기화 검사
+=== SDD Sync: 스펙-코드 동기화 검증 ===
 
-✅ 동기화됨: 7개
-  - login (도메인: auth)
-  - register (도메인: auth)
-  - logout (도메인: auth)
+스펙: 8개, 요구사항: 21개
+
+✓ 구현됨 (18/21)
+  - REQ-01: Token issuance (src/auth/login.ts:12)
   ...
 
-⚠ 불일치: 2개
-  - update-user (도메인: user)
-    스펙: email 필드 수정 가능
-    코드: email 수정 불가 (readonly)
-    → 스펙 또는 코드 수정 필요
+✗ 미구현 (3/21)
+  - REQ-03: Password check
 
-  - create-order (도메인: order)
-    스펙: quantity 필수
-    코드: quantity 기본값 1
-    → 스펙 업데이트 권장
-
-수정하시겠습니까? [Y/n]
+동기화율: 86% (18/21)
 ```
+
+빠진 `@spec` 참조를 추가하거나, 코드가 맞다면 스펙을 고치세요. 한정하지 않은 `REQ-01`은 그 ID를 가진 스펙이
+정확히 하나일 때만 인정되므로 `<domain>/<feature>#`로 스펙을 한정해 참조하세요.
 
 ### 도메인 그래프
 
 ```
-/sdd.domain graph
+/sdd-domain graph
 ```
 
 ```mermaid
@@ -513,12 +536,12 @@ graph TB
 ## 요약
 
 1. `sdd init`으로 프로젝트 초기화 (CLI)
-2. `/sdd.start`로 프로젝트 상태 확인 (Claude Code)
-3. `sdd reverse scan --json`으로 구조 스캔 (`/sdd.reverse`)
+2. `/sdd-start`로 프로젝트 상태 확인 (Claude Code)
+3. `sdd reverse scan --json`으로 구조 스캔 (`/sdd-reverse`)
 4. AI가 코드를 읽고 `.sdd/.reverse-drafts/`에 초안 작성
 5. `sdd validate .sdd/.reverse-drafts`로 초안 검증
 6. `sdd reverse review --list`로 검토, 사용자 확인 후 `--approve`로 승인
 7. `sdd reverse finalize`로 확정
-8. `/sdd.validate`로 검증
-9. `/sdd.sync`로 코드-스펙 동기화 관리
+8. `/sdd-validate`로 검증
+9. `/sdd-sync`로 코드-스펙 동기화 관리
 10. 점진적으로 테스트 추가 및 개선

@@ -50,7 +50,14 @@ The AI will help you write the project principles through conversation.
 /sdd-spec Add todo feature
 ```
 
-The AI will help you write the spec through conversation.
+The AI will help you write the spec through conversation. Behind the scenes it runs `sdd new <domain>/<feature> --all`,
+which creates the domain if it is missing (`common` when you give none), switches to a `feature/<id>` git branch
+(`--no-branch` skips that) and writes spec.md, plan.md, tasks.md and checklist.md. Existing files are never overwritten
+without `--force`.
+
+::: tip Codex
+Everything in this guide works in Codex too: skills are invoked as `$sdd-spec`, `$sdd-plan`, ... instead of `/sdd-spec`, `/sdd-plan`, ...
+:::
 
 ### Example Spec
 
@@ -59,6 +66,8 @@ The AI will help you write the spec through conversation.
 id: add-todo
 title: "Add Todo"
 status: draft
+created: 2026-10-27
+depends: []
 ---
 
 # Add Todo
@@ -83,7 +92,7 @@ status: draft
 /sdd-plan
 ```
 
-The AI will create a technical implementation plan.
+The AI will edit the plan.md that `sdd new --all` already created into a technical implementation plan.
 
 ## 6. Task Breakdown
 
@@ -91,7 +100,8 @@ The AI will create a technical implementation plan.
 /sdd-tasks
 ```
 
-The AI will break down the work into executable task units.
+The AI will fill in the tasks.md that was already created, breaking the work into executable task units. Each task is a
+`### add-todo-task-001: Title` heading followed by `**상태:**` (status), `**우선순위:**`, `**설명:**` and `**의존성:**` lines.
 
 ## 7. Tool Check
 
@@ -107,12 +117,15 @@ Verify and create necessary subagents and skills.
 /sdd-implement
 ```
 
-The AI guides sequential TDD-style implementation:
+The AI guides sequential, test-first implementation:
 
-1. Write tests
-2. Implement code
-3. Verify tests pass
-4. Move to next task
+1. Set the task to in progress: `sdd new task add-todo add-todo-task-001 in-progress`
+2. Write a failing test (reference the requirement with `@spec <domain>/add-todo#REQ-01`)
+3. Implement code until the test passes
+4. Mark the task done: `sdd new task add-todo add-todo-task-001 completed`
+5. Move to next task
+
+`sdd new task` also recounts the progress block and the `completed:` / `total:` fields in tasks.md.
 
 ## 9. Validation
 
@@ -120,7 +133,13 @@ The AI guides sequential TDD-style implementation:
 /sdd-validate
 ```
 
-Validate that the spec is correctly written.
+Validate that the spec is correctly written, then check traceability and close the spec:
+
+```bash
+sdd validate
+sdd sync                              # every REQ-xx should be referenced by code or a test
+sdd new status add-todo implemented   # spec status: draft → ... → implemented
+```
 
 ## Complete!
 

@@ -63,10 +63,10 @@ Next step: Run /sdd-start in Claude Code.
 
 ### Start in Claude Code
 
-Now open the project in Claude Code and run `/sdd.start`:
+Now open the project in Claude Code and run `/sdd-start`:
 
 ```
-/sdd.start
+/sdd-start
 ```
 
 Claude analyzes the existing project:
@@ -82,7 +82,7 @@ Existing codebase detected:
 - Files: 12
 - Language: JavaScript
 
-Tip: Run /sdd.reverse to extract specs from existing code.
+Tip: Run /sdd-reverse to extract specs from existing code.
 ```
 
 ## Step 2: Structure Scan
@@ -90,7 +90,7 @@ Tip: Run /sdd.reverse to extract specs from existing code.
 Reverse extraction is AI-driven. The CLI scans the structure; Claude reads the code and writes the spec drafts.
 
 ```
-/sdd.reverse
+/sdd-reverse
 ```
 
 Claude starts by running the deterministic scan:
@@ -240,7 +240,7 @@ Finalize refuses to overwrite an existing spec and exits non-zero when it skips 
 ## Step 7: Validation
 
 ```
-/sdd.validate
+/sdd-validate
 ```
 
 ```
@@ -268,9 +268,11 @@ Creating user-model spec (domain: core):
 
   ---
   id: user-model
-  name: User Model
-  status: approved
+  title: "User Model"
+  status: draft
+  created: 2026-10-27
   domain: core
+  depends: []
   ---
 
   # User Model
@@ -283,7 +285,8 @@ Creating user-model spec (domain: core):
     updatedAt: Date;
   }
 
-Adding user-model to login's dependencies
+Adding user-model to login's frontmatter: depends: [core/user-model]
+(only `depends` creates a dependency for `sdd impact`; mentioning core/user-model in the body would not)
 
 Warning resolved
 ```
@@ -291,7 +294,7 @@ Warning resolved
 ## Step 8: Check Project Status
 
 ```
-/sdd.status
+/sdd-status
 ```
 
 ```
@@ -314,14 +317,22 @@ Drafts (unfinalized): 4
 Recommended next actions:
   1. Review remaining drafts: sdd reverse review --list
   2. Add tests: "Write tests for auth/login"
-  3. New features: /sdd.spec
+  3. New features: /sdd-spec
 ```
 
 ## Step 9: Gradual Improvement
 
+### Mark Finalized Specs as Implemented
+
+Finalized drafts start with `status: draft`. Once you have checked that the code really does what a spec says, record it:
+
+```bash
+sdd new status auth/login implemented
+```
+
 ### Add Tests
 
-Add tests to existing code:
+Add tests to existing code, and reference the requirements they cover as `@spec auth/login#REQ-01`:
 
 ```
 User: login has no tests. Write tests based on the spec
@@ -390,7 +401,7 @@ Create test file? [Y/n]
 Develop new features using SDD from the start:
 
 ```
-/sdd.spec Password reset
+/sdd-spec Password reset
 ```
 
 ```
@@ -407,22 +418,31 @@ Claude: Spec Draft
 
 ## password-reset (domain: auth)
 
-### Scenarios
+### REQ-01: Reset link
 
-**Reset request**
-- GIVEN: Registered email
-- WHEN: POST /auth/password-reset/request
-- THEN: Reset link sent via email
+The system SHALL email a reset link, valid for 1 hour, to a registered address.
 
-**Password change**
-- GIVEN: Valid reset token, new password (8+ chars)
-- WHEN: POST /auth/password-reset/confirm
-- THEN: Password changed
+### REQ-02: Password change
 
-**Expired token**
-- GIVEN: Token older than 1 hour
-- WHEN: POST /auth/password-reset/confirm
-- THEN: 400 error (TOKEN_EXPIRED)
+The system SHALL accept a new password (8+ chars) with a valid reset token and SHALL reject an expired token.
+
+### Scenario 1: Reset request (REQ-01)
+
+- **GIVEN** a registered email
+- **WHEN** POST /auth/password-reset/request
+- **THEN** a reset link is sent via email
+
+### Scenario 2: Password change (REQ-02)
+
+- **GIVEN** a valid reset token and a new password (8+ chars)
+- **WHEN** POST /auth/password-reset/confirm
+- **THEN** the password is changed
+
+### Scenario 3: Expired token (REQ-02)
+
+- **GIVEN** a token older than 1 hour
+- **WHEN** POST /auth/password-reset/confirm
+- **THEN** a 400 error (TOKEN_EXPIRED) is returned
 
 Save this spec? [Y/n]
 ```
@@ -432,36 +452,39 @@ Save this spec? [Y/n]
 ### Check Code-Spec Synchronization
 
 ```
-/sdd.sync
+/sdd-sync
+```
+
+`sdd sync` checks traceability: every requirement a spec defines with a `### REQ-01: Title` heading should be
+referenced from code or a test as `@spec <domain>/<feature>#REQ-01`. The skill runs it for you; from a terminal:
+
+```bash
+sdd sync                          # report only (exit code 0)
+sdd sync --ci --threshold 80      # fail with exit code 2 below 80%
 ```
 
 ```
-Spec-Code Sync Check
+=== SDD Sync: 스펙-코드 동기화 검증 ===
 
-Synchronized: 7
-  - login (domain: auth)
-  - register (domain: auth)
-  - logout (domain: auth)
+스펙: 8개, 요구사항: 21개
+
+✓ 구현됨 (18/21)
+  - REQ-01: Token issuance (src/auth/login.ts:12)
   ...
 
-Mismatch: 2
-  - update-user (domain: user)
-    Spec: email field modifiable
-    Code: email is readonly
-    -> Spec or code modification needed
+✗ 미구현 (3/21)
+  - REQ-03: Password check
 
-  - create-order (domain: order)
-    Spec: quantity required
-    Code: quantity defaults to 1
-    -> Spec update recommended
-
-Fix these? [Y/n]
+동기화율: 86% (18/21)
 ```
+
+Add the missing `@spec` references, or fix the spec when the code is right. A bare `REQ-01` is only
+counted when exactly one spec has that id, so qualify references with `<domain>/<feature>#`.
 
 ### Domain Graph
 
 ```
-/sdd.domain graph
+/sdd-domain graph
 ```
 
 ```mermaid
@@ -513,12 +536,12 @@ graph TB
 ## Summary
 
 1. Initialize project with `sdd init` (CLI)
-2. Check project status with `/sdd.start` (Claude Code)
-3. Scan the structure with `sdd reverse scan --json` (via `/sdd.reverse`)
+2. Check project status with `/sdd-start` (Claude Code)
+3. Scan the structure with `sdd reverse scan --json` (via `/sdd-reverse`)
 4. The AI reads the code and writes drafts to `.sdd/.reverse-drafts/`
 5. Validate drafts with `sdd validate .sdd/.reverse-drafts`
 6. Review with `sdd reverse review --list` and approve with `--approve` after confirming
 7. Finalize with `sdd reverse finalize`
-8. Validate with `/sdd.validate`
-9. Manage code-spec sync with `/sdd.sync`
+8. Validate with `/sdd-validate`
+9. Manage code-spec sync with `/sdd-sync`
 10. Gradually add tests and improvements

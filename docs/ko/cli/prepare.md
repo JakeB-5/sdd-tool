@@ -12,7 +12,7 @@ sdd prepare <feature> [options]
 
 | 인수 | 설명 |
 |------|------|
-| `feature` | 기능 이름 |
+| `feature` | `<domain>/<feature>` 또는 유일한 기능 이름 |
 
 ## 옵션
 
@@ -20,6 +20,10 @@ sdd prepare <feature> [options]
 |------|------|
 | `--dry-run` | 미리보기만 |
 | `--auto-approve` | 자동 생성 |
+| `--json` | JSON 형식 출력 |
+
+`sdd prepare`는 기능의 tasks.md를 읽고 Claude Code 레이아웃(`.claude/agents/`, `.claude/skills/`)에 파일을 씁니다.
+Codex에서는 생성된 스킬과 `.codex/agents/*.toml` 서브에이전트가 대응물이므로 직접 복사하거나 맞춰 쓰세요.
 
 ## 감지 키워드
 
@@ -77,7 +81,7 @@ sdd prepare user-auth --auto-approve
 
 ## 점검 보고서
 
-점검 결과는 `.sdd/specs/<feature>/prepare.md`에 저장됩니다.
+점검 결과는 `.sdd/specs/<domain>/<feature>/prepare.md`에 저장됩니다.
 
 ```markdown
 # 도구 점검 결과

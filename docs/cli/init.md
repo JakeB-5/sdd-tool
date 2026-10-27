@@ -15,6 +15,7 @@ sdd init [options]
 | `-f, --force` | Overwrite existing configuration (changed `.sdd/` files are backed up to `<file>.bak`, or `<file>.1.bak`… if one exists, and reported; delete backups after review and do not commit them — add `.sdd/**/*.bak` to `.gitignore`) |
 | `--skip-git-setup` | Skip Git/CI-CD setup |
 | `--auto-approve` | Auto-approve all settings |
+| `--with-domains` | Also create the domain config file `.sdd/domains.yml` |
 | `--no-skills` | Skip skill generation (`.claude/skills/` and `.agents/skills/`) |
 | `--legacy-commands` | Additionally write the legacy Korean slash commands to `.claude/commands/sdd.*.md` |
 

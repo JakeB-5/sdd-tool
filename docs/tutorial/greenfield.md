@@ -192,22 +192,33 @@ Claude: Spec Draft
 
 Creates a new todo item.
 
-### Scenarios
+### REQ-01: Create a todo
 
-**Successful creation**
-- GIVEN: Valid todo data (title: "Test", description: "Description")
-- WHEN: Create request
-- THEN: New todo is created and ID is returned
+The system SHALL create a todo from a title (1-200 chars), an optional description and an optional due date.
 
-**Missing title**
-- GIVEN: Data without title
-- WHEN: Create request
-- THEN: 400 error (TITLE_REQUIRED)
+### REQ-02: Reject invalid titles
 
-**Title too long**
-- GIVEN: Title with 201+ characters
-- WHEN: Create request
-- THEN: 400 error (TITLE_TOO_LONG)
+The system SHALL reject a missing or over-long title with a 400 error.
+
+### Scenario 1: Successful creation (REQ-01)
+
+- **GIVEN** valid todo data (title: "Test", description: "Description")
+- **WHEN** a create request is sent
+- **THEN** a new todo is created and its ID is returned
+
+### Scenario 2: Missing title (REQ-02)
+
+- **GIVEN** data without a title
+- **WHEN** a create request is sent
+- **THEN** a 400 error (TITLE_REQUIRED) is returned
+
+### Scenario 3: Title too long (REQ-02)
+
+- **GIVEN** a title with 201+ characters
+- **WHEN** a create request is sent
+- **THEN** a 400 error (TITLE_TOO_LONG) is returned
+
+The spec depends on `core/validation` (frontmatter `depends: [core/validation]`).
 
 ### Contract
 
@@ -236,7 +247,7 @@ When saved:
 ```
 Spec saved
 
-File: .sdd/specs/create-todo/spec.md
+File: .sdd/specs/todo/create-todo/spec.md
 Status: draft
 Domain: todo
 
@@ -339,38 +350,36 @@ Save this plan? [Y/n]
 ```
 
 ```
-Task Breakdown: create-todo
+Task Breakdown: create-todo (written to .sdd/specs/todo/create-todo/tasks.md)
 
-[ ] 1. Type definitions
-    - Write CreateTodoInput interface
-    - Write Todo interface
-    - Estimated time: 10 min
+### create-todo-task-001: Type definitions
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **설명:** CreateTodoInput and Todo interfaces
+- **의존성:** 없음
 
-[ ] 2. Write tests (Red)
-    - Successful creation test
-    - Missing title test
-    - Title too long test
-    - Estimated time: 20 min
+### create-todo-task-002: Write failing tests (Red)
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **설명:** Successful creation, missing title, title too long (REQ-01, REQ-02)
+- **의존성:** create-todo-task-001
 
-[ ] 3. Implement validation logic (Green)
-    - validateTitle function
-    - Integrate core/validation
-    - Estimated time: 15 min
+### create-todo-task-003: Validation and business logic (Green)
+- **상태:** 대기
+- **우선순위:** 🔴 HIGH
+- **설명:** validateTitle (core/validation) and createTodo
+- **의존성:** create-todo-task-002
 
-[ ] 4. Implement business logic (Green)
-    - createTodo function
-    - Estimated time: 20 min
-
-[ ] 5. Refactoring (Refactor)
-    - Code cleanup
-    - Estimated time: 10 min
-
-[ ] 6. API endpoint
-    - POST /todos route
-    - Estimated time: 15 min
-
-Total estimated time: 1 hour 30 minutes
+### create-todo-task-004: Refactor and API endpoint
+- **상태:** 대기
+- **우선순위:** 🟡 MEDIUM
+- **설명:** Code cleanup and POST /todos route
+- **의존성:** create-todo-task-003
 ```
+
+Each task is a `### <feature>-task-NNN: Title` heading with a `**상태:**` line (`대기`, `진행 중`, `완료`, `차단됨`; English
+`pending`, `in-progress`, `completed`, `blocked` are accepted too). The progress block and the `total:` / `completed:`
+frontmatter are kept up to date by `sdd new task`.
 
 ## Step 9: Implementation
 
@@ -383,7 +392,9 @@ Claude will implement using TDD methodology:
 ```
 Starting implementation: create-todo
 
-## Task 1/6: Type definitions
+$ sdd new task todo/create-todo create-todo-task-001 in-progress
+
+## Task 1/4: Type definitions
 
 src/todo/types.ts:
 
@@ -404,13 +415,18 @@ src/todo/types.ts:
 
 Type definitions complete
 
-## Task 2/6: Write tests
+$ sdd new task todo/create-todo create-todo-task-001 completed
+
+## Task 2/4: Write failing tests
+
+$ sdd new task todo/create-todo create-todo-task-002 in-progress
 
 src/todo/create-todo.test.ts:
 
   import { describe, it, expect } from 'vitest';
   import { createTodo } from './create-todo';
 
+  // @spec todo/create-todo#REQ-01, todo/create-todo#REQ-02
   describe('createTodo', () => {
     it('creates a todo with valid data', () => {
       const input = { title: 'Test todo' };
@@ -435,10 +451,18 @@ src/todo/create-todo.test.ts:
 
 Running tests... 3/3 failed (as expected)
 
-## Task 3/6: Implementation...
+## Task 3/4: Implementation...
 ```
 
-When implementation is complete:
+When all tasks are completed, finish the spec from the terminal. `sdd status` does not change the spec status
+automatically; it suggests this step:
+
+```bash
+sdd validate
+sdd sync todo/create-todo     # REQ-01 and REQ-02 are referenced by the tests: 100%
+sdd new status todo/create-todo implemented
+# ✅ todo/create-todo 스펙 상태: draft → implemented
+```
 
 ```
 Implementation complete: create-todo

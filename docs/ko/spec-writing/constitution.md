@@ -97,6 +97,11 @@ Constitution 변경 시:
 2. 변경 이력 기록
 3. 기존 스펙 호환성 검토
 
+```bash
+sdd constitution bump --minor -m "테스트 커버리지 기준 추가"   # --major | --minor | --patch 중 하나 필수
+sdd constitution history
+```
+
 ```markdown
 ## 변경 이력
 
