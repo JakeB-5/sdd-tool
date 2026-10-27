@@ -38,22 +38,29 @@ sdd init --legacy-commands  # Also write legacy .claude/commands/sdd.*.md
 sdd init
 
 # Create specs
-sdd new feature-name
-sdd new login -d auth               # With domain
+sdd new auth/login --all            # Domain auto-created; spec + plan + tasks + checklist
+sdd new feature-name                # No domain -> common
+sdd new login -d auth               # Domain via option
+sdd new auth/login --no-branch      # Skip feature/<name> branch creation
+sdd new auth/login --all --force    # Regenerate (existing files are never overwritten otherwise)
+
+# Track progress (<feature> = <domain>/<feature> or a unique feature name)
+sdd new task <feature> <task-id> in-progress   # pending|in-progress|completed|blocked
+sdd new status <feature> implemented           # draft|review|approved|planned|tasked|implementing|implemented|deprecated
 
 # Validation & quality
 sdd validate                        # Check all specs
 sdd quality                         # Quality score
-sdd status                          # Project overview
+sdd status                          # Per-feature stage, task progress, next steps
 
 # Development
 sdd sync                            # Verify code matches specs
-sdd prepare feature-name            # Prepare tools
+sdd prepare <feature>               # Prepare tools
 sdd list                            # View all specs
 
 # Analysis
 sdd search <keyword>                # Find specs
-sdd impact feature-name             # Change analysis
+sdd impact <feature>                # Change analysis (uses frontmatter depends)
 sdd report                          # Generate report
 
 # Version control
@@ -69,6 +76,8 @@ id: unique-id
 title: "Feature Title"
 status: draft
 created: 2025-01-30
+domain: auth
+depends: []                  # [<domain>/<feature>, ...]; [] for none
 constitution_version: 1.0.0
 ---
 
@@ -78,18 +87,22 @@ constitution_version: 1.0.0
 
 ## Requirements
 
-### REQ-001: Requirement Title
+### REQ-01: Requirement Title
 
-Requirement description using RFC 2119 keywords.
+The system SHALL describe the requirement using RFC 2119 keywords.
 
 ## Scenarios
 
-### Scenario: Brief description
+### Scenario 1: Brief description (REQ-01)
 
 - **GIVEN** initial context
 - **WHEN** action occurs
 - **THEN** expected outcome
 ```
+
+- Requirements are the `### REQ-01: Title` headings (unique per spec); `sdd sync` counts only these
+- Reference them from code and tests as `@spec <domain>/<feature>#REQ-01` (a bare `REQ-01` is ambiguous across specs)
+- `depends` is the only dependency source for `sdd impact`; mentioning a spec in the body is just a reference
 
 ## RFC 2119 Keywords
 
@@ -132,17 +145,20 @@ Requirement description using RFC 2119 keywords.
 your-project/
 ├── .sdd/                    # Specs directory
 │   ├── constitution.md      # Project principles
-│   ├── domains.yml          # Domain definitions
+│   ├── domains.yml          # Domain definitions (`sdd init --with-domains`, or created by the first `sdd new <domain>/<feature>`)
 │   ├── specs/               # Specifications
 │   ├── changes/             # Change proposals
 │   └── archive/             # Completed changes
 │
-├── CLAUDE.md                # Imports @.sdd/AGENTS.md
+├── AGENTS.md                # SDD guide (sdd:begin/end block, read by Codex)
+├── CLAUDE.md                # Imports @AGENTS.md
 │
-└── .claude/                 # Claude Code config
-    ├── agents/              # Sub-agents
-    └── skills/              # Skills
-        └── sdd-*/           # SDD workflow skills (30)
+├── .claude/                 # Claude Code config
+│   ├── agents/              # Sub-agents
+│   └── skills/              # Skills
+│       └── sdd-*/           # SDD workflow skills (30)
+├── .agents/skills/          # Codex skills (same 30)
+└── .codex/agents/           # Codex sub-agents
 ```
 
 ## Common Workflows
@@ -150,12 +166,15 @@ your-project/
 ### New Project (Greenfield)
 
 1. `sdd init` - Initialize
-2. `/sdd-constitution` - Define principles
-3. `/sdd-spec` - Write first spec
-4. `/sdd-plan` - Plan implementation
-5. `/sdd-tasks` - Break into tasks
+2. `/sdd-start` → `/sdd-constitution` - Define principles
+3. `/sdd-spec` - Write first spec (`sdd new <domain>/<feature> --all`)
+4. `/sdd-plan` - Plan implementation (edit the generated plan.md)
+5. `/sdd-tasks` - Break into tasks (edit the generated tasks.md)
 6. `/sdd-prepare` - Verify tools
-7. `/sdd-implement` - Build feature
+7. `/sdd-implement` - Build test-first (`sdd new task <feature> <task-id> in-progress|completed`); after the last task: `sdd validate`, `sdd sync <feature>`, then `sdd new status <feature> implemented`
+8. `/sdd-validate` - `sdd validate` (plus `sdd sync` for implemented features)
+
+In Codex, use `$sdd-*` instead of `/sdd-*`.
 
 ### Existing Project (Brownfield)
 
@@ -167,12 +186,15 @@ your-project/
 ### Feature Development
 
 ```bash
-sdd new my-feature
+sdd new shop/my-feature --all             # Creates domain, files and feature/my-feature branch
 sdd validate
-sdd prepare my-feature
-/sdd-implement
-sdd sync                    # Verify implementation
+sdd prepare shop/my-feature
+/sdd-implement                            # Runs sdd new task ... in-progress / completed per task
+sdd sync shop/my-feature                  # Verify @spec shop/my-feature#REQ-01 coverage
+sdd new status shop/my-feature implemented
 ```
+
+Re-running `sdd new` for an existing feature fails with exit code 1 instead of overwriting files; use `--force` to regenerate.
 
 ### Quality Checks
 
@@ -225,19 +247,19 @@ Before finalizing a spec:
 - **THEN** something happens
 ```
 
-## Domains (v1.3.0+)
+## Domains
 
 ```bash
-# Organize specs by domain
-sdd new login -d auth           # auth domain
-sdd new checkout -d payment     # payment domain
+# Organize specs by domain (a missing domain is created automatically)
+sdd new auth/login              # auth domain
+sdd new checkout -d payment     # payment domain (-d still works)
 sdd domain create auth
 sdd domain link auth login
 sdd domain depends payment --on auth
 sdd domain graph
 ```
 
-## Context (v1.2.0+)
+## Context
 
 Focus on specific domains:
 
@@ -247,9 +269,9 @@ sdd context specs               # Specs in context
 sdd context clear               # Reset context
 ```
 
-## Reverse Extraction (v1.2.0+)
+## Reverse Extraction
 
-Extract specs from existing code. The AI (`/sdd.reverse`) writes drafts to `.sdd/.reverse-drafts/`; the CLI scans, reviews, and finalizes:
+Extract specs from existing code. The AI (`/sdd-reverse`) writes drafts to `.sdd/.reverse-drafts/`; the CLI scans, reviews, and finalizes:
 
 ```bash
 sdd reverse scan --json                 # Scan structure
@@ -296,20 +318,32 @@ npx sdd --version
 ### Missing skills
 
 ```bash
-# Recreate skills
-sdd init
-# or manually check .claude/skills/
+# Check that the skills exist
+ls .claude/skills/
+
+# Recreate them in an existing project (plain `sdd init` refuses when .sdd/ exists)
+sdd init --force
 ```
+
+`sdd init --force` regenerates skills, subagents and the AGENTS.md block, but it also replaces `.sdd/constitution.md` and `.sdd/templates/` with the defaults (the old constitution is saved as `.sdd/constitution.md.bak`). Specs under `.sdd/specs/` are kept. Re-apply your constitution edits from the `.bak` file afterwards.
 
 ### Sync failures
 
 ```bash
 # Check specific spec
-sdd sync user-auth
+sdd sync auth/user-auth
 
 # Generate detailed report
 sdd sync --json
 ```
+
+- A requirement shows as unimplemented when no code/test references it as `@spec <domain>/<feature>#REQ-01`
+- "여러 스펙에 해당하여 무시되었습니다" warning: a bare `REQ-01` matches several specs; qualify it with `<domain>/<feature>#`
+- "REQ 정의 헤딩이 없어 요구사항 0개로 집계됩니다" warning: the spec defines no requirement headings; add `### REQ-01: Title`
+
+### `sdd new` fails with "파일이 이미 존재합니다"
+
+The feature already has the file. Edit it instead, or add `--force` to regenerate it from scratch.
 
 ## File Paths
 
@@ -340,11 +374,11 @@ sdd --version                   # Show version
 
 ## Additional Resources
 
-- **Full Guide**: [Getting Started](docs/guide/getting-started-en.md)
-- **CLI Reference**: [CLI Commands](docs/cli/index-en.md)
-- **Spec Writing**: [Writing Specifications](docs/spec-writing/index-en.md)
-- **RFC 2119**: [Keywords Guide](docs/spec-writing/rfc2119-en.md)
-- **Scenarios**: [GIVEN-WHEN-THEN](docs/spec-writing/given-when-then-en.md)
+- **Full Guide**: [Getting Started](docs/guide/getting-started.md)
+- **CLI Reference**: [CLI Commands](docs/cli/index.md)
+- **Spec Writing**: [Writing Specifications](docs/spec-writing/index.md)
+- **RFC 2119**: [Keywords Guide](docs/spec-writing/rfc2119.md)
+- **Scenarios**: [GIVEN-WHEN-THEN](docs/spec-writing/given-when-then.md)
 
 ## Quick Facts
 
@@ -365,6 +399,8 @@ sdd --version                   # Show version
 
 ## Version Compatibility
 
+- **v2.1.0+**: `sdd new status` / `sdd new task` state commands, `sdd new` never overwrites existing files (`--force` regenerates), missing domains auto-created, `sdd impact` dependencies only from frontmatter `depends`, `sdd sync` counts only `### REQ-01: Title` headings
+- **v2.0.0+**: Claude Code and Codex output from every `sdd init` (root `AGENTS.md` block, `.agents/skills/`, subagents), `@spec <domain>/<feature>#REQ-xx` references
 - **v1.6.0+**: Skills — 30 English `sdd-*` skills, `--no-skills` flag (`--legacy-commands` writes legacy `.claude/commands/`)
 - **v1.3.0+**: Domain-based spec structure
 - **v1.2.0+**: Context, reverse extraction, skills

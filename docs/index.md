@@ -43,12 +43,22 @@ npm install -g sdd-tool
 # Initialize project
 sdd init
 
-# Create your first spec
-sdd new user-authentication
+# Create your first spec (domain auto-created; spec, plan, tasks, checklist)
+sdd new auth/user-authentication --all
 
 # Validate specs
 sdd validate
+
+# Track progress while implementing
+sdd new task user-authentication user-authentication-task-001 in-progress
+sdd status
+
+# Finish: verify @spec <domain>/<feature>#REQ-01 coverage and mark implemented
+sdd sync
+sdd new status auth/user-authentication implemented
 ```
+
+`sdd new` also creates and switches to a `feature/<name>` git branch (skip with `--no-branch`) and never overwrites existing files (`--force` regenerates). Requirements are the `### REQ-01: Title` headings of a spec, and dependencies for `sdd impact` come only from the frontmatter `depends: [<domain>/<feature>]` list.
 
 ## Skills (Slash Commands)
 
@@ -57,11 +67,12 @@ Use these skills in Claude Code:
 | Skill | Description |
 |-------|-------------|
 | `/sdd-start` | Start SDD workflow |
-| `/sdd-spec` | Create/modify specification |
-| `/sdd-plan` | Generate implementation plan |
-| `/sdd-tasks` | Break down into tasks |
-| `/sdd-implement` | Implement with AI assistance |
-| `/sdd-validate` | Validate specifications |
+| `/sdd-constitution` | Define project principles |
+| `/sdd-spec` | Create/modify specification (`sdd new <domain>/<feature> --all`) |
+| `/sdd-plan` | Write the implementation plan (plan.md) |
+| `/sdd-tasks` | Break down into tasks (tasks.md) |
+| `/sdd-implement` | Implement test-first (`sdd new task ...` per task; at the end `sdd validate`, `sdd sync`, `sdd new status <feature> implemented`) |
+| `/sdd-validate` | Validate specifications (`sdd validate`, plus `sdd sync` for implemented features) |
 
 [View all skills →](/commands/)
 
