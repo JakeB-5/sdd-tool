@@ -153,27 +153,43 @@ describe('checkConstitutionViolations', () => {
     expect(result.versionMismatch?.constitutionVersion).toBe('2.0.0');
   });
 
-  it('버전이 없는 스펙은 경고를 반환한다', () => {
+  it('버전이 없는 스펙은 경고 대신 정보(specVersionMissing)로 표시한다', () => {
     const result = checkConstitutionViolations(
       noVersionSpecContent,
       undefined,
       constitution
     );
 
-    expect(result.versionMismatch).toBeDefined();
-    expect(result.versionMismatch?.severity).toBe('warning');
-    expect(result.versionMismatch?.specVersion).toBe('(없음)');
+    expect(result.passed).toBe(true);
+    expect(result.versionMismatch).toBeUndefined();
+    expect(result.specVersionMissing).toBe(true);
+    expect(result.constitutionVersion).toBe('2.0.0');
   });
 
-  it('검사한 규칙 수를 반환한다', () => {
+  it('짧은 버전(1.0)도 X.Y.Z로 비교해 Major 차이를 critical로 판정한다', () => {
+    const v3 = parseConstitution(testConstitutionContent.replace('version: 2.0.0', 'version: 3.0.0'));
+    if (!v3.success) throw new Error('parse failed');
+    const result = checkConstitutionViolations(validSpecContent, '1.0', v3.data);
+    expect(result.passed).toBe(false);
+    expect(result.versionMismatch?.severity).toBe('critical');
+  });
+
+  it('해석할 수 없는 constitution_version은 통과가 아니라 경고다', () => {
+    const result = checkConstitutionViolations(validSpecContent, 'latest', constitution);
+    expect(result.versionMismatch?.severity).toBe('warning');
+    expect(result.versionMismatch?.message).toContain('해석할 수 없습니다');
+  });
+
+  it('평가하지 않은 규칙은 rulesChecked에 포함하지 않는다', () => {
     const result = checkConstitutionViolations(
       validSpecContent,
       '2.0.0',
       constitution
     );
 
-    // 금지 사항 + 원칙 내 SHALL NOT 규칙
-    expect(result.rulesChecked).toBeGreaterThan(0);
+    // Keyword rules are disabled, so no rule is actually evaluated
+    expect(result.rulesChecked).toBe(0);
+    expect(result.specVersionMissing).toBe(false);
   });
 
   // NOTE: 키워드 기반 위반 검사가 비활성화되어 라인 번호 반환 테스트는 제거
@@ -194,13 +210,32 @@ describe('formatViolationReport', () => {
     const result: ConstitutionCheckResult = {
       passed: true,
       violations: [],
-      rulesChecked: 5,
+      constitutionVersion: '2.0.0',
+      specVersionMissing: false,
+      rulesChecked: 0,
     };
 
     const report = formatViolationReport(result);
 
     expect(report).toContain('✅ 검사 통과');
-    expect(report).toContain('규칙 수: 5');
+    expect(report).toContain('v2.0.0');
+    // No rule count is claimed when no rule was evaluated
+    expect(report).not.toContain('규칙 수');
+  });
+
+  it('constitution_version 누락은 정보로 포맷한다', () => {
+    const result: ConstitutionCheckResult = {
+      passed: true,
+      violations: [],
+      constitutionVersion: '2.0.0',
+      specVersionMissing: true,
+      rulesChecked: 0,
+    };
+
+    const report = formatViolationReport(result);
+
+    expect(report).toContain('버전 확인을 건너뜀');
+    expect(report).not.toContain('검사 통과');
   });
 
   it('실패한 결과를 포맷한다', () => {
@@ -216,6 +251,8 @@ describe('formatViolationReport', () => {
           message: '금지된 내용 발견',
         },
       ],
+      constitutionVersion: '2.0.0',
+      specVersionMissing: false,
       rulesChecked: 5,
     };
 
@@ -236,7 +273,9 @@ describe('formatViolationReport', () => {
         severity: 'critical',
         message: 'Major 버전 변경',
       },
-      rulesChecked: 5,
+      constitutionVersion: '2.0.0',
+      specVersionMissing: false,
+      rulesChecked: 0,
     };
 
     const report = formatViolationReport(result);

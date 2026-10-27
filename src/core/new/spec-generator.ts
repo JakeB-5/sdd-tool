@@ -2,6 +2,8 @@
  * 기능 명세 생성기
  */
 import { FeatureMetadata, FeatureStatus } from './schemas.js';
+import { normalizeSpecStatus, type LegacySpecStatus } from '../spec/status.js';
+import { readFrontmatter, stringifyFrontmatter, updateFrontmatter } from '../../utils/frontmatter.js';
 
 /**
  * 명세 생성 옵션
@@ -28,22 +30,24 @@ export interface GenerateSpecOptions {
  */
 export function generateSpec(options: GenerateSpecOptions): string {
   const today = new Date().toISOString().split('T')[0];
-  const status = options.status || 'draft';
-  const depends = options.depends?.length ? `\n  - ${options.depends.join('\n  - ')}` : 'null';
-  const domainLine = options.domain ? `\ndomain: ${options.domain}` : '';
-  const constitutionLine = options.constitutionVersion
-    ? `\nconstitution_version: ${options.constitutionVersion}`
-    : '';
+  const status = normalizeSpecStatus(options.status) ?? 'draft';
 
-  let content = `---
-id: ${options.id}
-title: "${options.title}"
-status: ${status}
-created: ${today}${domainLine}
-depends: ${depends}${constitutionLine}
----
+  // YAML is serialized (not interpolated) so quotes/colons in values stay valid
+  let content = stringifyFrontmatter(
+    {
+      id: options.id,
+      title: options.title,
+      status,
+      created: today,
+      domain: options.domain || undefined,
+      depends: options.depends?.length ? options.depends : null,
+      constitution_version: options.constitutionVersion || undefined,
+    },
+    `
+# ${options.title}`
+  );
 
-# ${options.title}
+  content += `
 
 > ${options.description}
 
@@ -137,87 +141,54 @@ ${req}
  * 명세 메타데이터 파싱
  */
 export function parseSpecMetadata(content: string): FeatureMetadata | null {
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!frontmatterMatch) {
+  const { data, hasFrontmatter } = readFrontmatter(content);
+  if (!hasFrontmatter) {
     return null;
   }
 
-  const frontmatter = frontmatterMatch[1];
-  const lines = frontmatter.split('\n');
-  const metadata: Record<string, unknown> = {};
+  const optionalString = (value: unknown): string | undefined =>
+    value === undefined || value === null ? undefined : String(value);
 
-  let currentKey = '';
-  let isArray = false;
-  const arrayItems: string[] = [];
-
-  for (const line of lines) {
-    if (line.startsWith('  - ')) {
-      if (isArray) {
-        arrayItems.push(line.replace('  - ', '').trim());
-      }
-    } else {
-      if (isArray && currentKey) {
-        metadata[currentKey] = arrayItems.length > 0 ? [...arrayItems] : null;
-        arrayItems.length = 0;
-        isArray = false;
-      }
-
-      const colonIndex = line.indexOf(':');
-      if (colonIndex > 0) {
-        const key = line.slice(0, colonIndex).trim();
-        const value = line.slice(colonIndex + 1).trim();
-
-        if (value === '' || value === '|') {
-          currentKey = key;
-          isArray = true;
-        } else if (value === 'null') {
-          metadata[key] = null;
-        } else if (value.startsWith('"') && value.endsWith('"')) {
-          metadata[key] = value.slice(1, -1);
-        } else {
-          metadata[key] = value;
-        }
-      }
-    }
+  let depends: string[] | null = null;
+  if (Array.isArray(data.depends)) {
+    depends = data.depends.map(String);
+  } else if (typeof data.depends === 'string' && data.depends.trim() !== '') {
+    depends = data.depends.split(',').map((d) => d.trim()).filter(Boolean);
   }
 
-  if (isArray && currentKey) {
-    metadata[currentKey] = arrayItems.length > 0 ? arrayItems : null;
-  }
+  // Legacy aliases are normalized; an unknown status is kept verbatim so
+  // callers can display it (with the unknown-status icon) instead of hiding it.
+  const status = normalizeSpecStatus(data.status) ?? optionalString(data.status) ?? 'draft';
 
   return {
-    id: metadata.id as string,
-    title: metadata.title as string,
-    status: metadata.status as FeatureStatus,
-    created: metadata.created as string,
-    updated: metadata.updated as string | undefined,
-    branch: metadata.branch as string | undefined,
-    depends: metadata.depends as string[] | null,
+    id: optionalString(data.id) as string,
+    title: optionalString(data.title) as string,
+    status: status as FeatureStatus,
+    created: optionalString(data.created) as string,
+    updated: optionalString(data.updated),
+    branch: optionalString(data.branch),
+    depends,
   };
 }
 
 /**
- * 명세 상태 업데이트
+ * 명세 상태 업데이트 (항상 표준 상태로 기록)
  */
-export function updateSpecStatus(content: string, newStatus: FeatureStatus): string {
-  const today = new Date().toISOString().split('T')[0];
-
-  let updated = content.replace(
-    /^(---\n[\s\S]*?)status:\s*\w+/m,
-    `$1status: ${newStatus}`
-  );
-
-  if (updated.includes('updated:')) {
-    updated = updated.replace(
-      /updated:\s*[\d-]+/,
-      `updated: ${today}`
-    );
-  } else {
-    updated = updated.replace(
-      /(status:\s*\w+)/,
-      `$1\nupdated: ${today}`
-    );
+export function updateSpecStatus(
+  content: string,
+  newStatus: FeatureStatus | LegacySpecStatus
+): string {
+  const status = normalizeSpecStatus(newStatus);
+  if (!status) {
+    throw new Error(`유효하지 않은 상태입니다: ${newStatus}`);
   }
 
-  return updated;
+  const { hasFrontmatter, malformed } = readFrontmatter(content);
+  if (!hasFrontmatter && !malformed) {
+    return content;
+  }
+
+  // Throws on unclosed/invalid frontmatter instead of truncating the body
+  const today = new Date().toISOString().split('T')[0];
+  return updateFrontmatter(content, { status, updated: today });
 }

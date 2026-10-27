@@ -5,35 +5,15 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { ParsedSpec, ParsedRequirement, ParsedScenario } from './schemas.js';
 import { listSpecs, resolveSpec, type SpecLocation } from '../spec/locator.js';
+import { normalizeSpecStatus } from '../spec/status.js';
+import { toVersionString } from '../spec/schemas.js';
+import { readFrontmatter } from '../../utils/frontmatter.js';
 
 /**
  * YAML frontmatter 파싱
  */
-function parseMetadata(content: string): Record<string, unknown> {
-  const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
-  if (!frontmatterMatch) return {};
-
-  const yaml = frontmatterMatch[1];
-  const metadata: Record<string, unknown> = {};
-
-  for (const line of yaml.split('\n')) {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex > 0) {
-      const key = line.slice(0, colonIndex).trim();
-      let value = line.slice(colonIndex + 1).trim();
-
-      // 따옴표 제거
-      value = value.replace(/^["']|["']$/g, '');
-
-      // 타입 변환
-      if (value === 'true') metadata[key] = true;
-      else if (value === 'false') metadata[key] = false;
-      else if (/^\d+$/.test(value)) metadata[key] = parseInt(value, 10);
-      else metadata[key] = value;
-    }
-  }
-
-  return metadata;
+function optionalString(value: unknown): string | undefined {
+  return value === undefined || value === null ? undefined : String(value);
 }
 
 /**
@@ -235,18 +215,17 @@ function parseDescription(content: string): string {
  */
 export async function parseSpecFile(filePath: string, specId: string): Promise<ParsedSpec> {
   const content = await fs.readFile(filePath, 'utf-8');
-  const metadata = parseMetadata(content);
-
-  // frontmatter 제거한 본문
-  const body = content.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, '');
+  // YAML frontmatter + body (line endings normalized to LF)
+  const { data: metadata, body: rawBody } = readFrontmatter(content);
+  const body = rawBody.replace(/^\n/, '');
 
   return {
-    id: (metadata.id as string) || specId,
-    title: (metadata.title as string) || parseTitle(body) || specId,
-    status: metadata.status as string,
-    version: metadata.version as string,
-    created: metadata.created as string,
-    author: metadata.author as string,
+    id: optionalString(metadata.id) || specId,
+    title: optionalString(metadata.title) || parseTitle(body) || specId,
+    status: normalizeSpecStatus(metadata.status) ?? optionalString(metadata.status),
+    version: optionalString(toVersionString(metadata.version)),
+    created: optionalString(metadata.created),
+    author: optionalString(metadata.author),
     description: parseDescription(body),
     requirements: parseRequirements(body),
     scenarios: parseScenarios(body),

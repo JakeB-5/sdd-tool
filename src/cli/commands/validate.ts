@@ -289,7 +289,7 @@ export function registerValidateCommand(program: Command): void {
     .option('-s, --strict', '경고도 에러로 처리')
     .option('-q, --quiet', '요약만 출력')
     .option('-l, --check-links', '참조 링크 유효성 검사')
-    .option('-c, --constitution', 'Constitution 위반 검사 (기본값)')
+    .option('-c, --constitution', 'Constitution 버전 확인 (기본값)')
     .option('--no-constitution', 'Constitution 검사 건너뛰기')
     .option('-d, --domain <domain>', '특정 도메인 스펙만 검증')
     .option('--orphan-specs', '도메인에 속하지 않은 스펙 검사')
@@ -345,7 +345,7 @@ async function runValidate(
       logger.info('(참조 링크 검증 포함)');
     }
     if (context.checkConstitution && context.hasConstitution) {
-      logger.info('(Constitution 위반 검사 포함)');
+      logger.info('(Constitution 버전 확인 포함)');
     }
     if (options.orphanSpecs) {
       logger.info('(고아 스펙 검사 포함)');
@@ -367,6 +367,11 @@ async function runValidate(
   if (!options.quiet) {
     for (const file of files) {
       printFileResult(file, context.resolvedPath);
+    }
+    const versionNote = formatConstitutionVersionNote(files);
+    if (versionNote) {
+      logger.newline();
+      console.log(chalk.cyan(versionNote));
     }
     logger.newline();
   }
@@ -427,13 +432,29 @@ function printFileResult(result: FileValidationResult, basePath: string): void {
     console.log(chalk.yellow(`  ⚠ ${warning.message}`));
   }
 
-  // Constitution 검사 결과 요약
-  if (result.constitutionCheck) {
-    const cc = result.constitutionCheck;
-    if (cc.passed) {
-      console.log(chalk.green(`  ✓ Constitution 검사 통과 (${cc.rulesChecked}개 규칙)`));
-    } else {
-      console.log(chalk.red(`  ✗ Constitution 위반 발견 (${cc.violations.length}건)`));
+  // Constitution 버전 확인 결과 요약 (키워드 규칙 검사는 비활성화되어 버전만 확인)
+  // Missing constitution_version is reported once for all files (formatConstitutionVersionNote)
+  const cc = result.constitutionCheck;
+  if (cc && !cc.specVersionMissing) {
+    const vm = cc.versionMismatch;
+    if (!cc.passed) {
+      console.log(chalk.red(`  ✗ Constitution 버전 확인 실패 (v${cc.constitutionVersion})`));
+    } else if (vm?.severity === 'info') {
+      console.log(chalk.cyan(`  ℹ ${vm.message}`));
+    } else if (!vm) {
+      console.log(chalk.green(`  ✓ Constitution 버전 확인 통과 (v${cc.constitutionVersion})`));
     }
   }
+}
+
+/**
+ * constitution_version이 없는 스펙에 대한 단일 안내 문구 (없으면 null)
+ */
+export function formatConstitutionVersionNote(files: FileValidationResult[]): string | null {
+  const missing = files.filter((f) => f.constitutionCheck?.specVersionMissing);
+  if (missing.length === 0) {
+    return null;
+  }
+  const version = missing[0].constitutionCheck?.constitutionVersion;
+  return `ℹ constitution_version이 없는 스펙 ${missing.length}개는 Constitution 버전 확인을 건너뛰었습니다 (현재 v${version})`;
 }

@@ -179,6 +179,11 @@ pre code {
 .status-draft { background: #ffc107; color: #000; }
 .status-review { background: #17a2b8; color: #fff; }
 .status-approved { background: #28a745; color: #fff; }
+.status-planned { background: #0ea5e9; color: #fff; }
+.status-tasked { background: #14b8a6; color: #fff; }
+.status-implementing { background: #f59e0b; color: #000; }
+.status-implemented { background: #6f42c1; color: #fff; }
+.status-deprecated { background: #dc3545; color: #fff; }
 
 /* 요구사항 */
 .requirement {

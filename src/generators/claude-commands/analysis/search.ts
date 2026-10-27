@@ -2,6 +2,7 @@
  * /sdd.search 커맨드
  */
 import type { ClaudeCommand } from '../types.js';
+import { SPEC_STATUSES } from '../../../core/spec/status.js';
 
 export const searchCommand: ClaudeCommand = {
   name: 'sdd.search',
@@ -19,7 +20,7 @@ sdd search $ARGUMENTS
 
 ## 옵션
 
-- \`--status <status>\`: 상태 필터 (draft, review, approved)
+- \`--status <status>\`: 상태 필터 (${SPEC_STATUSES.join(', ')})
 - \`--phase <phase>\`: Phase 필터
 - \`--author <name>\`: 작성자 필터
 - \`--tags <tags>\`: 태그 필터 (콤마 구분)

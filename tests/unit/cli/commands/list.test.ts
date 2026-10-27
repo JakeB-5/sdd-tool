@@ -19,8 +19,15 @@ describe('getListStatusIcon', () => {
     expect(getListStatusIcon('draft')).toBe('📝');
   });
 
-  it('specified 상태 아이콘을 반환한다', () => {
-    expect(getListStatusIcon('specified')).toBe('📄');
+  it('레거시 specified 상태는 review 아이콘을 반환한다', () => {
+    expect(getListStatusIcon('specified')).toBe(getListStatusIcon('review'));
+    expect(getListStatusIcon('review')).toBe('👀');
+  });
+
+  it('approved/implemented/deprecated 상태 아이콘을 반환한다', () => {
+    expect(getListStatusIcon('approved')).toBe('👍');
+    expect(getListStatusIcon('implemented')).toBe('✅');
+    expect(getListStatusIcon('deprecated')).toBe('⚠️');
   });
 
   it('planned 상태 아이콘을 반환한다', () => {
@@ -35,7 +42,7 @@ describe('getListStatusIcon', () => {
     expect(getListStatusIcon('implementing')).toBe('🔨');
   });
 
-  it('completed 상태 아이콘을 반환한다', () => {
+  it('레거시 completed 상태는 implemented 아이콘을 반환한다', () => {
     expect(getListStatusIcon('completed')).toBe('✅');
   });
 
@@ -108,9 +115,12 @@ status: draft
     expect(draftFeatures.length).toBe(1);
     expect(draftFeatures[0].status).toBe('draft');
 
+    // Legacy `completed` is normalized to `implemented`; both filters match
     const completedFeatures = await getFeatureList(tempDir, { status: 'completed' });
     expect(completedFeatures.length).toBe(1);
-    expect(completedFeatures[0].status).toBe('completed');
+    expect(completedFeatures[0].status).toBe('implemented');
+    const implementedFeatures = await getFeatureList(tempDir, { status: 'implemented' });
+    expect(implementedFeatures.length).toBe(1);
   });
 
   it('존재하지 않는 프로젝트에서 빈 배열을 반환한다', async () => {

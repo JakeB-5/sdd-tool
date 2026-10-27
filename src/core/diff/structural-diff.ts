@@ -9,6 +9,7 @@ import type {
 } from './schemas.js';
 import { extractKeywords } from './keyword-diff.js';
 import type { KeywordChange } from './schemas.js';
+import { normalizeLineEndings, readFrontmatter } from '../../utils/frontmatter.js';
 
 /**
  * 파싱된 스펙 구조
@@ -23,25 +24,7 @@ interface ParsedSpec {
  * YAML frontmatter 파싱
  */
 function parseMetadata(content: string): Record<string, unknown> {
-  const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
-  if (!frontmatterMatch) return {};
-
-  const yaml = frontmatterMatch[1];
-  const metadata: Record<string, unknown> = {};
-
-  for (const line of yaml.split('\n')) {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex > 0) {
-      const key = line.slice(0, colonIndex).trim();
-      const value = line.slice(colonIndex + 1).trim();
-
-      // 따옴표 제거
-      const cleanValue = value.replace(/^["']|["']$/g, '');
-      metadata[key] = cleanValue;
-    }
-  }
-
-  return metadata;
+  return readFrontmatter(content).data;
 }
 
 /**
@@ -147,7 +130,8 @@ function parseScenarios(content: string): Map<string, string> {
 /**
  * 스펙 파일 파싱
  */
-function parseSpec(content: string): ParsedSpec {
+function parseSpec(rawContent: string): ParsedSpec {
+  const content = normalizeLineEndings(rawContent);
   return {
     metadata: parseMetadata(content),
     requirements: parseRequirements(content),

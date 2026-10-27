@@ -13,6 +13,7 @@ import { resolveSpec } from '../../core/spec/locator.js';
 import { generateChangeId, isValidChangeId } from '../../core/change/index.js';
 import { Result, success, failure } from '../../types/index.js';
 import { isSafePathSegment } from '../../utils/path.js';
+import { stringifyFrontmatter } from '../../utils/frontmatter.js';
 
 /**
  * 전환 방향
@@ -400,16 +401,18 @@ function generateTransitionProposal(
   direction: TransitionDirection
 ): string {
   const now = new Date().toISOString().split('T')[0];
-  return `---
-id: ${specId}-change
-title: "${title}"
-target_spec: ${specId}
-status: draft
-created_at: ${now}
-transition_from: ${direction === 'new-to-change' ? 'new' : 'change'}
-transition_reason: "${reason}"
----
-
+  return stringifyFrontmatter(
+    {
+      id: `${specId}-change`,
+      title,
+      target_spec: specId,
+      status: 'draft',
+      created: now,
+      transition_from: direction === 'new-to-change' ? 'new' : 'change',
+      transition_reason: reason,
+    },
+    ''
+  ) + `
 # ${title}
 
 ## 배경
@@ -485,16 +488,18 @@ function generateTransitionSpec(
   fromChangeId: string
 ): string {
   const now = new Date().toISOString().split('T')[0];
-  return `---
-id: ${featureName}
-title: "${title}"
-status: draft
-created_at: ${now}
-transition_from: change
-transition_change_id: ${fromChangeId}
-transition_reason: "${reason}"
----
-
+  return stringifyFrontmatter(
+    {
+      id: featureName,
+      title,
+      status: 'draft',
+      created: now,
+      transition_from: 'change',
+      transition_change_id: fromChangeId,
+      transition_reason: reason,
+    },
+    ''
+  ) + `
 # ${title}
 
 > 이 명세는 변경 제안 \`${fromChangeId}\`에서 분리되어 생성되었습니다.
@@ -506,9 +511,12 @@ transition_reason: "${reason}"
 
 ## 요구사항
 
-### 기능 요구사항
+### REQ-01: [요구사항 제목]
 
 <!-- RFC 2119 키워드(MUST, SHOULD, MAY)를 사용하세요 -->
+
+[요구사항 상세 설명]
+- 시스템은 [기능]을 지원해야 한다(SHALL)
 
 ### 비기능 요구사항
 
@@ -516,13 +524,11 @@ transition_reason: "${reason}"
 
 ## 시나리오
 
-### 기본 시나리오
+### Scenario 1: [시나리오명]
 
-\`\`\`gherkin
-GIVEN 초기 상태
-WHEN 사용자가 동작을 수행하면
-THEN 기대 결과가 발생한다
-\`\`\`
+- **GIVEN** [전제 조건]
+- **WHEN** [행동/트리거]
+- **THEN** [예상 결과]
 
 ## 의존성
 

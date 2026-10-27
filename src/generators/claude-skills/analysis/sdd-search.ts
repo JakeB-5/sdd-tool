@@ -2,6 +2,7 @@
  * sdd-search skill definition — search across spec files by keyword, metadata, domain, or status.
  */
 import type { SkillDefinition } from '../types.js';
+import { SPEC_STATUSES } from '../../../core/spec/status.js';
 
 export const sddSearchSkill: SkillDefinition = {
   name: 'sdd-search',
@@ -59,7 +60,7 @@ sdd search "login" --json
 
 | Flag | Description |
 |------|-------------|
-| \`--status <status>\` | Filter by status: \`draft\`, \`review\`, \`approved\` |
+| \`--status <status>\` | Filter by status: ${SPEC_STATUSES.map((s) => `\`${s}\``).join(', ')} |
 | \`--phase <phase>\` | Filter by delivery phase |
 | \`--author <name>\` | Filter by spec author |
 | \`--tags <tags>\` | Filter by comma-separated tags |

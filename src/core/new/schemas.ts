@@ -2,20 +2,14 @@
  * 신규 기능 워크플로우 스키마
  */
 import { z } from 'zod';
+import { SpecStatusSchema, type SpecStatus } from '../spec/status.js';
 
 /**
- * 기능 상태 스키마
+ * 기능 상태 스키마 (표준 스펙 라이프사이클과 동일, src/core/spec/status.ts)
  */
-export const FeatureStatusSchema = z.enum([
-  'draft',      // 초안 작성 중
-  'specified',  // 명세 완료
-  'planned',    // 계획 완료
-  'tasked',     // 작업 분해 완료
-  'implementing', // 구현 중
-  'completed',  // 완료
-]);
+export const FeatureStatusSchema = SpecStatusSchema;
 
-export type FeatureStatus = z.infer<typeof FeatureStatusSchema>;
+export type FeatureStatus = SpecStatus;
 
 /**
  * 작업 상태 스키마

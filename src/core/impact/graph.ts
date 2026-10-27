@@ -3,7 +3,8 @@
  */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { parseFrontmatter } from '../../utils/frontmatter.js';
+import { readFrontmatter } from '../../utils/frontmatter.js';
+import { toStringList } from '../spec/schemas.js';
 import {
   DependencyGraph,
   DependencyNode,
@@ -49,12 +50,11 @@ export async function buildDependencyGraph(
         dependedBy: [],
       };
 
-      // frontmatter에서 명시적 의존성 추출 (문자열 또는 YAML 리스트)
-      const { data: frontmatter } = parseFrontmatter(content);
-      if (frontmatter.depends) {
-        const explicitDeps: unknown[] = Array.isArray(frontmatter.depends)
-          ? frontmatter.depends
-          : [frontmatter.depends];
+      // frontmatter에서 명시적 의존성 추출 (문자열/쉼표 구분/YAML 리스트, 스펙 스키마와 동일 규칙)
+      const { data: frontmatter } = readFrontmatter(content);
+      const normalizedDeps = toStringList(frontmatter.depends);
+      if (Array.isArray(normalizedDeps)) {
+        const explicitDeps: unknown[] = normalizedDeps;
 
         for (const rawDep of explicitDeps) {
           if (rawDep === null || rawDep === undefined) continue;
@@ -118,7 +118,7 @@ export async function buildDependencyGraph(
  * 마크다운에서 제목 추출
  */
 function extractTitle(content: string): string | undefined {
-  const { content: body } = parseFrontmatter(content);
+  const { body } = readFrontmatter(content);
   const titleMatch = body.match(/^#\s+(.+)$/m);
   return titleMatch?.[1]?.trim();
 }

@@ -10,8 +10,37 @@ import {
   executeValidate,
   executeDomainValidation,
   formatValidateSummary,
+  formatConstitutionVersionNote,
 } from '../../../../src/cli/commands/validate.js';
 import { executeDomainCreate, executeDomainLink } from '../../../../src/cli/commands/domain.js';
+import type { FileValidationResult } from '../../../../src/core/spec/validator.js';
+
+describe('formatConstitutionVersionNote', () => {
+  const file = (specVersionMissing: boolean): FileValidationResult => ({
+    file: 'spec.md',
+    valid: true,
+    errors: [],
+    warnings: [],
+    constitutionCheck: {
+      passed: true,
+      violations: [],
+      constitutionVersion: '1.2.0',
+      specVersionMissing,
+      rulesChecked: 0,
+    },
+  });
+
+  it('constitution_version이 없는 스펙 수를 한 줄로 안내한다', () => {
+    const note = formatConstitutionVersionNote([file(true), file(true), file(false)]);
+    expect(note).toContain('2개');
+    expect(note).toContain('v1.2.0');
+  });
+
+  it('모든 스펙에 버전이 있으면 안내하지 않는다', () => {
+    expect(formatConstitutionVersionNote([file(false)])).toBeNull();
+    expect(formatConstitutionVersionNote([])).toBeNull();
+  });
+});
 
 describe('createValidateContext', () => {
   let tempDir: string;

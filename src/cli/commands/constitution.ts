@@ -10,6 +10,7 @@ import {
   parseConstitution,
   validateConstitution,
   bumpVersion,
+  parseVersion,
   generateChangelog,
   parseChangelog,
   createChangelogEntry,
@@ -19,6 +20,7 @@ import {
   type ChangelogEntry,
 } from '../../core/constitution/index.js';
 import { Result, success, failure } from '../../types/index.js';
+import { readFrontmatter, updateFrontmatter } from '../../utils/frontmatter.js';
 
 /**
  * Constitution 표시 옵션
@@ -130,30 +132,35 @@ export async function executeBump(
   }
 
   const { content, parsed } = readResult.data;
+
+  // parseConstitution defaults a missing version to 1.0.0, so check the frontmatter itself
+  const { data: frontmatter, malformed } = readFrontmatter(content);
+  if (malformed) {
+    return failure(new Error(
+      'constitution.md frontmatter가 닫히지 않았거나 YAML 형식이 올바르지 않아 버전을 올릴 수 없습니다.'
+    ));
+  }
+  const rawVersion = frontmatter.version;
+  if (rawVersion === undefined || rawVersion === null || String(rawVersion).trim() === '') {
+    return failure(new Error(
+      'constitution.md frontmatter에 version 필드가 없어 버전을 올릴 수 없습니다. `version: 1.0.0`을 추가하세요.'
+    ));
+  }
   const currentVersion = parsed.metadata.version;
+  if (!parseVersion(currentVersion)) {
+    return failure(new Error(
+      `constitution.md의 version 형식이 올바르지 않습니다: ${currentVersion} (형식: X.Y.Z)`
+    ));
+  }
   const newVersion = bumpVersion(currentVersion, bumpType);
   const today = new Date().toISOString().split('T')[0];
 
-  // Constitution 업데이트
-  let updatedContent = content;
-
-  // version 업데이트
-  updatedContent = updatedContent.replace(
-    /^version:\s*.+$/m,
-    `version: ${newVersion}`
-  );
-
-  // updated 필드 추가/업데이트
-  if (/^updated:/m.test(updatedContent)) {
-    updatedContent = updatedContent.replace(
-      /^updated:\s*.+$/m,
-      `updated: ${today}`
-    );
-  } else {
-    updatedContent = updatedContent.replace(
-      /^(version:\s*.+)$/m,
-      `$1\nupdated: ${today}`
-    );
+  // Constitution 업데이트 (frontmatter의 version/updated만 수정, 나머지와 본문은 그대로)
+  let updatedContent: string;
+  try {
+    updatedContent = updateFrontmatter(content, { version: newVersion, updated: today });
+  } catch (error) {
+    return failure(error instanceof Error ? error : new Error(String(error)));
   }
 
   await writeFile(constitutionPath, updatedContent);

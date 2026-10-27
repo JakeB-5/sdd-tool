@@ -1,33 +1,126 @@
 /**
  * 스펙 마크다운 파서
  */
-import { parseFrontmatter } from '../../utils/frontmatter.js';
+import {
+  parseFrontmatter,
+  normalizeLineEndings,
+  readFrontmatter,
+  detectFrontmatter,
+} from '../../utils/frontmatter.js';
 import {
   ParsedSpec,
   SpecMetadataSchema,
   Requirement,
   Scenario,
   extractRfc2119Keywords,
+  resolveRequirementLevel,
   type SpecMetadata,
 } from './schemas.js';
+import { isLegacySpecStatus } from './status.js';
 import { Result, success, failure } from '../../types/index.js';
 import { ValidationError, ErrorCode } from '../../errors/index.js';
+
+/**
+ * `sdd new` / transition 템플릿이 남기는 플레이스홀더
+ */
+export const TEMPLATE_PLACEHOLDERS = [
+  '[요구사항 제목]',
+  '[요구사항 상세 설명]',
+  '[기능]',
+  '[시나리오명]',
+  '[전제 조건]',
+  '[행동/트리거]',
+  '[예상 결과]',
+  '[N]',
+  '[보안 요구사항]',
+  '[기술적 제약사항]',
+  '[비즈니스 제약사항]',
+  '[용어1]',
+  '[정의1]',
+] as const;
+
+const TEMPLATE_PLACEHOLDER_PATTERN = new RegExp(
+  [
+    // Bracket placeholders from the `sdd new` generator, excluding words (`arr[N]`), wiki links,
+    // inline links `[x](url)`, reference links `[x][1]` / `[x][]` and definitions `[x]: url`
+    ...TEMPLATE_PLACEHOLDERS.map(
+      (p) => `(?<![\\w\\[])${p.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?![(\\[\\]:])`
+    ),
+    // {{UPPER_SNAKE}} placeholders from templates/spec.md
+    '\\{\\{[A-Z][A-Z0-9_]*\\}\\}',
+  ].join('|'),
+  'g'
+);
+
+/**
+ * HTML 주석과 펜스 코드 블록 제거 (줄 수는 유지)
+ */
+export function stripNonContent(text: string): string {
+  const blank = (block: string): string => block.replace(/[^\n]/g, '');
+  return normalizeLineEndings(text)
+    .replace(/<!--[\s\S]*?-->/g, blank)
+    .replace(/^(```|~~~)[^\n]*\n[\s\S]*?^\1[^\n]*$/gm, blank);
+}
+
+/**
+ * 스펙 본문에 남아 있는 템플릿 플레이스홀더 목록 (중복 제거, frontmatter/주석/코드 블록 제외)
+ */
+export function findTemplatePlaceholders(content: string): string[] {
+  const body = stripNonContent(readFrontmatter(content).body);
+  // Shortcut reference links `[x]` whose definition `[x]: url` exists are real links
+  const definedLabels = new Set(
+    [...body.matchAll(/^ {0,3}(\[[^\]\n]+\]):/gm)].map((m) => m[1].toLowerCase())
+  );
+  const found = (body.match(TEMPLATE_PLACEHOLDER_PATTERN) ?? []).filter(
+    (p) => !definedLabels.has(p.toLowerCase())
+  );
+  return [...new Set(found)];
+}
+
+/**
+ * 대문자 RFC 2119 키워드 없이 소문자(must, shall, should, may)만 쓰인 경우 그 키워드 목록
+ * (frontmatter/주석/코드 블록 제외). 대문자 키워드가 하나라도 있으면 빈 배열.
+ */
+export function findLowercaseRfc2119Keywords(content: string): string[] {
+  const body = stripNonContent(readFrontmatter(content).body);
+  if (extractRfc2119Keywords(body).length > 0) {
+    return [];
+  }
+  const found = (body.match(/\b(?:must|shall|should|may)(?:\s+not)?\b/gi) ?? [])
+    .filter((k) => k !== k.toUpperCase())
+    .map((k) => k.toLowerCase().replace(/\s+/g, ' '));
+  return [...new Set(found)];
+}
 
 /**
  * 마크다운 스펙 파일 파싱
  */
 export function parseSpec(content: string): Result<ParsedSpec, ValidationError> {
   try {
-    // 1. Frontmatter 파싱
-    const { data: rawMeta, content: body } = parseFrontmatter(content);
+    // 1. Frontmatter 파싱 (CRLF 정규화)
+    const normalized = normalizeLineEndings(content);
+    if (detectFrontmatter(normalized) === 'unclosed') {
+      // gray-matter would otherwise read the entire file as YAML
+      return failure(new ValidationError(
+        ErrorCode.SPEC_INVALID_FORMAT,
+        'frontmatter 닫는 구분자(---)가 없습니다'
+      ));
+    }
+    const { data: rawMeta, content: rawBody } = parseFrontmatter(normalized);
+    // Comments and code blocks never carry requirements or scenarios
+    const body = stripNonContent(rawBody);
 
     // 2. 메타데이터 검증
     const metaResult = SpecMetadataSchema.safeParse(rawMeta);
     if (!metaResult.success) {
-      const errors = metaResult.error.errors.map((e) => e.message).join(', ');
+      const errors = metaResult.error.errors
+        .map((e) => (e.path.length > 0 ? `${e.path.join('.')}: ${e.message}` : e.message))
+        .join(', ');
       return failure(new ValidationError(ErrorCode.SPEC_INVALID_FORMAT, `메타데이터 오류: ${errors}`));
     }
     const metadata: SpecMetadata = metaResult.data;
+    const rawStatus = typeof rawMeta.status === 'string' ? rawMeta.status.trim().toLowerCase() : undefined;
+    const legacyStatus = isLegacySpecStatus(rawStatus) ? rawStatus : undefined;
 
     // 3. 제목 추출
     const titleMatch = body.match(/^#\s+(.+)$/m);
@@ -50,6 +143,7 @@ export function parseSpec(content: string): Result<ParsedSpec, ValidationError> 
       title,
       description,
       metadata,
+      ...(legacyStatus ? { legacyStatus } : {}),
       requirements,
       scenarios,
       rawContent: content,
@@ -65,7 +159,7 @@ export function parseSpec(content: string): Result<ParsedSpec, ValidationError> 
  */
 function parseRequirements(content: string): Requirement[] {
   // 요구사항 섹션 찾기 (## 요구사항 또는 ## Requirements)
-  const reqSectionMatch = content.match(/##\s+(?:요구사항|Requirements?)\s*\n([\s\S]*?)(?=\n##\s+[^#]|\n---|\n$)/i);
+  const reqSectionMatch = content.match(/##\s+(?:요구사항|Requirements?)\s*\n([\s\S]*?)(?=\n##\s+[^#]|\n---|$)/i);
   if (!reqSectionMatch) {
     // 전체 문서에서 RFC 2119 키워드 찾기
     return parseRequirementsFromContent(content);
@@ -85,16 +179,13 @@ function parseRequirementsFromContent(content: string): Requirement[] {
   for (const line of lines) {
     const keywords = extractRfc2119Keywords(line);
     if (keywords.length > 0) {
-      // 가장 강한 키워드 사용 (SHALL/MUST > SHOULD > MAY)
-      const level = keywords.includes('SHALL') || keywords.includes('MUST')
-        ? (keywords.includes('SHALL') ? 'SHALL' : 'MUST')
-        : keywords.includes('SHOULD')
-        ? 'SHOULD'
-        : 'MAY';
+      // 가장 강한 키워드 사용 (SHALL/MUST (NOT) > SHOULD (NOT) > MAY)
+      const { level, negated } = resolveRequirementLevel(keywords);
 
       requirements.push({
         id: `REQ-${String(reqId++).padStart(3, '0')}`,
         level,
+        ...(negated ? { negated } : {}),
         description: line.trim(),
         raw: line,
       });
@@ -111,12 +202,15 @@ function parseScenarios(content: string): Scenario[] {
   const scenarios: Scenario[] = [];
 
   // ### Scenario 섹션 찾기 (Scenario:, Scenario 1:, Scenario 1. 등 다양한 형식 지원)
-  const scenarioRegex = /###\s+Scenario[:\s]+(.+?)(?=\n###|\n##|\n---|\n$)/gis;
+  // `$` without the m flag is end of input, so the last scenario is kept even without a trailing newline
+  const scenarioRegex = /###\s+Scenario[:\s]+(.+?)(?=\n###|\n##|\n---|$)/gis;
   let match: RegExpExecArray | null;
 
   while ((match = scenarioRegex.exec(content)) !== null) {
     const sectionContent = match[0];
-    const nameMatch = sectionContent.match(/###\s+Scenario[:\s]+(.+)/i);
+    // "Scenario: name", "Scenario 1: name", "Scenario 1. name" → "name"
+    // A leading number is only stripped when followed by a separator ("Scenario 2FA login" keeps "2FA")
+    const nameMatch = sectionContent.match(/###[ \t]+Scenario[ \t]*(?:\d+(?=[:.)\s])[ \t]*)?[:.)]?[ \t]*(.+)/i);
     const name = nameMatch?.[1]?.trim() ?? 'Unnamed';
 
     const given: string[] = [];

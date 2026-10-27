@@ -419,6 +419,72 @@ created: 2024-01-01
         expect(changelog).toContain('버그 수정');
       }
     });
+
+    it('bump 후 frontmatter의 version/updated만 바뀌고 본문은 유지된다', async () => {
+      const constitutionContent = `---
+version: 1.0.0
+created: 2024-01-01
+---
+
+# Constitution: test-project
+
+version: 본문에 있는 같은 이름의 줄은 바꾸지 않는다
+`;
+      const constitutionPath = path.join(tempDir, '.sdd', 'constitution.md');
+      await fs.writeFile(constitutionPath, constitutionContent);
+
+      const result = await executeBump(tempDir, 'minor');
+
+      expect(result.success).toBe(true);
+      const updated = await fs.readFile(constitutionPath, 'utf-8');
+      expect(updated).toMatch(/^---\nversion: 1\.1\.0\n/);
+      expect(updated).toMatch(/\nupdated: \d{4}-\d{2}-\d{2}\n/);
+      expect(updated).toContain('version: 본문에 있는 같은 이름의 줄은 바꾸지 않는다');
+    });
+
+    it('created 등 다른 필드와 주석은 bump 후에도 그대로 유지된다', async () => {
+      const constitutionContent = `---
+version: 1.0.0 # semver
+created: 2024-01-01
+---
+
+# Constitution: test-project
+`;
+      const constitutionPath = path.join(tempDir, '.sdd', 'constitution.md');
+      await fs.writeFile(constitutionPath, constitutionContent);
+
+      const result = await executeBump(tempDir, 'patch');
+
+      expect(result.success).toBe(true);
+      const updated = await fs.readFile(constitutionPath, 'utf-8');
+      expect(updated).toContain('version: 1.0.1');
+      expect(updated).toContain('created: 2024-01-01');
+      expect(updated).toContain('# Constitution: test-project');
+    });
+
+    it('frontmatter에 version이 없으면 실패하고 파일/CHANGELOG를 쓰지 않는다', async () => {
+      const constitutionContent = `---
+created: 2024-01-01
+---
+
+# Constitution: test-project
+`;
+      const constitutionPath = path.join(tempDir, '.sdd', 'constitution.md');
+      await fs.writeFile(constitutionPath, constitutionContent);
+
+      const result = await executeBump(tempDir, 'patch');
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('version');
+      }
+      expect(await fs.readFile(constitutionPath, 'utf-8')).toBe(constitutionContent);
+      const changelogExists = await fs
+        .stat(path.join(tempDir, '.sdd', 'CHANGELOG.md'))
+        .then(() => true)
+        .catch(() => false);
+      expect(changelogExists).toBe(false);
+    });
   });
 
   describe('executeValidateConstitution', () => {
