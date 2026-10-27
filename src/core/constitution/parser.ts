@@ -1,7 +1,7 @@
 /**
  * Constitution 파서
  */
-import matter from 'gray-matter';
+import { parseFrontmatter } from '../../utils/frontmatter.js';
 import {
   ParsedConstitution,
   ConstitutionMetadataSchema,
@@ -17,7 +17,7 @@ import { ValidationError, ErrorCode } from '../../errors/index.js';
 export function parseConstitution(content: string): Result<ParsedConstitution, ValidationError> {
   try {
     // 1. Frontmatter 파싱
-    const { data: rawMeta, content: body } = matter(content);
+    const { data: rawMeta, content: body } = parseFrontmatter(content);
 
     // 2. 메타데이터 검증
     const metaResult = ConstitutionMetadataSchema.safeParse({

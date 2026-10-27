@@ -3,7 +3,7 @@
  */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import matter from 'gray-matter';
+import { parseFrontmatter } from '../../utils/frontmatter.js';
 import {
   DependencyGraph,
   DependencyNode,
@@ -47,7 +47,7 @@ export async function buildDependencyGraph(
       };
 
       // frontmatter에서 명시적 의존성 추출
-      const { data: frontmatter } = matter(content);
+      const { data: frontmatter } = parseFrontmatter(content);
       if (frontmatter.depends) {
         const explicitDeps = Array.isArray(frontmatter.depends)
           ? frontmatter.depends
@@ -136,7 +136,7 @@ function getSpecId(relativePath: string): string {
  * 마크다운에서 제목 추출
  */
 function extractTitle(content: string): string | undefined {
-  const { content: body } = matter(content);
+  const { content: body } = parseFrontmatter(content);
   const titleMatch = body.match(/^#\s+(.+)$/m);
   return titleMatch?.[1]?.trim();
 }

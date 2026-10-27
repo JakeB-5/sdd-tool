@@ -5,6 +5,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { execFile, execFileSync } from 'node:child_process';
+import { promisify } from 'node:util';
 import {
   generatePreCommitHook,
   generateCommitMsgHook,
@@ -15,6 +17,13 @@ import {
   installTemplate,
   setupGit,
 } from '../../../../src/cli/commands/git.js';
+
+const execFileAsync = promisify(execFile);
+
+async function gitInit(dir: string): Promise<void> {
+  await execFileAsync('git', ['init'], { cwd: dir });
+  await fs.mkdir(path.join(dir, '.git', 'hooks'), { recursive: true });
+}
 
 describe('Git Hook Generators', () => {
   describe('generatePreCommitHook', () => {
@@ -55,6 +64,27 @@ describe('Git Hook Generators', () => {
     });
   });
 
+  describe('POSIX sh 호환성', () => {
+    const hooks = [generatePreCommitHook(), generateCommitMsgHook(), generatePrePushHook()];
+
+    it('bash 전용 리다이렉션(&>)을 사용하지 않는다', () => {
+      for (const hook of hooks) {
+        expect(hook).not.toContain('&>');
+      }
+      expect(generatePreCommitHook()).toContain('command -v sdd >/dev/null 2>&1');
+      expect(generatePrePushHook()).toContain('command -v sdd >/dev/null 2>&1');
+    });
+
+    it('sdd가 없으면 pre-push 훅이 검증을 건너뛰고 0으로 종료한다', () => {
+      // Run with a PATH that lacks sdd; the hook must exit 0 instead of 127
+      const output = execFileSync('/bin/sh', ['-c', generatePrePushHook()], {
+        env: { PATH: '/usr/bin:/bin' },
+        encoding: 'utf-8',
+      });
+      expect(output).toContain('sdd 명령어를 찾을 수 없습니다');
+    });
+  });
+
   describe('generateGitMessageTemplate', () => {
     it('커밋 메시지 템플릿을 생성한다', () => {
       const template = generateGitMessageTemplate();
@@ -69,12 +99,23 @@ describe('Git Hook Generators', () => {
 
 describe('Git Hook Installation', () => {
   let tempDir: string;
+  const savedGitEnv = {
+    GIT_CONFIG_GLOBAL: process.env.GIT_CONFIG_GLOBAL,
+    GIT_CONFIG_NOSYSTEM: process.env.GIT_CONFIG_NOSYSTEM,
+  };
 
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-git-test-'));
+    // Isolate from the developer's global/system git config (e.g. core.hooksPath)
+    process.env.GIT_CONFIG_GLOBAL = path.join(tempDir, '.gitconfig-isolated');
+    process.env.GIT_CONFIG_NOSYSTEM = '1';
   });
 
   afterEach(async () => {
+    for (const [key, value] of Object.entries(savedGitEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
@@ -89,8 +130,7 @@ describe('Git Hook Installation', () => {
     });
 
     it('hooks 디렉토리에 훅을 설치한다', async () => {
-      // .git 디렉토리 생성
-      await fs.mkdir(path.join(tempDir, '.git'), { recursive: true });
+      await gitInit(tempDir);
 
       const result = await installHooks(tempDir);
 
@@ -108,7 +148,7 @@ describe('Git Hook Installation', () => {
     });
 
     it('기존 훅이 있으면 건너뛴다', async () => {
-      await fs.mkdir(path.join(tempDir, '.git', 'hooks'), { recursive: true });
+      await gitInit(tempDir);
       await fs.writeFile(
         path.join(tempDir, '.git', 'hooks', 'pre-commit'),
         '#!/bin/sh\necho existing'
@@ -124,7 +164,7 @@ describe('Git Hook Installation', () => {
     });
 
     it('force 옵션으로 기존 훅을 덮어쓴다', async () => {
-      await fs.mkdir(path.join(tempDir, '.git', 'hooks'), { recursive: true });
+      await gitInit(tempDir);
       await fs.writeFile(
         path.join(tempDir, '.git', 'hooks', 'pre-commit'),
         '#!/bin/sh\necho existing'
@@ -143,6 +183,70 @@ describe('Git Hook Installation', () => {
       const backupContent = await fs.readFile(backupPath, 'utf-8');
       expect(backupContent).toContain('existing');
     });
+
+    it('force 설치를 반복해도 사용자 원본 훅 백업을 덮어쓰지 않는다', async () => {
+      await gitInit(tempDir);
+      const hookPath = path.join(tempDir, '.git', 'hooks', 'pre-commit');
+      await fs.writeFile(hookPath, '#!/bin/sh\necho user-original');
+
+      const first = await installHooks(tempDir, { force: true });
+      const second = await installHooks(tempDir, { force: true });
+
+      expect(first.success && first.data.backedUp).toContain('pre-commit');
+      expect(second.success && second.data.backedUp).not.toContain('pre-commit');
+
+      const uninstall = await uninstallHooks(tempDir);
+      expect(uninstall.success).toBe(true);
+      expect(await fs.readFile(hookPath, 'utf-8')).toContain('user-original');
+    });
+
+    it('core.hooksPath가 저장소 밖을 가리키면 설치를 거부한다', async () => {
+      await gitInit(tempDir);
+      const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-global-hooks-'));
+      try {
+        await execFileAsync('git', ['config', 'core.hooksPath', outsideDir], { cwd: tempDir });
+
+        const result = await installHooks(tempDir);
+        const uninstall = await uninstallHooks(tempDir);
+
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.message).toContain('core.hooksPath');
+        }
+        expect(uninstall.success).toBe(false);
+        expect(await fs.readdir(outsideDir)).toEqual([]);
+      } finally {
+        await fs.rm(outsideDir, { recursive: true, force: true });
+      }
+    });
+
+    it('core.hooksPath가 저장소 내부 경로면 그곳에 설치한다', async () => {
+      await gitInit(tempDir);
+      await execFileAsync('git', ['config', 'core.hooksPath', '.githooks'], { cwd: tempDir });
+
+      const result = await installHooks(tempDir);
+
+      expect(result.success).toBe(true);
+      const content = await fs.readFile(path.join(tempDir, '.githooks', 'pre-commit'), 'utf-8');
+      expect(content).toContain('# SDD pre-commit hook');
+    });
+
+    it('git worktree에서도 공통 hooks 디렉토리에 설치한다', async () => {
+      await gitInit(tempDir);
+      await execFileAsync('git', ['config', 'user.email', 'test@test.com'], { cwd: tempDir });
+      await execFileAsync('git', ['config', 'user.name', 'Test'], { cwd: tempDir });
+      await execFileAsync('git', ['commit', '--allow-empty', '-m', 'init'], { cwd: tempDir });
+      const worktreeDir = path.join(tempDir, 'wt');
+      await execFileAsync('git', ['worktree', 'add', worktreeDir, '-b', 'wt-branch'], {
+        cwd: tempDir,
+      });
+
+      const result = await installHooks(worktreeDir);
+
+      expect(result.success).toBe(true);
+      const content = await fs.readFile(path.join(tempDir, '.git', 'hooks', 'pre-commit'), 'utf-8');
+      expect(content).toContain('# SDD pre-commit hook');
+    });
   });
 
   describe('uninstallHooks', () => {
@@ -153,22 +257,22 @@ describe('Git Hook Installation', () => {
     });
 
     it('설치된 훅을 제거한다', async () => {
-      await fs.mkdir(path.join(tempDir, '.git', 'hooks'), { recursive: true });
+      await gitInit(tempDir);
       await fs.writeFile(
         path.join(tempDir, '.git', 'hooks', 'pre-commit'),
-        '#!/bin/sh\necho hook'
+        generatePreCommitHook()
       );
       await fs.writeFile(
         path.join(tempDir, '.git', 'hooks', 'commit-msg'),
-        '#!/bin/sh\necho hook'
+        generateCommitMsgHook()
       );
 
       const result = await uninstallHooks(tempDir);
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data).toContain('pre-commit');
-        expect(result.data).toContain('commit-msg');
+        expect(result.data.removed).toContain('pre-commit');
+        expect(result.data.removed).toContain('commit-msg');
       }
 
       // 파일이 삭제되었는지 확인
@@ -177,11 +281,30 @@ describe('Git Hook Installation', () => {
       ).rejects.toThrow();
     });
 
+    it('SDD 마커가 없는 훅은 삭제하지 않고 건너뛴다', async () => {
+      await gitInit(tempDir);
+      const hookPath = path.join(tempDir, '.git', 'hooks', 'pre-commit');
+      await fs.writeFile(hookPath, '#!/bin/sh\necho user-hook');
+      await fs.writeFile(
+        path.join(tempDir, '.git', 'hooks', 'pre-commit.backup'),
+        '#!/bin/sh\necho original'
+      );
+
+      const result = await uninstallHooks(tempDir);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.removed).not.toContain('pre-commit');
+        expect(result.data.skipped).toContain('pre-commit');
+      }
+      expect(await fs.readFile(hookPath, 'utf-8')).toContain('user-hook');
+    });
+
     it('백업 파일이 있으면 복원한다', async () => {
-      await fs.mkdir(path.join(tempDir, '.git', 'hooks'), { recursive: true });
+      await gitInit(tempDir);
       await fs.writeFile(
         path.join(tempDir, '.git', 'hooks', 'pre-commit'),
-        '#!/bin/sh\necho new'
+        generatePreCommitHook()
       );
       await fs.writeFile(
         path.join(tempDir, '.git', 'hooks', 'pre-commit.backup'),
@@ -216,7 +339,7 @@ describe('Git Hook Installation', () => {
 
   describe('setupGit', () => {
     it('hooks와 template을 모두 설치한다', async () => {
-      await fs.mkdir(path.join(tempDir, '.git'), { recursive: true });
+      await gitInit(tempDir);
 
       const result = await setupGit(tempDir);
 

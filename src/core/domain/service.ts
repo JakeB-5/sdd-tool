@@ -13,6 +13,7 @@ import {
   toDomainInfoList,
   createDefaultDomainsConfig,
   createEmptyDomainsConfig,
+  isValidDomainId,
 } from '../../schemas/domains.schema.js';
 import {
   parseDomainYaml,
@@ -287,6 +288,15 @@ export class DomainService {
    * 도메인 이름 변경
    */
   async rename(oldId: string, newId: string): Promise<Result<void, Error>> {
+    // ID 형식 확인 (경로 조작 방지)
+    if (!isValidDomainId(newId)) {
+      return failure(
+        new Error(
+          `유효하지 않은 도메인 ID입니다: ${newId} (영문 소문자로 시작하고, 소문자/숫자/하이픈만 사용할 수 있습니다)`
+        )
+      );
+    }
+
     const loadResult = await this.load();
     if (!loadResult.success) {
       return loadResult;

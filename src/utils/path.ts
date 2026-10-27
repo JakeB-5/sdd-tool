@@ -29,6 +29,13 @@ export function isAbsolutePath(filePath: string): boolean {
 }
 
 /**
+ * True when name is a single, non-traversing path segment.
+ */
+export function isSafePathSegment(name: string): boolean {
+  return name.length > 0 && name !== '.' && name !== '..' && !/[/\\\0]/.test(name);
+}
+
+/**
  * 경로를 플랫폼에 맞게 정규화
  */
 export function normalizePath(filePath: string): string {

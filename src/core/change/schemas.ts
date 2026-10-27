@@ -104,6 +104,18 @@ export const DeltaSchema = z.object({
 export type Delta = z.infer<typeof DeltaSchema>;
 
 /**
+ * 변경 ID 패턴 (generateChangeId 형식: CHG-001)
+ */
+export const ChangeIdPattern = /^CHG-\d+$/;
+
+/**
+ * 변경 ID가 유효한지 확인 (단일 경로 세그먼트 보장)
+ */
+export function isValidChangeId(id: string): boolean {
+  return ChangeIdPattern.test(id);
+}
+
+/**
  * 다음 변경 ID 생성
  */
 export function generateChangeId(existingIds: string[]): string {

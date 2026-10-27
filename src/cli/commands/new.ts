@@ -20,6 +20,7 @@ import { ensureDir, fileExists, readFile, writeFile, findSpecPath } from '../../
 import { parseConstitution } from '../../core/constitution/index.js';
 import { Result, success, failure } from '../../types/index.js';
 import { createDomainService } from '../../core/domain/service.js';
+import { isValidDomainId } from '../../schemas/domains.schema.js';
 import { createContextManager } from '../../core/context/manager.js';
 
 /**
@@ -150,8 +151,15 @@ export async function createFeature(
     domain = await detectDomain(projectPath);
   }
 
-  // 도메인이 지정되었으면 존재 여부 검증
+  // 도메인이 지정되었으면 형식(경로 조작 방지) 및 존재 여부 검증
   if (domain) {
+    if (!isValidDomainId(domain)) {
+      return failure(
+        new Error(
+          `유효하지 않은 도메인 ID입니다: ${domain} (영문 소문자로 시작하고, 소문자/숫자/하이픈만 사용할 수 있습니다)`
+        )
+      );
+    }
     const validateResult = await validateDomain(projectPath, domain);
     if (!validateResult.success) {
       return validateResult;

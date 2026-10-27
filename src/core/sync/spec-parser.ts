@@ -3,7 +3,7 @@
  */
 import { promises as fs, statSync } from 'node:fs';
 import path from 'node:path';
-import matter from 'gray-matter';
+import { parseFrontmatter } from '../../utils/frontmatter.js';
 import type { ExtractedRequirement } from './schemas.js';
 
 /**
@@ -94,7 +94,7 @@ export class SpecParser {
    * 마크다운 컨텐츠에서 요구사항 추출
    */
   private extractRequirements(content: string, specId: string): ExtractedRequirement[] {
-    const { content: body } = matter(content);
+    const { content: body } = parseFrontmatter(content);
     const lines = body.split('\n');
     const requirements: ExtractedRequirement[] = [];
     const seenIds = new Set<string>();

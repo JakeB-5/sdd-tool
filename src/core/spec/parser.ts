@@ -1,7 +1,7 @@
 /**
  * 스펙 마크다운 파서
  */
-import matter from 'gray-matter';
+import { parseFrontmatter } from '../../utils/frontmatter.js';
 import {
   ParsedSpec,
   SpecMetadataSchema,
@@ -19,7 +19,7 @@ import { ValidationError, ErrorCode } from '../../errors/index.js';
 export function parseSpec(content: string): Result<ParsedSpec, ValidationError> {
   try {
     // 1. Frontmatter 파싱
-    const { data: rawMeta, content: body } = matter(content);
+    const { data: rawMeta, content: body } = parseFrontmatter(content);
 
     // 2. 메타데이터 검증
     const metaResult = SpecMetadataSchema.safeParse(rawMeta);

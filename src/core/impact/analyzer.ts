@@ -16,7 +16,7 @@ import { buildDependencyGraph, generateMermaidGraph } from './graph.js';
 import { success, failure, Result } from '../../types/index.js';
 import { ChangeError } from '../../errors/index.js';
 import { directoryExists, fileExists, readFile, findSpecPath } from '../../utils/fs.js';
-import { parseProposal } from '../change/index.js';
+import { parseProposal, isValidChangeId } from '../change/index.js';
 
 /**
  * 영향도 분석 실행
@@ -514,6 +514,10 @@ export async function analyzeChangeImpact(
   sddPath: string,
   changeId: string
 ): Promise<Result<ChangeImpactAnalysis, ChangeError>> {
+  if (!isValidChangeId(changeId)) {
+    return failure(new ChangeError(`유효하지 않은 변경 ID입니다: ${changeId} (형식: CHG-001)`));
+  }
+
   try {
     const changePath = path.join(sddPath, 'changes', changeId);
     const proposalPath = path.join(changePath, 'proposal.md');

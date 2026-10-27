@@ -207,7 +207,7 @@ created: ${new Date().toISOString().split('T')[0]}
     it('존재하지 않는 변경 ID에 에러를 반환한다', async () => {
       try {
         await execAsync(
-          `node "${cliPath}" change non-existent-id`,
+          `node "${cliPath}" change CHG-999`,
           { cwd: tempDir }
         );
         expect.fail('Should have thrown an error');
@@ -216,6 +216,31 @@ created: ${new Date().toISOString().split('T')[0]}
         const output = (execError.stdout || '') + (execError.stderr || '');
         expect(output).toMatch(/찾을 수 없|not found|에러|error/i);
       }
+    });
+
+    it.each([
+      ['change', '..'],
+      ['change apply', '..'],
+      ['change archive', '..'],
+      ['change archive', '../specs'],
+      ['change diff', '../..'],
+      ['change validate', '..'],
+    ])('%s %s: 경로 조작 변경 ID를 거부한다', async (command, badId) => {
+      const sddPath = path.join(tempDir, '.sdd');
+      const before = (await fs.readdir(sddPath)).sort();
+
+      try {
+        await execAsync(`node "${cliPath}" ${command} "${badId}"`, { cwd: tempDir });
+        expect.fail('Should have thrown an error');
+      } catch (error: unknown) {
+        const execError = error as { code?: number; stdout?: string; stderr?: string };
+        const output = (execError.stdout || '') + (execError.stderr || '');
+        expect(execError.code).not.toBe(0);
+        expect(output).toContain('유효하지 않은 변경 ID');
+      }
+
+      // .sdd must be left intact (no archive copy, no deletion)
+      expect((await fs.readdir(sddPath)).sort()).toEqual(before);
     });
   });
 });

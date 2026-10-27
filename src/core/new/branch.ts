@@ -1,13 +1,20 @@
 /**
  * 브랜치 관리
  */
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { Result } from '../../types/index.js';
 import { SddError, ErrorCode, ExitCode } from '../../errors/index.js';
 import { generateBranchName } from './schemas.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+/**
+ * Reject names that git would parse as options (e.g. `--orphan`).
+ */
+function isUnsafeRefName(name: string): boolean {
+  return name.startsWith('-');
+}
 
 /**
  * 브랜치 에러
@@ -24,7 +31,7 @@ export class BranchError extends SddError {
  */
 export async function isGitInstalled(): Promise<boolean> {
   try {
-    await execAsync('git --version');
+    await execFileAsync('git', ['--version']);
     return true;
   } catch {
     return false;
@@ -36,7 +43,7 @@ export async function isGitInstalled(): Promise<boolean> {
  */
 export async function isGitRepository(cwd?: string): Promise<boolean> {
   try {
-    await execAsync('git rev-parse --git-dir', { cwd });
+    await execFileAsync('git', ['rev-parse', '--git-dir'], { cwd });
     return true;
   } catch {
     return false;
@@ -48,7 +55,7 @@ export async function isGitRepository(cwd?: string): Promise<boolean> {
  */
 export async function getCurrentBranch(cwd?: string): Promise<Result<string, BranchError>> {
   try {
-    const { stdout } = await execAsync('git branch --show-current', { cwd });
+    const { stdout } = await execFileAsync('git', ['branch', '--show-current'], { cwd });
     return { success: true, data: stdout.trim() };
   } catch (error) {
     return {
@@ -66,7 +73,9 @@ export async function branchExists(
   cwd?: string
 ): Promise<boolean> {
   try {
-    await execAsync(`git show-ref --verify --quiet refs/heads/${branchName}`, { cwd });
+    await execFileAsync('git', ['show-ref', '--verify', '--quiet', `refs/heads/${branchName}`], {
+      cwd,
+    });
     return true;
   } catch {
     return false;
@@ -83,6 +92,13 @@ export async function createBranch(
   const branchName = generateBranchName(featureId);
   const checkout = options?.checkout ?? true;
   const cwd = options?.cwd;
+
+  if (isUnsafeRefName(branchName) || (options?.baseBranch && isUnsafeRefName(options.baseBranch))) {
+    return {
+      success: false,
+      error: new BranchError('잘못된 브랜치 이름입니다 (\'-\'로 시작할 수 없음)'),
+    };
+  }
 
   try {
     // Git 저장소 확인
@@ -103,14 +119,14 @@ export async function createBranch(
 
     // 베이스 브랜치가 지정된 경우 먼저 체크아웃
     if (options?.baseBranch) {
-      await execAsync(`git checkout ${options.baseBranch}`, { cwd });
+      await execFileAsync('git', ['checkout', options.baseBranch], { cwd });
     }
 
     // 브랜치 생성
     if (checkout) {
-      await execAsync(`git checkout -b ${branchName}`, { cwd });
+      await execFileAsync('git', ['checkout', '-b', branchName], { cwd });
     } else {
-      await execAsync(`git branch ${branchName}`, { cwd });
+      await execFileAsync('git', ['branch', branchName], { cwd });
     }
 
     return { success: true, data: branchName };
@@ -129,8 +145,15 @@ export async function checkoutBranch(
   branchName: string,
   cwd?: string
 ): Promise<Result<void, BranchError>> {
+  if (isUnsafeRefName(branchName)) {
+    return {
+      success: false,
+      error: new BranchError('잘못된 브랜치 이름입니다 (\'-\'로 시작할 수 없음)'),
+    };
+  }
+
   try {
-    await execAsync(`git checkout ${branchName}`, { cwd });
+    await execFileAsync('git', ['checkout', branchName], { cwd });
     return { success: true, data: undefined };
   } catch (error) {
     return {
@@ -150,9 +173,16 @@ export async function deleteBranch(
   const force = options?.force ?? false;
   const cwd = options?.cwd;
 
+  if (isUnsafeRefName(branchName)) {
+    return {
+      success: false,
+      error: new BranchError('잘못된 브랜치 이름입니다 (\'-\'로 시작할 수 없음)'),
+    };
+  }
+
   try {
     const flag = force ? '-D' : '-d';
-    await execAsync(`git branch ${flag} ${branchName}`, { cwd });
+    await execFileAsync('git', ['branch', flag, branchName], { cwd });
     return { success: true, data: undefined };
   } catch (error) {
     return {
@@ -169,7 +199,7 @@ export async function listFeatureBranches(
   cwd?: string
 ): Promise<Result<string[], BranchError>> {
   try {
-    const { stdout } = await execAsync('git branch --list "feature/*"', { cwd });
+    const { stdout } = await execFileAsync('git', ['branch', '--list', 'feature/*'], { cwd });
     const branches = stdout
       .split('\n')
       .map(b => b.trim().replace(/^\*\s*/, ''))
@@ -188,7 +218,7 @@ export async function listFeatureBranches(
  */
 export async function hasUncommittedChanges(cwd?: string): Promise<boolean> {
   try {
-    const { stdout } = await execAsync('git status --porcelain', { cwd });
+    const { stdout } = await execFileAsync('git', ['status', '--porcelain'], { cwd });
     return stdout.trim().length > 0;
   } catch {
     return false;

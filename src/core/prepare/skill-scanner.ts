@@ -4,7 +4,7 @@
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import matter from 'gray-matter';
+import { parseFrontmatter } from '../../utils/frontmatter.js';
 import { SkillMetadata, SkillMetadataSchema, ScannedSkill } from './schemas.js';
 
 /**
@@ -60,7 +60,7 @@ export class SkillScanner {
 
     try {
       const content = fs.readFileSync(skillFile, 'utf-8');
-      const { data, content: body } = matter(content);
+      const { data, content: body } = parseFrontmatter(content);
 
       // 메타데이터 파싱
       const metadata = this.parseMetadata(data, skillDir);

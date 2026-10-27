@@ -384,6 +384,18 @@ describe('analyzeChangeImpact', () => {
     }
   });
 
+  it.each(['..', '../CHG-001', 'CHG-001/../..', 'my-change'])(
+    '유효하지 않은 변경 ID(%s)는 거부한다',
+    async (badId) => {
+      const result = await analyzeChangeImpact(tempDir, badId);
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('유효하지 않은 변경 ID');
+      }
+    }
+  );
+
   it('변경 제안의 영향을 분석한다', async () => {
     // 스펙 생성
     await fs.mkdir(path.join(specsDir, 'auth'));

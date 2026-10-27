@@ -1,11 +1,24 @@
 /**
  * 브랜치 관리 테스트
  *
- * 참고: Git 명령어를 사용하는 함수들은 실제 Git 저장소가 필요하므로
- * 순수 함수만 테스트합니다.
+ * 참고: Git 명령 주입 방지 테스트는 임시 Git 저장소를 생성하여 실행합니다.
  */
-import { describe, it, expect } from 'vitest';
-import { extractFeatureId, BranchError } from '../../../../src/core/new/branch.js';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { promises as fs, existsSync } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import {
+  extractFeatureId,
+  BranchError,
+  createBranch,
+  checkoutBranch,
+  deleteBranch,
+  branchExists,
+} from '../../../../src/core/new/branch.js';
+
+const execFileAsync = promisify(execFile);
 
 describe('extractFeatureId', () => {
   it('feature/name 형식에서 기능 ID를 추출한다', () => {
@@ -33,5 +46,59 @@ describe('BranchError', () => {
     expect(error.name).toBe('BranchError');
     expect(error.message).toBe('테스트 에러');
     expect(error instanceof Error).toBe(true);
+  });
+});
+
+describe('git 명령 주입 방지', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sdd-branch-test-'));
+    await execFileAsync('git', ['init'], { cwd: tempDir });
+    await execFileAsync('git', ['config', 'user.email', 'test@test.com'], { cwd: tempDir });
+    await execFileAsync('git', ['config', 'user.name', 'Test'], { cwd: tempDir });
+    await fs.writeFile(path.join(tempDir, 'README.md'), '# test\n');
+    await execFileAsync('git', ['add', '.'], { cwd: tempDir });
+    await execFileAsync('git', ['commit', '-m', 'Initial'], { cwd: tempDir });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('기능 ID의 셸 메타문자를 실행하지 않는다', async () => {
+    const featureId = 'x;touch${IFS}PWNED';
+    const result = await createBranch(featureId, { checkout: false, cwd: tempDir });
+
+    expect(result.success).toBe(true);
+    expect(existsSync(path.join(tempDir, 'PWNED'))).toBe(false);
+    expect(await branchExists(`feature/${featureId}`, tempDir)).toBe(true);
+  });
+
+  it('베이스 브랜치의 셸 메타문자를 실행하지 않는다', async () => {
+    const result = await createBranch('auth', {
+      baseBranch: 'main;touch PWNED',
+      cwd: tempDir,
+    });
+
+    expect(result.success).toBe(false);
+    expect(existsSync(path.join(tempDir, 'PWNED'))).toBe(false);
+  });
+
+  it("'-'로 시작하는 베이스 브랜치(옵션 주입)는 거부한다", async () => {
+    const result = await createBranch('auth', { baseBranch: '--orphan', cwd: tempDir });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('잘못된 브랜치 이름');
+    }
+  });
+
+  it("checkoutBranch/deleteBranch는 '-'로 시작하는 이름을 거부한다", async () => {
+    const checkout = await checkoutBranch('--detach', tempDir);
+    const del = await deleteBranch('--all', { cwd: tempDir });
+
+    expect(checkout.success).toBe(false);
+    expect(del.success).toBe(false);
   });
 });

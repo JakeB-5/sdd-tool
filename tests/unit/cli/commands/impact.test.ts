@@ -26,6 +26,13 @@ describe('resolveProposalPath', () => {
     const result = resolveProposalPath('my-change', '/project/.sdd');
     expect(result).toBe(path.join('/project/.sdd', 'changes', 'my-change', 'proposal.md'));
   });
+
+  it.each(['..', '../../etc/passwd', 'a/../../b.md', 'a\\b'])(
+    '경로 조작 상대 경로(%s)는 null을 반환한다',
+    (bad) => {
+      expect(resolveProposalPath(bad, '/project/.sdd')).toBeNull();
+    }
+  );
 });
 
 describe('formatChangeImpactOutput', () => {

@@ -1,11 +1,30 @@
 /**
  * Git Diff 실행기
  */
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
+import { success, failure, Result } from '../../types/index.js';
+import { SddError, ErrorCode, ExitCode } from '../../errors/index.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+/**
+ * Git diff 에러
+ */
+export class GitDiffError extends SddError {
+  constructor(message: string) {
+    super(ErrorCode.UNKNOWN, message, ExitCode.GENERAL_ERROR);
+    this.name = 'GitDiffError';
+  }
+}
+
+/**
+ * Reject refs that git would parse as options (e.g. `--output=<file>`).
+ */
+function isUnsafeRef(ref: string | undefined): boolean {
+  return ref !== undefined && ref.startsWith('-');
+}
 
 export interface GitDiffFile {
   path: string;
@@ -27,7 +46,9 @@ export class GitDiff {
   /**
    * Git diff 실행하여 변경된 스펙 파일 목록 조회
    */
-  async getChangedSpecFiles(options: GitDiffOptions = {}): Promise<GitDiffFile[]> {
+  async getChangedSpecFiles(
+    options: GitDiffOptions = {}
+  ): Promise<Result<GitDiffFile[], GitDiffError>> {
     const specsDir = path.join(this.projectRoot, '.sdd', 'specs');
     const specPath = options.specPath
       ? path.join(specsDir, options.specPath)
@@ -36,27 +57,30 @@ export class GitDiff {
     // Windows 경로를 forward slash로 변환 (git은 forward slash 사용)
     const normalizedPath = specPath.replace(/\\/g, '/');
 
+    if (isUnsafeRef(options.commit1) || isUnsafeRef(options.commit2)) {
+      return failure(new GitDiffError('잘못된 커밋 참조입니다 (\'-\'로 시작할 수 없음)'));
+    }
+
     try {
-      let diffCommand: string;
+      const args = ['-c', 'core.quotepath=false', 'diff', '--name-status'];
 
       if (options.commit1 && options.commit2) {
         // 두 커밋 간 비교
-        diffCommand = `git diff --name-status ${options.commit1} ${options.commit2} -- "${normalizedPath}"`;
+        args.push(options.commit1, options.commit2);
       } else if (options.commit1) {
         // 특정 커밋과 현재 비교
-        diffCommand = `git diff --name-status ${options.commit1} -- "${normalizedPath}"`;
+        args.push(options.commit1);
       } else if (options.staged) {
         // 스테이징된 변경
-        diffCommand = `git diff --name-status --cached -- "${normalizedPath}"`;
-      } else {
-        // 작업 디렉토리 변경
-        diffCommand = `git diff --name-status -- "${normalizedPath}"`;
+        args.push('--cached');
       }
+      // 그 외: 작업 디렉토리 변경
+      args.push('--', normalizedPath);
 
-      const { stdout } = await execAsync(diffCommand, { cwd: this.projectRoot });
+      const { stdout } = await execFileAsync('git', args, { cwd: this.projectRoot });
 
       if (!stdout.trim()) {
-        return [];
+        return success([]);
       }
 
       const files: GitDiffFile[] = [];
@@ -72,9 +96,11 @@ export class GitDiff {
         });
       }
 
-      return files;
-    } catch {
-      return [];
+      return success(files);
+    } catch (error) {
+      const stderr = (error as { stderr?: string }).stderr?.trim();
+      const message = stderr || (error instanceof Error ? error.message : String(error));
+      return failure(new GitDiffError(`git diff 실행 실패: ${message}`));
     }
   }
 
@@ -87,6 +113,10 @@ export class GitDiff {
   ): Promise<{ before?: string; after?: string }> {
     const normalizedPath = filePath.replace(/\\/g, '/');
 
+    if (isUnsafeRef(options.commit1) || isUnsafeRef(options.commit2)) {
+      return {};
+    }
+
     try {
       let before: string | undefined;
       let after: string | undefined;
@@ -94,8 +124,9 @@ export class GitDiff {
       // 이전 내용 조회
       if (options.commit1) {
         try {
-          const { stdout } = await execAsync(
-            `git show ${options.commit1}:"${normalizedPath}"`,
+          const { stdout } = await execFileAsync(
+            'git',
+            ['show', `${options.commit1}:${normalizedPath}`],
             { cwd: this.projectRoot }
           );
           before = stdout;
@@ -105,7 +136,7 @@ export class GitDiff {
       } else if (options.staged) {
         // 스테이징 전 내용 (HEAD)
         try {
-          const { stdout } = await execAsync(`git show HEAD:"${normalizedPath}"`, {
+          const { stdout } = await execFileAsync('git', ['show', `HEAD:${normalizedPath}`], {
             cwd: this.projectRoot,
           });
           before = stdout;
@@ -115,7 +146,7 @@ export class GitDiff {
       } else {
         // 마지막 커밋 내용
         try {
-          const { stdout } = await execAsync(`git show HEAD:"${normalizedPath}"`, {
+          const { stdout } = await execFileAsync('git', ['show', `HEAD:${normalizedPath}`], {
             cwd: this.projectRoot,
           });
           before = stdout;
@@ -127,8 +158,9 @@ export class GitDiff {
       // 이후 내용 조회
       if (options.commit2) {
         try {
-          const { stdout } = await execAsync(
-            `git show ${options.commit2}:"${normalizedPath}"`,
+          const { stdout } = await execFileAsync(
+            'git',
+            ['show', `${options.commit2}:${normalizedPath}`],
             { cwd: this.projectRoot }
           );
           after = stdout;
@@ -138,7 +170,7 @@ export class GitDiff {
       } else if (options.staged) {
         // 스테이징된 내용
         try {
-          const { stdout } = await execAsync(`git show :0:"${normalizedPath}"`, {
+          const { stdout } = await execFileAsync('git', ['show', `:0:${normalizedPath}`], {
             cwd: this.projectRoot,
           });
           after = stdout;
@@ -184,7 +216,7 @@ export class GitDiff {
    */
   async isGitRepository(): Promise<boolean> {
     try {
-      await execAsync('git rev-parse --git-dir', { cwd: this.projectRoot });
+      await execFileAsync('git', ['rev-parse', '--git-dir'], { cwd: this.projectRoot });
       return true;
     } catch {
       return false;
@@ -196,7 +228,7 @@ export class GitDiff {
    */
   async getCurrentBranch(): Promise<string | null> {
     try {
-      const { stdout } = await execAsync('git rev-parse --abbrev-ref HEAD', {
+      const { stdout } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
         cwd: this.projectRoot,
       });
       return stdout.trim();

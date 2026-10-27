@@ -15,12 +15,20 @@ interface HtmlExportOptions {
  * HTML 이스케이프
  */
 function escapeHtml(text: string): string {
-  return text
+  // Frontmatter values may be non-strings at runtime (e.g. `version: 2`)
+  return String(text ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/**
+ * Reduce a value to a CSS class-safe slug.
+ */
+function toClassSlug(value: string): string {
+  return String(value ?? '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
 }
 
 /**
@@ -37,6 +45,21 @@ function highlightKeywords(text: string): string {
 }
 
 /**
+ * Allow only http(s), mailto, fragment and relative URLs as link targets.
+ */
+function isSafeHref(url: string): boolean {
+  // Browsers ignore whitespace/control characters when resolving the scheme
+  const normalized = Array.from(url)
+    .filter((ch) => ch.charCodeAt(0) > 0x20 && ch.charCodeAt(0) !== 0x7f)
+    .join('');
+  const scheme = normalized.match(/^([a-z][a-z0-9+.-]*):/i);
+  if (!scheme) {
+    return true;
+  }
+  return ['http', 'https', 'mailto'].includes(scheme[1].toLowerCase());
+}
+
+/**
  * 마크다운 기본 변환 (간단한 형식만)
  */
 function convertMarkdown(text: string): string {
@@ -44,7 +67,9 @@ function convertMarkdown(text: string): string {
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>');
+    .replace(/\[(.+?)\]\((.+?)\)/g, (_match, label: string, href: string) =>
+      isSafeHref(href) ? `<a href="${href}">${label}</a>` : label
+    );
 }
 
 /**
@@ -54,17 +79,17 @@ function generateToc(specs: ParsedSpec[]): string {
   const items: string[] = [];
 
   for (const spec of specs) {
-    items.push(`<li><a href="#spec-${spec.id}">${escapeHtml(spec.title || spec.id)}</a>`);
+    items.push(`<li><a href="#spec-${escapeHtml(spec.id)}">${escapeHtml(spec.title || spec.id)}</a>`);
 
     if (spec.requirements.length > 0 || spec.scenarios.length > 0) {
       items.push('<ul>');
 
       for (const req of spec.requirements) {
-        items.push(`<li><a href="#${req.id}">${req.id}: ${escapeHtml(req.title)}</a></li>`);
+        items.push(`<li><a href="#${escapeHtml(req.id)}">${escapeHtml(req.id)}: ${escapeHtml(req.title)}</a></li>`);
       }
 
       for (const scenario of spec.scenarios) {
-        items.push(`<li><a href="#${scenario.id}">${escapeHtml(scenario.title)}</a></li>`);
+        items.push(`<li><a href="#${escapeHtml(scenario.id)}">${escapeHtml(scenario.title)}</a></li>`);
       }
 
       items.push('</ul>');
@@ -89,7 +114,7 @@ function renderMetadata(spec: ParsedSpec): string {
   const items: string[] = [];
 
   if (spec.status) {
-    const statusClass = `status-${spec.status}`;
+    const statusClass = `status-${toClassSlug(spec.status)}`;
     items.push(`
       <div class="metadata-item">
         <span class="metadata-label">상태:</span>
@@ -130,13 +155,13 @@ function renderMetadata(spec: ParsedSpec): string {
  * 요구사항 렌더링
  */
 function renderRequirement(req: ParsedRequirement): string {
-  const priorityClass = req.priority ? `priority-${req.priority}` : '';
+  const priorityClass = req.priority ? `priority-${toClassSlug(req.priority)}` : '';
   const description = highlightKeywords(convertMarkdown(escapeHtml(req.description)));
 
   return `
-<article id="${req.id}" class="requirement ${priorityClass}">
+<article id="${escapeHtml(req.id)}" class="requirement ${priorityClass}">
   <div class="requirement-header">
-    <span class="requirement-id">${req.id}</span>
+    <span class="requirement-id">${escapeHtml(req.id)}</span>
     <h4 class="requirement-title">${escapeHtml(req.title)}</h4>
   </div>
   <p class="requirement-description">${description}</p>
@@ -184,7 +209,7 @@ function renderScenario(scenario: ParsedScenario): string {
   }
 
   return `
-<article id="${scenario.id}" class="scenario">
+<article id="${escapeHtml(scenario.id)}" class="scenario">
   <h4 class="scenario-title">${escapeHtml(scenario.title)}</h4>
   <ul class="gwt-list">
     ${gwtItems.join('')}
@@ -217,7 +242,7 @@ function renderSpec(spec: ParsedSpec): string {
 
   // 헤더
   sections.push(`
-<section id="spec-${spec.id}" class="spec">
+<section id="spec-${escapeHtml(spec.id)}" class="spec">
   <header>
     <h2>${escapeHtml(spec.title || spec.id)}</h2>
     ${spec.description ? `<p class="description">${convertMarkdown(escapeHtml(spec.description))}</p>` : ''}

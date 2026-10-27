@@ -1091,9 +1091,11 @@ jobs:
 
       - name: Detect Changes
         id: changes
+        env:
+          BASE_REF: \${{ github.base_ref }}
         run: |
           # 변경된 도메인 감지
-          DOMAINS=$(git diff --name-only origin/\${{ github.base_ref }} | \\
+          DOMAINS=$(git diff --name-only "origin/$BASE_REF" | \\
             grep "^\\.sdd/specs/" | \\
             cut -d'/' -f3 | \\
             sort -u | \\
@@ -1101,7 +1103,7 @@ jobs:
           echo "domains=$DOMAINS" >> $GITHUB_OUTPUT
 
           # Constitution 변경 감지
-          if git diff --name-only origin/\${{ github.base_ref }} | grep -q "constitution.md"; then
+          if git diff --name-only "origin/$BASE_REF" | grep -q "constitution.md"; then
             echo "constitution=true" >> $GITHUB_OUTPUT
           else
             echo "constitution=false" >> $GITHUB_OUTPUT
@@ -1109,13 +1111,16 @@ jobs:
 
       - name: Apply Labels
         uses: actions/github-script@v7
+        env:
+          DOMAINS: \${{ steps.changes.outputs.domains }}
+          CONSTITUTION: \${{ steps.changes.outputs.constitution }}
         with:
           script: |
             const labels = [];
-            const domains = '\${{ steps.changes.outputs.domains }}'.trim().split(' ').filter(Boolean);
+            const domains = (process.env.DOMAINS || '').trim().split(' ').filter(Boolean);
             labels.push(...domains.map(d => \`spec:\${d}\`));
 
-            if ('\${{ steps.changes.outputs.constitution }}' === 'true') {
+            if (process.env.CONSTITUTION === 'true') {
               labels.push('constitution');
             }
 

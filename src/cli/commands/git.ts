@@ -5,10 +5,14 @@
 import { Command } from 'commander';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { ensureDir, writeFile, fileExists, directoryExists } from '../../utils/fs.js';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { ensureDir, writeFile, fileExists } from '../../utils/fs.js';
 import { ExitCode } from '../../errors/index.js';
 import * as logger from '../../utils/logger.js';
 import { Result, success, failure } from '../../types/index.js';
+
+const execFileAsync = promisify(execFile);
 
 /**
  * Git Hooks 설치 결과
@@ -48,7 +52,7 @@ if [ -n "$CHANGED_SPECS" ]; then
   echo "\${YELLOW}🔍 스펙 검증 중...\${NC}"
 
   # sdd validate 실행
-  if command -v sdd &> /dev/null; then
+  if command -v sdd >/dev/null 2>&1; then
     sdd validate
     if [ $? -ne 0 ]; then
       echo "\${RED}❌ 스펙 검증 실패. 커밋이 취소됩니다.\${NC}"
@@ -140,7 +144,7 @@ NC='\\033[0m'
 echo "\${YELLOW}🔍 푸시 전 검증 중...\${NC}"
 
 # sdd 명령어 확인
-if ! command -v sdd &> /dev/null; then
+if ! command -v sdd >/dev/null 2>&1; then
   echo "\${YELLOW}⚠️  sdd 명령어를 찾을 수 없습니다. 검증을 건너뜁니다.\${NC}"
   exit 0
 fi
@@ -193,19 +197,85 @@ export function generateGitMessageTemplate(): string {
 }
 
 /**
+ * Git hooks 제거 결과
+ */
+export interface HooksUninstallResult {
+  removed: string[];
+  skipped: string[];
+}
+
+/**
+ * realpath that tolerates missing paths (e.g. a hooks dir not yet created).
+ */
+async function realpathOrResolve(target: string): Promise<string> {
+  try {
+    return await fs.realpath(target);
+  } catch {
+    try {
+      return path.join(await fs.realpath(path.dirname(target)), path.basename(target));
+    } catch {
+      return path.resolve(target);
+    }
+  }
+}
+
+function isPathInside(child: string, parent: string): boolean {
+  const relative = path.relative(parent, child);
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+/**
+ * Resolve the hooks directory via git so worktrees work.
+ * Refuses hooks dirs outside the repository (e.g. a global core.hooksPath),
+ * since writing there would affect other repositories.
+ */
+async function resolveHooksDir(projectPath: string): Promise<Result<string, Error>> {
+  let stdout: string;
+  try {
+    ({ stdout } = await execFileAsync(
+      'git',
+      ['rev-parse', '--show-toplevel', '--git-common-dir', '--git-path', 'hooks'],
+      { cwd: projectPath }
+    ));
+  } catch {
+    return failure(new Error('Git 저장소가 아닙니다. 먼저 git init을 실행하세요.'));
+  }
+
+  const [toplevel, commonDir, hooksDir] = stdout.trim().split('\n').map((line) => line.trim());
+  if (!toplevel || !commonDir || !hooksDir) {
+    return failure(new Error('Git 저장소가 아닙니다. 먼저 git init을 실행하세요.'));
+  }
+
+  const base = await realpathOrResolve(projectPath);
+  const realToplevel = await realpathOrResolve(path.resolve(base, toplevel));
+  const realCommonDir = await realpathOrResolve(path.resolve(base, commonDir));
+  const realHooksDir = await realpathOrResolve(path.resolve(base, hooksDir));
+
+  if (!isPathInside(realHooksDir, realToplevel) && !isPathInside(realHooksDir, realCommonDir)) {
+    return failure(
+      new Error(
+        `hooks 디렉토리가 저장소 밖에 있습니다: ${realHooksDir}\n` +
+          'core.hooksPath 설정(전역 설정 포함)이 저장소 외부를 가리키고 있어, 설치 시 다른 저장소에도 영향을 줄 수 있습니다. ' +
+          '`git config --show-origin core.hooksPath`로 설정을 확인한 뒤 해제하거나 저장소 내부 경로로 변경하세요.'
+      )
+    );
+  }
+
+  return success(realHooksDir);
+}
+
+/**
  * Git hooks 설치
  */
 export async function installHooks(
   projectPath: string,
   options: { force?: boolean } = {}
 ): Promise<Result<HooksInstallResult, Error>> {
-  const gitPath = path.join(projectPath, '.git');
-  const hooksPath = path.join(gitPath, 'hooks');
-
-  // .git 디렉토리 확인
-  if (!(await directoryExists(gitPath))) {
-    return failure(new Error('Git 저장소가 아닙니다. 먼저 git init을 실행하세요.'));
+  const hooksResult = await resolveHooksDir(projectPath);
+  if (!hooksResult.success) {
+    return failure(hooksResult.error);
   }
+  const hooksPath = hooksResult.data;
 
   // hooks 디렉토리 생성
   await ensureDir(hooksPath);
@@ -233,11 +303,13 @@ export async function installHooks(
         continue;
       }
 
-      // 백업
+      // 백업 (이미 SDD 훅이면 사용자 원본 백업을 덮어쓰지 않도록 건너뜀)
       try {
         const existingContent = await fs.readFile(hookPath, 'utf-8');
-        await fs.writeFile(backupPath, existingContent);
-        result.backedUp.push(hook.name);
+        if (!existingContent.includes(`# SDD ${hook.name} hook`)) {
+          await fs.writeFile(backupPath, existingContent);
+          result.backedUp.push(hook.name);
+        }
       } catch {
         // 백업 실패해도 계속 진행
       }
@@ -256,24 +328,29 @@ export async function installHooks(
  */
 export async function uninstallHooks(
   projectPath: string
-): Promise<Result<string[], Error>> {
-  const gitPath = path.join(projectPath, '.git');
-  const hooksPath = path.join(gitPath, 'hooks');
-
-  if (!(await directoryExists(gitPath))) {
-    return failure(new Error('Git 저장소가 아닙니다.'));
+): Promise<Result<HooksUninstallResult, Error>> {
+  const hooksResult = await resolveHooksDir(projectPath);
+  if (!hooksResult.success) {
+    return failure(hooksResult.error);
   }
+  const hooksPath = hooksResult.data;
 
   const hookNames = ['pre-commit', 'commit-msg', 'pre-push'];
   const removed: string[] = [];
+  const skipped: string[] = [];
 
   for (const name of hookNames) {
     const hookPath = path.join(hooksPath, name);
     const backupPath = path.join(hooksPath, `${name}.backup`);
 
     try {
-      // 훅 삭제
+      // 훅 삭제 (SDD가 설치한 훅만)
       if (await fileExists(hookPath)) {
+        const content = await fs.readFile(hookPath, 'utf-8');
+        if (!content.includes(`# SDD ${name} hook`)) {
+          skipped.push(name);
+          continue;
+        }
         await fs.unlink(hookPath);
         removed.push(name);
       }
@@ -287,7 +364,7 @@ export async function uninstallHooks(
     }
   }
 
-  return success(removed);
+  return success({ removed, skipped });
 }
 
 /**
@@ -397,10 +474,15 @@ export function registerGitCommand(program: Command): void {
             process.exit(ExitCode.GENERAL_ERROR);
           }
 
-          if (result.data.length > 0) {
-            logger.success(`제거됨: ${result.data.join(', ')}`);
-          } else {
+          const { removed, skipped } = result.data;
+
+          if (removed.length > 0) {
+            logger.success(`제거됨: ${removed.join(', ')}`);
+          } else if (skipped.length === 0) {
             logger.info('제거할 훅이 없습니다.');
+          }
+          if (skipped.length > 0) {
+            logger.warn(`건너뜀 (SDD가 설치한 훅이 아님): ${skipped.join(', ')}`);
           }
         } else {
           logger.error(`알 수 없는 액션: ${action}`);
