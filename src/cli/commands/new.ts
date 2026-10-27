@@ -25,7 +25,6 @@ import { ExitCode } from '../../errors/index.js';
 import { createDomainService } from '../../core/domain/service.js';
 import { isValidDomainId } from '../../schemas/domains.schema.js';
 import { createContextManager } from '../../core/context/manager.js';
-import { executeDomainCreate } from './domain.js';
 
 /**
  * 새 기능 옵션
@@ -185,6 +184,15 @@ export async function createFeature(
   // 도메인 파싱 (입력에서 <domain>/<name> 형식 지원)
   const parsed = parseDomainFeatureName(name);
   const effectiveName = parsed.name;
+
+  // Reject `<domain>/` (empty feature) and `/<feature>` (empty domain) before anything is written
+  if (parsed.domain === '') {
+    return failure(new Error(`도메인 이름이 비어 있습니다: '${name}' (형식: <domain>/<feature>)`));
+  }
+  if (!generateFeatureId(effectiveName)) {
+    return failure(new Error(`기능 이름이 비어 있습니다: '${name}' (형식: <domain>/<feature> 또는 <feature>)`));
+  }
+
   let domain = options.domain || parsed.domain;
 
   // 도메인이 없으면 자동 감지 시도
@@ -206,7 +214,12 @@ export async function createFeature(
     if (!domainResult.success) {
       return domainResult;
     }
-    domainMissing = !domainResult.data;
+    if (!domainResult.data && domain === 'common') {
+      // Unregistered `common` is the default bucket: same as no domain (no auto-create, no link)
+      domain = undefined;
+    } else {
+      domainMissing = !domainResult.data;
+    }
   }
 
   // 실제 디렉토리에 사용할 도메인 (없으면 'common')
@@ -241,12 +254,22 @@ export async function createFeature(
     options.force
   );
   if (!overwriteCheck.success) {
+    if (targetFiles.length > 1 && (await fileExists(path.join(featurePath, 'spec.md')))) {
+      const ref = `${effectiveDomain}/${featureId}`;
+      return failure(
+        new Error(
+          `${overwriteCheck.error.message}\n기존 기능에 파일을 추가하려면 sdd new plan ${ref}, sdd new tasks ${ref}, sdd new checklist를 사용하세요`
+        )
+      );
+    }
     return overwriteCheck;
   }
 
-  // Missing domain: create it, same as `sdd domain create <domain>`
+  // Missing domain: create it, same as `sdd domain create <domain>` (default description)
   if (domain && domainMissing) {
-    const createResult = await executeDomainCreate(domain, {}, projectPath);
+    const createResult = await createDomainService(projectPath).create(domain, {
+      description: `${domain} 도메인`,
+    });
     if (!createResult.success) {
       return failure(new Error(`도메인 생성 실패: ${createResult.error.message}`));
     }

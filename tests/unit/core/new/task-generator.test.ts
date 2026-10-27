@@ -130,9 +130,16 @@ describe('normalizeTaskStatus', () => {
     ['Completed', 'completed'],
     ['완료', 'completed'],
     ['완료 (2026-10-27)', 'completed'],
+    ['완료(2026-10-27)', 'completed'],
+    ['**완료**', 'completed'],
+    ['`completed`', 'completed'],
+    ['✅ 완료', 'completed'],
+    ['In Progress', 'in_progress'],
     ['blocked', 'blocked'],
     ['BLOCKED', 'blocked'],
     ['차단됨', 'blocked'],
+    ['차단됨: API 대기', 'blocked'],
+    ['차단', 'blocked'],
   ] as const)('%s → %s', (raw, expected) => {
     expect(normalizeTaskStatus(raw)).toBe(expected);
   });
@@ -223,6 +230,69 @@ Cart model
 
     expect(tasks.map((t) => t.status)).toEqual(['completed', 'in_progress', 'blocked', 'pending']);
   });
+
+  it('**Status**: 형식(콜론이 볼드 밖)도 파싱한다', () => {
+    const content = `### t-001: A
+
+- **Status**: completed
+
+### t-002: B
+
+- **상태**: 진행 중
+`;
+
+    expect(parseTasks(content).map((t) => t.status)).toEqual(['completed', 'in_progress']);
+  });
+
+  it('영문 Priority/Dependencies 레이블을 파싱한다', () => {
+    const content = `### cart-task-002: API
+
+- **Status:** pending
+- **Priority:** 🔴 HIGH
+- **Dependencies:** cart-task-001, cart-task-000
+`;
+
+    const [task] = parseTasks(content);
+
+    expect(task.priority).toBe('high');
+    expect(task.dependencies).toEqual(['cart-task-001', 'cart-task-000']);
+  });
+
+  it.each(['none', 'None', '없음', '-', 'N/A'])('의존성 "%s"는 빈 배열이다', (value) => {
+    const content = `### t-001: A
+
+- **상태:** 대기
+- **의존성:** ${value}
+`;
+
+    const tasks = parseTasks(content);
+
+    expect(tasks[0].dependencies).toEqual([]);
+    expect(getNextTask(tasks)?.id).toBe('t-001');
+  });
+
+  it('한글 기능 ID의 작업 제목을 파싱한다', () => {
+    const content = `### 장바구니-task-001: 모델
+
+- **상태:** 완료
+`;
+
+    const tasks = parseTasks(content);
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].id).toBe('장바구니-task-001');
+    expect(tasks[0].status).toBe('completed');
+  });
+
+  it('CRLF 줄바꿈 파일을 파싱한다', () => {
+    const content = '### t-001: A\r\n\r\n- **Status:** in-progress\r\n- **Priority:** LOW\r\n';
+
+    const [task] = parseTasks(content);
+
+    expect(task.title).toBe('A');
+    expect(task.status).toBe('in_progress');
+    expect(task.priority).toBe('low');
+  });
 });
 
 describe('updateTaskStatus', () => {
@@ -306,6 +376,59 @@ completed: 0
     const updated = updateTaskStatus(content, 't-001', 'completed');
 
     expect(updated).toBe(content);
+  });
+
+  it('--- 구분선 너머의 상태 줄은 바꾸지 않는다', () => {
+    const content = `### t-001: A
+
+- **우선순위:** 🔴 HIGH
+
+---
+
+- **상태:** 대기
+`;
+
+    expect(updateTaskStatus(content, 't-001', 'completed')).toBe(content);
+  });
+
+  it('**Status**: 형식은 형식을 유지하며 갱신한다', () => {
+    const content = `### t-001: A
+
+- **Status**: pending
+`;
+
+    expect(updateTaskStatus(content, 't-001', 'blocked')).toContain('- **Status**: blocked\n');
+  });
+
+  it('CRLF 파일은 CRLF를 유지하며 상태와 진행 상황을 갱신한다', () => {
+    const content = [
+      '---',
+      'completed: 0',
+      '---',
+      '',
+      '## 진행 상황',
+      '',
+      '- 대기: 1',
+      '- 진행 중: 0',
+      '- 완료: 0',
+      '- 차단됨: 0',
+      '',
+      '---',
+      '',
+      '### t-001: A',
+      '',
+      '- **상태:** 대기',
+      '- **우선순위:** 🔴 HIGH',
+      '',
+    ].join('\r\n');
+
+    const updated = updateTaskStatus(content, 't-001', 'completed');
+
+    expect(updated).toContain('- **상태:** 완료\r\n- **우선순위:**');
+    expect(updated).toContain('- 대기: 0\r\n');
+    expect(updated).toContain('- 완료: 1\r\n');
+    expect(updated).toContain('completed: 1');
+    expect(updated.replace(/\r\n/g, '')).not.toContain('\n');
   });
 });
 

@@ -332,6 +332,19 @@ describe('createFeature - 덮어쓰기 방지', () => {
     expect(specExists).toBe(false);
   });
 
+  it('spec.md만 있는데 --plan이면 기존 기능에 추가하는 명령을 안내한다', async () => {
+    await fs.writeFile(path.join(featureDir, 'spec.md'), 'edited spec');
+
+    const result = await createFeature(sddPath, 'login', { plan: true });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('--force');
+      expect(result.error.message).toContain('sdd new plan common/login');
+      expect(result.error.message).toContain('sdd new tasks common/login');
+    }
+  });
+
   it('force이면 기존 파일을 덮어쓴다', async () => {
     await fs.writeFile(path.join(featureDir, 'spec.md'), 'edited spec');
     await fs.writeFile(path.join(featureDir, 'plan.md'), 'edited plan');
@@ -656,6 +669,44 @@ describe('createFeature with domain', () => {
     expect(result.success).toBe(false);
     const domainsYml = await fs.readFile(path.join(sddPath, 'domains.yml'), 'utf-8');
     expect(domainsYml).not.toContain('pricing:');
+    const domainMd = await fs
+      .stat(path.join(sddPath, 'domains', 'pricing', 'domain.md'))
+      .then(() => true)
+      .catch(() => false);
+    expect(domainMd).toBe(false);
+  });
+
+  it.each([
+    ['pricing/', '기능 이름이 비어 있습니다'],
+    ['pricing/!!!', '기능 이름이 비어 있습니다'],
+    ['/cart', '도메인 이름이 비어 있습니다'],
+  ])('빈 이름(%s)은 거부하고 도메인·파일을 만들지 않는다', async (name, message) => {
+    const result = await createFeature(sddPath, name, {});
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain(message);
+    }
+    const domainsYml = await fs.readFile(path.join(sddPath, 'domains.yml'), 'utf-8');
+    expect(domainsYml).not.toContain('pricing:');
+    expect(domainsYml).not.toContain('""');
+    const specsEntries = await fs.readdir(path.join(sddPath, 'specs'));
+    expect(specsEntries).toEqual([]);
+  });
+
+  it('등록되지 않은 common은 도메인 미지정과 같이 처리한다', async () => {
+    const result = await createFeature(sddPath, 'common/cart', {});
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.domain).toBe('common');
+      expect(result.data.domainCreated).toBe(false);
+      expect(result.data.featurePath).toBe(path.join(sddPath, 'specs', 'common', 'cart'));
+    }
+    const domainsYml = await fs.readFile(path.join(sddPath, 'domains.yml'), 'utf-8');
+    expect(domainsYml).not.toContain('common:');
+    const spec = await fs.readFile(path.join(sddPath, 'specs', 'common', 'cart', 'spec.md'), 'utf-8');
+    expect(spec).not.toContain('domain: common');
   });
 
   it.each([

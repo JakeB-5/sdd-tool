@@ -15,7 +15,7 @@ export const sddPlanSkill: SkillDefinition = {
 
 1. Browse \`.sdd/specs/\` to identify the feature you want to plan
 2. Read the feature's \`spec.md\` and analyze its requirements
-3. Run \`sdd new plan <feature-id>\` to generate a plan template, or edit an existing \`plan.md\`
+3. If \`plan.md\` already exists (e.g. generated together with spec.md via \`--all\`), edit it; otherwise run \`sdd new plan <feature-id>\` to generate a plan template. Use \`--force\` only to regenerate it from scratch
 
 ## Plan Authoring Rules
 
