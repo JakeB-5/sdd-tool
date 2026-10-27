@@ -29,10 +29,13 @@ sdd init
 
 이 명령어는 다음을 생성합니다:
 - `.sdd/` - 명세 저장소
-- `.claude/skills/` - 30개의 sdd-* 스킬 (영문, `/sdd-*` 슬래시 커맨드로 호출)
-- `CLAUDE.md` - 루트에 `@.sdd/AGENTS.md` import 보장 (없으면 생성, 있으면 줄 추가)
+- `.claude/skills/` - 30개의 sdd-* 스킬 (영문, Claude Code에서 `/sdd-*`로 호출)
+- `.agents/skills/` - 같은 스킬 30개 (Codex에서 `$sdd-*`로 호출)
+- `.claude/agents/`, `.codex/agents/` - 서브에이전트 `sdd-spec-reviewer`, `sdd-implementer`, `sdd-impact-analyst`
+- `AGENTS.md` - 루트 파일의 `sdd:begin/end` 블록에 SDD 지침 (블록 밖 내용은 유지)
+- `CLAUDE.md` - `@AGENTS.md` import 보장 (없으면 생성, 있으면 줄 추가)
 
-스킬 생성을 건너뛰려면 `--no-skills`, 레거시 슬래시 커맨드(`.claude/commands/sdd.*.md`)도 함께 생성하려면 `--legacy-commands` 옵션을 사용합니다.
+스킬 생성을 건너뛰려면 `--no-skills`(두 도구 모두), 레거시 슬래시 커맨드(`.claude/commands/sdd.*.md`)도 함께 생성하려면 `--legacy-commands` 옵션을 사용합니다.
 
 ### 2. Git 워크플로우 설정 (선택)
 

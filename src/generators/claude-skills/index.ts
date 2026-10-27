@@ -1,9 +1,11 @@
 /**
- * Claude Code skills generator.
+ * Skills generator (Claude Code and Codex).
  *
- * Skills are the default Claude Code integration written by `sdd init`.
- * The Korean slash commands under ../claude-commands are a legacy mirror
- * generated only with `--legacy-commands`.
+ * Skills are the default agent integration written by `sdd init`, emitted
+ * from one set of target-neutral definitions to `.claude/skills/` (Claude
+ * Code) and `.agents/skills/` (Codex). The Korean slash commands under
+ * ../claude-commands are a legacy Claude mirror generated only with
+ * `--legacy-commands`.
  *
  * - Skill definitions live under `./core`, `./management`, `./analysis`,
  *   `./domain`, and `./utils`.
@@ -16,7 +18,12 @@ export type {
   SkillContextMode,
   SkillHooks,
 } from './types.js';
-export { serializeSkill } from './writer.js';
+export {
+  serializeSkill,
+  serializeCodexSkill,
+  serializeCodexSkillMetadata,
+  toCodexInvocations,
+} from './writer.js';
 
 import type { SkillDefinition } from './types.js';
 import * as core from './core/index.js';

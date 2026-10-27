@@ -1,13 +1,22 @@
 /**
  * Guard test — every `sdd ...` invocation written into a generated skill
- * (or legacy slash command) must exist on the real commander program, and
- * every skill must allow the `sdd` commands it tells the model to run.
+ * (Claude and Codex output), subagent, AGENTS.md guide, or legacy slash
+ * command must exist on the real commander program, and every Claude skill
+ * must allow the `sdd` commands it tells the model to run.
  */
 import { describe, it, expect } from 'vitest';
 import type { Command } from 'commander';
 import { createProgram } from '../../../../src/cli/index.js';
-import { generateClaudeSkills } from '../../../../src/generators/claude-skills/index.js';
+import matter from 'gray-matter';
+import { parse as parseToml } from 'smol-toml';
+import { generateClaudeSkills, serializeCodexSkill } from '../../../../src/generators/claude-skills/index.js';
 import { generateClaudeCommands } from '../../../../src/generators/claude-commands.js';
+import {
+  generateAgents,
+  serializeClaudeAgent,
+  serializeCodexAgent,
+} from '../../../../src/generators/agents/index.js';
+import { generateAgentsMd } from '../../../../src/generators/agents-md.js';
 
 interface Invocation {
   raw: string;
@@ -286,6 +295,46 @@ describe('generated skill bodies match the real CLI surface', () => {
       expect(uncovered).toEqual([]);
     });
   }
+});
+
+describe('generated Codex skill bodies match the real CLI surface', () => {
+  for (const skill of generateClaudeSkills()) {
+    it(`${skill.name}: every sdd invocation exists`, () => {
+      const { content } = matter(serializeCodexSkill(skill));
+      const invocations = extractInvocations(content, topLevel);
+      expect(invocations.flatMap((inv) => checkInvocation(program, inv))).toEqual([]);
+    });
+  }
+});
+
+describe('subagent instructions match the real CLI surface', () => {
+  for (const agent of generateAgents()) {
+    const outputs = {
+      claude: matter(serializeClaudeAgent(agent)).content,
+      codex: String(parseToml(serializeCodexAgent(agent)).developer_instructions),
+    };
+    for (const [target, body] of Object.entries(outputs)) {
+      it(`${agent.name} (${target}): every sdd invocation exists`, () => {
+        const invocations = extractInvocations(body, topLevel);
+        expect(invocations.flatMap((inv) => checkInvocation(program, inv))).toEqual([]);
+      });
+    }
+  }
+
+  it('the read-only agents actually reference sdd commands (guard is not vacuous)', () => {
+    const raw = generateAgents()
+      .filter((agent) => agent.access === 'read-only')
+      .flatMap((agent) => extractInvocations(agent.instructions, topLevel).map((inv) => inv.raw));
+    expect(raw).toEqual(expect.arrayContaining(['sdd validate <path>', 'sdd quality <feature>']));
+  });
+});
+
+describe('AGENTS.md guide matches the real CLI surface', () => {
+  it('every sdd invocation exists', () => {
+    const invocations = extractInvocations(generateAgentsMd({ projectName: 'demo' }), topLevel);
+    expect(invocations.length).toBeGreaterThan(0);
+    expect(invocations.flatMap((inv) => checkInvocation(program, inv))).toEqual([]);
+  });
 });
 
 describe('legacy slash command bodies match the real CLI surface', () => {

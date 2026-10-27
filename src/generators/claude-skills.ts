@@ -6,7 +6,13 @@
  * under ./claude-skills/.
  */
 
-export { generateClaudeSkills, serializeSkill } from './claude-skills/index.js';
+export {
+  generateClaudeSkills,
+  serializeSkill,
+  serializeCodexSkill,
+  serializeCodexSkillMetadata,
+  toCodexInvocations,
+} from './claude-skills/index.js';
 export type {
   SkillDefinition,
   SkillContextMode,

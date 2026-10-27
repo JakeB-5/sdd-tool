@@ -69,17 +69,57 @@ describe('sdd init', () => {
     expect(content).toContain('SHALL');
   });
 
-  it('AGENTS.md를 생성한다', async () => {
+  it('루트 AGENTS.md에 SDD 블록을 생성한다', async () => {
     await runCli(['init'], tempDir);
 
-    const agentsPath = path.join(tempDir, '.sdd', 'AGENTS.md');
-    const content = await fs.readFile(agentsPath, 'utf-8');
+    const content = await fs.readFile(path.join(tempDir, 'AGENTS.md'), 'utf-8');
 
     // 50줄 규칙: 상단에 RFC 2119와 GIVEN-WHEN-THEN 포함
+    expect(content.startsWith('<!-- sdd:begin -->')).toBe(true);
+    expect(content).toContain('<!-- sdd:end -->');
     expect(content).toContain('# SDD Workflow Guide');
     expect(content).toContain('워크플로우');
     expect(content).toContain('SHALL');
     expect(content).toContain('GIVEN');
+    const legacyExists = await fs.stat(path.join(tempDir, '.sdd', 'AGENTS.md')).then(() => true).catch(() => false);
+    expect(legacyExists).toBe(false);
+  });
+
+  it('AGENTS.md 마커가 깨져 있으면 0이 아닌 코드로 종료하고 아무것도 쓰지 않는다', async () => {
+    const broken = '<!-- sdd:begin -->\nno end\n';
+    await fs.writeFile(path.join(tempDir, 'AGENTS.md'), broken);
+
+    const result = await runCli(['init', '--skip-git-setup'], tempDir);
+
+    expect(result.code).not.toBe(0);
+    expect(result.stdout + result.stderr).toContain('마커');
+    expect(await fs.readdir(tempDir)).toEqual(['AGENTS.md']);
+    expect(await fs.readFile(path.join(tempDir, 'AGENTS.md'), 'utf-8')).toBe(broken);
+  });
+
+  it('Claude Code와 Codex 파일을 함께 생성한다', async () => {
+    const result = await runCli(['init'], tempDir);
+    expect(result.code).toBe(0);
+
+    const codexSkills = await fs.readdir(path.join(tempDir, '.agents', 'skills'));
+    expect(codexSkills.filter((e) => e.startsWith('sdd-')).length).toBe(30);
+    const codexSpec = await fs.readFile(path.join(tempDir, '.agents', 'skills', 'sdd-spec', 'SKILL.md'), 'utf-8');
+    expect(codexSpec).toContain('name: sdd-spec');
+    expect(codexSpec).not.toContain('allowed-tools');
+
+    expect((await fs.readdir(path.join(tempDir, '.claude', 'agents'))).sort()).toEqual([
+      'sdd-impact-analyst.md',
+      'sdd-implementer.md',
+      'sdd-spec-reviewer.md',
+    ]);
+    expect((await fs.readdir(path.join(tempDir, '.codex', 'agents'))).sort()).toEqual([
+      'sdd-impact-analyst.toml',
+      'sdd-implementer.toml',
+      'sdd-spec-reviewer.toml',
+    ]);
+
+    expect(result.stdout).toContain('.agents/skills/');
+    expect(result.stdout).toContain('.codex/agents/');
   });
 
   it('템플릿 파일을 생성한다', async () => {
@@ -138,7 +178,7 @@ describe('sdd init', () => {
     expect(commandsExists).toBe(false);
 
     const claudeMd = await fs.readFile(path.join(tempDir, 'CLAUDE.md'), 'utf-8');
-    expect(claudeMd).toMatch(/^@\.sdd\/AGENTS\.md$/m);
+    expect(claudeMd).toMatch(/^@AGENTS\.md$/m);
   });
 
   it('--legacy-commands 옵션으로 .claude/commands/ 를 함께 생성한다', async () => {
@@ -156,13 +196,14 @@ describe('sdd init', () => {
     expect(result.stdout).not.toContain('--no-commands');
   });
 
-  it('--no-skills 옵션으로 .claude/skills/ 가 비어있다', async () => {
+  it('--no-skills 옵션으로 .claude/skills/ 와 .agents/skills/ 가 비어있다', async () => {
     const result = await runCli(['init', '--no-skills'], tempDir);
     expect(result.code).toBe(0);
 
-    const skillsDir = path.join(tempDir, '.claude', 'skills');
-    const entries = await fs.readdir(skillsDir).catch(() => [] as string[]);
-    expect(entries).toEqual([]);
+    for (const skillsDir of [path.join(tempDir, '.claude', 'skills'), path.join(tempDir, '.agents', 'skills')]) {
+      const entries = await fs.readdir(skillsDir).catch(() => [] as string[]);
+      expect(entries).toEqual([]);
+    }
   });
 
   it('--no-commands 옵션(호환용 no-op)도 성공하고 커맨드를 만들지 않는다', async () => {

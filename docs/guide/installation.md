@@ -54,11 +54,14 @@ Structure created after initialization:
 your-project/
 ├── .sdd/
 │   ├── constitution.md     # Project constitution
-│   ├── AGENTS.md           # AI workflow guide
 │   └── specs/              # Feature specs
-├── CLAUDE.md               # Imports @.sdd/AGENTS.md
-└── .claude/
-    └── skills/             # 30 sdd-* skills
+├── AGENTS.md               # SDD guide (sdd:begin/end block)
+├── CLAUDE.md               # Imports @AGENTS.md
+├── .claude/
+│   ├── skills/             # 30 sdd-* skills (Claude Code)
+│   └── agents/             # sdd-* subagents
+├── .agents/skills/         # 30 sdd-* skills (Codex)
+└── .codex/agents/          # sdd-* subagents (Codex)
 ```
 
 ## Update

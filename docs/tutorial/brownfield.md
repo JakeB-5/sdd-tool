@@ -51,9 +51,11 @@ Created items:
   .sdd/archive/
   .sdd/templates/
   .claude/skills/      <- 30 sdd-* skills (invoked as /sdd-*)
+  .agents/skills/      <- 30 sdd-* skills for Codex (invoked as $sdd-*)
+  .claude/agents/, .codex/agents/  <- sdd-* subagents
   .sdd/constitution.md
-  .sdd/AGENTS.md
-  CLAUDE.md            <- Imports @.sdd/AGENTS.md (created or appended)
+  AGENTS.md            <- SDD guide block (created or appended; your content is kept)
+  CLAUDE.md            <- Imports @AGENTS.md (created or appended)
 
 Existing code remains unchanged.
 Next step: Run /sdd-start in Claude Code.

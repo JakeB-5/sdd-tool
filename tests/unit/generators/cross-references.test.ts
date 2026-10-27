@@ -1,14 +1,16 @@
 /**
- * Cross-reference guard — every `/sdd-x` skill name (and `/sdd.x` legacy
- * command name) mentioned to users must be something `sdd init` generates.
+ * Cross-reference guard — every `/sdd-x` (Claude) or `$sdd-x` (Codex) skill
+ * name, and `/sdd.x` legacy command name, mentioned to users must be
+ * something `sdd init` generates.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generateClaudeSkills } from '../../../src/generators/claude-skills/index.js';
+import { generateClaudeSkills, serializeCodexSkill } from '../../../src/generators/claude-skills/index.js';
 import { generateClaudeCommands } from '../../../src/generators/claude-commands.js';
 import { generateAgentsMd } from '../../../src/generators/agents-md.js';
+import { generateAgents, serializeCodexAgent } from '../../../src/generators/agents/index.js';
 import { PROMPTS } from '../../../src/prompts/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -18,8 +20,10 @@ const skillNames = new Set(generateClaudeSkills().map((s) => s.name));
 const commandNames = new Set(generateClaudeCommands().map((c) => c.name));
 
 // `/sdd-x` / `/sdd.x` not preceded by a path segment (e.g. `.claude/skills/sdd-x`).
-const SKILL_REF = /(?<![\w./-])\/(sdd-[a-z][a-z0-9-]*[a-z0-9])/g;
+const SKILL_REF = /(?<![\w./~:-])\/(sdd-[a-z][a-z0-9-]*[a-z0-9])/g;
 const COMMAND_REF = /(?<![\w./-])\/(sdd\.[a-z][a-z0-9-]*[a-z0-9])/g;
+// Codex skill invocation `$sdd-x`.
+const CODEX_SKILL_REF = /(?<![\w./$-])\$(sdd-[a-z][a-z0-9-]*[a-z0-9])/g;
 
 function refs(text: string, pattern: RegExp): string[] {
   return [...text.matchAll(pattern)].map((m) => m[1]);
@@ -49,6 +53,14 @@ function sources(): Source[] {
 
   list.push({ label: 'AGENTS.md', text: generateAgentsMd({ projectName: 'demo' }), legacy: false });
 
+  for (const agent of generateAgents()) {
+    list.push({
+      label: `agent ${agent.name}`,
+      text: [agent.description, agent.instructions].join('\n'),
+      legacy: false,
+    });
+  }
+
   for (const [name, prompt] of Object.entries(PROMPTS)) {
     list.push({ label: `prompt ${name}`, text: prompt, legacy: false });
   }
@@ -69,6 +81,11 @@ describe('skill and command cross-references', () => {
       expect(unknown).toEqual([]);
     });
 
+    it(`${source.label}: every $sdd-* reference is a generated skill`, () => {
+      const unknown = refs(source.text, CODEX_SKILL_REF).filter((name) => !skillNames.has(name));
+      expect(unknown).toEqual([]);
+    });
+
     it(`${source.label}: every /sdd.* reference is a generated legacy command`, () => {
       const found = refs(source.text, COMMAND_REF);
       if (source.legacy) {
@@ -84,5 +101,43 @@ describe('skill and command cross-references', () => {
     expect(refs('see `.claude/skills/sdd-start/SKILL.md`', SKILL_REF)).toEqual([]);
     expect(refs('run `/sdd-new` then /sdd-plan.', SKILL_REF)).toEqual(['sdd-new', 'sdd-plan']);
     expect(refs('.claude/commands/sdd.start.md or /sdd.change', COMMAND_REF)).toEqual(['sdd.change']);
+    expect(refs('run `$sdd-new` then $sdd-plan, not a$sdd-x', CODEX_SKILL_REF)).toEqual([
+      'sdd-new',
+      'sdd-plan',
+    ]);
+  });
+});
+
+describe('Codex output cross-references', () => {
+  const codexSources: { label: string; text: string }[] = [
+    ...generateClaudeSkills().map((skill) => ({
+      label: `codex skill ${skill.name}`,
+      text: serializeCodexSkill(skill),
+    })),
+    ...generateAgents().map((agent) => ({
+      label: `codex agent ${agent.name}`,
+      text: serializeCodexAgent(agent),
+    })),
+  ];
+
+  for (const source of codexSources) {
+    it(`${source.label}: every $sdd-* reference is a generated skill`, () => {
+      const unknown = refs(source.text, CODEX_SKILL_REF).filter((name) => !skillNames.has(name));
+      expect(unknown).toEqual([]);
+    });
+
+    it(`${source.label}: no Claude /sdd-* notation outside paths`, () => {
+      expect(refs(source.text, SKILL_REF)).toEqual([]);
+      expect(refs(source.text, COMMAND_REF)).toEqual([]);
+    });
+
+    it(`${source.label}: no Claude $ARGUMENTS substitution`, () => {
+      expect(source.text).not.toContain('$ARGUMENTS');
+    });
+  }
+
+  it('skills that reference other skills keep those references in Codex notation', () => {
+    const start = generateClaudeSkills().find((s) => s.name === 'sdd-start')!;
+    expect(refs(serializeCodexSkill(start), CODEX_SKILL_REF).length).toBeGreaterThan(0);
   });
 });

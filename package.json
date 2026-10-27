@@ -52,6 +52,7 @@
     "@types/node": "^20.17.10",
     "@vitest/coverage-v8": "^2.1.8",
     "eslint": "^9.16.0",
+    "smol-toml": "^1.9.1",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.0",

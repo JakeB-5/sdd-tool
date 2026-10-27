@@ -12,6 +12,11 @@ import {
   executeInit,
   buildClaudeMdContent,
 } from '../../../../src/cli/commands/init.js';
+import matter from 'gray-matter';
+import { parse as parseYaml } from 'yaml';
+import { parse as parseToml } from 'smol-toml';
+import { generateClaudeSkills } from '../../../../src/generators/claude-skills.js';
+import { generateAgents } from '../../../../src/generators/agents/index.js';
 
 describe('getInitDirectories', () => {
   it('필수 디렉토리 목록을 반환한다', () => {
@@ -24,12 +29,15 @@ describe('getInitDirectories', () => {
     expect(dirs).toContain('.sdd/templates');
     expect(dirs).toContain('.claude');
     expect(dirs).toContain('.claude/skills');
+    expect(dirs).toContain('.claude/agents');
+    expect(dirs).toContain('.agents/skills');
+    expect(dirs).toContain('.codex/agents');
     expect(dirs).not.toContain('.claude/commands');
   });
 
-  it('기본으로 7개의 디렉토리를 반환한다', () => {
+  it('기본으로 12개의 디렉토리를 반환한다', () => {
     const dirs = getInitDirectories();
-    expect(dirs.length).toBe(7);
+    expect(dirs.length).toBe(12);
   });
 
   it('legacyCommands가 true면 .claude/commands를 포함한다', () => {
@@ -42,36 +50,61 @@ describe('buildClaudeMdContent', () => {
   it('파일이 없으면 헤더와 import 라인을 만든다', () => {
     const content = buildClaudeMdContent(null);
     expect(content).toContain('# CLAUDE.md');
-    expect(content).toMatch(/^@\.sdd\/AGENTS\.md$/m);
+    expect(content).toMatch(/^@AGENTS\.md$/m);
+    expect(content).not.toContain('.sdd/AGENTS.md');
   });
 
   it('import가 없으면 기존 내용 뒤에 덧붙인다', () => {
-    expect(buildClaudeMdContent('# Mine\n')).toBe('# Mine\n\n@.sdd/AGENTS.md\n');
-    expect(buildClaudeMdContent('# Mine')).toBe('# Mine\n\n@.sdd/AGENTS.md\n');
+    expect(buildClaudeMdContent('# Mine\n')).toBe('# Mine\n\n@AGENTS.md\n');
+    expect(buildClaudeMdContent('# Mine')).toBe('# Mine\n\n@AGENTS.md\n');
   });
 
   it('import가 이미 있으면 null을 반환한다', () => {
-    expect(buildClaudeMdContent('x\n@.sdd/AGENTS.md\n')).toBeNull();
-    expect(buildClaudeMdContent('x\n  @./.sdd/AGENTS.md  \n')).toBeNull();
+    expect(buildClaudeMdContent('x\n@AGENTS.md\n')).toBeNull();
+    expect(buildClaudeMdContent('x\n  @./AGENTS.md  \n')).toBeNull();
   });
 
   it('인라인 언급은 import로 간주하지 않는다', () => {
-    expect(buildClaudeMdContent('See `@.sdd/AGENTS.md` later.\n')).not.toBeNull();
+    expect(buildClaudeMdContent('See `@AGENTS.md` later.\n')).not.toBeNull();
   });
 
   it('코드 블록 안의 import 라인은 무시한다', () => {
-    expect(buildClaudeMdContent('```md\n@.sdd/AGENTS.md\n```\n')).not.toBeNull();
-    expect(buildClaudeMdContent('~~~\n@.sdd/AGENTS.md\n~~~\n')).not.toBeNull();
+    expect(buildClaudeMdContent('```md\n@AGENTS.md\n```\n')).not.toBeNull();
+    expect(buildClaudeMdContent('~~~\n@AGENTS.md\n~~~\n')).not.toBeNull();
   });
 
   it('CRLF 파일에는 CRLF로 덧붙인다', () => {
-    expect(buildClaudeMdContent('# Mine\r\nrule\r\n')).toBe('# Mine\r\nrule\r\n\r\n@.sdd/AGENTS.md\r\n');
+    expect(buildClaudeMdContent('# Mine\r\nrule\r\n')).toBe('# Mine\r\nrule\r\n\r\n@AGENTS.md\r\n');
   });
 
-  it('여러 import 중 빠진 것만 덧붙인다', () => {
-    const imports = ['@.sdd/AGENTS.md', '@AGENTS.md'];
-    expect(buildClaudeMdContent('@.sdd/AGENTS.md\n', imports)).toBe('@.sdd/AGENTS.md\n\n@AGENTS.md\n');
-    expect(buildClaudeMdContent('@AGENTS.md\n@.sdd/AGENTS.md\n', imports)).toBeNull();
+  it('이전 @.sdd/AGENTS.md 라인은 그 자리에서 @AGENTS.md로 교체한다', () => {
+    expect(buildClaudeMdContent('# Mine\n@.sdd/AGENTS.md\nmore\n')).toBe('# Mine\n@AGENTS.md\nmore\n');
+    expect(buildClaudeMdContent('# Mine\r\n  @./.sdd/AGENTS.md\r\nmore\r\n')).toBe('# Mine\r\n@AGENTS.md\r\nmore\r\n');
+    expect(buildClaudeMdContent('@.sdd/AGENTS.md')).toBe('@AGENTS.md');
+  });
+
+  it('첫 줄이 이전 import여도 선행 BOM을 보존한다', () => {
+    const bom = String.fromCharCode(0xfeff);
+    expect(buildClaudeMdContent(`${bom}@.sdd/AGENTS.md\nmore\n`)).toBe(`${bom}@AGENTS.md\nmore\n`);
+    expect(buildClaudeMdContent(`${bom}# Mine\n`)).toBe(`${bom}# Mine\n\n@AGENTS.md\n`);
+  });
+
+  it('새 import가 이미 있으면 이전 라인을 제거해 중복을 만들지 않는다', () => {
+    expect(buildClaudeMdContent('@.sdd/AGENTS.md\n@AGENTS.md\n')).toBe('@AGENTS.md\n');
+    expect(buildClaudeMdContent('@AGENTS.md\n@.sdd/AGENTS.md\n@.sdd/AGENTS.md\n')).toBe('@AGENTS.md\n');
+  });
+
+  it('코드 블록 안이나 인라인의 이전 경로 언급은 교체하지 않는다', () => {
+    const fenced = '```md\n@.sdd/AGENTS.md\n```\n';
+    expect(buildClaudeMdContent(fenced)).toBe(`${fenced}\n@AGENTS.md\n`);
+    const inline = 'See `@.sdd/AGENTS.md`.\n';
+    expect(buildClaudeMdContent(inline)).toBe(`${inline}\n@AGENTS.md\n`);
+  });
+
+  it('.claude/CLAUDE.md용 상대 경로 import도 교체한다', () => {
+    expect(buildClaudeMdContent('# Team\n@../.sdd/AGENTS.md\n', ['@../AGENTS.md'], ['@../.sdd/AGENTS.md'])).toBe(
+      '# Team\n@../AGENTS.md\n'
+    );
   });
 });
 
@@ -179,13 +212,72 @@ describe('executeInit', () => {
     expect(content).toContain('SHALL');
   });
 
-  it('AGENTS.md를 생성한다', async () => {
-    await executeInit(tempDir, {});
+  it('루트 AGENTS.md에 SDD 블록을 만들고 .sdd/AGENTS.md는 만들지 않는다', async () => {
+    const result = await executeInit(tempDir, {});
+    expect(result.success).toBe(true);
 
-    const agentsPath = path.join(tempDir, '.sdd', 'AGENTS.md');
-    const content = await fs.readFile(agentsPath, 'utf-8');
+    const content = await fs.readFile(path.join(tempDir, 'AGENTS.md'), 'utf-8');
+    expect(content.startsWith('<!-- sdd:begin -->\n')).toBe(true);
+    expect(content.endsWith('<!-- sdd:end -->\n')).toBe(true);
+    expect(content).toContain('# SDD Workflow Guide');
+    const legacyExists = await fs.stat(path.join(tempDir, '.sdd', 'AGENTS.md')).then(() => true).catch(() => false);
+    expect(legacyExists).toBe(false);
+    if (result.success) {
+      expect(result.data.files).toContain('AGENTS.md');
+      expect(result.data.staleFiles).toEqual([]);
+    }
+  });
 
-    expect(content).toContain('AGENTS');
+  it('Codex 스킬 30개를 .agents/skills/ 에 생성하고 명시 호출 전용 스킬에 openai.yaml을 둔다', async () => {
+    const result = await executeInit(tempDir, {});
+    expect(result.success).toBe(true);
+
+    const codexDir = path.join(tempDir, '.agents', 'skills');
+    const entries = (await fs.readdir(codexDir)).sort();
+    expect(entries).toEqual(generateClaudeSkills().map((s) => s.name).sort());
+
+    const spec = matter(await fs.readFile(path.join(codexDir, 'sdd-spec', 'SKILL.md'), 'utf-8'));
+    expect(Object.keys(spec.data).sort()).toEqual(['description', 'name']);
+    expect(spec.content).not.toMatch(/(?<![\w./$-])\/sdd-[a-z]/);
+
+    for (const skill of generateClaudeSkills()) {
+      const yamlPath = path.join(codexDir, skill.name, 'agents', 'openai.yaml');
+      const exists = await fs.stat(yamlPath).then(() => true).catch(() => false);
+      expect(exists, skill.name).toBe(skill.disableModelInvocation === true);
+    }
+    const watchYaml = parseYaml(await fs.readFile(path.join(codexDir, 'sdd-watch', 'agents', 'openai.yaml'), 'utf-8'));
+    expect(watchYaml.policy).toEqual({ allow_implicit_invocation: false });
+  });
+
+  it('서브에이전트를 .claude/agents/ 와 .codex/agents/ 에 생성한다', async () => {
+    const result = await executeInit(tempDir, {});
+    expect(result.success).toBe(true);
+
+    const names = generateAgents().map((a) => a.name).sort();
+    const claudeAgents = (await fs.readdir(path.join(tempDir, '.claude', 'agents'))).sort();
+    const codexAgents = (await fs.readdir(path.join(tempDir, '.codex', 'agents'))).sort();
+    expect(claudeAgents).toEqual(names.map((n) => `${n}.md`));
+    expect(codexAgents).toEqual(names.map((n) => `${n}.toml`));
+
+    const reviewer = matter(await fs.readFile(path.join(tempDir, '.claude', 'agents', 'sdd-spec-reviewer.md'), 'utf-8'));
+    expect(reviewer.data.name).toBe('sdd-spec-reviewer');
+    const codexReviewer = parseToml(
+      await fs.readFile(path.join(tempDir, '.codex', 'agents', 'sdd-spec-reviewer.toml'), 'utf-8')
+    );
+    expect(codexReviewer.name).toBe('sdd-spec-reviewer');
+    expect(typeof codexReviewer.developer_instructions).toBe('string');
+  });
+
+  it('이전 버전의 .sdd/AGENTS.md는 그대로 두고 경고 대상으로 보고한다', async () => {
+    await fs.mkdir(path.join(tempDir, '.sdd'), { recursive: true });
+    await fs.writeFile(path.join(tempDir, '.sdd', 'AGENTS.md'), '# old guide\n');
+
+    const result = await executeInit(tempDir, { force: true });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.staleFiles).toContain('.sdd/AGENTS.md');
+    }
+    expect(await fs.readFile(path.join(tempDir, '.sdd', 'AGENTS.md'), 'utf-8')).toBe('# old guide\n');
   });
 
   it('기존 .sdd 디렉토리가 있으면 force 없이 실패한다', async () => {
@@ -332,12 +424,13 @@ describe('executeInit', () => {
     }
   });
 
-  it('CLAUDE.md가 없으면 @.sdd/AGENTS.md import와 함께 생성한다', async () => {
+  it('CLAUDE.md가 없으면 @AGENTS.md import와 함께 생성한다', async () => {
     const result = await executeInit(tempDir, {});
     expect(result.success).toBe(true);
 
     const content = await fs.readFile(path.join(tempDir, 'CLAUDE.md'), 'utf-8');
-    expect(content).toMatch(/^@\.sdd\/AGENTS\.md$/m);
+    expect(content).toMatch(/^@AGENTS\.md$/m);
+    expect(content).not.toContain('.sdd/AGENTS.md');
     if (result.success) {
       expect(result.data.files).toContain('CLAUDE.md');
     }
@@ -352,42 +445,114 @@ describe('executeInit', () => {
 
     const content = await fs.readFile(path.join(tempDir, 'CLAUDE.md'), 'utf-8');
     expect(content.startsWith(userContent)).toBe(true);
-    expect(content).toBe(`${userContent}\n\n@.sdd/AGENTS.md\n`);
+    expect(content).toBe(`${userContent}\n\n@AGENTS.md\n`);
   });
 
-  it('재실행(--force) 시 CLAUDE.md import를 중복 추가하지 않는다', async () => {
+  it('재실행(--force) 시 CLAUDE.md import와 AGENTS.md 블록을 중복 추가하지 않는다', async () => {
     await executeInit(tempDir, {});
     const first = await fs.readFile(path.join(tempDir, 'CLAUDE.md'), 'utf-8');
+    const firstAgents = await fs.readFile(path.join(tempDir, 'AGENTS.md'), 'utf-8');
 
     const result = await executeInit(tempDir, { force: true });
     expect(result.success).toBe(true);
 
     const second = await fs.readFile(path.join(tempDir, 'CLAUDE.md'), 'utf-8');
     expect(second).toBe(first);
-    expect(second.match(/@\.sdd\/AGENTS\.md/g)).toHaveLength(1);
+    expect(second.match(/^@AGENTS\.md$/gm)).toHaveLength(1);
+    expect(await fs.readFile(path.join(tempDir, 'AGENTS.md'), 'utf-8')).toBe(firstAgents);
     if (result.success) {
       expect(result.data.files).not.toContain('CLAUDE.md');
+      expect(result.data.files).not.toContain('AGENTS.md');
     }
   });
 
-  it('루트 AGENTS.md가 있으면 생성하는 CLAUDE.md에 @AGENTS.md도 import한다', async () => {
-    await fs.writeFile(path.join(tempDir, 'AGENTS.md'), '# Agents\n');
+  it('이전 버전 CLAUDE.md의 @.sdd/AGENTS.md 라인을 @AGENTS.md로 교체한다', async () => {
+    // Content written by sdd init <= 1.6.0, followed by user rules
+    const legacy = [
+      '# CLAUDE.md',
+      '',
+      '> 이 프로젝트는 SDD(Spec-Driven Development)를 사용합니다.',
+      '> AI 에이전트 워크플로우 지침은 아래에서 가져오는 `.sdd/AGENTS.md`에 있습니다.',
+      '',
+      '@.sdd/AGENTS.md',
+      '',
+      '## Team rules',
+      'Keep me.',
+      '',
+    ].join('\n');
+    await fs.writeFile(path.join(tempDir, 'CLAUDE.md'), legacy);
 
-    await executeInit(tempDir, {});
+    const result = await executeInit(tempDir, {});
+    expect(result.success).toBe(true);
 
     const content = await fs.readFile(path.join(tempDir, 'CLAUDE.md'), 'utf-8');
-    expect(content).toMatch(/^@\.sdd\/AGENTS\.md$/m);
-    expect(content).toMatch(/^@AGENTS\.md$/m);
+    expect(content).toBe(
+      legacy
+        .replace('@.sdd/AGENTS.md', '@AGENTS.md')
+        .replace('`.sdd/AGENTS.md`에 있습니다.', '루트 `AGENTS.md`의 SDD 블록에 있습니다 (Codex와 공용).')
+    );
+    if (result.success) {
+      expect(result.data.files).toContain('CLAUDE.md');
+    }
   });
 
-  it('루트 AGENTS.md가 있으면 기존 CLAUDE.md에도 @AGENTS.md를 덧붙인다', async () => {
-    await fs.writeFile(path.join(tempDir, 'AGENTS.md'), '# Agents\n');
-    await fs.writeFile(path.join(tempDir, 'CLAUDE.md'), '# Mine\n');
+  it('사용자 AGENTS.md는 보존하고 SDD 블록만 덧붙인다', async () => {
+    await fs.writeFile(path.join(tempDir, 'AGENTS.md'), '# Agents\n\nMy rules.\n');
+
+    const result = await executeInit(tempDir, {});
+    expect(result.success).toBe(true);
+
+    const content = await fs.readFile(path.join(tempDir, 'AGENTS.md'), 'utf-8');
+    expect(content.startsWith('# Agents\n\nMy rules.\n\n<!-- sdd:begin -->\n')).toBe(true);
+    expect(content.trimEnd().endsWith('<!-- sdd:end -->')).toBe(true);
+    const claudeMd = await fs.readFile(path.join(tempDir, 'CLAUDE.md'), 'utf-8');
+    expect(claudeMd.match(/^@AGENTS\.md$/gm)).toHaveLength(1);
+  });
+
+  it('AGENTS.md의 기존 SDD 블록만 교체하고 블록 밖 내용은 그대로 둔다', async () => {
+    const userAgents = '# Agents\r\n\r\n<!-- sdd:begin -->\r\nold guide\r\n<!-- sdd:end -->\r\n\r\n## Mine\r\nkeep\r\n';
+    await fs.writeFile(path.join(tempDir, 'AGENTS.md'), userAgents);
 
     await executeInit(tempDir, {});
 
-    const content = await fs.readFile(path.join(tempDir, 'CLAUDE.md'), 'utf-8');
-    expect(content).toBe('# Mine\n\n@.sdd/AGENTS.md\n@AGENTS.md\n');
+    const content = await fs.readFile(path.join(tempDir, 'AGENTS.md'), 'utf-8');
+    expect(content.startsWith('# Agents\r\n\r\n<!-- sdd:begin -->\r\n')).toBe(true);
+    expect(content.endsWith('<!-- sdd:end -->\r\n\r\n## Mine\r\nkeep\r\n')).toBe(true);
+    expect(content).not.toContain('old guide');
+    expect(content).toContain('# SDD Workflow Guide');
+    expect(content.replace(/\r\n/g, '')).not.toContain('\n');
+  });
+
+  it('AGENTS.md 마커가 깨져 있으면 아무것도 쓰지 않고 실패한다', async () => {
+    const broken = '# Agents\n<!-- sdd:begin -->\nno end\n';
+    await fs.writeFile(path.join(tempDir, 'AGENTS.md'), broken);
+
+    const result = await executeInit(tempDir, {});
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('마커');
+    }
+    expect(await fs.readFile(path.join(tempDir, 'AGENTS.md'), 'utf-8')).toBe(broken);
+    expect((await fs.readdir(tempDir)).sort()).toEqual(['AGENTS.md']);
+  });
+
+  it('루트 AGENTS.override.md가 있으면 경고한다', async () => {
+    await fs.writeFile(path.join(tempDir, 'AGENTS.override.md'), '# override\n');
+
+    const result = await executeInit(tempDir, {});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.warnings).toHaveLength(1);
+      expect(result.data.warnings[0]).toContain('AGENTS.override.md');
+    }
+  });
+
+  it('AGENTS.override.md가 없으면 경고가 없다', async () => {
+    const result = await executeInit(tempDir, {});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.warnings).toEqual([]);
+    }
   });
 
   it('.claude/CLAUDE.md만 있으면 그 파일에 상대 경로 import를 덧붙이고 루트 파일은 만들지 않는다', async () => {
@@ -398,7 +563,7 @@ describe('executeInit', () => {
     expect(result.success).toBe(true);
 
     const content = await fs.readFile(path.join(tempDir, '.claude', 'CLAUDE.md'), 'utf-8');
-    expect(content).toBe('# Team\n\n@../.sdd/AGENTS.md\n');
+    expect(content).toBe('# Team\n\n@../AGENTS.md\n');
     const rootExists = await fs.stat(path.join(tempDir, 'CLAUDE.md')).then(() => true).catch(() => false);
     expect(rootExists).toBe(false);
     if (result.success) {
@@ -439,7 +604,7 @@ describe('executeInit', () => {
   });
 
   it('이미 import가 있는 사용자 CLAUDE.md는 변경하지 않는다', async () => {
-    const userContent = '# Team rules\n\n@.sdd/AGENTS.md\n\nMore rules.\n';
+    const userContent = '# Team rules\n\n@AGENTS.md\n\nMore rules.\n';
     await fs.writeFile(path.join(tempDir, 'CLAUDE.md'), userContent);
 
     await executeInit(tempDir, {});
@@ -448,12 +613,14 @@ describe('executeInit', () => {
     expect(content).toBe(userContent);
   });
 
-  it('skills: false 옵션은 .claude/skills/ 를 비워둔다', async () => {
+  it('skills: false 옵션은 .claude/skills/ 와 .agents/skills/ 를 비워두고 서브에이전트는 생성한다', async () => {
     const result = await executeInit(tempDir, { skills: false });
     expect(result.success).toBe(true);
 
-    const skillsDir = path.join(tempDir, '.claude', 'skills');
-    const entries = await fs.readdir(skillsDir).catch(() => [] as string[]);
-    expect(entries).toEqual([]);
+    for (const dir of [['.claude', 'skills'], ['.agents', 'skills']]) {
+      const entries = await fs.readdir(path.join(tempDir, ...dir)).catch(() => [] as string[]);
+      expect(entries, dir.join('/')).toEqual([]);
+    }
+    expect((await fs.readdir(path.join(tempDir, '.codex', 'agents'))).length).toBe(generateAgents().length);
   });
 });

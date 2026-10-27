@@ -81,9 +81,9 @@ When modifying an existing spec:
 4. sdd change archive <id> ──> archive
 \`\`\`
 
-## Slash Command Summary
+## Skill Summary
 
-| Command | Description | When to Use |
+| Skill | Description | When to Use |
 |---------|-------------|-------------|
 | /sdd-start | Unified entry point | First time starting |
 | /sdd-spec | Create or modify a spec | New feature or spec change |

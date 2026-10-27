@@ -51,7 +51,7 @@ them when the code suggests a better boundary.
 
 ### 2. Read the code
 
-For each domain, read the relevant files with Read / Glob / Grep: entry points, public APIs,
+For each domain, find and read the relevant files: entry points, public APIs,
 route handlers, data models, validation rules, error handling and existing tests (tests are
 the best evidence of intended behaviour). Group behaviour into features (one spec per feature).
 

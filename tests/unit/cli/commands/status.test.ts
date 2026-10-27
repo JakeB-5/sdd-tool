@@ -182,13 +182,23 @@ describe('getProjectStatus', () => {
     expect(status.hasConstitution).toBe(true);
   });
 
-  it('AGENTS.md 존재를 확인한다', async () => {
+  it('루트 AGENTS.md의 SDD 블록 존재를 확인한다', async () => {
     await fs.mkdir(sddPath, { recursive: true });
-    await fs.writeFile(path.join(sddPath, 'AGENTS.md'), '# Agents');
+    await fs.writeFile(path.join(tempDir, 'AGENTS.md'), '# Mine\n\n<!-- sdd:begin -->\nguide\n<!-- sdd:end -->\n');
 
     const status = await getProjectStatus(tempDir);
 
     expect(status.hasAgents).toBe(true);
+  });
+
+  it('SDD 블록이 없는 AGENTS.md나 이전 .sdd/AGENTS.md는 인정하지 않는다', async () => {
+    await fs.mkdir(sddPath, { recursive: true });
+    await fs.writeFile(path.join(tempDir, 'AGENTS.md'), '# Mine\n');
+    await fs.writeFile(path.join(sddPath, 'AGENTS.md'), '# Agents');
+
+    const status = await getProjectStatus(tempDir);
+
+    expect(status.hasAgents).toBe(false);
   });
 
   it('기능 목록을 수집한다', async () => {

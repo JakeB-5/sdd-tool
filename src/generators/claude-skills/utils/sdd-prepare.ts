@@ -6,15 +6,21 @@ import type { SkillDefinition } from '../types.js';
 export const sddPrepareSkill: SkillDefinition = {
   name: 'sdd-prepare',
   description:
-    "Detect which Claude Code sub-agents and skills a feature's spec, plan, and tasks need, and generate missing ones with `sdd prepare`. Use after task breakdown and before implementation.",
+    "Detect which sub-agents and skills a feature's spec, plan, and tasks need, and generate missing ones with `sdd prepare`. Use after task breakdown and before implementation.",
   argumentHint: '<feature-id> [--dry-run]',
   allowedTools: ['Read', 'Glob', 'Bash(sdd prepare*)'],
   content: `# SDD Prepare
 
 ## Overview
 
-Analyze spec, plan, and task documents to detect the Claude Code sub-agents and skills
+Analyze spec, plan, and task documents to detect the sub-agents and skills
 needed for implementation. Any missing tools are flagged, with an option to generate them automatically.
+\`sdd prepare\` checks and writes them in the Claude Code layout (\`.claude/agents/\`, \`.claude/skills/\`).
+
+**Codex:** \`sdd prepare\` currently targets only the Claude Code layout above; it does not
+check or create Codex files. The Codex equivalents are subagents in \`.codex/agents/<name>.toml\`
+(\`name\`, \`description\`, \`developer_instructions\`) and skills in \`.agents/skills/<name>/SKILL.md\`.
+When working in Codex, use the detected list as a checklist and create the missing Codex files by hand.
 
 ## Instructions
 

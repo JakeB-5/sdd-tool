@@ -14,6 +14,7 @@ import { parseTasks } from '../../core/new/task-generator.js';
 import { listPendingChanges, listArchives, type PendingChange } from '../../core/change/archive.js';
 import { getCurrentBranch, listFeatureBranches } from '../../core/new/branch.js';
 import { createDomainService } from '../../core/domain/service.js';
+import { hasSddBlock } from '../../generators/agents-md.js';
 
 /**
  * 기능 정보
@@ -124,8 +125,9 @@ export async function getProjectStatus(projectPath: string): Promise<ProjectStat
   // 헌법 확인
   status.hasConstitution = await fileExists(path.join(sddPath, 'constitution.md'));
 
-  // AGENTS.md 확인
-  status.hasAgents = await fileExists(path.join(sddPath, 'AGENTS.md'));
+  // 루트 AGENTS.md의 SDD 관리 블록 확인
+  const agentsMd = await fs.readFile(path.join(projectPath, 'AGENTS.md'), 'utf-8').catch(() => '');
+  status.hasAgents = hasSddBlock(agentsMd);
 
   // 기능 스펙 조회 (도메인 기반 구조 지원)
   for (const location of await listSpecs(sddPath)) {

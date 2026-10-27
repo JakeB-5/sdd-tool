@@ -10,6 +10,7 @@ Claude Code에서 사용하는 SDD 스킬 가이드입니다.
 - `.claude/commands/`는 기본적으로 생성되지 **않습니다**. Claude Code가 커스텀 커맨드를 스킬로 통합했으므로 스킬이 지원되는 형식입니다.
 - 레거시 한국어 dot-notation 커맨드(`.claude/commands/sdd.*.md`)도 함께 생성하려면 `sdd init --legacy-commands`를 사용합니다.
 - 스킬 생성을 건너뛰려면 `--no-skills`를 사용합니다.
+- 같은 스킬이 OpenAI Codex용으로 `.agents/skills/sdd-*/`에도 생성되며 `$sdd-<이름>`(예: `$sdd-spec`)으로 호출합니다. [sdd init › Codex 지원](/ko/cli/init#codex-지원)을 참고하세요.
 
 ## 스킬 목록
 

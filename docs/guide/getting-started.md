@@ -45,8 +45,9 @@ sdd init
 
 This command:
 - Creates `.sdd/` directory structure
-- Generates `.claude/skills/` with 30 English skills (`sdd-*`), invoked as `/sdd-*` slash commands
-- Ensures a root `CLAUDE.md` imports the agent guide (`@.sdd/AGENTS.md`)
+- Generates 30 English skills (`sdd-*`) for Claude Code (`.claude/skills/`, invoked as `/sdd-*`) and Codex (`.agents/skills/`, invoked as `$sdd-*`)
+- Generates the `sdd-spec-reviewer`, `sdd-implementer` and `sdd-impact-analyst` subagents (`.claude/agents/`, `.codex/agents/`)
+- Writes the SDD guide into a managed block of the root `AGENTS.md` and ensures `CLAUDE.md` imports it (`@AGENTS.md`)
 - Optionally sets up Git workflow and CI/CD
 
 ### Step 2: Configure Optional Features
@@ -81,17 +82,19 @@ After initialization, your project will have:
 your-project/
 ├── .sdd/
 │   ├── constitution.md      # Project principles
-│   ├── AGENTS.md            # AI workflow guide
 │   ├── domains.yml          # Domain definitions
 │   ├── specs/               # Specifications
 │   ├── changes/             # Change proposals
 │   └── archive/             # Completed changes
 │
-├── CLAUDE.md                # Imports @.sdd/AGENTS.md
+├── AGENTS.md                # SDD guide (sdd:begin/end block, read by Codex)
+├── CLAUDE.md                # Imports @AGENTS.md
 │
-└── .claude/
-    ├── agents/              # Sub-agents
-    └── skills/              # Skills (sdd-*)
+├── .claude/
+│   ├── agents/              # Subagents (sdd-*.md)
+│   └── skills/              # Skills (sdd-*)
+├── .agents/skills/          # Codex skills (sdd-*)
+└── .codex/agents/           # Codex subagents (sdd-*.toml)
 ```
 
 ## Creating Your First Specification

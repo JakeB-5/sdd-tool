@@ -14,7 +14,7 @@
 
 ## 개요
 
-SDD Tool은 **Claude Code**와 함께 사용하도록 설계된 명세 기반 개발(Spec-Driven Development) CLI입니다. **Claude Code 스킬**(`/sdd-*` 슬래시 커맨드로 호출)을 통해 AI와 대화하며 스펙을 작성하고, 코드를 구현합니다.
+SDD Tool은 **Claude Code**와 **OpenAI Codex**에서 사용하도록 설계된 명세 기반 개발(Spec-Driven Development) CLI입니다. **SDD 스킬**(Claude Code는 `/sdd-*`, Codex는 `$sdd-*`로 호출)을 통해 AI와 대화하며 스펙을 작성하고, 코드를 구현합니다.
 
 ### 핵심 개념
 
@@ -37,13 +37,13 @@ npm install -g sdd-tool
 ## 빠른 시작
 
 ```bash
-# 1. 프로젝트 초기화 (Claude Code 스킬 + CLAUDE.md import + Git/CI-CD 설정)
+# 1. 프로젝트 초기화 (Claude Code + Codex 스킬, 서브에이전트, AGENTS.md 블록, CLAUDE.md import, Git/CI-CD 설정)
 sdd init
 
-# 2. Claude Code 실행
+# 2. Claude Code 실행 (또는 Codex: `codex`)
 claude
 
-# 3. 시작 스킬로 워크플로우 시작
+# 3. 시작 스킬로 워크플로우 시작 (Codex: $sdd-start)
 /sdd-start
 ```
 
@@ -88,7 +88,32 @@ claude
 
 `sdd init` 실행 시 `.claude/skills/sdd-*/SKILL.md`에 Claude Code 스킬 30개가 자동 생성됩니다. Claude Code는 각 스킬을 슬래시 커맨드로 노출하므로 `/sdd-start`, `/sdd-spec` 등 케밥 케이스 이름으로 호출합니다.
 
-> `.claude/commands/`는 Claude Code가 커맨드를 스킬로 통합했기 때문에 기본 생성되지 않습니다. 레거시 한국어 점 표기법 커맨드(`.claude/commands/sdd.*.md`)도 함께 생성하려면 `sdd init --legacy-commands`를 사용하세요. 스킬 생성을 건너뛰려면 `--no-skills`를 사용합니다.
+> `.claude/commands/`는 Claude Code가 커맨드를 스킬로 통합했기 때문에 기본 생성되지 않습니다. 레거시 한국어 점 표기법 커맨드(`.claude/commands/sdd.*.md`)도 함께 생성하려면 `sdd init --legacy-commands`를 사용하세요. 스킬 생성을 건너뛰려면 `--no-skills`를 사용합니다 (Claude Code, Codex 모두).
+
+### Codex 지원
+
+`sdd init`은 별도 옵션 없이 같은 정의로 OpenAI Codex 파일도 함께 생성합니다:
+
+| 생성물 | 용도 |
+|--------|------|
+| `.agents/skills/sdd-*/SKILL.md` | 같은 스킬 30개 (프론트매터는 `name` + `description`, 스킬 참조는 `$sdd-x` 표기) |
+| `.agents/skills/<name>/agents/openai.yaml` | 명시 호출 전용 스킬(`sdd-chat`, `sdd-cicd`, `sdd-guide`, `sdd-migrate`, `sdd-watch`)에 `policy.allow_implicit_invocation: false` |
+| `.codex/agents/sdd-*.toml` | 서브에이전트 (아래 참조) |
+| `AGENTS.md` (프로젝트 루트) | `<!-- sdd:begin -->` … `<!-- sdd:end -->` 블록의 SDD 지침, 블록 밖 내용은 건드리지 않음 |
+
+Codex에서는 `$sdd-spec auth/login`처럼 명시적으로 호출하거나 `/skills`에서 고릅니다. 설명(description)에 맞는 요청이면 Codex가 스킬을 암묵적으로 선택하기도 합니다.
+
+### 서브에이전트
+
+`sdd init`은 서브에이전트 3개를 두 도구 모두에 생성합니다 (`.claude/agents/<name>.md`, `.codex/agents/<name>.toml`):
+
+| 서브에이전트 | 역할 |
+|--------------|------|
+| `sdd-spec-reviewer` | 읽기 전용 스펙 리뷰: RFC 2119, GIVEN-WHEN-THEN, 헌법 준수; `sdd validate` / `sdd quality` 실행 |
+| `sdd-implementer` | `tasks.md` 작업을 테스트 우선으로 구현하고 스펙 범위를 유지 |
+| `sdd-impact-analyst` | 스펙 변경 전 `sdd impact`로 읽기 전용 영향도 분석 |
+
+"sdd-spec-reviewer로 auth/login 스펙을 리뷰해줘"처럼 이름을 지정해 위임합니다.
 
 ### 스킬 프론트매터
 
@@ -355,7 +380,7 @@ constitution_version: 1.0.0
 sdd init                    # 프로젝트 초기화 (대화형 Git/CI-CD 설정 포함)
 sdd init --skip-git-setup   # Git/CI-CD 설정 건너뛰기
 sdd init --auto-approve     # 모든 설정 자동 승인
-sdd init --no-skills        # .claude/skills/ 생성 건너뛰기
+sdd init --no-skills        # .claude/skills/, .agents/skills/ 생성 건너뛰기
 sdd init --legacy-commands  # 레거시 .claude/commands/sdd.*.md도 함께 생성
 sdd validate                # 스펙 검증
 sdd status                  # 상태 확인
@@ -476,13 +501,12 @@ sdd cicd check              # CI 환경 검증
 
 ---
 
-## Claude Code 도구 구조
+## 프로젝트 구조
 
 ```
 your-project/
 ├── .sdd/
 │   ├── constitution.md     # 프로젝트 헌법
-│   ├── AGENTS.md           # AI 워크플로우 가이드
 │   ├── domains.yml         # 도메인 정의 (v1.2.0)
 │   ├── .context.json       # 현재 컨텍스트 (v1.2.0)
 │   ├── specs/              # 기능 명세 (v1.3.0: 도메인 기반 구조)
@@ -500,22 +524,21 @@ your-project/
 │   ├── archive/            # 완료된 변경
 │   └── .reverse-drafts/    # 역추출 임시 스펙 (v1.2.0)
 │
-├── CLAUDE.md               # @.sdd/AGENTS.md로 에이전트 가이드를 import
+├── AGENTS.md               # <!-- sdd:begin/end --> 블록의 SDD 지침 (Codex가 읽음)
+├── CLAUDE.md               # @AGENTS.md로 지침을 import (Claude Code)
 │
-└── .claude/
-    ├── agents/             # 서브에이전트
-    │   ├── test-runner.md
-    │   └── api-scaffold.md
-    ├── skills/             # SDD 워크플로우 스킬 — 영어, 케밥 케이스
-    │   ├── sdd-start/
-    │   │   └── SKILL.md
-    │   ├── sdd-spec/
-    │   │   └── SKILL.md
-    │   └── ...             # sdd-* 스킬 30개
-    └── settings.json       # 스킬 설정 (v1.2.0)
+├── .claude/                # Claude Code
+│   ├── agents/             # 서브에이전트 (sdd-spec-reviewer, sdd-implementer, sdd-impact-analyst)
+│   ├── skills/             # SDD 워크플로우 스킬 — 영어, 케밥 케이스
+│   │   ├── sdd-start/
+│   │   │   └── SKILL.md
+│   │   └── ...             # sdd-* 스킬 30개
+│   └── settings.json       # 스킬 설정 (v1.2.0)
+├── .agents/skills/         # Codex 스킬 (같은 sdd-* 스킬 30개)
+└── .codex/agents/          # Codex 서브에이전트 (sdd-*.toml)
 ```
 
-> **스킬**: `sdd init`이 `.claude/skills/sdd-*/SKILL.md`에 영어 스킬 30개를 생성하고, 루트 `CLAUDE.md`가 `@.sdd/AGENTS.md`를 import하도록 보장합니다 (없으면 생성, import 줄이 없으면 추가하며 기존 내용은 덮어쓰지 않음). 레거시 `.claude/commands/` 파일은 `--legacy-commands`를 사용할 때만 생성됩니다.
+> **스킬**: `sdd init`이 `.claude/skills/sdd-*/SKILL.md`와 `.agents/skills/sdd-*/SKILL.md`에 영어 스킬 30개를 생성하고, 루트 `AGENTS.md` 블록에 SDD 지침을 쓰며, `CLAUDE.md`가 `@AGENTS.md`를 import하도록 보장합니다 (없으면 생성, import 줄이 없으면 추가, 이전 `@.sdd/AGENTS.md` 줄은 교체하며 기존 내용은 덮어쓰지 않음). `.sdd/AGENTS.md`는 더 이상 생성하지 않습니다. 레거시 `.claude/commands/` 파일은 `--legacy-commands`를 사용할 때만 생성됩니다.
 
 ---
 

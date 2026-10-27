@@ -3,7 +3,14 @@
  */
 import { describe, it, expect } from 'vitest';
 import matter from 'gray-matter';
-import { serializeSkill } from '../../../../src/generators/claude-skills/writer.js';
+import { parse as parseYaml } from 'yaml';
+import {
+  serializeSkill,
+  serializeCodexSkill,
+  serializeCodexSkillMetadata,
+  toCodexInvocations,
+} from '../../../../src/generators/claude-skills/writer.js';
+import { generateClaudeSkills } from '../../../../src/generators/claude-skills/index.js';
 import type { SkillDefinition } from '../../../../src/generators/claude-skills/types.js';
 
 function minimal(): SkillDefinition {
@@ -151,5 +158,126 @@ describe('serializeSkill', () => {
     });
     const { content } = matter(out);
     expect(content.trim().startsWith('# Heading')).toBe(true);
+  });
+});
+
+describe('toCodexInvocations', () => {
+  it('rewrites skill references and leaves paths and URLs alone', () => {
+    expect(toCodexInvocations('Run `/sdd-spec auth/login`, then /sdd-plan.')).toBe(
+      'Run `$sdd-spec auth/login`, then $sdd-plan.'
+    );
+    expect(toCodexInvocations('/sdd-start or sdd start')).toBe('$sdd-start or sdd start');
+    expect(toCodexInvocations('(/sdd-tasks)')).toBe('($sdd-tasks)');
+    const untouched = [
+      '.claude/skills/sdd-start/SKILL.md',
+      'https://example.com/sdd-start',
+      'src/sdd-spec.ts',
+      '$sdd-spec',
+      '/sdd.start',
+      '~/sdd-foo',
+      'C:/sdd-foo',
+    ].join('\n');
+    expect(toCodexInvocations(untouched)).toBe(untouched);
+  });
+
+  it('keeps line lengths so ASCII diagrams stay aligned', () => {
+    const line = '│  1. Start ──────> /sdd-start or sdd start       │';
+    expect(toCodexInvocations(line)).toHaveLength(line.length);
+  });
+});
+
+describe('serializeCodexSkill', () => {
+  it('emits only name and description in frontmatter', () => {
+    const out = serializeCodexSkill({
+      ...minimal(),
+      argumentHint: '<feature-id>',
+      allowedTools: ['Read', 'Bash(sdd validate*)'],
+      context: 'fork',
+      hooks: { before: './pre.sh' },
+      agent: 'x',
+      userInvocable: false,
+      disableModelInvocation: true,
+    });
+    const { data } = matter(out);
+    expect(Object.keys(data).sort()).toEqual(['description', 'name']);
+    expect(data.name).toBe('sdd-sample');
+  });
+
+  it('rewrites skill references in the body and description', () => {
+    const out = serializeCodexSkill({
+      ...minimal(),
+      description: 'Use after /sdd-plan.',
+      content: '# T\n\nNext: `/sdd-tasks`. See `.claude/skills/sdd-tasks/SKILL.md`.',
+    });
+    const parsed = matter(out);
+    expect(parsed.data.description).toBe('Use after $sdd-plan.');
+    expect(parsed.content).toContain('`$sdd-tasks`');
+    expect(parsed.content).toContain('.claude/skills/sdd-tasks/SKILL.md');
+    expect(parsed.content).not.toMatch(/(?<![\w./$-])\/sdd-/);
+  });
+
+  it('replaces $ARGUMENTS with placeholder wording', () => {
+    const out = serializeCodexSkill({
+      ...minimal(),
+      content: 'Use `$ARGUMENTS` if given.\n\n```bash\nsdd watch $ARGUMENTS\n```',
+    });
+    expect(out).not.toContain('$ARGUMENTS');
+    expect(out).toContain('Use the arguments the user gave if given.');
+    expect(out).toContain('sdd watch <user-arguments>');
+    // Claude output keeps the substitution Claude Code expands
+    expect(serializeSkill({ ...minimal(), content: 'sdd watch $ARGUMENTS' })).toContain('$ARGUMENTS');
+  });
+
+  it('no generated Codex skill contains $ARGUMENTS', () => {
+    const users = generateClaudeSkills().filter((skill) => skill.content.includes('$ARGUMENTS'));
+    expect(users.length).toBeGreaterThan(0);
+    for (const skill of generateClaudeSkills()) {
+      expect(serializeCodexSkill(skill), skill.name).not.toContain('$ARGUMENTS');
+    }
+  });
+
+  it('Codex sdd-prepare states that sdd prepare targets the Claude layout and names the Codex equivalents', () => {
+    const prepare = generateClaudeSkills().find((skill) => skill.name === 'sdd-prepare')!;
+    const out = serializeCodexSkill(prepare);
+    expect(out).toContain('currently targets only the Claude Code layout');
+    expect(out).toContain('.codex/agents/<name>.toml');
+    expect(out).toContain('.agents/skills/<name>/SKILL.md');
+  });
+
+  it('every generated Codex skill has no Claude skill notation outside paths', () => {
+    for (const skill of generateClaudeSkills()) {
+      const out = serializeCodexSkill(skill);
+      expect(out, skill.name).not.toMatch(/(?<![\w./$-])\/sdd-[a-z]/);
+      expect(out, skill.name).not.toMatch(/Claude Code sub-agents|AskUserQuestion|Read \/ Glob/);
+    }
+  });
+});
+
+describe('serializeCodexSkillMetadata', () => {
+  it('returns null for skills that allow implicit invocation', () => {
+    expect(serializeCodexSkillMetadata(minimal())).toBeNull();
+    expect(serializeCodexSkillMetadata({ ...minimal(), disableModelInvocation: false })).toBeNull();
+  });
+
+  it('disables implicit invocation for manual-only skills', () => {
+    const out = serializeCodexSkillMetadata({ ...minimal(), name: 'sdd-data-model', disableModelInvocation: true });
+    expect(out).not.toBeNull();
+    expect(parseYaml(out!)).toEqual({
+      interface: { display_name: 'SDD Data Model' },
+      policy: { allow_implicit_invocation: false },
+    });
+  });
+
+  it('is emitted exactly for the manual-only generated skills', () => {
+    const withMetadata = generateClaudeSkills()
+      .filter((skill) => serializeCodexSkillMetadata(skill) !== null)
+      .map((skill) => skill.name)
+      .sort();
+    expect(withMetadata).toEqual(
+      generateClaudeSkills()
+        .filter((skill) => skill.disableModelInvocation === true)
+        .map((skill) => skill.name)
+        .sort()
+    );
   });
 });

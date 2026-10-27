@@ -51,9 +51,11 @@ sdd init
   📁 .sdd/archive/
   📁 .sdd/templates/
   📁 .claude/skills/      ← sdd-* 스킬 30개 (/sdd-*로 호출)
+  📁 .agents/skills/      ← Codex용 sdd-* 스킬 30개 ($sdd-*로 호출)
+  📁 .claude/agents/, .codex/agents/  ← sdd-* 서브에이전트
   📄 .sdd/constitution.md
-  📄 .sdd/AGENTS.md
-  📄 CLAUDE.md            ← @.sdd/AGENTS.md import (생성 또는 추가)
+  📄 AGENTS.md            ← SDD 지침 블록 (생성 또는 추가, 기존 내용 유지)
+  📄 CLAUDE.md            ← @AGENTS.md import (생성 또는 추가)
 
 기존 코드는 그대로 유지됩니다.
 다음 단계: Claude Code에서 /sdd-start 를 실행하세요.

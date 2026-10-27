@@ -39,9 +39,11 @@ Created items:
   .sdd/archive/
   .sdd/templates/
   .claude/skills/      <- 30 sdd-* skills (invoked as /sdd-*)
+  .agents/skills/      <- 30 sdd-* skills for Codex (invoked as $sdd-*)
+  .claude/agents/, .codex/agents/  <- sdd-* subagents
   .sdd/constitution.md
-  .sdd/AGENTS.md
-  CLAUDE.md            <- Imports @.sdd/AGENTS.md
+  AGENTS.md            <- SDD guide block
+  CLAUDE.md            <- Imports @AGENTS.md
 
 Next step: Run /sdd-start in Claude Code.
 ```
@@ -52,14 +54,17 @@ Generated structure:
 todo-api/
 ├── .sdd/
 │   ├── constitution.md     # Project principles
-│   ├── AGENTS.md           # AI guidelines
 │   ├── specs/              # Spec repository
 │   ├── changes/            # Change proposals
 │   ├── archive/            # Archive
 │   └── templates/          # Templates
-├── CLAUDE.md               # Imports @.sdd/AGENTS.md
+├── AGENTS.md               # AI guidelines (sdd:begin/end block)
+├── CLAUDE.md               # Imports @AGENTS.md
 ├── .claude/
-│   └── skills/             # 30 sdd-* skills
+│   ├── skills/             # 30 sdd-* skills
+│   └── agents/             # sdd-* subagents
+├── .agents/skills/         # Codex skills
+├── .codex/agents/          # Codex subagents
 └── package.json
 ```
 
