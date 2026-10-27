@@ -60,18 +60,23 @@
 # domains.yml
 domains:
   core:
+    description: "핵심 기능"
     specs: [data-model, validation, utils]
 
   auth:
+    description: "인증"
     dependencies:
       uses: [core]
     specs: [user-login, oauth, session]
 
   order:
+    description: "주문과 결제"
     dependencies:
       uses: [core, auth]
     specs: [create-order, payment, refund]
 ```
+
+`description`은 모든 도메인에 필수이고 `specs`와 `dependencies`는 선택입니다.
 
 ## 컨텍스트 전략
 
@@ -158,13 +163,20 @@ rules:
 # domains.yml
 domains:
   auth:
+    description: "인증"
     owner: "@security-team"
-    reviewers: ["@lead-dev"]
+    defaults:
+      reviewers: ["@lead-dev"]
 
   payment:
+    description: "결제"
     owner: "@payment-team"
-    reviewers: ["@finance-lead", "@security-team"]
+    defaults:
+      author: "@payment-team"
+      reviewers: ["@finance-lead", "@security-team"]
 ```
+
+`owner`와 `tags`는 도메인에 직접 두고, `reviewers`와 `author`는 `defaults` 안에서만 유효합니다.
 
 ### 병합 충돌 방지
 

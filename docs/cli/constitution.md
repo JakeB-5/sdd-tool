@@ -33,14 +33,14 @@ sdd constitution bump --minor -m "Add security principles"
 
 ## What is a Constitution?
 
-A document that defines the core principles and rules of the project. All specs must comply with the constitution.
+A document that defines the core principles and rules of the project. Specs reference its version through
+`constitution_version`; `sdd validate` compares the two (see [sdd validate](./validate)).
 
 ### Components
 
-- **Core Principles**: Immutable core principles
-- **Technical Principles**: Technical guidelines
-- **Forbidden**: Prohibited actions
-- **Guidelines**: Recommendations
+- **Core principles** (`## 핵심 원칙`): numbered `### N. Title` entries with `-` rules
+- **Tech stack** (`## 기술 스택`) and **quality standards** (`## 품질 기준`): `-` lines
+- **Forbidden** (`## 금지 사항`): rules containing `SHALL NOT` / `MUST NOT`
 
 ## Examples
 
@@ -50,22 +50,21 @@ A document that defines the core principles and rules of the project. All specs 
 sdd constitution show
 ```
 
-Output:
+Output (the CLI prints Korean):
 ```
-=== Constitution: my-project ===
+ℹ Constitution: My Project
+ℹ 버전: 1.0.0
+ℹ 설명: One-line description of the project's principles.
 
-📋 Core Principles:
-  • Quality First: Code quality is non-negotiable
-  • Spec First: Specs before code
+ℹ 핵심 원칙:
+• P1. User First
+  • User experience SHALL be the basis of all decisions
+• P2. Data Protection
+  • User data safety SHALL be the top priority
 
-🔧 Technical Principles:
-  • Use TypeScript
-  • Apply ESLint + Prettier
-  • Test coverage 80% or higher
-
-🚫 Forbidden:
-  • Using any type
-  • console.log in production code
+ℹ 금지 사항:
+• The `any` type SHALL NOT be used
+• Hardcoded secrets MUST NOT be committed
 ```
 
 ### Validate Constitution
@@ -76,34 +75,24 @@ sdd constitution validate
 
 Output:
 ```
-🔍 Validating constitution...
-
-✅ Required sections present
-✅ RFC 2119 keywords used
-✅ Principles defined
-
-Validation result: Valid
+✓ Constitution 검증 통과
+ℹ 프로젝트: My Project
+ℹ 버전: 1.0.0
+ℹ 원칙 수: 2
+ℹ 금지 사항 수: 2
 ```
 
-### Constitution Change History
+It exits with code 2 when the file cannot be parsed (for example a missing `# Constitution: <name>` title).
+
+### Bump the Version and Read the History
 
 ```bash
+sdd constitution bump --minor -m "Added test coverage criteria"
+# ✓ Constitution 버전 업데이트: 1.0.0 → 1.1.0
 sdd constitution history
 ```
 
-Output:
-```
-=== Constitution Change History ===
-
-v1.2.0 (2025-01-05)
-  - Test coverage requirement raised 70% → 80%
-
-v1.1.0 (2024-12-20)
-  - ESLint flat config migration
-
-v1.0.0 (2024-12-01)
-  - Initial constitution defined
-```
+`bump` updates `version:` / `updated:` in the frontmatter and records the change in `.sdd/CHANGELOG.md`.
 
 ## Constitution File Structure
 
@@ -116,31 +105,30 @@ updated: 2025-01-07
 
 # Constitution: my-project
 
-## Core Principles
+> One-line description.
 
-Defines the core principles of the project.
+## 핵심 원칙
 
-### Quality First
+### 1. Quality First
 
 - Code quality is non-negotiable (SHALL)
-- Code without tests is not deployed (MUST)
+- Code without tests must not be deployed (SHALL NOT)
 
-## Technical Principles
+## 기술 스택
 
-Defines technical decisions.
+- Language: TypeScript
 
-### Languages and Tools
+## 품질 기준
 
-- TypeScript SHALL be used
-- ESLint and Prettier SHOULD be applied
+- Test coverage SHALL be at least 80%
 
-## Forbidden
+## 금지 사항
 
-Specifies prohibited patterns.
-
-- Using any type (SHALL NOT)
-- console.log in production code (MUST NOT)
+- The `any` type SHALL NOT be used
+- console.log in production code MUST NOT be left in
 ```
+
+See the [Constitution writing guide](/spec-writing/constitution) for details.
 
 ## Related Documentation
 

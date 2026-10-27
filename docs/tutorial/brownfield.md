@@ -42,48 +42,45 @@ cd my-api
 sdd init
 ```
 
-```
-SDD project has been initialized!
+Output (the CLI prints Korean; abridged):
 
-Created items:
-  .sdd/specs/
-  .sdd/changes/
-  .sdd/archive/
-  .sdd/templates/
-  .claude/skills/      <- 30 sdd-* skills (invoked as /sdd-*)
-  .agents/skills/      <- 30 sdd-* skills for Codex (invoked as $sdd-*)
-  .claude/agents/, .codex/agents/  <- sdd-* subagents
-  .sdd/constitution.md
-  AGENTS.md            <- SDD guide block (created or appended; your content is kept)
-  CLAUDE.md            <- Imports @AGENTS.md (created or appended)
-
-Existing code remains unchanged.
-Next step: Run /sdd-start in Claude Code.
 ```
+✓ SDD 프로젝트가 초기화되었습니다.
+
+ℹ 생성된 구조:
+• .sdd/
+  • constitution.md
+  • specs/
+  • changes/
+  • archive/
+  • templates/
+• .claude/ (Claude Code)
+  • skills/ (30개)
+  • agents/ (3개)
+• .agents/skills/ (Codex 스킬 30개)
+• .codex/agents/ (Codex 서브에이전트 3개)
+• AGENTS.md (SDD 워크플로우 지침 블록)
+• CLAUDE.md (AGENTS.md import)
+
+ℹ 다음 단계:
+• constitution.md를 수정하여 프로젝트 원칙을 정의하세요
+• /sdd-spec (Codex: $sdd-spec) 으로 첫 번째 기능 명세를 작성하세요
+```
+
+Existing code is left unchanged; an existing `AGENTS.md` / `CLAUDE.md` keeps its content (the SDD block is added).
 
 ### Start in Claude Code
 
-Now open the project in Claude Code and run `/sdd-start`:
+Now open the project in Claude Code (or Codex) and run `/sdd-start` (`$sdd-start`):
 
 ```
 /sdd-start
 ```
 
-Claude analyzes the existing project:
-
-```
-Project Status
-
-SDD Initialized
-Constitution: Template (modification needed)
-Specs: 0
-
-Existing codebase detected:
-- Files: 12
-- Language: JavaScript
-
-Tip: Run /sdd-reverse to extract specs from existing code.
-```
+`/sdd-start` first checks the setup (`.sdd/`, Git repository and hooks, CI workflow, existing `src/`). If something is
+missing (hooks, CI) it runs a setup wizard for the items you pick (`sdd init`, `sdd git hooks install`,
+`sdd cicd setup github`). Only after setup is complete does it recommend the next skill: `/sdd-spec` for a new
+project, or `/sdd-reverse` for a project with existing code and no specs, as here.
 
 ## Step 2: Structure Scan
 
@@ -101,21 +98,22 @@ sdd reverse scan --json
 
 The scan reports the file count, source file count, real line counts, the language distribution, directory-based suggested domains with their file lists, and files that belong to no domain. It does not create domains and writes no metadata file.
 
-Abbreviated output for this project:
+Abbreviated output for this project (`files` lists and `languages` per domain omitted; the file counts include
+`package.json` and the `AGENTS.md` / `CLAUDE.md` written by `sdd init`):
 
 ```json
 {
-  "summary": { "fileCount": 12, "sourceFileCount": 12, "lines": 640, "languages": { "javascript": 12 } },
+  "summary": { "fileCount": 12, "sourceFileCount": 9, "lines": 18, "languages": { "javascript": 9 } },
   "domains": [
     { "id": "controllers", "path": "src/controllers", "fileCount": 3 },
     { "id": "services", "path": "src/services", "fileCount": 3 },
-    { "id": "models", "path": "src/models", "fileCount": 2 },
-    { "id": "utils", "path": "src/utils", "fileCount": 1 }
+    { "id": "models", "path": "src/models", "fileCount": 2 }
   ],
-  "unassigned": []
+  "unassigned": ["src/utils/validation.js"]
 }
 ```
 
+Generic folders such as `utils` are never suggested as domains, so `src/utils/validation.js` stays in `unassigned`.
 Suggested domains follow the directory layout, so treat them as a starting point. Claude regroups them by business meaning (here: `core`, `auth`, `user`, `order`) before writing drafts. Narrow the scan with `--include`, `--exclude`, `--language`, or `--depth` when needed, for example `sdd reverse scan src --exclude '*.test.js'`.
 
 ## Step 3: Draft Writing (AI)
@@ -243,52 +241,69 @@ Finalize refuses to overwrite an existing spec and exits non-zero when it skips 
 /sdd-validate
 ```
 
-```
-Validation complete
-
-Specs: 8
-Domains: 4
-Dependencies: Valid
-
-Warnings: 2
-  - login: Output type User not defined in core
-  - create-order: Possible missing dependency on payment
-
-Errors: 0
-```
-
-### Resolve Warnings
+`sdd validate` checks format only (frontmatter, RFC 2119 keywords, GIVEN-WHEN-THEN, placeholders, constitution
+version). It does not judge whether the spec matches the code. Output (Korean; the drafts were written without
+`constitution_version`, so that check is skipped):
 
 ```
-User: Add User type spec and resolve the warning
+ℹ 검증 중: ./.sdd/specs
+ℹ (Constitution 버전 확인 포함)
 
-Claude: Spec added
+✓ auth/login/spec.md
+✓ auth/logout/spec.md
+✓ auth/register/spec.md
+✓ order/create-order/spec.md
+✓ user/get-user/spec.md
 
-Creating user-model spec (domain: core):
+ℹ constitution_version이 없는 스펙 5개는 Constitution 버전 확인을 건너뛰었습니다 (현재 v1.0.0)
 
-  ---
-  id: user-model
-  title: "User Model"
-  status: draft
-  created: 2026-10-27
-  domain: core
-  depends: []
-  ---
+결과: 5개 통과, 0개 실패
+```
 
-  # User Model
+### Add a Shared Spec and Declare the Dependency
 
-  interface User {
-    id: string;
-    email: string;
-    name: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }
+While reading the code, Claude notices that login and get-user both return a `User`. It adds a shared spec in a new
+`core` domain (`sdd domain create core`, then `sdd domain link core user-model`). The spec passes
+`sdd validate --strict`:
 
-Adding user-model to login's frontmatter: depends: [core/user-model]
-(only `depends` creates a dependency for `sdd impact`; mentioning core/user-model in the body would not)
+```markdown
+---
+id: user-model
+title: "User Model"
+status: draft
+created: 2026-10-27
+domain: core
+depends: []
+---
 
-Warning resolved
+# User Model
+
+> The User entity shared by the auth and user domains.
+
+## Requirements
+
+### REQ-01: User shape
+
+The system SHALL represent a user with `id`, `email`, `name`, `createdAt` and `updatedAt`.
+
+## Scenarios
+
+### Scenario 1: Create a user (REQ-01)
+
+- **GIVEN** a valid email and name
+- **WHEN** a user is created
+- **THEN** the user has an id and both timestamps set
+```
+
+Then declare the dependency in login's frontmatter: `depends: [core/user-model]`. Only `depends` creates a dependency
+for `sdd impact`; mentioning `core/user-model` in the body would not:
+
+```
+$ sdd impact core/user-model
+📊 영향도 분석: core/user-model
+
+⚠️  직접 영향 받는 스펙 (이 기능을 사용하는):
+  ├─ 🔴 auth/login (explicit)
 ```
 
 ## Step 8: Check Project Status
@@ -297,28 +312,34 @@ Warning resolved
 /sdd-status
 ```
 
+The skill runs `sdd status`. Right after finalizing, the specs are still `draft` (📝), so the next step it suggests for
+each is writing a plan:
+
 ```
-Project Status: my-api
+📊 SDD 프로젝트 상태
+════════════════════════════════════════
 
-Specs: 9
-  Implemented (legacy): 9 (100%)
-  Tests needed: 4
-  Spec enhancement needed: 2
+📁 프로젝트 구조:
+   ✅ constitution.md
+   ✅ AGENTS.md
 
-Domains:
-  core: 2/2 complete 100%
-  auth: 3/3 complete 100%
-  user: 2/3 complete  67%
-  order: 2/4 complete  50%
+📋 기능 목록:
+   📝 User Login (auth/login)
+   📝 User Logout (auth/logout)
+   📝 User Registration (auth/register)
+   📝 Create Order (order/create-order)
+   📝 Get User (user/get-user)
 
-Drafts (unfinalized): 4
-  -> Continue review with sdd reverse review --list
+🔀 현재 브랜치: master
 
-Recommended next actions:
-  1. Review remaining drafts: sdd reverse review --list
-  2. Add tests: "Write tests for auth/login"
-  3. New features: /sdd-spec
+💡 다음 단계:
+   auth/login: 명세 완성 후 계획 작성 — sdd new plan auth/login (Claude Code /sdd-plan · Codex $sdd-plan)
+   auth/logout: 명세 완성 후 계획 작성 — sdd new plan auth/logout (Claude Code /sdd-plan · Codex $sdd-plan)
+   ...
 ```
+
+Unfinalized drafts are not listed here; use `sdd reverse review --list`. For code that already exists you can skip the plan
+and tasks and record the status directly (next step).
 
 ## Step 9: Gradual Improvement
 
@@ -466,59 +487,40 @@ sdd sync --ci --threshold 80      # fail with exit code 2 below 80%
 ```
 === SDD Sync: 스펙-코드 동기화 검증 ===
 
-스펙: 8개, 요구사항: 21개
+스펙: 6개, 요구사항: 11개
 
-✓ 구현됨 (18/21)
-  - REQ-01: Token issuance (src/auth/login.ts:12)
+✓ 구현됨 (3/11)
+  - auth/login#REQ-01: Main behavior (test/auth.test.js:1)
+  - auth/login#REQ-02: Error handling (src/controllers/authController.js:1)
+  - auth/register#REQ-01: Main behavior (src/controllers/authController.js:2)
+
+✗ 미구현 (8/11)
+  - auth/logout#REQ-01: Main behavior
   ...
 
-✗ 미구현 (3/21)
-  - REQ-03: Password check
-
-동기화율: 86% (18/21)
+동기화율: 27.27% (3/11)
 ```
+
+(A real run on a project whose specs define two requirements each; here only three `@spec` references exist so far.)
 
 Add the missing `@spec` references, or fix the spec when the code is right. A bare `REQ-01` is only
 counted when exactly one spec has that id, so qualify references with `<domain>/<feature>#`.
 
 ### Domain Graph
 
-```
-/sdd-domain graph
-```
+Declare the domain dependencies (`sdd domain depends auth --on core`, and so on), then print the graph
+(`/sdd-domain graph`, or `sdd domain graph` in a terminal):
 
 ```mermaid
-graph TB
-    subgraph core[core domain]
-        validation[validation ]
-        user-model[user-model ]
-    end
-
-    subgraph auth[auth domain]
-        login[login ]
-        register[register ]
-        logout[logout ]
-        password-reset[password-reset ]
-    end
-
-    subgraph user[user domain]
-        get-user[get-user ]
-        update-user[update-user ]
-        delete-user[delete-user ]
-    end
-
-    subgraph order[order domain]
-        create-order[create-order ]
-        get-order[get-order ]
-        list-orders[list-orders ]
-        update-order[update-order ]
-    end
-
-    core --> auth
-    core --> user
-    core --> order
-    auth --> user
-    auth --> order
+graph LR
+  auth["auth 도메인 (reverse finalize로 등록)"]
+  order["order 도메인 (reverse finalize로 등록)"]
+  user["user 도메인 (reverse finalize로 등록)"]
+  core["core domain"]
+  auth -->|uses| core
+  order -->|uses| core
+  order -->|uses| auth
+  user -->|uses| core
 ```
 
 ## Next Steps

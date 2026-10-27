@@ -190,7 +190,7 @@ git branch -d spec-bundle/payment-v2
 
 ```bash
 # 영향 분석으로 식별
-sdd impact billing/payment-gateway --code
+sdd impact billing/payment-gateway-v2 --code
 
 # Footer에 명시
 Breaking-Spec: billing/checkout, billing/invoice

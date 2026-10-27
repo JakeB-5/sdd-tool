@@ -30,22 +30,29 @@ npm init -y
 sdd init
 ```
 
+출력(요약):
+
 ```
-✅ SDD 프로젝트가 초기화되었습니다!
+✓ SDD 프로젝트가 초기화되었습니다.
 
-생성된 항목:
-  📁 .sdd/specs/
-  📁 .sdd/changes/
-  📁 .sdd/archive/
-  📁 .sdd/templates/
-  📁 .claude/skills/      ← sdd-* 스킬 30개 (/sdd-*로 호출)
-  📁 .agents/skills/      ← Codex용 sdd-* 스킬 30개 ($sdd-*로 호출)
-  📁 .claude/agents/, .codex/agents/  ← sdd-* 서브에이전트
-  📄 .sdd/constitution.md
-  📄 AGENTS.md            ← SDD 지침 블록
-  📄 CLAUDE.md            ← @AGENTS.md import
+ℹ 생성된 구조:
+• .sdd/
+  • constitution.md
+  • specs/
+  • changes/
+  • archive/
+  • templates/
+• .claude/ (Claude Code)
+  • skills/ (30개)
+  • agents/ (3개)
+• .agents/skills/ (Codex 스킬 30개)
+• .codex/agents/ (Codex 서브에이전트 3개)
+• AGENTS.md (SDD 워크플로우 지침 블록)
+• CLAUDE.md (AGENTS.md import)
 
-다음 단계: Claude Code에서 /sdd-start 를 실행하세요.
+ℹ 다음 단계:
+• constitution.md를 수정하여 프로젝트 원칙을 정의하세요
+• /sdd-spec (Codex: $sdd-spec) 으로 첫 번째 기능 명세를 작성하세요
 ```
 
 생성되는 구조:
@@ -70,21 +77,15 @@ todo-api/
 
 ### Claude Code에서 시작
 
-이제 Claude Code에서 프로젝트를 열고 `/sdd-start`를 실행합니다:
+이제 Claude Code(또는 Codex)에서 프로젝트를 열고 `/sdd-start`(`$sdd-start`)를 실행합니다:
 
 ```
 /sdd-start
 ```
 
-```
-📂 프로젝트 상태
-
-✅ SDD 초기화됨
-📜 Constitution: 템플릿 (수정 필요)
-📋 스펙: 0개
-
-다음 단계: /sdd-constitution 으로 프로젝트 원칙을 정의하세요.
-```
+`/sdd-start`는 설정 상태(`.sdd/`, Git 훅, CI 워크플로우, 기존 소스)를 확인합니다. 빠진 항목은 설정 마법사
+(`sdd init`, `sdd git hooks install`, `sdd cicd setup github`)를 거치고, 그 다음에야 다음 스킬을 추천합니다. 기존 코드도
+스펙도 없는 이 프로젝트는 `/sdd-spec`이며, 먼저 `/sdd-constitution`으로 원칙을 정의합니다.
 
 ## Step 2: 프로젝트 헌법 정의
 
@@ -279,25 +280,22 @@ Claude: 📋 스펙 초안
 /sdd-validate
 ```
 
+스킬은 `sdd validate`를 실행하며, 형식(frontmatter, 대문자 RFC 2119 키워드, GIVEN-WHEN-THEN 시나리오, 남은
+플레이스홀더, constitution 버전)을 검사합니다. 여섯 스펙을 모두 채웠을 때의 출력(요약):
+
 ```
-✅ 검증 완료
+✓ core/validation/spec.md
+✓ todo/create-todo/spec.md
+✓ todo/delete-todo/spec.md
+✓ todo/get-todo/spec.md
+✓ todo/list-todos/spec.md
+✓ todo/update-todo/spec.md
 
-스펙: 6개
-  ✅ validation (도메인: core)
-  ✅ create-todo (도메인: todo)
-  ✅ get-todo (도메인: todo)
-  ✅ update-todo (도메인: todo)
-  ✅ delete-todo (도메인: todo)
-  ✅ list-todos (도메인: todo)
-
-경고: 0개
-오류: 0개
-
-의존성 그래프:
-  validation
-    └── create-todo
-    └── update-todo
+결과: 6개 통과, 0개 실패
 ```
+
+의존성은 각 스펙의 frontmatter `depends`에 선언합니다(예: create-todo와 update-todo의 `depends: [core/validation]`).
+`sdd impact core/validation`은 이 스펙에 의존하는 스펙을 보여줍니다.
 
 ## Step 7: 구현 계획
 
@@ -516,23 +514,25 @@ Claude가 스펙 상태와 의존성을 확인합니다:
 /sdd-status
 ```
 
+스킬은 `sdd status`를 실행합니다. 처음 두 스펙을 구현하고 세 번째를 시작한 시점의 출력(요약):
+
 ```
-📊 프로젝트 현황: todo-api
+📋 기능 목록:
+   ✅ validation (core/validation)
+   ✅ create-todo (todo/create-todo) — 작업 3/3
+   📝 delete-todo (todo/delete-todo)
+   🔨 get-todo (todo/get-todo) — 작업 0/3
+   📝 list-todos (todo/list-todos)
+   📝 update-todo (todo/update-todo)
 
-스펙: 6개
-  ✅ 구현됨: 2개 (33%)
-  🔄 진행중: 1개 (17%)
-  📝 초안: 3개 (50%)
-
-도메인:
-  core: 1/1 완료 ████████████ 100%
-  todo: 1/5 완료 ██░░░░░░░░░░ 20%
-
-테스트: 8/8 통과
-
-다음 단계:
-  → "get-todo 구현해줘" 라고 요청하세요
+💡 다음 단계:
+   todo/delete-todo: 명세 완성 후 계획 작성 — sdd new plan todo/delete-todo (Claude Code /sdd-plan · Codex $sdd-plan)
+   todo/get-todo: 명세 완성 후 계획 작성 — sdd new plan todo/get-todo (Claude Code /sdd-plan · Codex $sdd-plan)
+   ...
 ```
+
+아이콘은 스펙 상태를 따릅니다(📝 draft, 🔨 implementing, ✅ implemented). `— 작업 n/m`은 완료된 작업 수입니다.
+다음 단계는 기능별 파일, 상태, 작업 진행률로 계산됩니다.
 
 ## 도메인 그래프 확인
 
@@ -540,23 +540,16 @@ Claude가 스펙 상태와 의존성을 확인합니다:
 /sdd-domain graph
 ```
 
+`sdd domain graph`는 도메인 의존성 그래프를 출력합니다(기본은 Mermaid):
+
 ```mermaid
 graph LR
-    subgraph core[core 도메인]
-        validation[validation ✅]
-    end
-
-    subgraph todo[todo 도메인]
-        create[create-todo ✅]
-        get[get-todo 📝]
-        update[update-todo 📝]
-        delete[delete-todo 📝]
-        list[list-todos 📝]
-    end
-
-    validation --> create
-    validation --> update
+  core["Common utilities and types"]
+  todo["Todo CRUD operations"]
+  todo -->|uses| core
 ```
+
+스펙 단위 의존성은 `sdd impact <spec> --graph`를 사용하세요.
 
 ## 다음 단계
 

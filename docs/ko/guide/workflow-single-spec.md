@@ -108,7 +108,7 @@ sdd validate .sdd/specs/auth/user-login/spec.md
 git add .
 git commit -m "spec-update(auth/user-login): address review feedback
 
-- REQ-003 명확화
+- REQ-03 명확화
 - 시나리오 2 수정"
 
 git push
@@ -196,9 +196,8 @@ sdd validate .sdd/specs/auth/user-login/spec.md
 
 # 일반적인 원인:
 # - 대문자 SHALL/MUST/SHOULD 키워드 누락
-# - 채우지 않은 템플릿 플레이스홀더 ([요구사항 제목], {{...}})
-# - GIVEN-WHEN-THEN 형식 오류
-# - 의존성 스펙 미존재
+# - GIVEN-WHEN-THEN 형식 오류 (시나리오 없음)
+# --strict에서는 채우지 않은 템플릿 플레이스홀더([요구사항 제목] 등)도 실패
 ```
 
 ### 커밋 훅 실패

@@ -53,6 +53,10 @@ depends: [auth/session] # 의존하는 스펙 (없으면 [])
 ---
 ```
 
+**`sdd validate`가 검사하는 것:** `created`(YYYY-MM-DD)만 검사하며, 없으면 경고입니다(`--strict`에서는 에러). 나머지 필드는
+검증상 선택입니다(`sdd new`는 항상 씁니다). `status`를 생략하면 `draft`로 취급하고, `constitution_version`이 없는 스펙은
+constitution 버전 검사를 건너뜁니다.
+
 **`depends` 문법:** `<domain>/<feature>` 형식 스펙 ID의 YAML 목록이며, 의존성이 없으면 `[]`입니다
 (`sdd new`는 `depends: []`로 생성). 한 줄 목록(`depends: [pricing/cart, auth/session]`)과
 블록 목록(`- pricing/cart`) 모두 허용하고, 이름이 유일하면 `<feature>`만 써도 됩니다.

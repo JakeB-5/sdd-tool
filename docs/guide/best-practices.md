@@ -54,7 +54,7 @@ Spec → Plan → Tasks → Implement
 
 **Complete coverage:**
 ```markdown
-### REQ-001: User Login
+### REQ-01: User Login
 
 - Users SHALL be able to log in (positive)
 - Invalid credentials SHALL be rejected (negative)
@@ -462,7 +462,7 @@ sdd export --all --format markdown
 ```markdown
 # User Authentication
 
-## REQ-001: Email/Password Login
+## REQ-01: Email/Password Login
 - Scenario 1: Valid credentials → Success
 - Scenario 2: Invalid password → Error
 - Scenario 3: Non-existent user → Error
@@ -472,26 +472,26 @@ sdd export --all --format markdown
 ### Core Feature + Extensions
 
 ```markdown
-## REQ-001: Basic Search
+## REQ-01: Basic Search
 [MUST have]
 
-## REQ-002: Advanced Filters
+## REQ-02: Advanced Filters
 [SHOULD have]
 
-## REQ-003: Search Suggestions
+## REQ-03: Search Suggestions
 [MAY have]
 ```
 
 ### Security + Usability
 
 ```markdown
-## REQ-001: Secure Password Hashing
+## REQ-01: Secure Password Hashing
 [SHALL - security]
 
-## REQ-002: Helpful Error Messages
+## REQ-02: Helpful Error Messages
 [SHOULD - usability]
 
-## REQ-003: Account Recovery
+## REQ-03: Account Recovery
 [SHOULD - support]
 ```
 

@@ -38,22 +38,22 @@ sdd validate [path] [options]
 
 ### Required Validation
 
-- YAML frontmatter format
-- Required metadata (id, title, status)
-- `status` is one of `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated` (legacy `specified` / `completed` are read as `review` / `implemented` with warning W006)
+- YAML frontmatter format (`id`, `title` and `constitution_version` are optional; only a missing `created` date is reported, as a warning that fails under `--strict`)
+- At least one RFC 2119 keyword in the requirements. A spec without any keyword fails (exit code 2); keywords must be uppercase, so lowercase-only text (`shall`) also fails and additionally gets hint W008
+- `status` (defaults to `draft` when omitted) is one of `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated` (legacy `specified` / `completed` are read as `review` / `implemented` with warning W006)
+- At least one scenario in GIVEN-WHEN-THEN form (a spec without one fails)
 - Markdown syntax
 
 ### Warning Validation
 
-- RFC 2119 keyword usage (keywords must be uppercase; keywords in HTML comments and code fences are ignored)
-- GIVEN-WHEN-THEN format
+- Keywords inside HTML comments and code fences do not count
 - Requirement ID format
 - Leftover template placeholders (<code v-pre>{{...}}</code> values, also in frontmatter such as <code v-pre>id: "{{FEATURE_ID}}"</code>, and `[...]` text), so `--strict` fails on an unfilled spec template
 
 ### Constitution Validation
 
-- constitution_version match
-- Forbidden rules violation
+- `constitution_version` is compared with the constitution's `version`: a difference is a warning, a major difference fails; specs without it are skipped
+- An unparseable constitution gives warning W007 and the check is skipped. The constitution's rules (for example forbidden practices) are not checked against spec text
 
 ## Examples
 
@@ -95,7 +95,7 @@ sdd validate --quiet
 ✓ auth/user-auth/spec.md
 ✓ auth/profile/spec.md
 ✓ common/settings/spec.md
-  ⚠ RFC 2119 키워드가 없습니다
+  ⚠ 템플릿 플레이스홀더가 남아 있습니다: [요구사항 제목], [기능] 외 2개
 
 결과: 3개 통과, 0개 실패, 1개 경고
 ```

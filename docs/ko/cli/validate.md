@@ -38,22 +38,22 @@ sdd validate [path] [options]
 
 ### 필수 검증
 
-- YAML frontmatter 형식
-- 필수 메타데이터 (id, title, status)
-- `status`는 `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated` 중 하나 (레거시 `specified` / `completed`는 각각 `review` / `implemented`로 읽고 경고 W006)
+- YAML frontmatter 형식 (`id`, `title`, `constitution_version`은 선택. `created` 날짜가 없을 때만 경고로 보고되며 `--strict`에서는 실패)
+- 요구사항에 RFC 2119 키워드가 하나 이상 있어야 함. 키워드가 전혀 없는 스펙은 실패(종료 코드 2)하며, 키워드는 대문자여야 하므로 소문자(`shall`)만 있어도 실패하고 힌트 W008이 추가됨
+- GIVEN-WHEN-THEN 형식의 시나리오가 하나 이상 있어야 함 (없으면 실패)
+- `status`(생략하면 `draft`)는 `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated` 중 하나 (레거시 `specified` / `completed`는 각각 `review` / `implemented`로 읽고 경고 W006)
 - 마크다운 문법
 
 ### 경고 검증
 
-- RFC 2119 키워드 사용 (키워드는 대문자여야 하며, HTML 주석과 코드 펜스 안의 키워드는 무시)
-- GIVEN-WHEN-THEN 형식
+- HTML 주석과 코드 펜스 안의 키워드는 인정되지 않음
 - 요구사항 ID 형식
 - 남아 있는 템플릿 플레이스홀더 (<code v-pre>id: "{{FEATURE_ID}}"</code> 같은 frontmatter를 포함한 <code v-pre>{{...}}</code> 값과 `[...]` 문구) — 채우지 않은 스펙 템플릿은 `--strict`에서 실패합니다
 
 ### 헌법 검증
 
-- constitution_version 일치
-- 금지 사항 위반 여부
+- `constitution_version`을 constitution의 `version`과 비교: 차이는 경고, Major 차이는 실패. 없는 스펙은 건너뜀
+- constitution을 파싱할 수 없으면 경고 W007과 함께 검사를 건너뜀. constitution의 규칙(예: 금지 사항)을 스펙 본문과 대조하지는 않음
 
 ## 예시
 
@@ -95,7 +95,7 @@ sdd validate --quiet
 ✓ auth/user-auth/spec.md
 ✓ auth/profile/spec.md
 ✓ common/settings/spec.md
-  ⚠ RFC 2119 키워드가 없습니다
+  ⚠ 템플릿 플레이스홀더가 남아 있습니다: [요구사항 제목], [기능] 외 2개
 
 결과: 3개 통과, 0개 실패, 1개 경고
 ```

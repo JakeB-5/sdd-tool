@@ -34,14 +34,18 @@ depends: [auth/session]
 ---
 ```
 
-**Required Fields:**
+**Checked by `sdd validate`:** only `created` (YYYY-MM-DD) is checked: a missing date is a warning (an error with
+`--strict`). The other fields are optional for validation (`sdd new` always writes them): `status` defaults to `draft`,
+and a spec without `constitution_version` simply skips the constitution version check.
+
+**Fields:**
 - `id` - Unique identifier (kebab-case)
 - `title` - Human-readable title
 - `status` - One of: `draft`, `review`, `approved`, `planned`, `tasked`, `implementing`, `implemented`, `deprecated` (see [Specification Lifecycle](#specification-lifecycle))
 - `created` - Creation date (YYYY-MM-DD)
 - `constitution_version` - Project constitution version
 
-**Optional Fields:**
+**Other fields:**
 - `updated` - Last update date
 - `version` - Specification version
 - `domain` - Domain this spec belongs to
@@ -299,7 +303,7 @@ Enable secure user identification and session management while protecting user c
 
 ## Core Requirements
 
-### REQ-001: Email/Password Authentication
+### REQ-01: Email/Password Authentication
 
 The system SHALL support secure authentication using email and password.
 
@@ -325,7 +329,7 @@ The system SHALL support secure authentication using email and password.
 - Login response time SHOULD be under 500ms
 - The system SHOULD rate-limit failed attempts (5 attempts per 15 minutes)
 
-### REQ-002: JWT Token Management
+### REQ-02: JWT Token Management
 
 The system SHALL use JWT (JSON Web Tokens) for API authentication.
 
@@ -334,7 +338,7 @@ The system SHALL use JWT (JSON Web Tokens) for API authentication.
 - Refresh token SHALL have 30-day expiration
 - Expired tokens SHALL be rejected with HTTP 401
 
-### REQ-003: Password Reset
+### REQ-03: Password Reset
 
 The system SHOULD provide password reset capability.
 
@@ -468,16 +472,16 @@ The system SHOULD provide password reset capability.
 
 **Good:**
 ```markdown
-### REQ-001: Email Validation
+### REQ-01: Email Validation
 - Emails SHALL be RFC 5322 compliant
 
-### REQ-002: Password Validation
+### REQ-02: Password Validation
 - Passwords SHALL be minimum 8 characters
 ```
 
 **Avoid:**
 ```markdown
-### REQ-001: User Credentials
+### REQ-01: User Credentials
 - Emails should be valid and passwords should be strong
 ```
 

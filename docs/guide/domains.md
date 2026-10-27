@@ -146,10 +146,13 @@ graph LR
 
 ### Circular Dependency Detection
 
-Circular dependencies are automatically detected:
+Circular dependencies are detected by `sdd domain validate` (exit code 2):
 
 ```
-❌ Circular dependency detected: auth → order → payment → auth
+❌ 도메인 검증 실패
+
+📛 에러 (1개):
+  • [CIRCULAR_DEPENDENCY] 순환 의존성이 발견되었습니다: auth → order → payment → auth (uses)
 ```
 
 ## Domain Validation

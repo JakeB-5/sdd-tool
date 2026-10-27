@@ -30,22 +30,29 @@ Run the `sdd init` command in your terminal:
 sdd init
 ```
 
+Output (the CLI prints Korean; abridged):
+
 ```
-SDD project has been initialized!
+✓ SDD 프로젝트가 초기화되었습니다.
 
-Created items:
-  .sdd/specs/
-  .sdd/changes/
-  .sdd/archive/
-  .sdd/templates/
-  .claude/skills/      <- 30 sdd-* skills (invoked as /sdd-*)
-  .agents/skills/      <- 30 sdd-* skills for Codex (invoked as $sdd-*)
-  .claude/agents/, .codex/agents/  <- sdd-* subagents
-  .sdd/constitution.md
-  AGENTS.md            <- SDD guide block
-  CLAUDE.md            <- Imports @AGENTS.md
+ℹ 생성된 구조:
+• .sdd/
+  • constitution.md
+  • specs/
+  • changes/
+  • archive/
+  • templates/
+• .claude/ (Claude Code)
+  • skills/ (30개)
+  • agents/ (3개)
+• .agents/skills/ (Codex 스킬 30개)
+• .codex/agents/ (Codex 서브에이전트 3개)
+• AGENTS.md (SDD 워크플로우 지침 블록)
+• CLAUDE.md (AGENTS.md import)
 
-Next step: Run /sdd-start in Claude Code.
+ℹ 다음 단계:
+• constitution.md를 수정하여 프로젝트 원칙을 정의하세요
+• /sdd-spec (Codex: $sdd-spec) 으로 첫 번째 기능 명세를 작성하세요
 ```
 
 Generated structure:
@@ -70,21 +77,15 @@ todo-api/
 
 ### Start in Claude Code
 
-Now open the project in Claude Code and run `/sdd-start`:
+Now open the project in Claude Code (or Codex) and run `/sdd-start` (`$sdd-start`):
 
 ```
 /sdd-start
 ```
 
-```
-Project Status
-
-SDD Initialized
-Constitution: Template (modification needed)
-Specs: 0
-
-Next step: Define project principles with /sdd-constitution.
-```
+`/sdd-start` checks the setup (`.sdd/`, Git hooks, CI workflow, existing source). Missing items go through a setup wizard
+(`sdd init`, `sdd git hooks install`, `sdd cicd setup github`); only then does it recommend the next skill. With no
+existing code and no specs (this project) that is `/sdd-spec`; define the principles first with `/sdd-constitution`.
 
 ## Step 2: Define Project Constitution
 
@@ -279,25 +280,22 @@ For each spec, define scenarios and contracts through conversation with Claude.
 /sdd-validate
 ```
 
+The skill runs `sdd validate`, which checks format (frontmatter, uppercase RFC 2119 keywords, GIVEN-WHEN-THEN
+scenarios, leftover placeholders, constitution version). Output with all six specs filled in (Korean; abridged):
+
 ```
-Validation complete
+✓ core/validation/spec.md
+✓ todo/create-todo/spec.md
+✓ todo/delete-todo/spec.md
+✓ todo/get-todo/spec.md
+✓ todo/list-todos/spec.md
+✓ todo/update-todo/spec.md
 
-Specs: 6
-  validation (domain: core)
-  create-todo (domain: todo)
-  get-todo (domain: todo)
-  update-todo (domain: todo)
-  delete-todo (domain: todo)
-  list-todos (domain: todo)
-
-Warnings: 0
-Errors: 0
-
-Dependency graph:
-  validation
-    └── create-todo
-    └── update-todo
+결과: 6개 통과, 0개 실패
 ```
+
+Dependencies are declared in each spec's frontmatter `depends` (for example `depends: [core/validation]` in create-todo
+and update-todo); `sdd impact core/validation` lists the specs that depend on it.
 
 ## Step 7: Implementation Plan
 
@@ -514,23 +512,25 @@ Say "Implement validation" to proceed.
 /sdd-status
 ```
 
+The skill runs `sdd status`. After the first two specs are implemented and a third is started (Korean; abridged):
+
 ```
-Project Status: todo-api
+📋 기능 목록:
+   ✅ validation (core/validation)
+   ✅ create-todo (todo/create-todo) — 작업 3/3
+   📝 delete-todo (todo/delete-todo)
+   🔨 get-todo (todo/get-todo) — 작업 0/3
+   📝 list-todos (todo/list-todos)
+   📝 update-todo (todo/update-todo)
 
-Specs: 6
-  Implemented: 2 (33%)
-  In Progress: 1 (17%)
-  Draft: 3 (50%)
-
-Domains:
-  core: 1/1 complete 100%
-  todo: 1/5 complete  20%
-
-Tests: 8/8 passed
-
-Next step:
-  -> Say "Implement get-todo"
+💡 다음 단계:
+   todo/delete-todo: 명세 완성 후 계획 작성 — sdd new plan todo/delete-todo (Claude Code /sdd-plan · Codex $sdd-plan)
+   todo/get-todo: 명세 완성 후 계획 작성 — sdd new plan todo/get-todo (Claude Code /sdd-plan · Codex $sdd-plan)
+   ...
 ```
+
+Icons follow the spec status (📝 draft, 🔨 implementing, ✅ implemented); `— 작업 n/m` counts completed tasks.
+The next step is computed per feature from its files, status and task progress.
 
 ## Check Domain Graph
 
@@ -538,23 +538,16 @@ Next step:
 /sdd-domain graph
 ```
 
+`sdd domain graph` prints the domain dependency graph (Mermaid by default):
+
 ```mermaid
 graph LR
-    subgraph core[core domain]
-        validation[validation ]
-    end
-
-    subgraph todo[todo domain]
-        create[create-todo ]
-        get[get-todo ]
-        update[update-todo ]
-        delete[delete-todo ]
-        list[list-todos ]
-    end
-
-    validation --> create
-    validation --> update
+  core["Common utilities and types"]
+  todo["Todo CRUD operations"]
+  todo -->|uses| core
 ```
+
+For spec-level dependencies use `sdd impact <spec> --graph`.
 
 ## Next Steps
 

@@ -191,7 +191,7 @@ git branch -d spec-bundle/payment-v2
 
 ```bash
 # Identify through impact analysis
-sdd impact billing/payment-gateway --code
+sdd impact billing/payment-gateway-v2 --code
 
 # Specify in footer
 Breaking-Spec: billing/checkout, billing/invoice

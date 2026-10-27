@@ -42,48 +42,45 @@ cd my-api
 sdd init
 ```
 
-```
-✅ SDD 프로젝트가 초기화되었습니다!
+출력(요약):
 
-생성된 항목:
-  📁 .sdd/specs/
-  📁 .sdd/changes/
-  📁 .sdd/archive/
-  📁 .sdd/templates/
-  📁 .claude/skills/      ← sdd-* 스킬 30개 (/sdd-*로 호출)
-  📁 .agents/skills/      ← Codex용 sdd-* 스킬 30개 ($sdd-*로 호출)
-  📁 .claude/agents/, .codex/agents/  ← sdd-* 서브에이전트
-  📄 .sdd/constitution.md
-  📄 AGENTS.md            ← SDD 지침 블록 (생성 또는 추가, 기존 내용 유지)
-  📄 CLAUDE.md            ← @AGENTS.md import (생성 또는 추가)
-
-기존 코드는 그대로 유지됩니다.
-다음 단계: Claude Code에서 /sdd-start 를 실행하세요.
 ```
+✓ SDD 프로젝트가 초기화되었습니다.
+
+ℹ 생성된 구조:
+• .sdd/
+  • constitution.md
+  • specs/
+  • changes/
+  • archive/
+  • templates/
+• .claude/ (Claude Code)
+  • skills/ (30개)
+  • agents/ (3개)
+• .agents/skills/ (Codex 스킬 30개)
+• .codex/agents/ (Codex 서브에이전트 3개)
+• AGENTS.md (SDD 워크플로우 지침 블록)
+• CLAUDE.md (AGENTS.md import)
+
+ℹ 다음 단계:
+• constitution.md를 수정하여 프로젝트 원칙을 정의하세요
+• /sdd-spec (Codex: $sdd-spec) 으로 첫 번째 기능 명세를 작성하세요
+```
+
+기존 코드는 그대로 유지됩니다. 기존 `AGENTS.md` / `CLAUDE.md`가 있으면 내용은 보존되고 SDD 블록만 추가됩니다.
 
 ### Claude Code에서 시작
 
-이제 Claude Code에서 프로젝트를 열고 `/sdd-start`를 실행합니다:
+이제 Claude Code(또는 Codex)에서 프로젝트를 열고 `/sdd-start`(`$sdd-start`)를 실행합니다:
 
 ```
 /sdd-start
 ```
 
-Claude가 기존 프로젝트를 분석합니다:
-
-```
-📂 프로젝트 상태
-
-✅ SDD 초기화됨
-📜 Constitution: 템플릿 (수정 필요)
-📋 스펙: 0개
-
-기존 코드베이스 감지:
-- 파일: 12개
-- 언어: JavaScript
-
-💡 기존 코드에서 스펙을 추출하려면 /sdd-reverse 를 실행하세요.
-```
+`/sdd-start`는 먼저 설정 상태(`.sdd/`, Git 저장소와 훅, CI 워크플로우, 기존 `src/`)를 확인합니다. 빠진 항목(훅, CI)이 있으면
+선택한 항목에 대해 설정 마법사를 실행하고(`sdd init`, `sdd git hooks install`, `sdd cicd setup github`), 설정이 모두
+끝난 뒤에야 다음 스킬을 추천합니다. 새 프로젝트면 `/sdd-spec`, 코드는 있고 스펙이 없는 프로젝트(여기가 해당)면
+`/sdd-reverse`입니다.
 
 ## Step 2: 구조 스캔
 
@@ -101,21 +98,21 @@ sdd reverse scan --json
 
 스캔은 파일 수, 소스 파일 수, 실제 라인 수, 언어 분포, 디렉터리 기반 제안 도메인(파일 목록 포함), 어떤 도메인에도 속하지 않는 파일을 보고합니다. 도메인을 생성하지 않으며 메타데이터 파일도 쓰지 않습니다.
 
-이 프로젝트의 출력(요약):
+이 프로젝트의 출력(요약. 도메인별 `files` 목록과 `languages`는 생략하고, 파일 수에는 `package.json`과 `sdd init`이 쓴 `AGENTS.md` / `CLAUDE.md`가 포함됩니다):
 
 ```json
 {
-  "summary": { "fileCount": 12, "sourceFileCount": 12, "lines": 640, "languages": { "javascript": 12 } },
+  "summary": { "fileCount": 12, "sourceFileCount": 9, "lines": 18, "languages": { "javascript": 9 } },
   "domains": [
     { "id": "controllers", "path": "src/controllers", "fileCount": 3 },
     { "id": "services", "path": "src/services", "fileCount": 3 },
-    { "id": "models", "path": "src/models", "fileCount": 2 },
-    { "id": "utils", "path": "src/utils", "fileCount": 1 }
+    { "id": "models", "path": "src/models", "fileCount": 2 }
   ],
-  "unassigned": []
+  "unassigned": ["src/utils/validation.js"]
 }
 ```
 
+`utils` 같은 범용 폴더는 도메인으로 제안되지 않으므로 `src/utils/validation.js`는 `unassigned`에 남습니다.
 제안 도메인은 디렉터리 구조를 따르므로 출발점으로만 사용합니다. Claude는 초안을 쓰기 전에 업무 의미 기준으로 다시 묶습니다(여기서는 `core`, `auth`, `user`, `order`). 필요하면 `--include`, `--exclude`, `--language`, `--depth`로 범위를 좁힙니다. 예: `sdd reverse scan src --exclude '*.test.js'`
 
 ## Step 3: 초안 작성 (AI)
@@ -243,52 +240,67 @@ sdd reverse finalize auth/login # 초안 하나
 /sdd-validate
 ```
 
-```
-✅ 검증 완료
-
-스펙: 8개
-도메인: 4개
-의존성: 유효
-
-경고: 2개
-  ⚠ login: 출력 타입 User가 core에 정의되지 않음
-  ⚠ create-order: 의존성 payment 누락 가능성
-
-오류: 0개
-```
-
-### 경고 해결
+`sdd validate`는 형식만 검사합니다(frontmatter, RFC 2119 키워드, GIVEN-WHEN-THEN, 플레이스홀더, constitution 버전).
+스펙이 코드와 맞는지는 판단하지 않습니다. 출력(초안에 `constitution_version`이 없으므로 해당 검사는 건너뜁니다):
 
 ```
-User: User 타입 스펙을 추가하고 경고 해결해줘
+ℹ 검증 중: ./.sdd/specs
+ℹ (Constitution 버전 확인 포함)
 
-Claude: 📝 스펙 추가
+✓ auth/login/spec.md
+✓ auth/logout/spec.md
+✓ auth/register/spec.md
+✓ order/create-order/spec.md
+✓ user/get-user/spec.md
 
-user-model 스펙을 생성합니다 (도메인: core):
+ℹ constitution_version이 없는 스펙 5개는 Constitution 버전 확인을 건너뛰었습니다 (현재 v1.0.0)
 
-  ---
-  id: user-model
-  title: "사용자 모델"
-  status: draft
-  created: 2026-10-27
-  domain: core
-  depends: []
-  ---
+결과: 5개 통과, 0개 실패
+```
 
-  # 사용자 모델
+### 공유 스펙 추가와 의존성 선언
 
-  interface User {
-    id: string;
-    email: string;
-    name: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }
+코드를 읽다가 Claude는 login과 get-user가 모두 `User`를 반환한다는 것을 발견하고, 새 `core` 도메인에 공유 스펙을
+추가합니다(`sdd domain create core`, `sdd domain link core user-model`). 이 스펙은 `sdd validate --strict`를 통과합니다:
 
-login의 frontmatter에 추가: depends: [core/user-model]
-(`sdd impact`는 `depends`만 의존성으로 인정하며, 본문에서 core/user-model을 언급하는 것은 의존성이 아닙니다)
+```markdown
+---
+id: user-model
+title: "사용자 모델"
+status: draft
+created: 2026-10-27
+domain: core
+depends: []
+---
 
-✅ 경고 해결됨
+# 사용자 모델
+
+> auth와 user 도메인이 공유하는 User 엔티티.
+
+## 요구사항
+
+### REQ-01: 사용자 구조
+
+시스템은 사용자를 `id`, `email`, `name`, `createdAt`, `updatedAt`으로 표현해야 한다(SHALL).
+
+## 시나리오
+
+### Scenario 1: 사용자 생성 (REQ-01)
+
+- **GIVEN** 유효한 이메일과 이름
+- **WHEN** 사용자를 생성하면
+- **THEN** 사용자에게 id와 두 타임스탬프가 설정된다
+```
+
+그런 다음 login의 frontmatter에 의존성을 선언합니다: `depends: [core/user-model]`. `sdd impact`는 `depends`만
+의존성으로 인정하며, 본문에서 `core/user-model`을 언급하는 것은 의존성이 아닙니다:
+
+```
+$ sdd impact core/user-model
+📊 영향도 분석: core/user-model
+
+⚠️  직접 영향 받는 스펙 (이 기능을 사용하는):
+  ├─ 🔴 auth/login (explicit)
 ```
 
 ## Step 8: 프로젝트 상태 확인
@@ -297,28 +309,34 @@ login의 frontmatter에 추가: depends: [core/user-model]
 /sdd-status
 ```
 
+스킬은 `sdd status`를 실행합니다. 확정 직후의 스펙은 아직 `draft`(📝)이므로, 각 기능에 대해 제안되는 다음 단계는
+계획 작성입니다:
+
 ```
-📊 프로젝트 현황: my-api
+📊 SDD 프로젝트 상태
+════════════════════════════════════════
 
-스펙: 9개
-  ✅ 구현됨 (레거시): 9개 (100%)
-  📋 테스트 추가 필요: 4개
-  📝 스펙 보강 필요: 2개
+📁 프로젝트 구조:
+   ✅ constitution.md
+   ✅ AGENTS.md
 
-도메인:
-  core: 2/2 완료 ████████████ 100%
-  auth: 3/3 완료 ████████████ 100%
-  user: 2/3 완료 ████████░░░░ 67%
-  order: 2/4 완료 ██████░░░░░░ 50%
+📋 기능 목록:
+   📝 User Login (auth/login)
+   📝 User Logout (auth/logout)
+   📝 User Registration (auth/register)
+   📝 Create Order (order/create-order)
+   📝 Get User (user/get-user)
 
-초안 (미확정): 4개
-  → sdd reverse review --list 로 검토 계속
+🔀 현재 브랜치: master
 
-다음 추천 작업:
-  1. 남은 초안 검토: sdd reverse review --list
-  2. 테스트 추가: "auth/login 테스트 작성해줘"
-  3. 새 기능: /sdd-spec
+💡 다음 단계:
+   auth/login: 명세 완성 후 계획 작성 — sdd new plan auth/login (Claude Code /sdd-plan · Codex $sdd-plan)
+   auth/logout: 명세 완성 후 계획 작성 — sdd new plan auth/logout (Claude Code /sdd-plan · Codex $sdd-plan)
+   ...
 ```
+
+확정되지 않은 초안은 여기에 표시되지 않으므로 `sdd reverse review --list`로 확인하세요. 이미 존재하는 코드라면 계획과
+작업 분해를 건너뛰고 상태를 바로 기록할 수 있습니다(다음 단계).
 
 ## Step 9: 점진적 개선
 
@@ -466,59 +484,40 @@ sdd sync --ci --threshold 80      # 80% 미만이면 종료 코드 2로 실패
 ```
 === SDD Sync: 스펙-코드 동기화 검증 ===
 
-스펙: 8개, 요구사항: 21개
+스펙: 6개, 요구사항: 11개
 
-✓ 구현됨 (18/21)
-  - REQ-01: Token issuance (src/auth/login.ts:12)
+✓ 구현됨 (3/11)
+  - auth/login#REQ-01: Main behavior (test/auth.test.js:1)
+  - auth/login#REQ-02: Error handling (src/controllers/authController.js:1)
+  - auth/register#REQ-01: Main behavior (src/controllers/authController.js:2)
+
+✗ 미구현 (8/11)
+  - auth/logout#REQ-01: Main behavior
   ...
 
-✗ 미구현 (3/21)
-  - REQ-03: Password check
-
-동기화율: 86% (18/21)
+동기화율: 27.27% (3/11)
 ```
+
+(스펙마다 요구사항이 두 개씩 정의된 프로젝트에서 실제로 실행한 결과이며, 아직 `@spec` 참조가 세 개뿐입니다.)
 
 빠진 `@spec` 참조를 추가하거나, 코드가 맞다면 스펙을 고치세요. 한정하지 않은 `REQ-01`은 그 ID를 가진 스펙이
 정확히 하나일 때만 인정되므로 `<domain>/<feature>#`로 스펙을 한정해 참조하세요.
 
 ### 도메인 그래프
 
-```
-/sdd-domain graph
-```
+도메인 의존성을 선언한 뒤(`sdd domain depends auth --on core` 등) 그래프를 출력합니다
+(`/sdd-domain graph` 또는 터미널에서 `sdd domain graph`):
 
 ```mermaid
-graph TB
-    subgraph core[core 도메인]
-        validation[validation ✅]
-        user-model[user-model ✅]
-    end
-
-    subgraph auth[auth 도메인]
-        login[login ✅]
-        register[register ✅]
-        logout[logout ✅]
-        password-reset[password-reset 📝]
-    end
-
-    subgraph user[user 도메인]
-        get-user[get-user ✅]
-        update-user[update-user ⚠]
-        delete-user[delete-user 📝]
-    end
-
-    subgraph order[order 도메인]
-        create-order[create-order ⚠]
-        get-order[get-order ✅]
-        list-orders[list-orders 📝]
-        update-order[update-order 📝]
-    end
-
-    core --> auth
-    core --> user
-    core --> order
-    auth --> user
-    auth --> order
+graph LR
+  auth["auth 도메인 (reverse finalize로 등록)"]
+  order["order 도메인 (reverse finalize로 등록)"]
+  user["user 도메인 (reverse finalize로 등록)"]
+  core["core domain"]
+  auth -->|uses| core
+  order -->|uses| core
+  order -->|uses| auth
+  user -->|uses| core
 ```
 
 ## 다음 단계

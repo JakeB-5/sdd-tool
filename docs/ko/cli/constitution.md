@@ -33,18 +33,18 @@ sdd constitution bump --minor -m "보안 원칙 추가"
 
 ## 헌법(Constitution)이란?
 
-프로젝트의 핵심 원칙과 규칙을 정의한 문서입니다. 모든 스펙은 헌법을 준수해야 합니다.
+프로젝트의 핵심 원칙과 규칙을 정의한 문서입니다. 스펙은 `constitution_version`으로 이 문서의 버전을 참조하며,
+`sdd validate`가 둘을 비교합니다([sdd validate](./validate) 참고).
 
 ### 구성 요소
 
-- **Core Principles**: 핵심 원칙 (불변)
-- **Technical Principles**: 기술 원칙
-- **Forbidden**: 금지 사항
-- **Guidelines**: 권장 사항
+- **핵심 원칙** (`## 핵심 원칙`): 번호가 붙은 `### N. 제목` 항목과 `-` 규칙
+- **기술 스택** (`## 기술 스택`)과 **품질 기준** (`## 품질 기준`): `-` 줄
+- **금지 사항** (`## 금지 사항`): `SHALL NOT` / `MUST NOT`이 들어 있는 규칙
 
 ## 예시
 
-### 헌법 표시
+### 헌법 조회
 
 ```bash
 sdd constitution show
@@ -52,20 +52,19 @@ sdd constitution show
 
 출력:
 ```
-=== Constitution: my-project ===
+ℹ Constitution: My Project
+ℹ 버전: 1.0.0
+ℹ 설명: One-line description of the project's principles.
 
-📋 핵심 원칙 (Core Principles):
-  • 품질 우선: 코드 품질은 타협 불가
-  • 명세 우선: 코드보다 명세가 먼저
+ℹ 핵심 원칙:
+• P1. User First
+  • User experience SHALL be the basis of all decisions
+• P2. Data Protection
+  • User data safety SHALL be the top priority
 
-🔧 기술 원칙 (Technical Principles):
-  • TypeScript 사용
-  • ESLint + Prettier 적용
-  • 테스트 커버리지 80% 이상
-
-🚫 금지 사항 (Forbidden):
-  • any 타입 사용 금지
-  • console.log 프로덕션 코드 금지
+ℹ 금지 사항:
+• The `any` type SHALL NOT be used
+• Hardcoded secrets MUST NOT be committed
 ```
 
 ### 헌법 검증
@@ -76,34 +75,24 @@ sdd constitution validate
 
 출력:
 ```
-🔍 헌법 검증 중...
-
-✅ 필수 섹션 존재
-✅ RFC 2119 키워드 사용
-✅ 원칙 정의 완료
-
-검증 결과: 유효함
+✓ Constitution 검증 통과
+ℹ 프로젝트: My Project
+ℹ 버전: 1.0.0
+ℹ 원칙 수: 2
+ℹ 금지 사항 수: 2
 ```
 
-### 헌법 변경 이력
+파일을 파싱할 수 없으면(예: `# Constitution: <name>` 제목 없음) 종료 코드 2로 끝납니다.
+
+### 버전 올리기와 이력 조회
 
 ```bash
+sdd constitution bump --minor -m "테스트 커버리지 기준 추가"
+# ✓ Constitution 버전 업데이트: 1.0.0 → 1.1.0
 sdd constitution history
 ```
 
-출력:
-```
-=== 헌법 변경 이력 ===
-
-v1.2.0 (2025-01-05)
-  - 테스트 커버리지 기준 70% → 80% 상향
-
-v1.1.0 (2024-12-20)
-  - ESLint flat config 마이그레이션
-
-v1.0.0 (2024-12-01)
-  - 초기 헌법 정의
-```
+`bump`는 frontmatter의 `version:` / `updated:`를 갱신하고 변경 내용을 `.sdd/CHANGELOG.md`에 기록합니다.
 
 ## 헌법 파일 구조
 
@@ -116,31 +105,30 @@ updated: 2025-01-07
 
 # Constitution: my-project
 
-## Core Principles
+> 한 줄 설명.
 
-프로젝트의 핵심 원칙을 정의합니다.
+## 핵심 원칙
 
-### 품질 우선
+### 1. 품질 우선
 
-- 코드 품질은 타협할 수 없습니다(SHALL)
-- 테스트 없는 코드는 배포하지 않습니다(MUST)
+- 코드 품질은 타협할 수 없다(SHALL)
+- 테스트 없는 코드는 배포해서는 안 된다(SHALL NOT)
 
-## Technical Principles
+## 기술 스택
 
-기술적 결정 사항을 정의합니다.
+- 언어: TypeScript
 
-### 언어 및 도구
+## 품질 기준
 
-- TypeScript를 사용해야 합니다(SHALL)
-- ESLint와 Prettier를 적용해야 합니다(SHOULD)
+- 테스트 커버리지는 80% 이상이어야 한다(SHALL)
 
-## Forbidden
+## 금지 사항
 
-금지되는 패턴을 명시합니다.
-
-- any 타입 사용(SHALL NOT)
-- console.log 프로덕션 코드(MUST NOT)
+- `any` 타입을 사용해서는 안 된다(SHALL NOT)
+- 프로덕션 코드에 console.log를 남겨서는 안 된다(MUST NOT)
 ```
+
+자세한 작성법은 [Constitution 작성 가이드](/ko/spec-writing/constitution)를 참고하세요.
 
 ## 관련 문서
 

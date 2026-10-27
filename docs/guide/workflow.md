@@ -42,10 +42,12 @@ The steps below are skills: type `/sdd-spec` in Claude Code, `$sdd-spec` in Code
 
 ### 1. /sdd-start
 
-Analyzes project status and guides the next action.
+Checks the project setup and guides the next action.
 
-- **New project**: Recommends Constitution creation
-- **Existing project**: Provides workflow selection menu
+- Checks `.sdd/`, the Git repository and hooks, the CI workflow and whether source code exists
+- Runs a setup wizard first for anything missing (`sdd init`, `sdd git hooks install`, `sdd cicd setup github`)
+- Only then recommends the next skill: `/sdd-spec` for a new (greenfield) project, `/sdd-reverse` for existing code
+  without specs (brownfield), `/sdd-status` or `/sdd-implement` when specs already exist
 
 ### 2. /sdd-constitution
 

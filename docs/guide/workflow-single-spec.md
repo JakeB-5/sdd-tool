@@ -108,7 +108,7 @@ sdd validate .sdd/specs/auth/user-login/spec.md
 git add .
 git commit -m "spec-update(auth/user-login): address review feedback
 
-- Clarified REQ-003
+- Clarified REQ-03
 - Modified scenario 2"
 
 git push
@@ -196,9 +196,8 @@ sdd validate .sdd/specs/auth/user-login/spec.md
 
 # Common causes:
 # - Missing uppercase SHALL/MUST/SHOULD keywords
-# - Unfilled template placeholders ([요구사항 제목], {{...}})
-# - GIVEN-WHEN-THEN format errors
-# - Dependency spec doesn't exist
+# - GIVEN-WHEN-THEN format errors (no scenario)
+# And with --strict: unfilled template placeholders ([요구사항 제목], etc.)
 ```
 
 ### Commit Hook Failure

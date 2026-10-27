@@ -60,18 +60,23 @@ Core layer (core)
 # domains.yml
 domains:
   core:
+    description: "Core functionality"
     specs: [data-model, validation, utils]
 
   auth:
+    description: "Authentication"
     dependencies:
       uses: [core]
     specs: [user-login, oauth, session]
 
   order:
+    description: "Orders and payments"
     dependencies:
       uses: [core, auth]
     specs: [create-order, payment, refund]
 ```
+
+`description` is required for every domain; `specs` and `dependencies` are optional.
 
 ## Context Strategy
 
@@ -158,13 +163,20 @@ rules:
 # domains.yml
 domains:
   auth:
+    description: "Authentication"
     owner: "@security-team"
-    reviewers: ["@lead-dev"]
+    defaults:
+      reviewers: ["@lead-dev"]
 
   payment:
+    description: "Payments"
     owner: "@payment-team"
-    reviewers: ["@finance-lead", "@security-team"]
+    defaults:
+      author: "@payment-team"
+      reviewers: ["@finance-lead", "@security-team"]
 ```
+
+`owner` and `tags` sit directly on the domain; `reviewers` and `author` are only valid inside `defaults`.
 
 ### Merge Conflict Prevention
 

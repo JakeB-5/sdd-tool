@@ -42,10 +42,12 @@ SDD Tool의 전체 워크플로우를 이해합니다.
 
 ### 1. /sdd-start
 
-프로젝트 상태를 분석하고 다음 작업을 안내합니다.
+프로젝트 설정을 확인하고 다음 작업을 안내합니다.
 
-- **신규 프로젝트**: Constitution 작성 권장
-- **기존 프로젝트**: 워크플로우 선택 메뉴 제공
+- `.sdd/`, Git 저장소와 훅, CI 워크플로우, 소스 코드 유무를 확인
+- 빠진 항목이 있으면 먼저 설정 마법사를 실행 (`sdd init`, `sdd git hooks install`, `sdd cicd setup github`)
+- 그 다음에야 다음 스킬을 추천: 새(그린필드) 프로젝트는 `/sdd-spec`, 스펙 없는 기존 코드(브라운필드)는 `/sdd-reverse`,
+  스펙이 이미 있으면 `/sdd-status` 또는 `/sdd-implement`
 
 ### 2. /sdd-constitution
 

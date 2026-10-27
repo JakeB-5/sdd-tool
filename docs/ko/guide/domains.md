@@ -146,10 +146,13 @@ graph LR
 
 ### 순환 의존성 감지
 
-순환 의존성은 자동으로 감지됩니다:
+순환 의존성은 `sdd domain validate`가 감지합니다(종료 코드 2):
 
 ```
-❌ 순환 의존성 감지: auth → order → payment → auth
+❌ 도메인 검증 실패
+
+📛 에러 (1개):
+  • [CIRCULAR_DEPENDENCY] 순환 의존성이 발견되었습니다: auth → order → payment → auth (uses)
 ```
 
 ## 도메인 검증
