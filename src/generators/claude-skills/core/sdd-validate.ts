@@ -57,8 +57,7 @@ referenced by code or tests (\`@spec <domain>/<feature>#REQ-xx\`).
 
 Recommended workflow after validation passes:
 1. \`git add .sdd/\` — stage spec changes
-2. \`git commit -m "spec: <description>"\` — commit (the SDD commit-msg hook accepts
-   \`spec\`, \`spec-update\`, \`spec-status\`, \`plan\`, \`tasks\`, \`constitution\`, \`sdd-config\`, or a Conventional Commits type)
+2. \`git commit -m "spec: <description>"\` — commit (commit types: see the AGENTS.md SDD block)
 3. Open a PR and request review
 `,
 };

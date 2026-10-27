@@ -9,6 +9,7 @@ import {
   getInitDirectories,
   generateConstitutionContent,
   generateSpecTemplate,
+  generateTasksTemplate,
   generateGitHubValidateWorkflow,
   generateGitHubLabelerWorkflow,
   executeInit,
@@ -179,6 +180,31 @@ describe('generateSpecTemplate', () => {
     expect(template).toContain('**GIVEN**');
     expect(template).toContain('**WHEN**');
     expect(template).toContain('**THEN**');
+  });
+
+  it('시나리오 이름에 다루는 요구사항을 적는다', () => {
+    expect(generateSpecTemplate()).toContain('### Scenario 1: {{SCENARIO_NAME}} (REQ-01)');
+  });
+});
+
+describe('generateTasksTemplate', () => {
+  it('sdd new tasks와 같은 작업 구조를 사용한다', () => {
+    const template = generateTasksTemplate();
+
+    expect(template).toContain('### {{FEATURE_ID}}-task-001: {{TASK_TITLE}}');
+    expect(template).toContain('- **상태:** 대기');
+    expect(template).toContain('- **우선순위:** 🔴 HIGH');
+    expect(template).toContain('- **의존성:** 없음');
+    expect(template).toContain('- **의존성:** {{FEATURE_ID}}-task-001');
+    expect(template).toContain('## 진행 상황');
+  });
+
+  it('테스트 우선이며 사후 테스트 작업과 마커 범례가 없다', () => {
+    const template = generateTasksTemplate();
+
+    expect(template).toContain('**설명:** 테스트 우선');
+    expect(template).not.toContain('테스트 작성\n');
+    expect(template).not.toMatch(/\[P\d\]|\[→T\]|\[US\]|마커 범례/);
   });
 });
 

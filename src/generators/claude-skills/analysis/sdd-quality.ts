@@ -61,14 +61,17 @@ sdd quality <specId> --json
 
 | Criterion | Points | What earns them |
 |-----------|--------|-----------------|
-| RFC 2119 keywords | 10 | SHALL, MUST, SHOULD, MAY (and NOT forms) used in the spec |
-| GIVEN-WHEN-THEN scenarios | 20 | Complete GIVEN/WHEN/THEN scenarios (at least two) |
-| Requirement clarity | 15 | A requirements section and REQ-xx ids (\`### REQ-xx: Title\` headings) |
-| Dependencies | 10 | A \`depends\` field in the frontmatter (\`depends: []\` when there are none) |
-| Document structure | 15 | Title (H1), requirements section, scenarios, plus overview, constraints, and notes sections |
+| RFC 2119 keywords | 10 | 2 per distinct keyword used (SHALL, MUST, SHOULD, MAY, SHALL NOT, MUST NOT, SHOULD NOT) |
+| GIVEN-WHEN-THEN scenarios | 20 | 5 per complete GIVEN/WHEN/THEN scenario, so 4 scenarios give full score |
+| Requirement clarity | 15 | 5 for a requirements section + 2 per REQ-xx mention (max 10) |
+| Dependencies | 10 | 10 for a \`depends\` field (\`depends: []\` when there are none), 5 without it |
+| Document structure | 15 | 4 each for title (H1), requirements section, scenarios; 1 each for overview, constraints, notes sections |
 | Constitution | 10 | A \`constitution_version\` field (full score when the project has no constitution) |
-| Links | 10 | Markdown links to related specs or documents |
-| Metadata | 10 | \`id\`, \`title\`, \`status\`, plus \`created\` / \`updated\` / \`author\` / \`version\` |
+| Links | 10 | 5 + 1 per Markdown link |
+| Metadata | 10 | 2 each for \`id\`, \`title\`, \`status\`; 1 each for \`created\`, \`updated\`, \`author\`, \`version\` |
+
+Quality counts every \`REQ-xx\` mention, while \`/sdd-sync\` counts only requirements defined by a
+\`### REQ-xx: Title\` heading; a good score does not mean the requirements are traceable.
 
 Scenarios count whether they sit in one scenarios section (the layout generated for a new spec) or under
 each requirement (\`#### Scenario:\`); keep the layout the spec already uses.

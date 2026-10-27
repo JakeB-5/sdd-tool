@@ -20,6 +20,7 @@ import { Result, success, failure } from '../../types/index.js';
 import { analyzeProject, generateSuggestions, formatAnalysis } from '../../utils/project-analyzer.js';
 import { setupGit } from './git.js';
 import { getToolVersion } from '../../utils/version.js';
+import { generateTasks } from '../../core/new/task-generator.js';
 
 /**
  * 초기화 옵션
@@ -483,7 +484,7 @@ constitution_version: "{{CONSTITUTION_VERSION}}"
 
 ## 시나리오
 
-### Scenario 1: {{SCENARIO_NAME}}
+### Scenario 1: {{SCENARIO_NAME}} (REQ-01)
 
 - **GIVEN** {{GIVEN_CONDITION}}
 - **WHEN** {{WHEN_ACTION}}
@@ -735,60 +736,24 @@ created: ${today}
 /**
  * Tasks 템플릿 생성
  */
-function generateTasksTemplate(): string {
-  const today = new Date().toISOString().split('T')[0];
-
-  return `---
-spec: {{SPEC_ID}}
-created: ${today}
----
-
-# Tasks: {{FEATURE_NAME}}
-
-## 개요
-
-- 총 작업 수: N개
-- 예상 복잡도: 낮음/중간/높음
-
----
-
-## 작업 목록
-
-### Phase 1: 기반 구축
-
-- [ ] [P1] 작업 1 설명
-- [ ] [P1] 작업 2 설명
-
-### Phase 2: 핵심 구현
-
-- [ ] [P2] 작업 3 설명
-- [ ] [P2] 작업 4 설명
-
-### Phase 3: 마무리
-
-- [ ] [P3] 테스트 작성
-- [ ] [P3] 문서화
-
----
-
-## 의존성 그래프
-
-\`\`\`mermaid
-graph LR
-    A[작업 1] --> B[작업 2]
-    B --> C[작업 3]
-\`\`\`
-
----
-
-## 마커 범례
-
-| 마커 | 의미 |
-|------|------|
-| [P1-3] | 우선순위 |
-| [→T] | 테스트 필요 |
-| [US] | 불확실/검토 필요 |
-`;
+export function generateTasksTemplate(): string {
+  // Same structure as `sdd new tasks` (parseable task headings, test-first tasks)
+  const testFirst =
+    '테스트 우선: 다루는 시나리오(REQ-xx)를 실패하는 테스트로 먼저 작성한 뒤, 테스트를 통과하도록 구현';
+  return generateTasks({
+    featureId: '{{FEATURE_ID}}',
+    featureTitle: '{{FEATURE_NAME}}',
+    tasks: [
+      { title: '{{TASK_TITLE}}', priority: 'high', description: testFirst },
+      {
+        title: '{{TASK_TITLE}}',
+        priority: 'medium',
+        description: testFirst,
+        dependencies: ['{{FEATURE_ID}}-task-001'],
+      },
+      { title: '문서 업데이트', priority: 'low' },
+    ],
+  });
 }
 
 /**

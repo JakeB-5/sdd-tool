@@ -138,7 +138,7 @@ CLAUDE.md              # Claude Code용, @AGENTS.md import
 ### 신규 기능 워크플로우
 
 1. \`sdd-spec\` 스킬 - 스펙 초안 작성 (CLI: \`sdd new <domain>/<feature> --all\`)
-   - spec.md, plan.md, tasks.md, checklist.md 생성. 없는 도메인은 자동 생성, 도메인 생략 시 \`common\`
+   - spec.md, plan.md, tasks.md, checklist.md 생성. 없는 도메인은 자동 생성, 도메인 생략 시 \`common\` (현재 컨텍스트의 활성 도메인이 하나면 그 도메인)
    - 기본으로 \`feature/<feature>\` 브랜치를 만들고 전환합니다. 이미 작업 브랜치 위라면 \`--no-branch\`
    - 기존 파일은 덮어쓰지 않습니다(\`--force\`는 처음부터 다시 생성할 때만)
 2. \`sdd-plan\` 스킬 - 구현 계획 수립 (이미 생성된 plan.md를 편집)
@@ -218,7 +218,7 @@ sdd validate --strict    # 경고도 에러로 처리
 tasks.md의 작업 상태와 spec.md의 \`status\`는 직접 고치지 말고 CLI로 바꿉니다 (진행 상황 집계도 함께 갱신됨).
 
 \`\`\`bash
-sdd new task <feature> <task-id> in-progress   # pending | in-progress | completed | blocked (대기 | 진행 중 | 완료 | 차단됨)
+sdd new task <feature> <task-id> in-progress   # pending | in-progress | completed | blocked (한글: 대기 | "진행 중" | 완료 | 차단됨, 공백 값은 따옴표)
 sdd new task <feature> <task-id> completed
 sdd new status <feature> implemented            # draft | review | approved | planned | tasked | implementing | implemented | deprecated
 \`\`\`
@@ -226,6 +226,7 @@ sdd new status <feature> implemented            # draft | review | approved | pl
 커밋 메시지는 commit-msg 훅 형식 \`<type>(<scope>): <message>\`를 따릅니다.
 type은 스펙 타입 \`spec|spec-update|spec-status|plan|tasks|constitution|sdd-config\` 또는
 Conventional Commits 타입 \`feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert\`입니다.
+scope는 생략할 수 있고, \`Merge ...\` / \`Revert ...\` 메시지도 허용됩니다. 작업 커밋 예: \`feat(<feature>): <task-id> - <설명>\`
 
 ---
 

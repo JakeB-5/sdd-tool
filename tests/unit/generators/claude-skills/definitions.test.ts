@@ -92,7 +92,10 @@ describe('generateClaudeSkills', () => {
 
   it('every skill content is English only (no Korean characters)', () => {
     for (const skill of skills) {
-      expect(skill.content).not.toMatch(KOREAN_REGEX);
+      // sdd-tasks quotes the Korean field labels `sdd new tasks` writes, inside code fences only
+      const prose =
+        skill.name === 'sdd-tasks' ? skill.content.replace(/```[\s\S]*?```/g, '') : skill.content;
+      expect(prose, skill.name).not.toMatch(KOREAN_REGEX);
     }
   });
 

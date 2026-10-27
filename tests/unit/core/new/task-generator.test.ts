@@ -96,6 +96,17 @@ describe('generateTasks', () => {
     expect(content).toContain('**의존성:** other-task-001, other-task-002');
   });
 
+  it('의존성이 없으면 "없음"으로 명시하고 파싱 시 빈 배열이다', () => {
+    const content = generateTasks({
+      featureId: 'test',
+      featureTitle: '테스트',
+      tasks: [{ title: '작업', priority: 'high' }],
+    });
+
+    expect(content).toContain('- **의존성:** 없음');
+    expect(parseTasks(content)[0].dependencies).toEqual([]);
+  });
+
   it('다음 단계는 현재 스킬/CLI 이름만 안내한다', () => {
     const content = generateTasks({ featureId: 'test', featureTitle: '테스트', tasks: [] });
 
@@ -199,6 +210,26 @@ feature: auth
     expect(tasks[0].description).toBe('폼 구현');
     expect(tasks[1].status).toBe('in_progress');
     expect(tasks[1].priority).toBe('medium');
+  });
+
+  it('영문 Description 라벨과 빈 설명을 처리한다', () => {
+    const content = `### auth-task-001: Login form
+
+- **Status:** pending
+- **Description:** Build the form\r
+- **Dependencies:** none
+
+### auth-task-002: Validation
+
+- **상태:** 대기
+- **설명:**
+- **의존성:** 없음
+`;
+
+    const tasks = parseTasks(content);
+
+    expect(tasks[0].description).toBe('Build the form');
+    expect(tasks[1].description).toBeUndefined();
   });
 
   it('관련 파일을 파싱한다', () => {

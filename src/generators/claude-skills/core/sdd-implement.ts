@@ -71,18 +71,15 @@ A bare \`REQ-01\` is ambiguous once several specs define \`REQ-01\` and is then 
 
 ## Commit Messages
 
-The SDD commit-msg hook accepts only \`<type>(<scope>): <message>\` (scope optional), where \`<type>\` is one of:
-
-- Conventional Commits: \`feat\`, \`fix\`, \`docs\`, \`style\`, \`refactor\`, \`perf\`, \`test\`, \`build\`, \`ci\`, \`chore\`, \`revert\`
-- Spec commits: \`spec\`, \`spec-update\`, \`spec-status\`, \`plan\`, \`tasks\`, \`constitution\`, \`sdd-config\`
-
-\`Merge ...\` and \`Revert ...\` messages are also accepted.
+The SDD commit-msg hook accepts \`<type>(<scope>): <message>\` with a Conventional Commits type
+(\`feat\`, \`fix\`, …) or a spec type (\`spec\`, \`plan\`, \`tasks\`, …); the full list is in the AGENTS.md SDD block.
 
 ## Delegation
 
 SDD setup also generates the \`sdd-implementer\` subagent. For a self-contained task
-you may delegate it to that subagent (name it and pass the feature id and task id);
-review its changes and test results before marking the task completed.
+you may delegate it to that subagent (name it and pass the feature id and task id).
+The subagent sets the task to \`in-progress\` and reports; it does not mark it completed or commit.
+Review its changes and test results, then mark the task completed and commit (workflow steps 6-7).
 
 ## Completion Criteria
 

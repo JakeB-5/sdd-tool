@@ -78,8 +78,9 @@ If no task id is given, pick the first task in \`tasks.md\` that is not complete
   and in the test titles (\`it('<domain>/<feature>#REQ-xx: ...')\`); a bare \`REQ-xx\` is ignored by
   \`sdd sync\` when several specs define that id.
 - Run the project's tests (at least the ones related to your change) and make sure they pass.
-- Set the task status with \`sdd new task <feature> <task-id> in-progress\` when you start and
-  \`sdd new task <feature> <task-id> completed\` only when its tests pass; do not hand-edit tasks.md statuses.
+- When you start, set the task status with \`sdd new task <feature> <task-id> in-progress\`
+  (do not hand-edit tasks.md statuses). Do not mark it completed: the caller reviews your
+  report, marks the task completed, and commits.
 - Do not commit, push, or change branches unless the caller asks.
 
 ## Report

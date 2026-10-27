@@ -38,7 +38,8 @@ sdd new <domain>/<feature-id> --all
 \`\`\`
 
 - Creates \`.sdd/specs/<domain>/<feature-id>/\` with \`spec.md\`, \`plan.md\`, \`tasks.md\`, and \`checklist.md\`
-- A missing domain is created automatically (a notice is printed); without a domain the feature goes under \`common\`
+- A missing domain is created automatically (a notice is printed); without a domain the feature goes under
+  \`common\`, or under the single active domain of the current context (\`/sdd-context\`) if one is set
 - By default \`sdd new\` also creates and switches to a \`feature/<feature-id>\` git branch from the current one.
   Add \`--no-branch\` when you are already on a working branch (e.g. several features in one branch),
   otherwise each new feature branches off the previous feature's branch

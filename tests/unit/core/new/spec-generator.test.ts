@@ -22,6 +22,8 @@ describe('generateSpec', () => {
     expect(content).toContain('status: draft');
     expect(content).toContain('# 로그인 기능');
     expect(content).toContain('사용자 로그인 기능을 제공합니다.');
+    // Placeholder scenario names the requirement it covers
+    expect(content).toContain('### Scenario 1: [시나리오명] (REQ-01)');
   });
 
   it('따옴표와 콜론이 포함된 제목을 YAML로 안전하게 기록한다', () => {

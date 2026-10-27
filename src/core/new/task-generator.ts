@@ -72,10 +72,9 @@ ${task.files.map(f => `  - \`${f}\``).join('\n')}
 `;
     }
 
-    if (task.dependencies?.length) {
-      content += `- **의존성:** ${task.dependencies.join(', ')}
+    // Always written so every task states its dependencies (`없음` = none)
+    content += `- **의존성:** ${task.dependencies?.length ? task.dependencies.join(', ') : '없음'}
 `;
-    }
 
     content += '\n';
   });
@@ -116,6 +115,10 @@ const STATUS_LINE_PATTERN = new RegExp(`\\*\\*(상태|status)${LABEL_END}[ \\t]*
 const PRIORITY_LINE_PATTERN = new RegExp(
   `\\*\\*(?:우선순위|priority)${LABEL_END}[ \\t]*(?:[🔴🟡🟢][ \\t]*)?([A-Za-z가-힣]+)`,
   'iu'
+);
+const DESCRIPTION_LINE_PATTERN = new RegExp(
+  `\\*\\*(?:설명|description)${LABEL_END}[ \\t]*([^\\r\\n]*)`,
+  'i'
 );
 const DEPENDENCIES_LINE_PATTERN = new RegExp(
   `\\*\\*(?:의존성|dependencies)${LABEL_END}[ \\t]*([^\\r\\n]*)`,
@@ -193,8 +196,8 @@ export function parseTasks(content: string): TaskItem[] {
     }
 
     // 설명 추출
-    const descMatch = body.match(/\*\*설명:\*\*\s*([^\n]+)/);
-    const description = descMatch ? descMatch[1] : undefined;
+    const descMatch = body.match(DESCRIPTION_LINE_PATTERN);
+    const description = descMatch ? descMatch[1].trim() || undefined : undefined;
 
     // 파일 추출
     const filesMatch = body.match(/\*\*관련 파일:\*\*\s*\n([\s\S]*?)(?=\n-\s*\*\*|\n\n|$)/);
