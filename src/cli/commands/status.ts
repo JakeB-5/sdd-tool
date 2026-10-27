@@ -254,6 +254,14 @@ export function getStatusIcon(status: string): string {
 }
 
 /**
+ * 대기 중인 변경 한 줄 표시
+ */
+export function formatPendingChange(change: PendingChange): string {
+  const title = change.title ? `: ${change.title}` : '';
+  return `${change.id}${title} (${change.status})`;
+}
+
+/**
  * status 명령어 등록
  */
 export function registerStatusCommand(program: Command): void {
@@ -380,7 +388,7 @@ function printStatus(status: ProjectStatus, verbose?: boolean): void {
   if (status.pendingChanges.length > 0) {
     console.log('📝 대기 중인 변경:');
     for (const change of status.pendingChanges) {
-      console.log(`   - ${change}`);
+      console.log(`   - ${formatPendingChange(change)}`);
     }
     console.log('');
   }
